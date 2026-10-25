@@ -1,0 +1,211 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(8 8 8 / 0.5) transparent;
+}
+
+/* the story moves a screen at a time: each step is a snap point; the wheel is never captured */
+html.is-home {
+  scroll-snap-type: y mandatory;
+}
+@media (max-width: 860px), (pointer: coarse) {
+  html.is-home {
+    scroll-snap-type: y proximity;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--yellow);
+  color: var(--black);
+  font-family: var(--font);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  font-kerning: normal;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+html.menu-open body {
+  overflow: hidden;
+}
+
+img,
+video,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+::selection {
+  background: var(--black);
+  color: var(--yellow);
+}
+
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* every measurement, large or small, in the one face, with figures that line up */
+.num {
+  font-family: var(--font);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ---- pills: every control is one shape ---------------------------------------------------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 46px;
+  padding: 0 22px;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius);
+  background: none;
+  font-size: var(--t-small);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--d-fast) var(--ease-out),
+    color var(--d-fast) var(--ease-out),
+    border-color var(--d-fast) var(--ease-out);
+}
+.on-yellow .pill--line:hover,
+.on-light .pill--line:hover {
+  background: var(--black);
+  color: var(--yellow);
+  border-color: var(--black);
+}
+.on-black .pill--line:hover {
+  background: var(--yellow);
+  color: var(--black);
+  border-color: var(--yellow);
+}
+.pill--solid {
+  background: var(--black);
+  border-color: var(--black);
+  color: var(--yellow);
+}
+.pill--solid:hover {
+  background: transparent;
+  color: var(--black);
+}
+.on-black .pill--solid {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: var(--black);
+}
+.on-black .pill--solid:hover {
+  background: transparent;
+  color: var(--yellow);
+}
+.pill--ink {
+  min-height: 56px;
+  padding: 0 28px;
+  background: var(--black);
+  border-color: var(--black);
+  color: var(--yellow);
+  font-size: var(--t-body);
+}
+.pill--ink:hover {
+  background: transparent;
+  color: var(--black);
+}
+
+.round {
+  display: inline-grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  transition:
+    background-color var(--d-fast) var(--ease-out),
+    color var(--d-fast) var(--ease-out);
+}
+.round:hover {
+  background: var(--black);
+  color: var(--yellow);
+}
+
+/* ---- review notes (?review) ---------------------------------------------------------------- */
+
+.review {
+  display: block;
+  margin-top: var(--s-1);
+  padding: 2px 6px;
+  border: 1px dashed currentColor;
+  font-family: var(--font);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  line-height: 1.4;
+  color: #b04a00;
+}
+.on-black .review {
+  color: #ffb36b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

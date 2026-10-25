@@ -1,0 +1,6 @@
+node_modules
+dist
+.DS_Store
+*.tsbuildinfo
+# the client's raw originals: large, partly third-party; the site uses web copies in public/
+assets/

@@ -1,0 +1,659 @@
+/* ---- grounds ------------------------------------------------------------------------------- */
+
+.on-yellow {
+  --fg: var(--black);
+  --fg-2: var(--on-yellow-2);
+  --accent: var(--black);
+  --line: rgb(8 8 8 / 0.22);
+  color: var(--black);
+}
+/* on black the type is yellow, not white: the brand inverted */
+.on-black {
+  --fg: var(--yellow);
+  --fg-2: var(--on-dark-2);
+  --accent: var(--yellow);
+  --line: rgb(253 208 1 / 0.22);
+  color: var(--yellow);
+}
+.on-light {
+  --fg: var(--black);
+  --fg-2: var(--on-light-2);
+  --accent: var(--black);
+  --line: rgb(8 8 8 / 0.16);
+  color: var(--black);
+}
+
+/*
+ * The ground every screen stands on, fixed under the 3D: the current screen's colour, and the
+ * next one's rising along that screen's top edge as it scrolls in (clip set by Ground).
+ */
+.ground {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+.ground__layer {
+  position: absolute;
+  inset: 0;
+  background: var(--yellow);
+}
+.ground__layer--next {
+  clip-path: inset(100% 0 0 0);
+}
+.ground__layer[data-g='black'] {
+  background: var(--black);
+}
+.ground__layer[data-g='light'] {
+  background: var(--white);
+}
+
+/* the 3D stage: fixed, between the ground and the copy */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s var(--ease-out);
+}
+.stage.is-ready {
+  opacity: 1;
+}
+.stage canvas {
+  display: block;
+}
+
+/* labels pinned to the model */
+.pin {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  pointer-events: none;
+  transition: opacity var(--d-mid) var(--ease-out);
+}
+.pin::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--black);
+  box-shadow: 0 0 0 3px var(--yellow);
+}
+.pin__text {
+  position: absolute;
+  bottom: 14px;
+  left: 12px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  background: var(--black);
+  color: var(--white);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.pin--left .pin__text {
+  left: auto;
+  right: 12px;
+  top: 14px;
+  bottom: auto;
+}
+/* callouts: no chip; a leader line from the point on the mesh to a dot and a label on the ground */
+.pin--callout::before {
+  display: none;
+}
+.pin__lead {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 1.5px;
+  background: var(--black);
+  transform-origin: 0 50%;
+}
+.pin__tag {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translate(-3px, -50%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--black);
+}
+.pin__tag::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pin__tag--left {
+  flex-direction: row-reverse;
+  transform: translate(calc(-100% + 3px), -50%);
+}
+/* near the edge of the screen a callout mirrors its arm to the other side; the words stay readable */
+.pin__arm {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.pin--flip .pin__arm {
+  transform: scaleX(-1);
+}
+.pin--flip .pin__words {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+/* on narrow screens the strip fills the width: only the callout above it has clear ground */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .pin--wide-only {
+    display: none;
+  }
+}
+/* a pin near the edge of the screen sets its text on the inner side */
+.pin:not(.pin--left).pin--swap .pin__text {
+  left: auto;
+  right: 12px;
+}
+.pin--left.pin--swap .pin__text {
+  right: auto;
+  left: 12px;
+}
+html[data-ground='black'] .pin::before {
+  background: var(--yellow);
+  box-shadow: 0 0 0 3px var(--black);
+}
+html[data-ground='black'] .pin__text {
+  background: var(--yellow);
+  color: var(--black);
+}
+
+/* ---- header -------------------------------------------------------------------------------- */
+
+.skip {
+  position: absolute;
+  left: var(--gutter);
+  top: -60px;
+  z-index: 60;
+  padding: 10px 14px;
+  background: var(--black);
+  color: var(--yellow);
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip:focus {
+  top: 12px;
+}
+
+.nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  transition: color var(--d-mid) var(--ease-out);
+}
+.nav__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-5);
+  height: var(--nav-h);
+  padding-inline: var(--gutter);
+}
+/*
+ * The header's parts sit on chips of the current ground, so they stay legible when the mesh, the
+ * footage or the liquid passes under them; on a plain ground the chips disappear into it.
+ */
+.nav.on-yellow {
+  --nav-bg: var(--yellow);
+}
+.nav.on-black {
+  --nav-bg: var(--black);
+}
+.nav.on-light {
+  --nav-bg: var(--white);
+}
+.nav__home {
+  display: block;
+  margin-left: -14px;
+  padding: 9px 14px;
+  border-radius: var(--radius);
+  background: var(--nav-bg);
+  text-decoration: none;
+  transition: background-color var(--d-mid) var(--ease-out);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.brand__rt {
+  width: auto;
+  height: 24px;
+}
+.brand__by {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: var(--s-3);
+  border-left: 1px solid currentColor;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+.brand__by img {
+  width: auto;
+  height: 14px;
+}
+.nav__main {
+  display: flex;
+  align-items: center;
+  gap: var(--s-6);
+}
+.nav__main ul {
+  display: flex;
+  gap: var(--s-1);
+  padding: 0 6px;
+  border-radius: var(--radius);
+  background: var(--nav-bg);
+  transition: background-color var(--d-mid) var(--ease-out);
+}
+.nav__link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  font-size: var(--t-small);
+  font-weight: 500;
+  text-decoration: none;
+}
+.nav__link::after {
+  content: '';
+  position: absolute;
+  left: var(--s-3);
+  right: var(--s-3);
+  bottom: 8px;
+  height: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--d-mid) var(--ease-out);
+}
+.nav__link:hover::after,
+.nav__link[aria-current]::after {
+  transform: scaleX(1);
+}
+.nav__contact {
+  min-height: 42px;
+}
+.nav__menu {
+  display: none;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  margin-right: -10px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--nav-bg);
+  font-size: var(--t-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+.nav__menu-icon {
+  display: grid;
+  gap: 5px;
+  width: 20px;
+}
+.nav__menu-icon i {
+  display: block;
+  height: 2px;
+  background: currentColor;
+  transition: transform var(--d-mid) var(--ease-out);
+}
+.nav__menu[aria-expanded='true'] .nav__menu-icon i:first-child {
+  transform: translateY(3.5px) rotate(45deg);
+}
+.nav__menu[aria-expanded='true'] .nav__menu-icon i:last-child {
+  transform: translateY(-3.5px) rotate(-45deg);
+}
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  align-content: center;
+  gap: var(--s-7);
+  padding: var(--nav-h) var(--gutter) var(--s-7);
+  background: var(--black);
+  color: var(--yellow);
+}
+.menu[hidden] {
+  display: none;
+}
+.menu__list a {
+  display: block;
+  padding: 6px 0;
+  font-size: clamp(2.2rem, 9vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  text-decoration: none;
+}
+.menu__list--small a {
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--on-dark-2);
+}
+
+@media (max-width: 1080px) {
+  .nav__main {
+    display: none;
+  }
+  .nav__menu {
+    display: inline-flex;
+  }
+}
+@media (max-width: 860px) {
+  .brand__rt {
+    height: 19px;
+  }
+  .brand__by img {
+    height: 11px;
+  }
+}
+@media (max-width: 370px) {
+  .brand__by {
+    display: none;
+  }
+}
+
+/* ---- progress: the steps of the chapter on screen ------------------------------------------- */
+
+.progress {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(16px, 3.2vh, 32px);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  transform: translate(-50%, 16px);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--d-mid) var(--ease-out),
+    transform var(--d-mid) var(--ease-out),
+    visibility 0s linear var(--d-mid),
+    color var(--d-mid) var(--ease-out);
+}
+.progress.is-on {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.progress__title {
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  background: var(--prog-bg, transparent);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.progress__steps {
+  display: flex;
+  gap: 4px;
+}
+/*
+ * Each step is a slab of the inverse colour (black on the yellow screens, yellow on the black ones)
+ * with its label always in full contrast; a rule along its foot fills while the step plays.
+ */
+.progress.on-yellow,
+.progress.on-light {
+  --chip-bg: var(--black);
+  --chip-fg: var(--yellow);
+}
+.progress.on-black {
+  --chip-bg: var(--yellow);
+  --chip-fg: var(--black);
+}
+.progress__step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: clamp(92px, 8vw, 132px);
+  height: 36px;
+  padding: 0 14px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.progress__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--chip-fg);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.progress__label {
+  position: relative;
+  opacity: 0.72;
+}
+.progress__step.is-done .progress__label,
+.progress__step.is-active .progress__label {
+  opacity: 1;
+}
+.progress__step.is-done .progress__fill {
+  transform: scaleX(1);
+}
+.progress__step.is-active .progress__fill {
+  animation: fill 2.4s var(--ease-in-out) both;
+}
+@keyframes fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.progress.on-black {
+  color: var(--yellow);
+  --prog-bg: var(--black);
+}
+.progress.on-yellow {
+  --prog-bg: var(--yellow);
+}
+.progress.on-light {
+  --prog-bg: var(--white);
+}
+.progress.on-yellow,
+.progress.on-light {
+  color: var(--black);
+}
+
+@media (max-width: 860px) {
+  .progress {
+    left: var(--gutter);
+    right: var(--gutter);
+    transform: translateY(16px);
+  }
+  .progress.is-on {
+    transform: none;
+  }
+  .progress__title {
+    display: none;
+  }
+  .progress__steps {
+    flex: 1;
+  }
+  .progress__steps li {
+    flex: 1;
+  }
+  .progress__step {
+    width: 100%;
+    height: 30px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+}
+
+/* ---- footer: one yellow screen ------------------------------------------------------------ */
+
+/* the liquid drop: over the footer's content; the yellow copy of the content sits over the drop */
+.liquid {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.footer {
+  position: relative;
+  z-index: 2;
+  background: var(--yellow);
+  color: var(--black);
+  overflow: hidden;
+}
+.footer--screen {
+  min-height: 100svh;
+  scroll-snap-align: start;
+}
+.footer__body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--s-7);
+  padding: calc(var(--nav-h) + var(--s-6)) var(--gutter) var(--s-5);
+}
+.footer--screen .footer__body {
+  min-height: 100svh;
+}
+/* the same footer, yellow on black, shown only inside the drop (clip set by LiquidMesh) */
+.footer__body--inverse {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  color: var(--yellow);
+  pointer-events: none;
+  clip-path: inset(50%);
+  visibility: hidden;
+}
+.footer__body--inverse .footer__map {
+  border-top-color: var(--yellow);
+}
+.footer__body--inverse .footer__head,
+.footer__body--inverse .footer__legal {
+  color: var(--on-dark-2);
+}
+.footer__body--inverse .pill--ink {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: var(--black);
+}
+.footer__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s-6);
+}
+.footer__line {
+  max-width: 13em;
+  font-size: clamp(2.2rem, 4.4vw, 4.6rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+.footer__map {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 12rem)) minmax(0, 1fr);
+  gap: var(--s-5);
+  align-content: end;
+  padding-top: var(--s-5);
+  border-top: 1.5px solid var(--black);
+}
+.footer__head {
+  margin-bottom: var(--s-2);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-yellow-2);
+}
+.footer__map a {
+  display: inline-block;
+  padding: 4px 0;
+  font-weight: 500;
+  text-decoration: none;
+}
+.footer__map a:hover {
+  text-decoration: underline;
+}
+.footer__legal {
+  justify-self: end;
+  max-width: 29rem;
+  font-size: var(--t-micro);
+  color: var(--on-yellow-2);
+}
+.footer__name {
+  display: grid;
+  gap: var(--s-2);
+}
+.footer__word {
+  font-size: var(--t-mega);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.78;
+  margin-left: -0.04em;
+  white-space: nowrap;
+}
+.footer__base {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  font-size: var(--t-micro);
+  font-weight: 600;
+}
+.footer__base img {
+  width: auto;
+  height: 16px;
+}
+
+@media (max-width: 960px) {
+  .footer__map {
+    grid-template-columns: 1fr 1fr;
+  }
+  .footer__legal {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}

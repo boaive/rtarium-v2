@@ -1,0 +1,199 @@
+/* ---- applications: one warm-white screen ------------------------------------------------- */
+
+.apps {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--s-6);
+  min-height: 100svh;
+  padding: calc(var(--nav-h) + var(--s-4)) var(--gutter) var(--s-6);
+  background: var(--white);
+  color: var(--black);
+  scroll-snap-align: start;
+}
+.apps__head {
+  display: grid;
+  gap: var(--s-3);
+}
+.apps__title {
+  font-size: clamp(2.3rem, 4.6vw, 5rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+.apps__row {
+  display: flex;
+  gap: var(--s-3);
+  min-height: 0;
+}
+.app {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  transition: flex-grow var(--d-slow) var(--ease-out);
+}
+.app:hover,
+.app:focus-within {
+  flex-grow: 1.55;
+}
+.app__link {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 52svh;
+  padding: var(--s-5);
+  overflow: hidden;
+  border-radius: 8px;
+  color: var(--white);
+  text-decoration: none;
+  isolation: isolate;
+}
+.app__img {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.03);
+  transition: transform 1.2s var(--ease-out);
+}
+.app__link:hover .app__img,
+.app__link:focus-visible .app__img {
+  transform: scale(1.08);
+}
+.app__shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgb(8 8 8 / 0.15) 0%, rgb(8 8 8 / 0) 30%, rgb(8 8 8 / 0.82) 100%);
+}
+.app__index {
+  align-self: flex-start;
+  padding: 3px 8px;
+  background: var(--black);
+  color: var(--yellow);
+  font-size: var(--t-small);
+}
+.app__body {
+  display: grid;
+  gap: var(--s-3);
+}
+.app__title {
+  font-size: clamp(1.6rem, 2.4vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.app__points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.app__points span {
+  padding: 4px 10px;
+  border: 1px solid rgb(242 240 233 / 0.5);
+  border-radius: var(--radius);
+  font-size: var(--t-micro);
+  font-weight: 600;
+}
+.app__more {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: var(--s-2);
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius);
+  background: var(--yellow);
+  color: var(--black);
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .apps__row {
+    flex-direction: column;
+  }
+  .app__link {
+    min-height: 44svh;
+  }
+}
+
+/* ---- planned destination pages, contact, not found -------------------------------------- */
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+  gap: var(--s-8);
+  align-items: center;
+  min-height: 100svh;
+  padding: calc(var(--nav-h) + var(--s-6)) var(--gutter) var(--s-8);
+  background: var(--white);
+  color: var(--black);
+}
+.page__copy {
+  display: grid;
+  gap: var(--s-5);
+  max-width: 40rem;
+}
+.page__title {
+  font-size: clamp(2.8rem, 6vw, 6rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+.page__lede {
+  font-size: var(--t-lead);
+  line-height: 1.5;
+}
+.page__points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.page__points li {
+  padding: 6px 14px;
+  border: 1.5px solid var(--black);
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+.page__status {
+  padding: var(--s-4) var(--s-5);
+  border-radius: 6px;
+  background: var(--yellow);
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+.page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+.page__media {
+  display: grid;
+  gap: var(--s-2);
+}
+.page__media img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.page__media figcaption {
+  font-size: var(--t-micro);
+  color: var(--on-light-2);
+}
+
+@media (max-width: 860px) {
+  .page {
+    grid-template-columns: 1fr;
+    gap: var(--s-6);
+  }
+  .page__media img {
+    aspect-ratio: 4 / 3;
+  }
+}

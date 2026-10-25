@@ -1,0 +1,1287 @@
+/*
+ * The story. Layering: the ground (fixed, z 0) under the 3D stage (fixed, z 1); every screen's
+ * copy over it (z 2); the opening name over everything but the header (fixed, z 3, difference).
+ * Screens are full and scroll as panels; the copy on each lags the scroll a little (--o), and its
+ * sequence plays in time once the screen holds the middle of the viewport.
+ */
+
+/* ---- opening -------------------------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  color: var(--black);
+  --slab-bg: var(--black);
+  --slab-fg: var(--yellow);
+}
+.hero__screen {
+  position: relative;
+  height: 100svh;
+  scroll-snap-align: start;
+}
+.hero__screen--open {
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+.hero__screen--open.is-dragging {
+  cursor: grabbing;
+}
+.hero__still {
+  position: absolute;
+  top: 18%;
+  right: var(--gutter);
+  width: 48%;
+  height: 64%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+/* the headline beside the strip: left, clear of the mesh, which lies on the right */
+.hero__copy {
+  position: absolute;
+  left: var(--gutter);
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  gap: clamp(20px, 3.4vh, 36px);
+  width: min(44vw, 44rem);
+  transform: translateY(-50%);
+  cursor: auto;
+  user-select: text;
+}
+.hero__title {
+  font-size: clamp(3.4rem, 8.4vw, 8.75rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+}
+/*
+ * As the tour starts the headline drifts towards the mesh and dissolves into it, line after line,
+ * tied to the damped tour position --p (set by the tour); it is gone before the mesh reaches it.
+ */
+.hero__title .lines__line,
+.hero__sub,
+.hero__scroll {
+  --q: clamp(0, calc(var(--p, 0) * 3.4 - var(--i, 0) * 0.3), 1);
+  transform: translate3d(calc(var(--q) * 7vw), calc(var(--q) * 6vh), 0);
+  opacity: calc(1 - var(--q));
+  filter: blur(calc(var(--q) * 10px));
+}
+.hero__sub {
+  --i: 2;
+  display: grid;
+  justify-items: start;
+  gap: clamp(20px, 3.4vh, 36px);
+}
+.hero__lede {
+  max-width: 21em;
+  font-size: clamp(1.15rem, 1.6vw, 1.65rem);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  color: var(--on-yellow-2);
+}
+.hero__cta {
+  min-height: 64px;
+  padding: 0 34px 0 40px;
+  gap: 28px;
+  font-size: 1.15rem;
+}
+.hero__scroll {
+  --i: 3;
+  position: absolute;
+  left: var(--gutter);
+  bottom: clamp(24px, 5vh, 56px);
+  z-index: 2;
+  cursor: auto;
+}
+.hero__scroll-in {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  font-size: var(--t-body);
+  font-weight: 500;
+}
+.hero__scroll .round {
+  background: none;
+  cursor: pointer;
+}
+/* the tour's two lines, set on slabs so they read over the mesh */
+.hero__say {
+  position: absolute;
+  z-index: 2;
+}
+.hero__say .lines {
+  font-size: clamp(2rem, 3.9vw, 4.4rem);
+}
+.hero__say--br {
+  right: var(--gutter);
+  bottom: clamp(28px, 8vh, 80px);
+}
+.hero__say--br .lines {
+  justify-items: end;
+}
+.hero__say--tr {
+  right: var(--gutter);
+  top: calc(var(--nav-h) + 3vh);
+}
+.hero__say--tr .lines {
+  justify-items: end;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- chapters and screens --------------------------------------------------------------- */
+
+.chapter {
+  position: relative;
+  z-index: 2;
+}
+.scene {
+  position: relative;
+  height: 100svh;
+  overflow: clip;
+  scroll-snap-align: start;
+}
+/* the copy lags the scroll a little: it trails its panel in and out, the same both ways, never fading */
+.scene__inner {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, calc(var(--o, 0) * 16vh), 0);
+}
+
+/* without WebGL: a still of the mesh where the mesh would be */
+.scene__still {
+  position: absolute;
+  width: min(40vw, 640px);
+  height: 46vh;
+  object-fit: cover;
+  border-radius: 4px;
+  transform: translate(-50%, -50%);
+}
+
+/* timed reveals: each piece rises when its screen is reached; it stays once seen */
+.scene .rv {
+  opacity: 0;
+}
+.scene.is-active .rv {
+  animation: rise 0.8s var(--ease-out) both;
+  animation-delay: calc(0.45s + var(--i, 0) * 0.12s);
+}
+.scene.is-seen .rv {
+  opacity: 1;
+}
+
+/* headings: the words rise out of their own masks one by one, at a reading pace */
+.lines {
+  display: grid;
+  justify-items: start;
+  font-size: var(--t-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-wrap: balance;
+}
+.lines__line {
+  display: block;
+}
+.word {
+  display: inline-block;
+  overflow: clip;
+  vertical-align: top;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.word__in {
+  display: inline-block;
+  transform: translateY(110%);
+}
+.scene.is-active .word__in {
+  animation: word-in 0.62s var(--ease-out) both;
+  animation-delay: calc(0.22s + var(--w, 0) * 85ms);
+}
+.scene.is-seen .word__in {
+  transform: none;
+}
+@keyframes word-in {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* slabs: each line on a block of the inverse colour; the block opens, then the words rise */
+.on-yellow {
+  --slab-bg: var(--black);
+  --slab-fg: var(--yellow);
+  --ground-c: var(--yellow);
+}
+.on-black {
+  --slab-bg: var(--yellow);
+  --slab-fg: var(--black);
+  --ground-c: var(--black);
+}
+.lines--slab {
+  gap: 0.08em;
+}
+.lines--slab .lines__line {
+  padding: 0.04em 0.18em 0.12em 0.14em;
+  background: var(--slab-bg);
+  color: var(--slab-fg);
+  clip-path: inset(0 100% 0 0);
+}
+.scene.is-active .lines--slab .lines__line {
+  animation: slab 0.55s var(--ease-out) both;
+  animation-delay: calc(0.08s + var(--i, 0) * 0.12s);
+}
+.scene.is-seen .lines--slab .lines__line {
+  clip-path: inset(0);
+}
+@keyframes slab {
+  to {
+    clip-path: inset(0);
+  }
+}
+
+/* ---- where the copy sits: chosen per screen, clear of the mesh -------------------------------- */
+
+.copy {
+  position: absolute;
+  display: grid;
+  align-content: start;
+  gap: var(--s-5);
+}
+.copy--br,
+.copy--bl {
+  bottom: calc(var(--progress-h) + 3vh);
+  width: min(38rem, 42vw);
+}
+.copy--br {
+  right: var(--gutter);
+}
+.copy--bl {
+  left: var(--gutter);
+}
+.copy--tr {
+  right: var(--gutter);
+  top: calc(var(--nav-h) + 4vh);
+  width: min(38rem, 44vw);
+  justify-items: end;
+}
+.copy--tr .lead {
+  text-align: right;
+}
+.copy--tr .lines {
+  justify-items: end;
+}
+/* a band across the top: heading left, the rest right, the 3D running underneath */
+.copy--band {
+  left: var(--gutter);
+  right: var(--gutter);
+  top: calc(var(--nav-h) + 3vh);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+  align-items: end;
+  gap: var(--s-5) var(--s-8);
+}
+.copy__aside {
+  display: grid;
+  gap: var(--s-5);
+}
+/* the whole screen is the copy */
+.copy--full {
+  inset: var(--nav-h) var(--gutter) var(--progress-h);
+  align-content: center;
+}
+/* a band of ground along the bottom under a close-up */
+.copy--foot {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
+  align-items: end;
+  gap: var(--s-5) var(--s-8);
+  padding: var(--s-7) var(--gutter) calc(var(--progress-h) + var(--s-3));
+  background: var(--black);
+  border-top: 1px solid var(--line);
+}
+
+.lead {
+  max-width: 32rem;
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--fg-2);
+  text-wrap: pretty;
+}
+.on-yellow .lead {
+  color: var(--black);
+}
+.caption {
+  font-size: var(--t-micro);
+  color: var(--fg-2);
+}
+.figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-5);
+  padding-top: var(--s-4);
+  border-top: 1.5px solid currentColor;
+}
+.figure__label {
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+.figure__value {
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+/* how it is made: four stations light up one after another */
+.chain {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1.5px solid currentColor;
+}
+.chain__step {
+  position: relative;
+  padding: var(--s-4) var(--s-3) 0 0;
+  font-size: var(--t-small);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--on-yellow-2);
+}
+.chain__step::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.scene.is-active .chain__step {
+  animation: station 0.5s var(--ease-out) both;
+  animation-delay: calc(1s + var(--i) * 0.38s);
+}
+.scene.is-seen .chain__step {
+  color: var(--black);
+}
+@keyframes station {
+  to {
+    color: var(--black);
+  }
+}
+
+/* footage screen: the film fills the panel and travels with it */
+.film {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, calc(var(--o, 0) * -16vh), 0);
+}
+.film__video,
+.film__poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.film__video video,
+.film__poster {
+  object-fit: cover;
+}
+.film::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgb(8 8 8 / 0.94) 0%, rgb(8 8 8 / 0.7) 32%, rgb(8 8 8 / 0) 62%);
+  pointer-events: none;
+}
+.scene.is-active .film {
+  animation: film 1.4s var(--ease-out) both;
+}
+@keyframes film {
+  from {
+    filter: brightness(0.4);
+  }
+}
+.copy--film .lines {
+  font-size: clamp(2.4rem, 4.6vw, 5.4rem);
+}
+.loop {
+  position: relative;
+  overflow: hidden;
+  background: var(--black);
+}
+.loop video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.loop__toggle {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgb(253 208 1 / 0.5);
+  border-radius: var(--radius);
+  background: rgb(8 8 8 / 0.6);
+  color: var(--yellow);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  cursor: pointer;
+}
+.loop__icon {
+  width: 8px;
+  height: 10px;
+  border-inline: 2.5px solid currentColor;
+}
+.loop__icon.is-paused {
+  width: 0;
+  height: 0;
+  border-width: 5px 0 5px 8px;
+  border-style: solid;
+  border-color: transparent transparent transparent currentColor;
+}
+.film .loop__toggle {
+  right: var(--gutter);
+  top: calc(var(--nav-h) + 8px);
+  z-index: 2;
+}
+
+/* ---- the challenge: the sentence is the screen ------------------------------------------- */
+
+.statement {
+  max-width: 16.5em;
+  font-size: clamp(2.2rem, 5vw, 6rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+.scene.is-active .statement .word__in {
+  animation-delay: calc(0.3s + var(--w, 0) * 95ms);
+}
+
+/* ---- what it replaces ---------------------------------------------------------------------- */
+
+.replace {
+  position: absolute;
+  inset: calc(var(--nav-h) + 2vh) var(--gutter) var(--progress-h);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--s-6);
+}
+.replace__head {
+  justify-self: end;
+  justify-items: end;
+  text-align: right;
+  font-size: clamp(2.2rem, 4.2vw, 4.6rem);
+}
+.replace__list {
+  display: grid;
+  align-content: center;
+}
+.replace__item {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-5);
+  padding: clamp(10px, 2vh, 22px) 0;
+  border-bottom: 1.5px solid var(--black);
+  opacity: 0;
+}
+.replace__item:first-child {
+  border-top: 1.5px solid var(--black);
+}
+.replace__name {
+  position: relative;
+  font-size: clamp(1.8rem, 4vw, 4.2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.replace__weak {
+  font-size: var(--t-lead);
+  font-weight: 600;
+  text-align: right;
+}
+.replace__strike {
+  position: absolute;
+  left: -0.06em;
+  right: -0.06em;
+  top: 54%;
+  height: 0.075em;
+  background: var(--black);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.scene.is-active .replace__item {
+  animation: rise 0.7s var(--ease-out) both;
+  animation-delay: calc(0.6s + var(--i) * 0.14s);
+}
+.scene.is-active .replace__strike {
+  animation: strike 0.6s var(--ease-in-out) both;
+  animation-delay: calc(1.5s + var(--i) * 0.28s);
+}
+.scene.is-seen .replace__item {
+  opacity: 1;
+}
+.scene.is-seen .replace__strike {
+  transform: scaleX(1);
+}
+@keyframes strike {
+  to {
+    transform: scaleX(1);
+  }
+}
+.replace__answer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-6);
+  padding: clamp(16px, 2.6vh, 28px) clamp(20px, 2.4vw, 36px);
+  background: var(--black);
+  color: var(--yellow);
+  font-size: var(--t-lead);
+  font-weight: 500;
+  opacity: 0;
+}
+.replace__answer-name {
+  font-size: clamp(1.6rem, 2.8vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.scene.is-active .replace__answer {
+  animation: rise 0.8s var(--ease-out) 2.5s both;
+}
+.scene.is-seen .replace__answer {
+  opacity: 1;
+}
+
+/* shear comparison toggle */
+.toggle {
+  display: inline-flex;
+  justify-self: start;
+  padding: 4px;
+  border: 1.5px solid currentColor;
+  border-radius: var(--radius);
+}
+.toggle button {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font-size: var(--t-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+.toggle button[aria-pressed='true'] {
+  background: var(--black);
+  color: var(--yellow);
+}
+
+/* jump to a part of the system */
+.jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+/* ---- Tech Space: three elements, one system, on a diagonal --------------------------------- */
+
+.system {
+  position: absolute;
+  inset: calc(var(--nav-h) + 2vh) var(--gutter) calc(var(--progress-h) + 2vh);
+}
+.system .lines {
+  position: absolute;
+  font-size: clamp(2.6rem, 5.6vw, 6rem);
+}
+.system__a {
+  left: 0;
+  top: 0;
+}
+.system__b {
+  right: 0;
+  bottom: 0;
+  justify-items: end;
+}
+.system__more {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: grid;
+  gap: var(--s-4);
+  width: min(24rem, 30vw);
+}
+
+/* ---- Tech Space: the sheet, figures you can point at -------------------------------------- */
+
+.spec {
+  position: absolute;
+  inset: var(--nav-h) var(--gutter) var(--progress-h);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    'head head head'
+    'left . right'
+    'all all all';
+  gap: var(--s-5);
+}
+.spec__head {
+  grid-area: head;
+  display: grid;
+  justify-items: start;
+  gap: var(--s-3);
+}
+.spec__head .lines {
+  font-size: clamp(2.2rem, 4vw, 4.4rem);
+}
+.spec__hint {
+  font-size: var(--t-small);
+  color: var(--fg-2);
+}
+.spec__col {
+  display: grid;
+  align-content: center;
+  gap: clamp(10px, 2.4vh, 28px);
+}
+.spec__col--left {
+  grid-area: left;
+}
+.spec__col--right {
+  grid-area: right;
+  text-align: right;
+  justify-items: end;
+}
+.spec__all {
+  grid-area: all;
+  justify-self: center;
+}
+.readout {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: var(--s-3) 0 var(--s-2);
+  border-top: 1.5px solid var(--line);
+}
+.readout--inspect {
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  transition: border-color var(--d-fast) var(--ease-out);
+}
+.readout--inspect:hover,
+.readout--inspect:focus-visible,
+.readout--inspect[aria-pressed='true'],
+.readout--thickness.is-on {
+  border-top-color: var(--yellow);
+}
+.readout__label {
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--fg-2);
+}
+.readout__value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--t-readout);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.spec__col--right .readout__value {
+  justify-content: flex-end;
+}
+.readout__unit {
+  font-size: 0.42em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--fg-2);
+}
+.readout__note,
+.readout__show {
+  font-size: var(--t-micro);
+  color: var(--fg-2);
+}
+/* what pointing at the figure does to the mesh: always said, lit while it is happening */
+.readout__show {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color var(--d-fast) var(--ease-out);
+}
+.spec__col--right .readout__show {
+  justify-content: flex-end;
+}
+.readout--inspect:hover .readout__show,
+.readout--inspect:focus-visible .readout__show,
+.readout--inspect[aria-pressed='true'] .readout__show {
+  color: var(--yellow);
+}
+.readout__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.chip {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--on-dark-2);
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-micro);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--d-fast) var(--ease-out),
+    color var(--d-fast) var(--ease-out),
+    border-color var(--d-fast) var(--ease-out);
+}
+.chip:hover {
+  border-color: var(--yellow);
+}
+.chip[aria-pressed='true'] {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: var(--black);
+}
+@media (pointer: coarse) {
+  .chip {
+    min-height: 44px;
+  }
+}
+.count--live {
+  display: inline-block;
+  min-width: 1.2em;
+  animation: tick 0.6s var(--ease-out);
+}
+@keyframes tick {
+  from {
+    opacity: 0;
+    transform: translateY(0.3em);
+  }
+}
+
+/* ---- Tech Space: the yarn's strength as a race ------------------------------------------ */
+
+.race {
+  position: absolute;
+  inset: var(--nav-h) var(--gutter) var(--progress-h);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    'head .'
+    'bars .'
+    'more .';
+  align-items: center;
+  gap: var(--s-5) var(--s-8);
+}
+.race__head {
+  grid-area: head;
+  display: grid;
+  justify-items: start;
+  gap: var(--s-4);
+}
+.race__head .lead {
+  max-width: 22rem;
+}
+.race__figure {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: var(--t-figure);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+.race__unit {
+  font-size: 0.3em;
+  letter-spacing: -0.02em;
+  color: var(--fg-2);
+}
+.race__bars {
+  grid-area: bars;
+  display: grid;
+  gap: clamp(10px, 2vh, 18px);
+}
+.race__bar {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) 7rem;
+  align-items: center;
+  gap: var(--s-4);
+  font-size: var(--t-small);
+}
+.race__label {
+  color: var(--fg-2);
+}
+.race__track {
+  height: 14px;
+  border-radius: 2px;
+  background: rgb(253 208 1 / 0.08);
+  overflow: hidden;
+}
+.race__fill {
+  display: block;
+  height: 100%;
+  background: rgb(253 208 1 / 0.38);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.scene.is-active .race__fill {
+  animation: grow 1.5s var(--ease-out) both;
+  animation-delay: calc(0.8s + var(--i) * 0.15s);
+}
+.scene.is-seen .race__fill {
+  transform: scaleX(var(--v));
+}
+@keyframes grow {
+  to {
+    transform: scaleX(var(--v));
+  }
+}
+.race__value {
+  text-align: right;
+  font-size: var(--t-micro);
+  color: var(--fg-2);
+}
+.race__bar.is-rt .race__label,
+.race__bar.is-rt .race__value {
+  color: var(--yellow);
+  font-weight: 700;
+}
+.race__bar.is-rt .race__fill {
+  background: var(--yellow);
+}
+.race__more {
+  grid-area: more;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-6);
+  padding-top: var(--s-4);
+  border-top: 1.5px solid var(--line);
+}
+.race__more p {
+  display: grid;
+  gap: 4px;
+  font-size: var(--t-small);
+  color: var(--fg-2);
+}
+.race__more-figure {
+  font-size: 1.4rem;
+  color: var(--yellow);
+}
+.race__more-title {
+  font-weight: 600;
+  color: var(--yellow);
+}
+
+/* ---- Tech Space: concrete, cast and x-rayed (the model on the left) ---------------------------- */
+
+.cast {
+  position: absolute;
+  top: var(--nav-h);
+  right: var(--gutter);
+  bottom: var(--progress-h);
+  display: grid;
+  align-content: center;
+  gap: var(--s-5);
+  width: min(46vw, 42rem);
+}
+.cast__head {
+  display: grid;
+  gap: var(--s-4);
+}
+.cast__figure {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--t-figure);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.85;
+}
+.cast__unit {
+  font-size: 0.5em;
+}
+.cast__pairs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-5);
+}
+.pair {
+  display: grid;
+  gap: 6px;
+  font-size: var(--t-micro);
+}
+.pair__metric {
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--fg-2);
+}
+.pair__row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) 5rem;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--fg-2);
+}
+.pair__row .num {
+  text-align: right;
+}
+.pair__bar {
+  height: 8px;
+  background: rgb(253 208 1 / 0.35);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.scene.is-active .pair__bar {
+  animation: grow 1.3s var(--ease-out) 1.1s both;
+}
+.scene.is-seen .pair__bar {
+  transform: scaleX(var(--v));
+}
+.pair__row.is-rt {
+  color: var(--yellow);
+  font-weight: 700;
+}
+.pair__row.is-rt .pair__bar {
+  background: var(--yellow);
+}
+.cast__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-6);
+  padding-top: var(--s-4);
+  border-top: 1.5px solid var(--line);
+}
+.cast__facts p {
+  display: grid;
+  font-size: var(--t-micro);
+  color: var(--fg-2);
+}
+.cast__facts .num {
+  font-size: 1.15rem;
+  color: var(--yellow);
+}
+
+/* ---- every figure, on one sheet --------------------------------------------------------------- */
+
+.sheet {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100svh;
+  max-height: 100svh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--white);
+  color: var(--black);
+}
+.sheet::backdrop {
+  background: rgb(8 8 8 / 0.6);
+}
+.sheet[open] {
+  animation: rise 0.5s var(--ease-out);
+}
+.sheet__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--s-7) var(--gutter);
+}
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+.sheet__head h2 {
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.sheet__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--s-6);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-small);
+}
+.table caption {
+  padding-bottom: var(--s-2);
+  font-size: var(--t-small);
+  font-weight: 700;
+  text-align: left;
+  color: var(--black);
+}
+.table th,
+.table td {
+  padding: 9px 0;
+  border-top: 1px solid rgb(8 8 8 / 0.14);
+  text-align: left;
+  vertical-align: baseline;
+}
+.table th {
+  width: 48%;
+  padding-right: var(--s-4);
+  font-weight: 500;
+}
+.table__note {
+  display: block;
+  font-size: var(--t-micro);
+  color: var(--on-light-2);
+}
+.sheet__fine {
+  margin-top: var(--s-6);
+  font-size: var(--t-micro);
+  color: var(--on-light-2);
+}
+
+/* ---- phones: the model above, the copy below -------------------------------------------------- */
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .hero__copy {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    transform: none;
+    gap: var(--s-4);
+    padding: var(--s-5) var(--gutter) calc(clamp(24px, 5vh, 56px) + 76px);
+    background: var(--yellow);
+    border-top: 1px solid rgb(8 8 8 / 0.22);
+  }
+  .hero__title {
+    font-size: clamp(3rem, 15vw, 4.6rem);
+  }
+  .hero__sub {
+    gap: var(--s-4);
+  }
+  .hero__cta {
+    min-height: 54px;
+    font-size: 1rem;
+  }
+  .hero__say--br,
+  .hero__say--tr {
+    left: var(--gutter);
+    top: auto;
+    bottom: clamp(24px, 6vh, 56px);
+  }
+  .hero__say .lines {
+    font-size: clamp(1.7rem, 7.6vw, 2.6rem);
+  }
+  /* on a tall screen the copy is a panel of ground along the bottom; the mesh has the space above */
+  .copy--br,
+  .copy--bl,
+  .copy--tr,
+  .copy--band {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    grid-template-columns: 1fr;
+    justify-items: start;
+    gap: var(--s-3);
+    padding: var(--s-5) var(--gutter) calc(var(--progress-h) + var(--s-2));
+    background: var(--ground-c);
+    border-top: 1px solid var(--line);
+  }
+  .copy--film {
+    background: none;
+    border-top: 0;
+  }
+  .copy--tr .lines,
+  .copy--tr .lead {
+    justify-items: start;
+    text-align: left;
+  }
+  .copy--foot {
+    grid-template-columns: 1fr;
+    gap: var(--s-3);
+    padding-top: var(--s-5);
+  }
+  .lines {
+    font-size: clamp(2rem, 9vw, 3.2rem);
+  }
+  .statement {
+    font-size: clamp(1.9rem, 8.4vw, 3rem);
+  }
+  .chain {
+    grid-template-columns: 1fr 1fr;
+    row-gap: var(--s-4);
+  }
+  .replace__head {
+    justify-self: start;
+    justify-items: start;
+    text-align: left;
+  }
+  .replace__name {
+    font-size: clamp(1.6rem, 7.4vw, 2.6rem);
+  }
+  .replace__item {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .replace__weak {
+    text-align: left;
+    font-size: var(--t-small);
+  }
+  .system .lines {
+    font-size: clamp(2.1rem, 9vw, 3.2rem);
+  }
+  .system__b {
+    bottom: auto;
+    top: 1.15em;
+    right: auto;
+    left: 0;
+    justify-items: start;
+  }
+  .system__more {
+    width: auto;
+    right: 0;
+  }
+  .spec {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas:
+      'head head'
+      '. .'
+      'left right'
+      'all all';
+    gap: var(--s-3);
+  }
+  .spec::before {
+    content: '';
+    grid-column: 1 / -1;
+    grid-row: 3 / 5;
+    margin: calc(-1 * var(--s-4)) calc(-1 * var(--gutter)) calc(-1 * var(--progress-h));
+    background: var(--black);
+    border-top: 1px solid var(--line);
+  }
+  .spec__hint {
+    font-size: var(--t-micro);
+  }
+  .spec__col {
+    gap: var(--s-2);
+  }
+  .spec__col--right {
+    text-align: left;
+    justify-items: start;
+  }
+  .spec__col--right .readout__value {
+    justify-content: flex-start;
+  }
+  .readout__value {
+    font-size: 1.4rem;
+  }
+  .readout__show {
+    display: none;
+  }
+  .scene__still {
+    width: calc(100vw - 2 * var(--gutter));
+    height: 34vh;
+    left: 50% !important;
+    top: 30% !important;
+  }
+  .race {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      'head'
+      'bars'
+      'more';
+    align-content: end;
+    gap: var(--s-4);
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: var(--s-5) var(--gutter) calc(var(--progress-h) + var(--s-2));
+    background: var(--black);
+    border-top: 1px solid var(--line);
+  }
+  .race__head .lead {
+    display: none;
+  }
+  .race__figure {
+    font-size: clamp(3.2rem, 17vw, 4.6rem);
+  }
+}
+
+/* stacked on a short screen: the race alone, the two further figures stay in "All figures" */
+@media (max-width: 860px) and (max-height: 720px), (max-aspect-ratio: 4/5) and (max-height: 720px) {
+  .race__more {
+    display: none;
+  }
+  .race__bars {
+    gap: 6px;
+  }
+  .race__figure {
+    font-size: clamp(2.6rem, 12vw, 3.6rem);
+  }
+  .race__head {
+    justify-items: start;
+    text-align: left;
+  }
+  .race__bar {
+    grid-template-columns: minmax(0, 1fr) 5.5rem;
+  }
+  .race__track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .race__more {
+    grid-template-columns: 1fr;
+    gap: var(--s-3);
+  }
+  .race__more-reading {
+    display: none;
+  }
+  .cast {
+    left: var(--gutter);
+    width: auto;
+    align-content: end;
+  }
+  .cast__facts {
+    display: none;
+  }
+  .cast__pairs {
+    grid-template-columns: 1fr;
+    gap: var(--s-3);
+  }
+}
