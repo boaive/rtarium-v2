@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Chapter, Lines, type Step } from '../components/Chapter'
+import { Lines, Track, type Step } from '../components/Chapter'
 import { StageLabel } from '../three/Stage'
 import { stage } from '../three/stageStore'
 import { prefersReducedMotion } from '../lib/motion'
@@ -98,7 +98,7 @@ const steps: Step[] = [
 export function Innovation() {
   return (
     <>
-      <Chapter id="innovation" title="Innovation" steps={steps} />
+      <Track id="innovation" title="Innovation" steps={steps} />
       <StageLabel anchor="axis-x">X</StageLabel>
       <StageLabel anchor="axis-y">Y</StageLabel>
       <StageLabel anchor="axis-z">Z, through the depth</StageLabel>

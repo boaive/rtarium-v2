@@ -4,10 +4,10 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { MeshField, PITCH, cellUrl, useCell, useYarnMaterial } from './mesh/MeshField'
 import { PressField } from './mesh/flex'
-import { ANCHORS, FIELD, HALF, POSES, TILE, tourPose, type Pose } from './poses'
+import { ANCHORS, FIELD, HALF, POSES, POUR_OUT, TILE, blendPose, tourPose, type Pose } from './poses'
 import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
 import { THICKNESS_OPTIONS } from '../content/technical'
-import { clamp01, damp, lerp } from '../lib/motion'
+import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
 
 /**
  * The one 3D stage of the homepage: a fixed, transparent canvas between the coloured ground and
@@ -16,9 +16,11 @@ import { clamp01, damp, lerp } from '../lib/motion'
  * does, and two screens in transition each show their own. A view eases in as its panel arrives
  * and turns a little as it passes, the same both ways; its sequences play once it is reached.
  *
- * The opening is the one scrolled sequence: the panel stands under the name, and as the visitor
- * scrolls the mesh is built out past the edges of the screen and the camera slips between its two
- * faces (`stage.tour`, damped). Time introduces the panel: it drops in and settles with a bounce.
+ * The opening is a scrolled sequence: the piece lies beside the name, and as the visitor scrolls
+ * the mesh is built out past the edges of the screen, the camera slips between its two faces and on
+ * into white light, and out of the white comes a tile half cast in concrete (`stage.tour`, damped).
+ * Chapters that run sideways are scrubbed the same way: their one view travels continuously from
+ * one step's pose to the next (`Region.blend`). Time introduces the piece: it drops in and settles.
  * The cursor presses the face and it springs back (V1's press field); a press knocks it.
  *
  * The mesh is shown in its own colour, basalt, on every ground. In Tech Space a figure under the
@@ -41,13 +43,13 @@ const LOOK = {
   night: { face: new THREE.Color('#9c7650'), pile: new THREE.Color('#47301f') },
 }
 const KEY = { day: new THREE.Color('#fff6e8'), night: new THREE.Color('#ffd9a0') }
-/** how fast a view settles on its pose (1/s) */
+/** the shadow on each ground: warm on yellow, a neutral warm grey on white */
+const SHADOW = { yellow: new THREE.Color('#4a3000'), black: new THREE.Color('#000000'), light: new THREE.Color('#3b3328') }
+/** how fast a view settles on its pose (1/s); a scrubbed view follows its (already damped) scroll closely */
 const GLIDE = 2.4
+const SCRUB = 8
 /** a view's motion with its panel: farther (fraction), lower (deg) and turned (deg) at one screen away */
 const PARALLAX = { dist: 0.14, elev: 5, azim: 12 }
-/** the footer's swatch of the mesh: cells across and size drawn (CSS px) */
-const SWATCH_CELLS = 8
-const SWATCH_CSS = 256
 const SWAY_PERIOD = 16
 /** the drop: starting height (m), spring stiffness and damping (a visible bounce, then still) */
 const DROP = { height: 0.16, k: 70, c: 7.5, tilt: 0.55 }
@@ -67,6 +69,9 @@ const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 const ray = new THREE.Raycaster()
 const toLocal = new THREE.Matrix4()
 const tourScratch: Pose = { ...POSES.hero }
+const blendScratch: Pose = { ...POSES.hero }
+const pourScratch: Pose = { ...POSES.hero }
+const fogTarget = new THREE.Color()
 
 /** the region across the middle of the screen, else the most visible one */
 function activeRegion(vh: number) {
@@ -144,6 +149,14 @@ interface View {
     explode: number
     shadow: number
     knockAt: number
+    /** 1: only the slab underneath, its top at the mid-plane */
+    bottomOnly: number
+    /** how far mortar has flowed across the sheet (0..1, below 0 while it waits) */
+    pour: number
+    /** the piece above its shadow (m) and its tilt (rad) */
+    lift: number
+    tiltX: number
+    tiltZ: number
   }
   dim: THREE.Vector3
   vis: THREE.Vector3
@@ -151,6 +164,7 @@ interface View {
   face: THREE.Color
   pile: THREE.Color
   fog: [number, number]
+  fogColor: THREE.Color
 }
 
 /** A view starts where its screen wants it, so the panel arrives already composed. */
@@ -173,8 +187,8 @@ function newView(pose: Pose, compact: boolean, o: number): View {
       shear: 0,
       flat: 0,
       dim: pose.dimension ? 1 : 0,
-      gap: pose.slabs ? pose.slabs.gap + 0.08 : 0.05,
-      slabs: pose.slabs ? 1 : 0,
+      gap: pose.slabs ? pose.slabs.gap + 0.08 : 0.12,
+      slabs: 0,
       slabOpacity: pose.slabs?.opacity ?? 1,
       flex: pose.press ? 1 : 0,
       winX: pose.win[0],
@@ -187,6 +201,11 @@ function newView(pose: Pose, compact: boolean, o: number): View {
       explode: pose.explode,
       shadow: pose.shadow ?? 0,
       knockAt: 0,
+      bottomOnly: pose.slabs?.bottom ? 1 : 0,
+      pour: -0.25,
+      lift: pose.lift ?? 0,
+      tiltX: (pose.tilt?.[0] ?? 0) * DEG,
+      tiltZ: (pose.tilt?.[1] ?? 0) * DEG,
     },
     dim: new THREE.Vector3(...pose.dim),
     vis: new THREE.Vector3(...pose.vis),
@@ -194,6 +213,7 @@ function newView(pose: Pose, compact: boolean, o: number): View {
     face: LOOK[pose.look].face.clone(),
     pile: LOOK[pose.look].pile.clone(),
     fog: [pose.fog[0], pose.fog[1]],
+    fogColor: GROUND.yellow.clone(),
   }
 }
 
@@ -214,6 +234,7 @@ export function StageScene({ compact, reduced }: Props) {
   const shear = useRef<THREE.Mesh>(null)
   const dimension = useRef<THREE.Group>(null)
   const slabTop = useRef<THREE.Mesh>(null)
+  const mortar = useRef<THREE.Mesh>(null)
   const slabBottom = useRef<THREE.Mesh>(null)
   const catcher = useRef<THREE.Mesh>(null)
 
@@ -225,8 +246,6 @@ export function StageScene({ compact, reduced }: Props) {
   const orbit = useRef({ yaw: 0, pitch: 0 })
   const drop = useRef({ y: DROP.height, v: 0, tilt: DROP.tilt, vt: 0 })
   const cleared = useRef(false)
-  const swatchDone = useRef(false)
-  const ortho = useMemo(() => new THREE.OrthographicCamera(-1, 1, 1, -1, 0.05, 0.6), [])
 
   const press = useMemo(() => new PressField(96, 96), [])
   useEffect(() => {
@@ -262,7 +281,7 @@ export function StageScene({ compact, reduced }: Props) {
   useEffect(() => {
     gl.setClearColor(0x000000, 0)
     gl.autoClear = false
-    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop }
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop, POSES, POUR_OUT, ANCHORS }
   }, [gl, scene])
 
   const lineMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#fdd001', toneMapped: false }), [])
@@ -279,93 +298,40 @@ export function StageScene({ compact, reduced }: Props) {
     const map = concreteTexture()
     return new THREE.MeshStandardMaterial({ map, roughness: 0.94, metalness: 0, transparent: true, opacity: 1 })
   }, [])
+  /**
+   * Wet mortar flowing in across the sheet: a slab through the cavity, up to just under the upper
+   * face, cut off at a front (`uFront`, along z) that wavers as it advances and is still glossy.
+   */
+  const mortarU = useMemo(() => ({ uFront: { value: -1 }, uTime: { value: 0 } }), [])
+  const mortarMat = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ map: concrete.map, color: '#c9c3b8', roughness: 0.82, metalness: 0, side: THREE.DoubleSide })
+    m.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, mortarU)
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vMortar;')
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvMortar = (modelMatrix * vec4(transformed, 1.0)).xyz;')
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vMortar;\nuniform float uFront;\nuniform float uTime;')
+        .replace(
+          '#include <clipping_planes_fragment>',
+          `#include <clipping_planes_fragment>
+          float rtEdge = uFront + 0.007 * sin(vMortar.x * 48.0 + uTime * 1.6) + 0.004 * sin(vMortar.x * 131.0 - uTime * 2.2);
+          if (vMortar.z > rtEdge) discard;
+          float rtWet = 1.0 - smoothstep(0.0, 0.035, rtEdge - vMortar.z);`,
+        )
+        .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.32, rtWet);')
+    }
+    m.customProgramCacheKey = () => 'rtarium-mortar'
+    return m
+  }, [concrete, mortarU])
   useEffect(
     () => () => {
-      for (const m of [lineMat, inkLineMat, planeMat, edgeMat, concrete, catcherMat]) m.dispose()
+      for (const m of [lineMat, inkLineMat, planeMat, edgeMat, concrete, catcherMat, mortarMat]) m.dispose()
       concrete.map?.dispose()
       planeEdges.dispose()
     },
-    [lineMat, inkLineMat, planeMat, edgeMat, concrete, catcherMat, planeEdges],
+    [lineMat, inkLineMat, planeMat, edgeMat, concrete, catcherMat, mortarMat, planeEdges],
   )
-
-  /**
-   * A tileable swatch of the mesh seen from straight above, read back once from this canvas, for
-   * the footer's liquid drop (another WebGL context): there it shows exactly this mesh.
-   */
-  const renderSwatch = (vw: number, vh: number) => {
-    const t = tile.current
-    const key = keyLight.current
-    if (!t || !field.current || !key) return
-    const u = yarn.uniforms
-    const half = (SWATCH_CELLS * PITCH) / 2
-    ortho.left = -half
-    ortho.right = half
-    ortho.top = half
-    ortho.bottom = -half
-    ortho.position.set(0, 0.3, 0)
-    ortho.up.set(0, 0, -1)
-    ortho.lookAt(0, 0, 0)
-    ortho.updateProjectionMatrix()
-    ortho.updateMatrixWorld()
-    u.uWin.value.set(FIELD, FIELD)
-    u.uBand.value = 0.5
-    u.uPartDim.value.set(1, 1, 1)
-    u.uPartVis.value.set(1, 1, 1)
-    u.uPartGlow.value.set(0, 0, 0)
-    u.uExplode.value = 0
-    u.uXray.value = 0
-    u.uFlex.value = 0
-    u.uFaceColor.value.copy(LOOK.day.face)
-    u.uPileColor.value.copy(LOOK.day.pile)
-    t.position.set(0, 0, 0)
-    t.rotation.set(0, 0, 0)
-    t.scale.set(1, 1, 1)
-    t.updateMatrixWorld()
-    for (const m of field.current.children) m.visible = true
-    for (const o of [axes.current, shear.current, dimension.current, widthDim.current, slabTop.current, slabBottom.current, catcher.current]) if (o) o.visible = false
-    const fog = scene.fog
-    scene.fog = null
-    key.position.set(0.25, 1, 0.35)
-    key.target.position.set(0, 0, 0)
-    key.target.updateMatrixWorld()
-    key.intensity = 2.6
-    key.color.copy(KEY.day)
-    gl.toneMappingExposure = 1.05
-    scene.environmentIntensity = 1.1
-    const size = Math.min(SWATCH_CSS, vw, vh)
-    gl.setViewport(0, 0, size, size)
-    gl.setScissor(0, 0, size, size)
-    gl.setScissorTest(true)
-    gl.clear()
-    gl.render(scene, ortho)
-    const ctx = gl.getContext()
-    const n = Math.floor(size * gl.getPixelRatio())
-    const px = new Uint8Array(n * n * 4)
-    ctx.readPixels(0, 0, n, n, ctx.RGBA, ctx.UNSIGNED_BYTE, px)
-    scene.fog = fog
-    gl.setViewport(0, 0, vw, vh)
-    gl.setScissorTest(false)
-    // flipped upright and un-premultiplied for a 2D canvas
-    const cv = document.createElement('canvas')
-    cv.width = cv.height = n
-    const g = cv.getContext('2d')
-    if (!g) return
-    const img = g.createImageData(n, n)
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) {
-        const s = ((n - 1 - y) * n + x) * 4
-        const o = (y * n + x) * 4
-        const a = px[s + 3]
-        const k = a ? 255 / a : 0
-        img.data[o] = Math.min(255, px[s] * k)
-        img.data[o + 1] = Math.min(255, px[s + 1] * k)
-        img.data[o + 2] = Math.min(255, px[s + 2] * k)
-        img.data[o + 3] = a
-      }
-    }
-    g.putImageData(img, 0, 0)
-    stage.swatch = cv
-  }
 
   useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.1)
@@ -377,11 +343,18 @@ export function StageScene({ compact, reduced }: Props) {
     const primary = activeRegion(vh)
     primaryPose.current = primary ? primary.pose() : 'none'
 
-    // the screens in the viewport that have something to draw, each with where it is
+    // the screens in the viewport that have something to draw, each with where it is. Leaving the
+    // cast, the opening holds the whole screen until its camera has come out as About's first
+    // view; only then does About draw its own, from the same pose, so the two meet without a cut
+    const handing = !reduced && stage.tour > 3.002 && stage.tour < 3.995
     const drawn: { r: Region; id: PoseId; top: number; bottom: number }[] = []
     for (const r of stage.regions) {
       const id = r.pose()
       if (POSES[id].empty) continue
+      if (handing) {
+        if (id === 'hero') drawn.push({ r, id, top: 0, bottom: vh })
+        continue
+      }
       const b = r.el.getBoundingClientRect()
       if (b.bottom <= 0 || b.top >= vh || b.width < 2) continue
       drawn.push({ r, id, top: b.top, bottom: b.bottom })
@@ -403,10 +376,6 @@ export function StageScene({ compact, reduced }: Props) {
       setShared({ ready: true })
     }
     const since = (now - started.current) / 1000
-    if (!swatchDone.current && since > 1.2) {
-      swatchDone.current = true
-      renderSwatch(vw, vh)
-    }
     gl.clear()
     const rv = reduced ? 1 : clamp01(since / 1.6)
 
@@ -440,7 +409,8 @@ export function StageScene({ compact, reduced }: Props) {
     for (const view of drawn) {
       const { r, id } = view
       const hero = id === 'hero'
-      const pose: Pose = hero ? tourPose(reduced ? Math.min(stage.tour, 1) : stage.tour, tourScratch) : POSES[id]
+      const bl = hero ? undefined : r.blend?.()
+      let pose: Pose = hero ? tourPose(reduced ? (stage.tour > 2.5 ? 3 : Math.min(stage.tour, 1)) : stage.tour, tourScratch) : bl ? blendPose(POSES[bl.a], POSES[bl.b], bl.t, blendScratch) : POSES[id]
       // where the panel is: -1 entering from below, 0 in place, 1 leaving above (the opening runs its own tour)
       const o = hero || reduced ? 0 : THREE.MathUtils.clamp(-view.top / vh, -1, 1)
       let v = views.current.get(r)
@@ -452,8 +422,14 @@ export function StageScene({ compact, reduced }: Props) {
       const f = v.fx
       const c = v.cam
 
+      // "In concrete" plays in time once reached: the mortar runs in, then the camera stands back
+      if (pose.pour) {
+        if (active) f.pour = reduced ? 1.6 : Math.min(1.6, f.pour + dt / 2.8)
+        if (f.pour > 1.02) pose = blendPose(pose, POUR_OUT, smoothstep(1.02, 1.6, f.pour), pourScratch)
+      } else f.pour = -0.25
+
       // ---- camera: the view travels with its panel and turns a little as the panel passes -------
-      const k = reduced ? 1e4 : hero ? 9 : GLIDE
+      const k = reduced ? 1e4 : hero ? 9 : bl ? SCRUB : GLIDE
       // narrower landscape windows: stand back so the mesh keeps clear of the copy beside it;
       // stacked layout on a screen that is not tall: smaller, and up into the space above the copy
       const squat = compact ? clamp01((vw / vh - 0.6) / 0.45) : 0
@@ -467,9 +443,9 @@ export function StageScene({ compact, reduced }: Props) {
       const frame = compact ? pose.frameCompact : pose.frame
       c.fx = damp(c.fx, frame[0], k, dt)
       c.fy = damp(c.fy, lerp(frame[1], Math.min(frame[1], 0.27), squat), k, dt)
-      c.spin = reduced ? 0 : (c.spin + pose.spin * dt) % 360
+      c.spin = reduced ? 0 : pose.spin ? (c.spin + pose.spin * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
       const sway = reduced ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
-      const azim = (c.azim + sway + (pose.spin ? c.spin : 0)) * DEG + (hero ? orbit.current.yaw : 0)
+      const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0)
       // the opening's tour goes down to eye level between the faces; elsewhere the camera stays above
       const elev = THREE.MathUtils.clamp(c.elev * DEG + (hero ? orbit.current.pitch : 0), hero ? -0.3 : 0.05, 1.45)
       vPos.set(Math.cos(elev) * Math.sin(azim), Math.sin(elev), Math.cos(elev) * Math.cos(azim)).multiplyScalar(c.dist).add(c.tgt)
@@ -492,7 +468,7 @@ export function StageScene({ compact, reduced }: Props) {
       const glow = inspect === 'tensile' ? 0.32 : inspect === 'elongation' ? 0.18 : 0
 
       // ---- the build, the stand, the look -------------------------------------------------------
-      const wk = reduced ? 1e4 : hero ? 10 : 2.6
+      const wk = reduced ? 1e4 : hero ? 10 : bl ? 6 : 2.6
       const wx0 = f.winX
       const wz0 = f.winZ
       f.winX = damp(f.winX, pose.win[0], wk, dt)
@@ -502,6 +478,9 @@ export function StageScene({ compact, reduced }: Props) {
       f.band = reduced ? 0.5 : damp(f.band, 0.5 + Math.min(5, growth * 0.16), 6, dt)
       f.stand = damp(f.stand, pose.stand, reduced ? 1e4 : hero ? 9 : 2.6, dt)
       f.stretch = damp(f.stretch, stretch, reduced ? 1e4 : 4, dt)
+      f.lift = damp(f.lift, pose.lift ?? 0, k, dt)
+      f.tiltX = damp(f.tiltX, (pose.tilt?.[0] ?? 0) * DEG, k, dt)
+      f.tiltZ = damp(f.tiltZ, (pose.tilt?.[1] ?? 0) * DEG, k, dt)
       f.widthDim = damp(f.widthDim, inspect === 'width' ? 1 : 0, reduced ? 1e4 : 6, dt)
       const mk = reduced ? 1e4 : 3.2
       f.flat = damp(f.flat, id === 'shear' ? stage.flat : 0, reduced ? 1e4 : 3, dt)
@@ -519,14 +498,17 @@ export function StageScene({ compact, reduced }: Props) {
       const ek = reduced ? 1e4 : 3.4
       if (pose.axes) {
         if (active) f.axes = damp(f.axes, 1, ek, dt)
-      } else f.axes = 0
-      f.shear = pose.shearPlane ? (active ? damp(f.shear, 1, ek, dt) : f.shear) : 0
+      } else f.axes = bl ? damp(f.axes, 0, ek * 2, dt) : 0
+      f.shear = pose.shearPlane ? (active ? damp(f.shear, 1, ek, dt) : f.shear) : bl ? damp(f.shear, 0, ek * 2, dt) : 0
       f.dim = damp(f.dim, pose.dimension ? 1 : 0, ek, dt)
-      f.slabs = pose.slabs ? 1 : 0
+      // concrete arrives and closes in once the screen is reached; leaving, it opens and fades
+      f.slabs = pose.slabs ? (f.slabs > 0.001 || active ? damp(f.slabs, 1, reduced ? 1e4 : 2.6, dt) : 0) : damp(f.slabs, 0, reduced ? 1e4 : 5, dt)
       if (pose.slabs) {
         if (active) f.gap = damp(f.gap, pose.slabs.gap, reduced ? 1e4 : 1.8, dt)
         f.slabOpacity = damp(f.slabOpacity, pose.slabs.opacity, ek, dt)
-      }
+        f.bottomOnly = pose.slabs.bottom ? 1 : 0
+      } else if (f.slabs > 0.001) f.gap = damp(f.gap, 0.12, reduced ? 1e4 : 3, dt)
+      else f.gap = 0.12
       f.shadow = damp(f.shadow, pose.shadow ?? 0, reduced ? 1e4 : hero ? 9 : 3, dt)
       const pressing = pose.press || (id === 'spec' && stage.inspect === 'modulus')
       f.flex = damp(f.flex, pressing ? 1 : 0, 4, dt)
@@ -550,28 +532,31 @@ export function StageScene({ compact, reduced }: Props) {
       u.uFaceColor.value.copy(v.face)
       u.uPileColor.value.copy(v.pile)
       u.uFlex.value = f.flex
-      u.uPressGlow.value = 0.5
+      // the opening's press reads as a hollow in the mesh, not a light
+      u.uPressGlow.value = hero ? 0.12 : 0.5
       if (tile.current) {
-        tile.current.position.y = hero ? d.y : 0
-        tile.current.rotation.x = f.stand * Math.PI * 0.5 + (hero ? d.tilt * 0.6 : 0)
-        tile.current.rotation.z = hero ? d.tilt * 0.25 : 0
+        tile.current.position.y = (hero ? d.y : 0) + f.lift
+        tile.current.rotation.x = f.stand * Math.PI * 0.5 + (hero ? d.tilt * 0.6 : 0) + f.tiltX
+        tile.current.rotation.z = (hero ? d.tilt * 0.25 : 0) + f.tiltZ
         tile.current.scale.x = f.stretch
         tile.current.updateMatrixWorld()
       }
       if (axes.current) {
         axes.current.visible = f.axes > 0.01
         // X, then Y, then Z grow one after the other
-        axes.current.children.forEach((a, i) => a.scale.setScalar(0.001 + clamp01(f.axes * 3 - i)))
+        const settle = pose.settle ?? 1
+        axes.current.visible = f.axes * settle > 0.01
+        axes.current.children.forEach((a, i) => a.scale.setScalar(0.001 + clamp01(f.axes * settle * 3 - i)))
       }
       if (shear.current) {
         shear.current.visible = f.shear > 0.01
-        planeMat.opacity = 0.62 * f.shear
-        edgeMat.opacity = f.shear
+        planeMat.opacity = 0.62 * f.shear * (pose.settle ?? 1)
+        edgeMat.opacity = f.shear * (pose.settle ?? 1)
         // a flat mesh is the plane itself; RTARIUM's plane lies between its faces, crossed by the fibres
         shear.current.position.y = lerp(0, thickness / 2000 - 0.0006, f.flat)
       }
       if (dimension.current) {
-        dimension.current.visible = f.dim > 0.5
+        dimension.current.visible = f.dim > 0.5 && (pose.settle ?? 1) > 0.5
         dimension.current.scale.y = thickness / 10
       }
       if (widthDim.current) {
@@ -579,27 +564,57 @@ export function StageScene({ compact, reduced }: Props) {
         widthDim.current.scale.x = Math.max(0.001, f.widthDim) / f.stretch
       }
       const slabT = Math.max(thickness / 1000 + 0.006, 0.012)
+      // the concrete is cut to the piece of mesh it holds, with a margin of a cell
+      const slabX = Math.min(f.winX, TILE) * PITCH + 0.012
+      const slabZ = Math.min(f.winZ, TILE) * PITCH + 0.012
       for (const [m, sign] of [
         [slabTop.current, 1],
         [slabBottom.current, -1],
       ] as const) {
         if (!m) continue
-        m.visible = f.slabs > 0.01
-        m.scale.y = slabT
+        m.visible = f.slabs > 0.01 && !(sign > 0 && f.bottomOnly > 0.5)
+        m.scale.set(slabX, slabT, slabZ)
         m.position.y = sign * (slabT / 2 + f.gap)
       }
-      concrete.opacity = f.slabOpacity * f.slabs
+      // on a chapter scrubbed sideways the concrete belongs to its step alone: it is gone a third of the way to the next
+      concrete.opacity = f.slabOpacity * f.slabs * (bl ? (pose.settle ?? 1) : 1)
       concrete.depthWrite = concrete.opacity > 0.95
+      for (const m of [slabTop.current, slabBottom.current]) if (m && concrete.opacity < 0.01) m.visible = false
+      // the mortar: a front running from the far side to the near one (see "In concrete" above)
+      if (mortar.current) {
+        const flow = clamp01(f.pour)
+        mortar.current.visible = pose.pour === true && flow > 0
+        const hx = (Math.min(f.winX, TILE) * PITCH) / 2 - 0.002
+        const hz = (Math.min(f.winZ, TILE) * PITCH) / 2 - 0.002
+        const top = thickness / 2000 - 0.0012
+        // the panel goes on below the mesh, so standing back it reads as a cast slab
+        const bottom = -thickness / 2000 - 0.012
+        mortar.current.scale.set(hx * 2, top - bottom, hz * 2)
+        mortar.current.position.set(0, (top + bottom) / 2, 0)
+        const ease = flow * flow * (3 - 2 * flow)
+        mortarU.uFront.value = lerp(-hz - 0.012, hz + 0.012, ease)
+        mortarU.uTime.value = since
+      }
+      const screenGround = hero ? (stage.wash > 0.5 ? 'light' : 'yellow') : bl ? (c.fx > 1 - bl.t ? bl.gb : bl.ga) : ((r.el.dataset.screen as keyof typeof GROUND) ?? 'yellow')
       if (catcher.current) {
         catcher.current.visible = f.shadow > 0.01
-        catcher.current.position.y = -thickness / 2000 - 0.0006
-        catcherMat.opacity = 0.42 * f.shadow
+        // the shadow falls on the ground under whatever is lowest: the mesh, or the concrete it is cast in
+        const floor = slabBottom.current?.visible ? -(slabT + f.gap) : -thickness / 2000
+        catcher.current.position.y = floor - 0.0006
+        catcherMat.color.copy(SHADOW[screenGround] ?? SHADOW.yellow)
+        catcherMat.opacity = (screenGround === 'light' ? 0.3 : 0.42) * f.shadow
       }
 
-      // the fall-off into the screen's own ground, never another screen's
+      // the fall-off into the ground under the mesh, never another screen's
       const fog = scene.fog as THREE.Fog | null
       if (fog) {
-        fog.color.copy(GROUND[(r.el.dataset.screen as keyof typeof GROUND) ?? 'yellow'] ?? GROUND.yellow)
+        if (hero) v.fogColor.copy(GROUND.yellow).lerp(GROUND.light, stage.wash)
+        else {
+          fogTarget.copy(GROUND[screenGround] ?? GROUND.yellow)
+          if (bl) dampColor(v.fogColor, fogTarget, reduced ? 1e4 : 7, dt)
+          else v.fogColor.copy(fogTarget)
+        }
+        fog.color.copy(v.fogColor)
         fog.near = v.fog[0]
         fog.far = v.fog[1]
       }
@@ -646,7 +661,9 @@ export function StageScene({ compact, reduced }: Props) {
         const hx = (f.winX / 2) * PITCH
         const hz = (f.winZ / 2) * PITCH
         if (ray.ray.intersectPlane(plane, hit) && Math.abs(hit.x) < hx && Math.abs(hit.z) < hz) {
-          press.press(hit.x / SHEET + 0.5, hit.z / SHEET + 0.5, CURSOR.depth, (CURSOR.radius / SHEET) * press.cols)
+          // over the built mesh the hollow is wider: the cursor sinks a patch of the face, which springs back as it moves on
+          const radius = hero && stage.tour > 0.6 ? CURSOR.radius * 1.5 : CURSOR.radius
+          press.press(hit.x / SHEET + 0.5, hit.z / SHEET + 0.5, CURSOR.depth, (radius / SHEET) * press.cols)
         }
       }
       // "Elastic modulus" under the cursor: the sheet is struck in the middle and springs straight back
@@ -676,11 +693,36 @@ export function StageScene({ compact, reduced }: Props) {
         const y = (-vB.y * 0.5 + 0.5) * vh
         const inZone = x > zone[0] * vw && x < zone[2] * vw && y > panelTop + zone[1] * vh && y < panelTop + zone[3] * vh
         if (vB.z >= 1 || !inZone || y < y0 + 12 || y > y1 - 12) continue
+        // a callout whose label stands in a column, its leader level with the point
+        if (el.dataset.col) {
+          // on a narrow screen the column moves in, so the labels keep inside it
+          // the column is a fraction of the width, or the line of an element on the page: the words start on its
+          // left edge, and the leader leaves them on the side the point is on
+          const at = el.dataset.colAt ? document.querySelector(el.dataset.colAt)?.getBoundingClientRect() : undefined
+          const words = at ? (el.querySelector<HTMLElement>('.pin__tag')?.offsetWidth ?? 0) : 0
+          const colX = at ? (x > at.left + words ? at.left + words + 18 : at.left - 18) : (compact ? Math.min(Number(el.dataset.col), 0.5) + 0.22 : Number(el.dataset.col)) * vw
+          const dx = colX - x
+          const lead = el.querySelector<HTMLElement>('.pin__lead')
+          const tag = el.querySelector<HTMLElement>('.pin__tag')
+          if (lead && tag) {
+            lead.style.width = `${Math.abs(dx).toFixed(1)}px`
+            lead.style.transform = dx < 0 ? 'rotate(180deg)' : 'none'
+            tag.style.left = `${dx.toFixed(1)}px`
+            tag.classList.toggle('pin__tag--left', dx < 0)
+          }
+        }
+        // a dimension from this point to another one of the sheet
+        const to = el.dataset.span ? ANCHORS[el.dataset.span] : undefined
+        if (to) {
+          vA.fromArray(to).applyMatrix4(tile.current.matrixWorld).project(camera)
+          const yb = (-vA.y * 0.5 + 0.5) * vh
+          el.style.setProperty('--span', `${(yb - y).toFixed(1)}px`)
+        }
         const tagY = y + Number(el.dataset.dy ?? 0)
         if (el.classList.contains('pin--callout') && (tagY < y0 + 84 || tagY > y1 - 24)) continue
         placed.add(anchor)
         // a label near the edge of the screen turns its text inwards; a callout mirrors its arm
-        if (el.classList.contains('pin--callout')) {
+        if (el.classList.contains('pin--callout') && !el.dataset.col) {
           const dx = Number(el.dataset.dx ?? 0)
           const w = (el.querySelector('.pin__tag') as HTMLElement | null)?.offsetWidth ?? 160
           el.classList.toggle('pin--flip', dx > 0 ? x + dx + w > vw - 8 : x + dx - w < (hero && !compact ? vw * 0.46 : 8))
@@ -745,6 +787,11 @@ export function StageScene({ compact, reduced }: Props) {
       {/* the ground the sheet lies on: receives its shadow, transparent everywhere else */}
       <mesh ref={catcher} material={catcherMat} rotation={[-Math.PI / 2, 0, 0]} visible={false} receiveShadow renderOrder={-1}>
         <planeGeometry args={[4, 4]} />
+      </mesh>
+
+      {/* mortar flowing in through the cavity */}
+      <mesh ref={mortar} material={mortarMat} visible={false} castShadow receiveShadow>
+        <boxGeometry />
       </mesh>
 
       {/* concrete above and below: pulled apart to name the three elements, closed to cast the mesh in */}

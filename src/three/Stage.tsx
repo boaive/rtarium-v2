@@ -1,7 +1,7 @@
 import { Component, Suspense, useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { StageScene } from './StageScene'
-import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
+import { setShared, stage, useStageValue, type Blend, type PoseId, type Region } from './stageStore'
 import { useIsCompact, useReducedMotion } from '../lib/motion'
 
 let webgl: boolean | null = null
@@ -29,10 +29,17 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
   }
 }
 
+/** asks the ground to read the screens again (a track moved its slides without a scroll) */
+let groundRead: (() => void) | null = null
+export const refreshGround = () => groundRead?.()
+
 /**
  * The coloured ground every full-screen step stands on, under the 3D. It never fades: the next
- * screen's colour rises along that screen's own top edge as it scrolls in, and falls back the
- * same way, so the ground and the copy move as one panel (`[data-screen]` marks each screen).
+ * screen's colour comes in along that screen's own edge as it arrives, from below for a screen
+ * scrolling up, from the right for a slide of a chapter that runs sideways, and goes back the same
+ * way (`[data-screen]` marks each screen). The current screen is the last one, in page order, that
+ * holds the top-left corner of the viewport; the incoming one is the next one already on screen.
+ * The opening tour's white light (`--wash`, set by the tour, 0 everywhere else) lies over both.
  */
 export function Ground() {
   const ground = useStageValue('ground')
@@ -45,37 +52,44 @@ export function Ground() {
     let raf = 0
     const read = () => {
       raf = 0
+      const vw = window.innerWidth
       const vh = window.innerHeight
-      const screens = document.querySelectorAll<HTMLElement>('[data-screen]')
-      let current: HTMLElement | null = null
-      let incoming: HTMLElement | null = null
-      let edge = vh
-      for (const el of screens) {
-        const top = el.getBoundingClientRect().top
-        if (top <= 0.5) current = el
-        else {
-          incoming = el
-          edge = top
+      const screens = Array.from(document.querySelectorAll<HTMLElement>('[data-screen]'))
+      const rects = screens.map((el) => el.getBoundingClientRect())
+      let ci = -1
+      rects.forEach((r, i) => {
+        if (r.width > 1 && r.top <= 0.5 && r.bottom > 0.5 && r.left <= 0.5 && r.right > 0.5) ci = i
+      })
+      if (ci < 0) ci = 0
+      let ni = -1
+      for (let i = ci + 1; i < rects.length; i++) {
+        const r = rects[i]
+        if (r.width > 1 && r.bottom > 0.5 && r.top < vh - 0.5 && r.right > 0.5 && r.left < vw - 0.5) {
+          ni = i
           break
         }
       }
-      current ??= screens[0] ?? null
+      const current = screens[ci]
       if (base.current && current) base.current.dataset.g = current.dataset.screen
       if (next.current) {
-        const show = incoming && edge < vh
-        next.current.dataset.g = incoming?.dataset.screen ?? ''
-        next.current.style.clipPath = show ? `inset(${edge.toFixed(1)}px 0 0 0)` : 'inset(100% 0 0 0)'
+        const r = ni >= 0 ? rects[ni] : null
+        next.current.dataset.g = r ? (screens[ni].dataset.screen ?? '') : ''
+        next.current.style.clipPath = r
+          ? `inset(${Math.max(0, r.top).toFixed(1)}px ${Math.max(0, vw - r.right).toFixed(1)}px ${Math.max(0, vh - r.bottom).toFixed(1)}px ${Math.max(0, r.left).toFixed(1)}px)`
+          : 'inset(100% 0 0 0)'
       }
     }
     const on = () => {
       if (!raf) raf = requestAnimationFrame(read)
     }
+    groundRead = read
     read()
     // the screens mount after this: read again once they are in
     const late = window.setTimeout(read, 60)
     window.addEventListener('scroll', on, { passive: true })
     window.addEventListener('resize', on)
     return () => {
+      groundRead = null
       window.clearTimeout(late)
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', on)
@@ -85,6 +99,7 @@ export function Ground() {
   return (
     <div className="ground" aria-hidden="true">
       <div ref={base} className="ground__layer" data-g="yellow" />
+      <div className="ground__wash" />
       <div ref={next} className="ground__layer ground__layer--next" />
     </div>
   )
@@ -124,14 +139,19 @@ export function Stage() {
   )
 }
 
-/** Lends the stage to an element: while it holds the middle of the screen the stage shows `pose()`. */
-export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => PoseId) {
+/**
+ * Lends the stage to an element: while it holds the middle of the screen the stage shows `pose()`,
+ * or, for a chapter scrubbed sideways, the mesh between two of its steps (`blend()`).
+ */
+export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => PoseId, blend?: () => Blend) {
   const getter = useRef(pose)
   getter.current = pose
+  const blender = useRef(blend)
+  blender.current = blend
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const region: Region = { el, pose: () => getter.current() }
+    const region: Region = { el, pose: () => getter.current(), blend: blender.current ? () => blender.current!() : undefined }
     stage.regions.add(region)
     return () => {
       stage.regions.delete(region)
@@ -139,8 +159,16 @@ export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => P
   }, [ref])
 }
 
-/** A label pinned to a point of the 3D model; the stage positions it and shows it in the poses that name it. */
-export function StageLabel({ anchor, children, side = 'right', callout, wideOnly = false }: { anchor: string; children: ReactNode; side?: 'right' | 'left'; callout?: [number, number]; wideOnly?: boolean }) {
+/**
+ * A label pinned to a point of the 3D model; the stage positions it and shows it in the poses that
+ * name it. `callout`: a leader line out to a label on clear ground, at a fixed offset. `column`: a
+ * leader level with the point, out to a label standing in a column at that fraction of the width
+ * (labels of one view line up, like the notes on a drawing), or `columnAt` an element of the page:
+ * the words start on its left edge, so they share its line; `note` sets them as numbered notes on
+ * the ground rather than chips). `span`: a dimension line from this
+ * point to another anchor, with its value beside it.
+ */
+export function StageLabel({ anchor, children, side = 'right', callout, column, columnAt, span, note = false, wideOnly = false }: { anchor: string; children: ReactNode; side?: 'right' | 'left'; callout?: [number, number]; column?: number; columnAt?: string; span?: string; note?: boolean; wideOnly?: boolean }) {
   const ref = useRef<HTMLSpanElement>(null)
   useEffect(() => {
     const el = ref.current
@@ -150,13 +178,30 @@ export function StageLabel({ anchor, children, side = 'right', callout, wideOnly
       stage.labels.delete(anchor)
     }
   }, [anchor])
-  if (callout) {
+  if (span) {
+    return (
+      <span ref={ref} className="pin pin--span" style={{ opacity: 0 }} data-span={span} aria-hidden="true">
+        <span className="pin__dim" />
+        <span className="pin__dim-text">{children}</span>
+      </span>
+    )
+  }
+  if (callout || column !== undefined || columnAt) {
     // a callout: a leader line from the point on the mesh out to the label, which sits on the ground
-    const [dx, dy] = callout
+    const [dx, dy] = callout ?? [column !== undefined && column < 0.5 ? -200 : 200, 0]
     const length = Math.hypot(dx, dy)
     const angle = (Math.atan2(dy, dx) * 180) / Math.PI
     return (
-      <span ref={ref} className={`pin pin--callout ${wideOnly ? 'pin--wide-only' : ''}`} style={{ opacity: 0 }} data-dx={dx} data-dy={dy} aria-hidden="true">
+      <span
+        ref={ref}
+        className={`pin pin--callout ${column !== undefined || columnAt ? 'pin--column' : ''} ${note ? 'pin--note' : ''} ${wideOnly ? 'pin--wide-only' : ''}`}
+        style={{ opacity: 0 }}
+        data-dx={dx}
+        data-dy={dy}
+        data-col={column ?? (columnAt ? 'at' : undefined)}
+        data-col-at={columnAt}
+        aria-hidden="true"
+      >
         <span className="pin__arm">
           <span className="pin__lead" style={{ width: length, transform: `rotate(${angle}deg)` }} />
           <span className={`pin__tag ${dx < 0 ? 'pin__tag--left' : ''}`} style={{ left: dx, top: dy }}>

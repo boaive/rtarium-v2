@@ -2,13 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useRoute } from '../lib/router'
 import { APPLICATIONS } from '../content/site'
 import { useStageValue } from '../three/stageStore'
+import { holdScroll } from '../lib/scroll'
 
-export function BrandMark({ ink }: { ink: boolean }) {
+/**
+ * The two logos in full colour on a black capsule. Both carry yellow (the RTARIUM emblem, half of the
+ * HEMISPHERE ONE disc), so on the yellow ground they would lose it: the capsule keeps them whole on
+ * every ground.
+ */
+export function BrandMark() {
   return (
     <span className="brand">
-      <img className="brand__rt" src={ink ? '/brand/rtarium-logo-ink.png' : '/brand/rtarium-logo.png'} alt="RTARIUM" width={2170} height={725} />
+      <img className="brand__rt" src="/brand/rtarium-logo.png" alt="RTARIUM" width={900} height={136} />
       <span className="brand__by">
-        by <img src={ink ? '/brand/hemisphere-one-logo-ink.png' : '/brand/hemisphere-one-logo.png'} alt="HEMISPHERE ONE" width={2185} height={720} />
+        by <img src="/brand/hemisphere-one-logo.png" alt="HEMISPHERE ONE" width={900} height={171} />
       </span>
     </span>
   )
@@ -41,8 +47,10 @@ export function Nav() {
       }
     }
     document.documentElement.classList.add('menu-open')
+    holdScroll(true)
     window.addEventListener('keydown', onKey)
     return () => {
+      holdScroll(false)
       document.documentElement.classList.remove('menu-open')
       window.removeEventListener('keydown', onKey)
     }
@@ -51,7 +59,6 @@ export function Nav() {
 
   // inner pages sit on warm white; the homepage follows the ground of the step on screen
   const theme = open ? 'black' : home ? ground : 'light'
-  const ink = theme !== 'black'
 
   return (
     <header className={`nav on-${theme}`}>
@@ -60,7 +67,7 @@ export function Nav() {
       </a>
       <div className="nav__bar">
         <Link to="/" className="nav__home" aria-label="RTARIUM by HEMISPHERE ONE, home">
-          <BrandMark ink={ink} />
+          <BrandMark />
         </Link>
         <nav className="nav__main" aria-label="Main">
           <ul>

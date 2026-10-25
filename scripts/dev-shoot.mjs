@@ -1,5 +1,5 @@
 // Development aid (from V1): headless Edge over CDP. node scripts/dev-shoot.mjs shots.json
-// shots.json: { width, height, mobile?, shots: [{ url, out, wait?, eval?, afterEval?, hover?: [x,y], full? }] }
+// shots.json: { width, height, mobile?, shots: [{ url, out, wait?, eval?, afterEval?, hover?: [x,y], wheel?: [x,y,dy,ticks], full? }] }
 // GPU=1 renders on the machine's graphics card (much faster, real-time animation); default is SwiftShader
 import { spawn, spawnSync } from 'node:child_process'
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
@@ -129,6 +129,14 @@ for (const s of cfg.shots) {
     else if (r.result?.result?.value !== undefined && s.print) console.log(s.out ?? 'eval', '=>', JSON.stringify(r.result.result.value))
   }
   if (s.hover) await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: s.hover[0], y: s.hover[1] })
+  // wheel: [x, y, deltaY, ticks?] turns the wheel, one tick of deltaY every 16 ms
+  if (s.wheel) {
+    const [x, y, dy, ticks = 1] = s.wheel
+    for (let i = 0; i < ticks; i++) {
+      await send('Input.dispatchMouseEvent', { type: 'mouseWheel', x, y, deltaX: 0, deltaY: dy })
+      await sleep(16)
+    }
+  }
   if (s.click) {
     await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: s.click[0], y: s.click[1], button: 'left', clickCount: 1 })
     await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: s.click[0], y: s.click[1], button: 'left', clickCount: 1 })

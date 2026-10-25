@@ -1,9 +1,16 @@
 import type { CSSProperties } from 'react'
-import { Chapter, Lines, type Step } from '../components/Chapter'
+import { Lines, Track, type Step } from '../components/Chapter'
 import { VideoLoop } from '../components/Media'
 import { StageLabel } from '../three/Stage'
 
 const MAKING = ['Basalt rock', 'Melted', 'Drawn into filaments', 'Woven into the mesh']
+
+/** the notes on the cast panel at the close of "In concrete" */
+const NOTES = [
+  { anchor: 'pour-cavity', name: 'Open cavity', text: 'Mortar flows right through it.' },
+  { anchor: 'pour-mesh', name: 'Locking mesh', text: 'Held in three dimensions.' },
+  { anchor: 'pour-matrix', name: 'Concrete matrix', text: 'Cast round both faces.' },
+]
 
 const steps: Step[] = [
   {
@@ -52,22 +59,28 @@ const steps: Step[] = [
   {
     id: 'flow',
     label: 'In concrete',
-    ground: 'black',
-    pose: 'none',
-    className: 'scene--film',
+    ground: 'yellow',
+    pose: 'pour',
+    // three movements, in time: the mesh carries on from the rovings to the left of the screen, the
+    // copy top right and the footage, for reference, bottom right; mortar flows in across the mesh;
+    // then the camera stands back to the whole panel while the copy moves top left and the footage
+    // top right, and the panel takes its notes
     render: (active) => (
       <>
-        <div className="film" aria-hidden={!active}>
-          {active && <VideoLoop src="/video/mortar-flow-wide.mp4" poster="/video/mortar-flow-wide.jpg" label="Mortar flowing into the RTARIUM mesh, close up" className="film__video" />}
-          {!active && <img className="film__poster" src="/video/mortar-flow-wide.jpg" alt="" />}
-        </div>
-        <div className="copy copy--br copy--film">
+        <figure className="pourfilm" aria-hidden={!active}>
+          <div className="pourfilm__frame">
+            {active ? (
+              <VideoLoop src="/video/mortar-flow-wide.mp4" poster="/video/mortar-flow-wide.jpg" label="Mortar flowing into the RTARIUM mesh, close up" className="pourfilm__video" />
+            ) : (
+              <img className="pourfilm__poster" src="/video/mortar-flow-wide.jpg" alt="" />
+            )}
+          </div>
+          <figcaption className="caption">Footage from the RTARIUM production shoot.</figcaption>
+        </figure>
+        <div className="copy copy--pour">
           <Lines lines={['Concrete flows in.', 'And locks it.']} />
           <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
             Mortar fills the open cavity between the faces, locking mesh and matrix together in three dimensions.
-          </p>
-          <p className="caption rv" style={{ '--i': 4 } as CSSProperties}>
-            Footage from the RTARIUM production shoot.
           </p>
         </div>
       </>
@@ -78,12 +91,21 @@ const steps: Step[] = [
 export function About() {
   return (
     <>
-      <Chapter id="about" title="About RTARIUM" steps={steps} />
+      <Track id="about" title="About RTARIUM" steps={steps} />
       <StageLabel anchor="upper-face">Upper face</StageLabel>
       <StageLabel anchor="fibres">Connecting fibres</StageLabel>
       <StageLabel anchor="lower-face" side="left">
         Lower face
       </StageLabel>
+      {NOTES.map((n, i) => (
+        <StageLabel key={n.anchor} anchor={n.anchor} columnAt=".scene--flow .copy--pour" note>
+          <span className="note">
+            <span className="note__num num">0{i + 1}</span>
+            <span className="note__name">{n.name}</span>
+            <span className="note__text">{n.text}</span>
+          </span>
+        </StageLabel>
+      ))}
     </>
   )
 }

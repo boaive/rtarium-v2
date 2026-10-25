@@ -14,6 +14,7 @@ export type PoseId =
   | 'hero'
   | 'structure'
   | 'material'
+  | 'pour'
   | 'depth'
   | 'shear'
   | 'mineral'
@@ -26,6 +27,19 @@ export type PoseId =
 export interface Region {
   el: HTMLElement
   pose: () => PoseId
+  /**
+   * A chapter scrubbed sideways: the mesh `t` of the way from step pose `a` to step pose `b`, over
+   * grounds `ga` and `gb` (the edge between them at `1 - t` of the width). `pose()` then names the nearer one.
+   */
+  blend?: () => Blend
+}
+
+export interface Blend {
+  a: PoseId
+  b: PoseId
+  t: number
+  ga: Ground
+  gb: Ground
 }
 
 /** a Tech Space figure under the cursor: the mesh shows what that figure means */
@@ -41,12 +55,12 @@ export const stage = {
   pointer: { x: 0, y: 0, at: -1e9 },
   /** DOM labels pinned to points of the model, keyed by anchor id */
   labels: new Map<string, HTMLElement>(),
-  /** how far the opening tour has gone: 0 at the top, 1 mesh built, 2 inside the cavity (damped) */
+  /** how far the opening tour has gone: 0 at the top, 1 mesh built, 2 inside the cavity, 3 the cast, 4 handed to About (damped) */
   tour: 0,
+  /** how far the tour has gone into white light (0..1); the ground and the fog wash to warm white */
+  wash: 0,
   /** the Tech Space figure under the cursor or focused, if any */
   inspect: null as Inspect | null,
-  /** a tileable top-down picture of the mesh, rendered once by the stage, for the footer's drop */
-  swatch: null as HTMLCanvasElement | null,
 }
 
 /* ---- the few values React renders from ------------------------------------------------------ */

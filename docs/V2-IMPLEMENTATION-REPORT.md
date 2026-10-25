@@ -95,3 +95,70 @@ opening plus two corrections. This section supersedes the opening and footer row
 
 Detector after the pass: source scan clean; URL scan reports the intended word-by-word gating
 (`content-hidden-at-rest`) and one stale-ground reading on the Yarn bar labels (8.4:1 on their real black ground).
+
+## 6. Fourth review (25 October 2026)
+
+The owner's fourth review, with EnduroSat (continuous movement, minimalism) and Enerblock (scroll motion) as
+references. Where it conflicts with the sections above, this section wins (PRODUCT.md records the same direction).
+
+| Feedback | What was done | Where |
+|---|---|---|
+| Logos hidden on yellow | The RTARIUM emblem and half the HEMISPHERE ONE disc are yellow: both logos now sit in full colour on a black capsule on every ground (a yellow hairline keeps its edge on black) | `components/Nav.tsx`, `.nav__home` |
+| "Meet RTARIUM" bigger, another face, "Meet" smaller | The name in Anybody at 150 % width, 860 weight (also the footer's name); "Meet" in the same face, narrow and light, about a third of the size | `.hero__title`, `--font-name`, `@fontsource-variable/anybody` |
+| Basalt yarn callout hidden; mesh wider, shorter, isolated; show the offset | An 18 × 12-cell piece hovering 3 cm over its own shadow, tilted 11°, seen from 52° so the two offset faces and their lattice shadow read; callouts re-aimed onto clear ground, each with a plate of ground behind its words | `three/poses.ts` (hero, lift, tilt), `StageScene.tsx`, `.pin__words` |
+| Explore looks common | A square black slab with an arrow cell; on hover yellow runs back over it and the arrow steps on | `.explore` |
+| Cavity markings | Notes in a column with level leaders to three points on one vertical, the depth between the faces dimensioned (10 mm) | `StageLabel column / span`, `.pin--column`, `.pin--span` |
+| Transition out of the animation | The tour runs on along the cavity into white light (fog and ground wash to warm white), and out of the white a tile of mesh with concrete rising to its mid-plane: "Concrete, better than ever." Then the page scrolls on | `poses.ts` (tourKeys, CAST), `Ground` (wash), `Hero.tsx` |
+| About, Innovation, Tech Space horizontal, one continuous mesh | `Track`: the chapter is pinned for its steps; the damped scroll carries it sideways; the next slide enters from the right edge (a hairline marks the edge) over the last, which drifts left and is covered; the ground comes in along the same edge; one view of the mesh is scrubbed between the steps' poses (`blendPose`), so it never cuts. Each step stays a snap point | `components/Chapter.tsx` (Track), `three/poses.ts` (blendPose), `Region.blend` |
+| Depth mesh smaller | A 12 × 12 piece further off, space round it | `poses.ts` (depth, shear) |
+| Tech Space text too big, collides with the header | Display sizes follow the viewport height as well as its width; every screen's copy keeps a fixed margin under the header and above the step chips | `--t-display`, `--t-figure`, `.scene --top / --bottom` |
+| Yarn: less wording, another arrangement | One figure, two small figures, and one scale from 0 to 3,500 MPa with every material a tick on it and RTARIUM's mark running out to 2,620 | `TechSpace.tsx` (YarnStep), `.yarn`, `.scale` |
+| Footer liquid and mesh | A spring holds the drop to the cursor (it overshoots and settles), it turns to its motion and stretches keeping its area, changes of pace ring three edge modes, four droplets trail on short links and merge back, the edge catches the light; inside, the symmetrical diamond lattice of doubled lines from the owner's sketch, shaded as rovings, the lower face sliding against the upper as it moves. At rest it waits, breathing, on the open ground | `components/LiquidMesh.tsx` |
+
+Verified with the headless Edge shooter at 1440 × 900, 1536 × 864 and 390 × 844; `npm run build` passes.
+
+## 7. Fifth review (25 October 2026)
+
+| Feedback | What was done | Where |
+|---|---|---|
+| Hero mesh touches the M | The piece is framed lower and further right (same size) | `poses.ts` (hero frame) |
+| Cursor hollow on "Two basalt faces, woven as one." | The press field (V1's) now runs on the built mesh too, with a wider footprint and almost no glow, so it reads as a hollow that springs back | `tourPose` (press), `StageScene.tsx` |
+| Zoom from the cast into the next section | The tour runs one screen further (0..4): the slab falls away, the camera goes in close to the yarns and comes out exactly as About's first view while the white washes back to yellow. Until it gets there the opening holds the whole screen and About does not draw; then About takes over from the same pose | `poses.ts` (tourKeys 3.5, 4; tourWash), `StageScene.tsx` (handing), `Hero.tsx` |
+| Material to In concrete looked odd (footage) | "In concrete" is now a 3D step on yellow: the mesh carries on from the rovings, wet mortar flows in across it from the far side (a slab through the cavity cut at a wavering, glossy front), then the footage opens in a box top right; copy bottom left | `poses.ts` (pour), `StageScene.tsx` (mortar), `About.tsx`, `.pourfilm` |
+| What it replaces, one thing at a time (Enerblock layout) | A pinned stack of rows (number, drawing, name, weakness, one line). Each scroll opens the next row while the last folds into a bar at the top with its name struck through; RTARIUM opens last, on black, with the production photo of the mesh in profile. Steel fibre, AR-glass fibre and flat mesh are line drawings that draw themselves | `Why.tsx` (Replaces), `.stack`, `.row` |
+| Footer liquid like the reference | The drop is a cushion of the mesh lattice with no fill: it bulges and is lit as a pillow, the lower face slides against the upper where it tilts, it swells and pinches its sides moving fast, twists when it turns and unwinds, ripples, trails two droplets and casts a soft shadow. The inverted copy is gone. On narrow screens it shows only while touched | `components/LiquidMesh.tsx`, `components/Footer.tsx` |
+
+Verified with the headless Edge shooter at 1440 × 900, 1536 × 864 and 390 × 844; `npm run build` passes.
+
+## 8. Sixth review (25 October 2026)
+
+| Feedback | What was done | Where |
+|---|---|---|
+| Concrete in Structure, Innovation and the Tech Space sheet (a bug) | The blended pose of the sideways chapters is one shared object; the mortar switch added in the fifth review was never cleared, so it carried into every chapter after "In concrete". The blend now clears the object before each use; slabs on a sideways chapter also fade a third of the way to the next step | `poses.ts` (blendPose), `StageScene.tsx` |
+| Scroll pulled back; should feel smooth | CSS scroll snapping removed; the wheel glides (Lenis 1.3.23, pinned); touch keeps native momentum; reduced motion keeps the browser's own scrolling. Every scroll the site starts goes through `scrollToY`; the menu holds the page; the figures sheet scrolls on its own | `lib/scroll.ts`, `main.tsx`, `router.tsx`, `Chapter.tsx`, `Nav.tsx` |
+| Hero mesh a little lower | Framed 2.5 % lower; on phones it stands further back | `poses.ts` (hero) |
+| "In concrete" in three movements, per the owner's reference | Mesh to the left (copy top right, footage bottom right); mortar flows in; the camera stands back to the cast panel (`POUR_OUT`) as the copy moves top left and the footage top right, and three numbered notes appear on leader lines | `poses.ts` (pour, POUR_OUT), `StageScene.tsx`, `About.tsx`, `.copy--pour`, `.pourfilm`, `.pin--note` |
+| What it replaces: no visuals, slim, white | Rows of number, struck name, weakness and one line; an open row is about a quarter of the screen; warm-white ground; RTARIUM opens last on black | `Why.tsx`, `.stack`, `.row` |
+| Footer: 3D mesh, no border, yellow turning black | A black liquid pool (spring, stretch, ripples, droplets) with the footer's yellow copy clipped to its outline, carrying a three.js piece of mesh: two faces and connecting fibres cut to a ragged outline, yarns of uneven length; it cups, opens a saddle along its motion, twists when it turns and ripples at speed. three.js loads for it only when the footer is first on screen | `components/LiquidMesh.tsx`, `three/footerMesh.ts`, `Footer.tsx` |
+
+Verified with the headless Edge shooter at 1440 × 900, 1536 × 864 and 390 × 844; `npm run build` passes.
+
+## 9. Seventh review (25 October 2026)
+
+| Feedback | What was done | Where |
+|---|---|---|
+| Material to In concrete: mesh on the left as in Structure and Material; text and footage on one line; block too far right; leader lines too long | The first movement holds the mesh close, as in Structure and Material, filling the left with its cut edge clear of the right; the copy and the footage share one column on the right (same width, same edge). Standing back, the cast block lands a little left of the middle; its notes stand in the footage's column (`columnAt`), on short leaders from the block's near end | `poses.ts` (pour, POUR_OUT, pour anchors), `Stage.tsx` (StageLabel columnAt), `StageScene.tsx`, `.scene--flow --col` |
+| Footer: use the actual mesh; it bends and stretches, and comes back to normal at rest | The footer piece is now the real RTARIUM cell (the Blender model and yarn material of the stage), instanced into a piece cut to an irregular, stepped outline. The bend (saddle, cup, twist, ripple) and a stretch along the motion all come from the motion and ease back out: at rest it lies flat | `three/footerMesh.ts`, `components/LiquidMesh.tsx` |
+
+Verified with the headless Edge shooter at 1440 × 900 and 1536 × 864; `npm run build` passes.
+
+## 10. Eighth review (25 October 2026)
+
+| Feedback | What was done | Where |
+|---|---|---|
+| In concrete notes on the left, placed properly, no collisions, aligned | The notes stand on the left under the copy, their words starting on the copy's own line (`columnAt` now measures the element and puts the words on its left edge, the leader leaving on the side the point is on). The block turns a little (azimuth −20°) so its near edge runs steeply, the points sit evenly along it (about 90 px apart), and the leaders are short. Each note is one line; the heading stays on two lines at every width (column min(32rem, 33vw), heading up to 3.6rem). Checked at 1280, 1440, 1536 and 1920 wide | `poses.ts` (POUR_OUT, pour anchors), `StageScene.tsx`, `About.tsx` (NOTES), `.scene--flow`, `.note` |
+| In concrete: the block a little to the left, nothing else changed | The stood-back framing moves from 0.49 to 0.46 of the width; the notes keep their line and get shorter leaders | `poses.ts` (POUR_OUT frame) |
+| Scroll: no holding point; smooth, keeps the visitor in place, never pulls back | Every screen and step is a holding point (hero screens, chapter steps, track and stack steps, applications, footer). When the visitor stops (150 ms still, finger lifted), the page glides onto the next point in the direction they were going; a nudge under 3.5 % of the screen returns to where it was. Their next wheel, key or touch takes over at once. Off on reduced motion and while the menu or the figures sheet is open | `lib/scroll.ts` |
+
+Holding verified with real wheel input in the headless shooter (new `wheel` action): a short scroll down lands on the next screen (900), a short scroll up on the one before (0), a nudge stays put, a long throw stops at the next point after it, and in About and the replaces stack a short scroll moves exactly one step. `npm run build` passes.
+

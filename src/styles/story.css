@@ -35,24 +35,40 @@
   object-fit: cover;
   border-radius: 4px;
 }
-/* the headline beside the strip: left, clear of the mesh, which lies on the right */
+/* the headline: upper left, the piece of mesh answering it from the lower right */
 .hero__copy {
   position: absolute;
   left: var(--gutter);
-  top: 50%;
+  top: calc(var(--nav-h) + clamp(28px, 9vh, 104px));
   z-index: 2;
   display: grid;
-  gap: clamp(20px, 3.4vh, 36px);
-  width: min(44vw, 44rem);
-  transform: translateY(-50%);
+  gap: clamp(22px, 4.4vh, 48px);
   cursor: auto;
   user-select: text;
 }
+/*
+ * The name, cut in Anybody at its widest and heaviest, as the wordmark is; "Meet" above it in the
+ * same face, narrow and light, a third of its size.
+ */
 .hero__title {
-  font-size: clamp(3.4rem, 8.4vw, 8.75rem);
-  font-weight: 800;
-  letter-spacing: -0.045em;
-  line-height: 0.92;
+  font-family: var(--font-name);
+  line-height: 0.86;
+  letter-spacing: 0;
+}
+.hero__title .lines__line:first-child {
+  font-size: clamp(1.9rem, min(3.3vw, 6vh), 3.6rem);
+  font-weight: 340;
+  font-stretch: 96%;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.08em;
+  margin-left: 0.04em;
+}
+.hero__title .lines__line:last-child {
+  font-size: clamp(3.1rem, min(8.6vw, 15.5vh), 9.6rem);
+  font-weight: 860;
+  font-stretch: 150%;
+  letter-spacing: -0.012em;
+  margin-left: -0.03em;
 }
 /*
  * As the tour starts the headline drifts towards the mesh and dissolves into it, line after line,
@@ -70,48 +86,156 @@
   --i: 2;
   display: grid;
   justify-items: start;
-  gap: clamp(20px, 3.4vh, 36px);
+  gap: clamp(22px, 3.6vh, 36px);
+  max-width: 30rem;
 }
 .hero__lede {
   max-width: 21em;
-  font-size: clamp(1.15rem, 1.6vw, 1.65rem);
+  font-size: clamp(1.1rem, 1.45vw, 1.45rem);
   font-weight: 500;
-  letter-spacing: -0.015em;
-  line-height: 1.3;
+  letter-spacing: -0.012em;
+  line-height: 1.32;
   color: var(--on-yellow-2);
 }
-.hero__cta {
-  min-height: 64px;
-  padding: 0 34px 0 40px;
-  gap: 28px;
-  font-size: 1.15rem;
+
+/*
+ * Explore: a black slab with a yellow cell at its end, square like the headline slabs. On hover the
+ * yellow runs back from the cell over the whole slab and the arrow steps on.
+ */
+.explore {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  height: 60px;
+  overflow: hidden;
+  background: var(--black);
+  color: var(--yellow);
+  text-decoration: none;
+  isolation: isolate;
 }
+.explore::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--yellow);
+  box-shadow: inset 0 0 0 1.5px var(--black);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.55s var(--ease-out);
+}
+.explore__label {
+  display: flex;
+  align-items: center;
+  padding: 0 28px 0 24px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.35s var(--ease-out);
+}
+.explore__cell {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  border-left: 1px solid rgb(253 208 1 / 0.28);
+  overflow: hidden;
+  transition: border-color 0.35s var(--ease-out);
+}
+.explore__cell svg {
+  transition: transform 0.45s var(--ease-out);
+}
+.explore:hover::before,
+.explore:focus-visible::before {
+  transform: scaleX(1);
+}
+.explore:hover .explore__label,
+.explore:focus-visible .explore__label,
+.explore:hover .explore__cell,
+.explore:focus-visible .explore__cell {
+  color: var(--black);
+  border-color: rgb(8 8 8 / 0.2);
+}
+.explore:hover .explore__cell svg {
+  animation: step-on 0.6s var(--ease-out);
+}
+@keyframes step-on {
+  0% {
+    transform: none;
+  }
+  45% {
+    transform: translateX(28px);
+  }
+  46% {
+    transform: translateX(-28px);
+  }
+  100% {
+    transform: none;
+  }
+}
+.explore:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 4px;
+}
+
+/* the scroll cue: a hairline with a bead running down it */
 .hero__scroll {
   --i: 3;
   position: absolute;
   left: var(--gutter);
-  bottom: clamp(24px, 5vh, 56px);
+  bottom: clamp(22px, 4.4vh, 48px);
   z-index: 2;
   cursor: auto;
 }
-.hero__scroll-in {
-  display: flex;
+.cue {
+  display: inline-flex;
   align-items: center;
-  gap: var(--s-4);
-  font-size: var(--t-body);
-  font-weight: 500;
-}
-.hero__scroll .round {
+  gap: 14px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
   background: none;
+  font-size: var(--t-small);
+  font-weight: 600;
   cursor: pointer;
 }
+.cue__track {
+  position: relative;
+  width: 1.5px;
+  height: 46px;
+  overflow: hidden;
+  background: rgb(8 8 8 / 0.3);
+}
+.cue__track i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 14px;
+  background: var(--black);
+  animation: bead 2.4s var(--ease-in-out) infinite;
+}
+@keyframes bead {
+  from {
+    transform: translateY(-14px);
+  }
+  to {
+    transform: translateY(46px);
+  }
+}
+.cue:hover .cue__text {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
 /* the tour's two lines, set on slabs so they read over the mesh */
 .hero__say {
   position: absolute;
   z-index: 2;
 }
 .hero__say .lines {
-  font-size: clamp(2rem, 3.9vw, 4.4rem);
+  font-size: clamp(1.9rem, min(3.4vw, 6.2vh), 3.8rem);
 }
 .hero__say--br {
   right: var(--gutter);
@@ -126,6 +250,27 @@
 }
 .hero__say--tr .lines {
   justify-items: end;
+}
+
+/* the close of the tour, on the washed-white ground: the line on the left, the cast on the right */
+.hero__cast {
+  position: absolute;
+  left: var(--gutter);
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  gap: var(--s-5);
+  width: min(34rem, 40vw);
+  transform: translateY(-50%);
+  /* it leaves as the camera goes into the mesh (--p past 3) */
+  opacity: calc(1 - clamp(0, (var(--p, 0) - 3) * 6, 1));
+}
+.hero__cast .lines {
+  font-size: clamp(2.2rem, min(4.4vw, 8vh), 4.9rem);
+}
+.hero__cast .lead {
+  max-width: 24rem;
+  color: var(--on-light-2);
 }
 @keyframes rise {
   from {
@@ -155,6 +300,59 @@
   position: absolute;
   inset: 0;
   transform: translate3d(0, calc(var(--o, 0) * 16vh), 0);
+}
+
+/* ---- chapters that run sideways ---------------------------------------------------------- */
+
+/* pinned for as many screens as it has steps; each step is a snap point */
+.track {
+  position: relative;
+  z-index: 2;
+  height: calc(var(--steps) * 100svh);
+}
+.track__snap {
+  position: absolute;
+  left: 0;
+  top: calc(var(--i) * 100svh);
+  width: 1px;
+  height: 100svh;
+  scroll-snap-align: start;
+  pointer-events: none;
+}
+.track__pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+.scene--slide {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  scroll-snap-align: none;
+  will-change: transform;
+}
+/* the slide on its way out is covered by the next one's edge (--cover, set by the track) */
+.scene--slide > .scene__inner {
+  transform: none;
+  clip-path: inset(0 var(--cover, 0%) 0 0);
+  opacity: calc(1 - var(--out, 0) * 0.75);
+}
+/* the incoming slide's edge: a hairline that carries the motion across a ground of the same colour */
+.scene--slide::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 1.5px;
+  background: var(--fg);
+  opacity: var(--edge, 0);
+  pointer-events: none;
+}
+.scene--slide .film {
+  transform: none;
 }
 
 /* without WebGL: a still of the mesh where the mesh would be */
@@ -254,6 +452,11 @@
 
 /* ---- where the copy sits: chosen per screen, clear of the mesh -------------------------------- */
 
+/* every screen's copy keeps clear of the header above and the step chips below */
+.scene {
+  --top: calc(var(--nav-h) + clamp(18px, 5.5vh, 60px));
+  --bottom: calc(var(--progress-h) + clamp(6px, 2vh, 24px));
+}
 .copy {
   position: absolute;
   display: grid;
@@ -262,7 +465,7 @@
 }
 .copy--br,
 .copy--bl {
-  bottom: calc(var(--progress-h) + 3vh);
+  bottom: var(--bottom);
   width: min(38rem, 42vw);
 }
 .copy--br {
@@ -273,8 +476,8 @@
 }
 .copy--tr {
   right: var(--gutter);
-  top: calc(var(--nav-h) + 4vh);
-  width: min(38rem, 44vw);
+  top: var(--top);
+  width: min(36rem, 42vw);
   justify-items: end;
 }
 .copy--tr .lead {
@@ -287,7 +490,7 @@
 .copy--band {
   left: var(--gutter);
   right: var(--gutter);
-  top: calc(var(--nav-h) + 3vh);
+  top: var(--top);
   grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
   align-items: end;
   gap: var(--s-5) var(--s-8);
@@ -460,6 +663,105 @@
   z-index: 2;
 }
 
+/* ---- in concrete: three movements in time (see About.tsx) -------------------------------------- */
+
+/*
+ * While the mortar runs in, the copy and the footage stand in one column on the right, on one
+ * line; standing back, the copy goes top left and the footage rises to the top of its column.
+ */
+.scene--flow {
+  --col: min(32rem, 33vw);
+}
+.copy--pour {
+  --cw: var(--col);
+  top: var(--top);
+  left: calc(100% - var(--gutter) - var(--cw));
+  width: var(--cw);
+}
+.copy--pour .lines {
+  font-size: clamp(2rem, min(3.6vw, 6.6vh), 3.6rem);
+}
+.scene.is-active .copy--pour {
+  animation: pour-copy 1.4s var(--ease-in-out) 3.3s both;
+}
+.scene.is-seen .copy--pour {
+  left: var(--gutter);
+}
+@keyframes pour-copy {
+  from {
+    left: calc(100% - var(--gutter) - var(--cw));
+  }
+  to {
+    left: var(--gutter);
+  }
+}
+/* the footage, for reference: it opens at the foot of the column, then rises to its top */
+.pourfilm {
+  --fw: var(--col);
+  position: absolute;
+  right: var(--gutter);
+  top: calc(100% - var(--bottom) - var(--fw) * 0.5625 - 30px);
+  z-index: 2;
+  display: grid;
+  gap: 8px;
+  width: var(--fw);
+  margin: 0;
+  opacity: 0;
+}
+.pourfilm__frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--black);
+  box-shadow: 0 18px 40px -24px rgb(8 8 8 / 0.6);
+}
+.pourfilm__video,
+.pourfilm__poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pourfilm .loop__toggle {
+  left: 10px;
+  bottom: 10px;
+}
+.pourfilm .caption {
+  color: var(--on-yellow-2);
+  text-align: right;
+}
+.scene.is-active .pourfilm {
+  animation:
+    open-box 1s var(--ease-out) 0.6s both,
+    pour-film 1.4s var(--ease-in-out) 3.3s both;
+}
+.scene.is-seen .pourfilm {
+  opacity: 1;
+  top: var(--top);
+}
+@keyframes open-box {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 0 100%);
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0);
+  }
+}
+@keyframes pour-film {
+  from {
+    top: calc(100% - var(--bottom) - var(--fw) * 0.5625 - 30px);
+  }
+  to {
+    top: var(--top);
+  }
+}
+
 /* ---- the challenge: the sentence is the screen ------------------------------------------- */
 
 .statement {
@@ -474,101 +776,144 @@
   animation-delay: calc(0.3s + var(--w, 0) * 95ms);
 }
 
-/* ---- what it replaces ---------------------------------------------------------------------- */
+/* ---- what it replaces: slim stacked rows on warm white, one opening at a time (Enerblock) ------ */
 
-.replace {
-  position: absolute;
-  inset: calc(var(--nav-h) + 2vh) var(--gutter) var(--progress-h);
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: var(--s-6);
-}
-.replace__head {
-  justify-self: end;
-  justify-items: end;
-  text-align: right;
-  font-size: clamp(2.2rem, 4.2vw, 4.6rem);
-}
-.replace__list {
-  display: grid;
-  align-content: center;
-}
-.replace__item {
+.stack {
   position: relative;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-5);
-  padding: clamp(10px, 2vh, 22px) 0;
-  border-bottom: 1.5px solid var(--black);
-  opacity: 0;
+  z-index: 2;
+  height: calc(var(--rows) * 100svh);
 }
-.replace__item:first-child {
-  border-top: 1.5px solid var(--black);
+.stack__pin {
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(18px, 4vh, 44px);
+  height: 100svh;
+  padding: calc(var(--nav-h) + clamp(18px, 6vh, 64px)) var(--gutter) calc(var(--progress-h) + clamp(4px, 1.4vh, 16px));
+  overflow: hidden;
 }
-.replace__name {
-  position: relative;
-  font-size: clamp(1.8rem, 4vw, 4.2rem);
+.stack__title {
+  font-size: clamp(1.7rem, min(3vw, 5.4vh), 3.2rem);
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1;
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s var(--ease-out) 0.15s,
+    transform 0.9s var(--ease-out) 0.15s;
 }
-.replace__weak {
-  font-size: var(--t-lead);
-  font-weight: 600;
-  text-align: right;
+.stack.is-in .stack__title {
+  opacity: 1;
+  transform: none;
 }
-.replace__strike {
+.stack__rows {
+  position: relative;
+  margin: 0;
+  border-top: 1.5px solid var(--black);
+}
+/* a row: its number, its name and weakness, one line on the right; folded, only its top shows */
+.row {
   position: absolute;
-  left: -0.06em;
-  right: -0.06em;
-  top: 54%;
-  height: 0.075em;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.1fr) minmax(0, 0.6fr) minmax(0, 0.3fr);
+  align-items: start;
+  column-gap: clamp(16px, 2.6vw, 44px);
+  padding: clamp(12px, 1.8vh, 16px) 0 clamp(14px, 2.4vh, 24px);
+  overflow: hidden;
+  border-bottom: 1.5px solid var(--black);
+  background: var(--white);
+  will-change: transform, height;
+}
+.row__num {
+  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+  line-height: 1.5;
+}
+.row__name {
+  position: relative;
+  display: inline-block;
+  font-size: clamp(1rem, 1.35vw, 1.25rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+/* the strike runs through the name once its row is reached, and stays when it folds */
+.row__strike {
+  position: absolute;
+  left: -0.12em;
+  right: -0.12em;
+  top: 52%;
+  height: 0.17em;
   background: var(--black);
   transform: scaleX(0);
   transform-origin: left;
 }
-.scene.is-active .replace__item {
-  animation: rise 0.7s var(--ease-out) both;
-  animation-delay: calc(0.6s + var(--i) * 0.14s);
-}
-.scene.is-active .replace__strike {
-  animation: strike 0.6s var(--ease-in-out) both;
-  animation-delay: calc(1.5s + var(--i) * 0.28s);
-}
-.scene.is-seen .replace__item {
-  opacity: 1;
-}
-.scene.is-seen .replace__strike {
+.row.is-seen .row__strike {
   transform: scaleX(1);
 }
+.row.is-active .row__strike {
+  animation: strike 0.6s var(--ease-in-out) 0.7s both;
+}
 @keyframes strike {
+  from {
+    transform: scaleX(0);
+  }
   to {
     transform: scaleX(1);
   }
 }
-.replace__answer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s-2) var(--s-6);
-  padding: clamp(16px, 2.6vh, 28px) clamp(20px, 2.4vw, 36px);
+.row__weak {
+  margin-top: clamp(14px, 2.6vh, 28px);
+  font-size: clamp(1.9rem, min(3.6vw, 6.4vh), 3.8rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-wrap: balance;
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.6s var(--ease-out) 0.3s,
+    transform 0.8s var(--ease-out) 0.3s;
+}
+.row.is-active .row__weak,
+.row.is-seen .row__weak {
+  opacity: 1;
+  transform: none;
+}
+.row__what {
+  align-self: end;
+  max-width: 24rem;
+  font-size: var(--t-small);
+  line-height: 1.45;
+  color: var(--on-light-2);
+}
+/* RTARIUM opens on black, across the full width, its name cut as the opening's */
+.row--rtarium {
+  left: calc(-1 * var(--gutter));
+  right: calc(-1 * var(--gutter));
+  padding-inline: var(--gutter);
   background: var(--black);
   color: var(--yellow);
-  font-size: var(--t-lead);
-  font-weight: 500;
-  opacity: 0;
+  border-bottom-color: var(--black);
 }
-.replace__answer-name {
-  font-size: clamp(1.6rem, 2.8vw, 2.8rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
+.row--rtarium .row__name {
+  font-family: var(--font-name);
+  font-size: clamp(1.5rem, 2.6vw, 2.5rem);
+  font-weight: 860;
+  font-stretch: 150%;
+  letter-spacing: 0;
+  line-height: 1;
 }
-.scene.is-active .replace__answer {
-  animation: rise 0.8s var(--ease-out) 2.5s both;
+.row--rtarium .row__weak {
+  font-size: clamp(1.7rem, min(3vw, 5.4vh), 3.1rem);
 }
-.scene.is-seen .replace__answer {
-  opacity: 1;
+.row--rtarium .row__what {
+  color: var(--on-dark-2);
 }
 
 /* shear comparison toggle */
@@ -605,11 +950,11 @@
 
 .system {
   position: absolute;
-  inset: calc(var(--nav-h) + 2vh) var(--gutter) calc(var(--progress-h) + 2vh);
+  inset: var(--top) var(--gutter) var(--bottom);
 }
 .system .lines {
   position: absolute;
-  font-size: clamp(2.6rem, 5.6vw, 6rem);
+  font-size: clamp(1.9rem, min(3.6vw, 6.4vh), 4rem);
 }
 .system__a {
   left: 0;
@@ -626,16 +971,19 @@
   bottom: 0;
   display: grid;
   gap: var(--s-4);
-  width: min(24rem, 30vw);
+  width: min(22rem, 28vw);
+}
+.system__more .lead {
+  font-size: var(--t-small);
 }
 
 /* ---- Tech Space: the sheet, figures you can point at -------------------------------------- */
 
 .spec {
   position: absolute;
-  inset: var(--nav-h) var(--gutter) var(--progress-h);
+  inset: var(--top) var(--gutter) var(--bottom);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr) minmax(0, 0.8fr);
   grid-template-rows: auto 1fr auto;
   grid-template-areas:
     'head head head'
@@ -650,7 +998,7 @@
   gap: var(--s-3);
 }
 .spec__head .lines {
-  font-size: clamp(2.2rem, 4vw, 4.4rem);
+  font-size: clamp(1.8rem, min(3vw, 5.6vh), 3.2rem);
 }
 .spec__hint {
   font-size: var(--t-small);
@@ -659,7 +1007,7 @@
 .spec__col {
   display: grid;
   align-content: center;
-  gap: clamp(10px, 2.4vh, 28px);
+  gap: clamp(6px, 1.6vh, 18px);
 }
 .spec__col--left {
   grid-area: left;
@@ -699,8 +1047,9 @@
   border-top-color: var(--yellow);
 }
 .readout__label {
-  font-size: var(--t-small);
+  font-size: var(--t-micro);
   font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--fg-2);
 }
 .readout__value {
@@ -790,132 +1139,210 @@
   }
 }
 
-/* ---- Tech Space: the yarn's strength as a race ------------------------------------------ */
+/* ---- Tech Space: the yarn, one figure on one scale ------------------------------------------ */
 
-.race {
+/* the copy holds the left; the ribbon of mesh runs away on the right */
+.yarn {
   position: absolute;
-  inset: var(--nav-h) var(--gutter) var(--progress-h);
+  inset: var(--top) var(--gutter) var(--bottom);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: minmax(0, 0.54fr) minmax(0, 0.46fr);
+  grid-template-rows: auto 1fr auto auto auto;
   grid-template-areas:
     'head .'
-    'bars .'
-    'more .';
-  align-items: center;
-  gap: var(--s-5) var(--s-8);
+    '. .'
+    'figure .'
+    'more .'
+    'scale .';
+  align-items: start;
+  row-gap: clamp(14px, 3vh, 32px);
 }
-.race__head {
+.yarn__head {
   grid-area: head;
+  font-size: clamp(1.8rem, min(3vw, 5.6vh), 3.2rem);
+}
+.yarn__figure {
+  grid-area: figure;
   display: grid;
-  justify-items: start;
-  gap: var(--s-4);
+  gap: 6px;
 }
-.race__head .lead {
-  max-width: 22rem;
-}
-.race__figure {
+.yarn__value {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  font-size: var(--t-figure);
+  gap: 10px;
+  font-size: clamp(3.4rem, min(7.4vw, 14vh), 7.4rem);
   font-weight: 800;
-  letter-spacing: -0.06em;
-  line-height: 0.85;
+  letter-spacing: -0.05em;
+  line-height: 0.86;
   font-variant-numeric: tabular-nums;
 }
-.race__unit {
-  font-size: 0.3em;
-  letter-spacing: -0.02em;
+.yarn__unit {
+  font-size: 0.32em;
+  letter-spacing: -0.01em;
   color: var(--fg-2);
 }
-.race__bars {
-  grid-area: bars;
-  display: grid;
-  gap: clamp(10px, 2vh, 18px);
-}
-.race__bar {
-  display: grid;
-  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) 7rem;
-  align-items: center;
-  gap: var(--s-4);
+.yarn__label {
   font-size: var(--t-small);
-}
-.race__label {
+  font-weight: 600;
   color: var(--fg-2);
 }
-.race__track {
-  height: 14px;
-  border-radius: 2px;
-  background: rgb(253 208 1 / 0.08);
-  overflow: hidden;
+.yarn__more {
+  grid-area: more;
+  display: flex;
+  gap: clamp(24px, 4vw, 56px);
 }
-.race__fill {
-  display: block;
-  height: 100%;
-  background: rgb(253 208 1 / 0.38);
-  transform: scaleX(0);
-  transform-origin: left;
-}
-.scene.is-active .race__fill {
-  animation: grow 1.5s var(--ease-out) both;
-  animation-delay: calc(0.8s + var(--i) * 0.15s);
-}
-.scene.is-seen .race__fill {
-  transform: scaleX(var(--v));
-}
-@keyframes grow {
-  to {
-    transform: scaleX(var(--v));
-  }
-}
-.race__value {
-  text-align: right;
+.yarn__more dt {
   font-size: var(--t-micro);
   color: var(--fg-2);
 }
-.race__bar.is-rt .race__label,
-.race__bar.is-rt .race__value {
-  color: var(--yellow);
-  font-weight: 700;
+.yarn__more dd {
+  margin: 2px 0 0;
+  font-size: 1.2rem;
 }
-.race__bar.is-rt .race__fill {
-  background: var(--yellow);
+
+/* one line from nothing to carbon fibre; every material a tick on it, RTARIUM's mark runs out to its place */
+.scale {
+  grid-area: scale;
+  position: relative;
+  margin: 0;
+  padding: 44px 0 46px;
 }
-.race__more {
-  grid-area: more;
+.scale__line {
+  position: relative;
+  height: 1.5px;
+  background: var(--line);
+}
+.scale__line::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--on-dark-2);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.scene.is-active .scale__line::before {
+  animation: draw 1.2s var(--ease-in-out) 0.5s both;
+}
+.scene.is-seen .scale__line::before {
+  transform: none;
+}
+@keyframes draw {
+  to {
+    transform: none;
+  }
+}
+.scale__mark {
+  position: absolute;
+  left: calc(var(--x) * 100%);
+  top: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s-6);
-  padding-top: var(--s-4);
-  border-top: 1.5px solid var(--line);
+  justify-items: center;
+  gap: 1px;
+  white-space: nowrap;
+  /* centred on its value; `translate` leaves `transform` free for the entrance */
+  translate: -50% 0;
+  opacity: 0;
 }
-.race__more p {
-  display: grid;
-  gap: 4px;
-  font-size: var(--t-small);
+.scale__mark::before {
+  content: '';
+  width: 1.5px;
+  height: 12px;
+  margin-top: -5px;
+  background: var(--on-dark-2);
+}
+.scale__name,
+.scale__num {
+  font-size: var(--t-micro);
+  line-height: 1.25;
   color: var(--fg-2);
 }
-.race__more-figure {
-  font-size: 1.4rem;
+.scale__num {
   color: var(--yellow);
 }
-.race__more-title {
-  font-weight: 600;
+/* a label above the line where two ticks stand close */
+.scale__mark.is-up {
+  top: auto;
+  bottom: -1.5px;
+}
+.scale__mark.is-up::before {
+  order: 3;
+  margin: 0 0 -5px;
+}
+.scale__mark.is-end {
+  justify-items: end;
+  translate: calc(-100% + 0.75px) 0;
+}
+.scale__short {
+  display: none;
+}
+.scene.is-active .scale__mark {
+  animation: rise 0.6s var(--ease-out) both;
+  animation-delay: calc(0.9s + var(--i, 0) * 0.12s);
+}
+.scene.is-seen .scale__mark {
+  opacity: 1;
+}
+/* RTARIUM: a yellow mark above the line, run out from zero */
+.scale__mark--rt {
+  top: auto;
+  bottom: -6px;
+  opacity: 1;
+}
+.scale__mark--rt::before {
+  order: 3;
+  width: 12px;
+  height: 12px;
+  margin: 4px 0 0;
+  border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: 0 0 0 4px var(--black);
+}
+.scale__mark--rt .scale__name {
+  font-size: var(--t-small);
+  font-weight: 700;
   color: var(--yellow);
+}
+.scale__mark--rt .scale__num {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.scene.is-active .scale__mark--rt {
+  animation: run-out 1.8s var(--ease-out) 0.75s both;
+}
+@keyframes run-out {
+  from {
+    left: 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+}
+.scale__unit {
+  position: absolute;
+  right: 0;
+  top: 8px;
+  font-size: var(--t-micro);
+  color: var(--fg-2);
 }
 
 /* ---- Tech Space: concrete, cast and x-rayed (the model on the left) ---------------------------- */
 
 .cast {
   position: absolute;
-  top: var(--nav-h);
+  top: var(--top);
   right: var(--gutter);
-  bottom: var(--progress-h);
+  bottom: var(--bottom);
   display: grid;
   align-content: center;
-  gap: var(--s-5);
-  width: min(46vw, 42rem);
+  gap: clamp(12px, 2.6vh, 24px);
+  width: min(42vw, 36rem);
+}
+.cast__head .lines {
+  font-size: clamp(1.8rem, min(3vw, 5.6vh), 3.2rem);
+}
+.cast__head .lead {
+  font-size: var(--t-small);
 }
 .cast__head {
   display: grid;
@@ -931,7 +1358,7 @@
   line-height: 0.85;
 }
 .cast__unit {
-  font-size: 0.5em;
+  font-size: 0.42em;
 }
 .cast__pairs {
   display: grid;
@@ -1081,19 +1508,39 @@
     width: auto;
     transform: none;
     gap: var(--s-4);
-    padding: var(--s-5) var(--gutter) calc(clamp(24px, 5vh, 56px) + 76px);
+    padding: var(--s-5) var(--gutter) var(--s-6);
     background: var(--yellow);
     border-top: 1px solid rgb(8 8 8 / 0.22);
   }
-  .hero__title {
-    font-size: clamp(3rem, 15vw, 4.6rem);
+  .hero__title .lines__line:last-child {
+    font-size: clamp(2.2rem, 11.2vw, 4.4rem);
+  }
+  .hero__title .lines__line:first-child {
+    font-size: clamp(1.5rem, 6.4vw, 2.2rem);
+  }
+  .hero__scroll {
+    display: none;
+  }
+  .hero__cast {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    transform: none;
+    padding: var(--s-5) var(--gutter) calc(var(--s-7) + 8px);
+  }
+  .hero__cast .lines {
+    font-size: clamp(2rem, 9vw, 3rem);
   }
   .hero__sub {
     gap: var(--s-4);
   }
-  .hero__cta {
-    min-height: 54px;
-    font-size: 1rem;
+  .explore {
+    height: 54px;
+  }
+  .explore__cell {
+    width: 54px;
   }
   .hero__say--br,
   .hero__say--tr {
@@ -1108,7 +1555,8 @@
   .copy--br,
   .copy--bl,
   .copy--tr,
-  .copy--band {
+  .copy--band,
+  .copy--pour {
     left: 0;
     right: 0;
     top: auto;
@@ -1124,6 +1572,25 @@
   .copy--film {
     background: none;
     border-top: 0;
+  }
+  /* phones: no movements; the footage small top right, the copy on its panel at the foot */
+  .pourfilm {
+    --fw: 52vw;
+    top: calc(var(--nav-h) + 8px);
+  }
+  .scene.is-active .pourfilm {
+    animation: open-box 1s var(--ease-out) 3s both;
+  }
+  .scene.is-seen .pourfilm {
+    top: calc(var(--nav-h) + 8px);
+  }
+  .copy--pour,
+  .scene.is-seen .copy--pour {
+    left: 0;
+    width: auto;
+  }
+  .scene.is-active .copy--pour {
+    animation: none;
   }
   .copy--tr .lines,
   .copy--tr .lead {
@@ -1145,21 +1612,16 @@
     grid-template-columns: 1fr 1fr;
     row-gap: var(--s-4);
   }
-  .replace__head {
-    justify-self: start;
-    justify-items: start;
-    text-align: left;
+  .row {
+    grid-template-columns: 2.6rem minmax(0, 1fr);
   }
-  .replace__name {
-    font-size: clamp(1.6rem, 7.4vw, 2.6rem);
+  .row__what {
+    grid-column: 2;
+    margin-top: var(--s-3);
   }
-  .replace__item {
-    flex-direction: column;
-    gap: 2px;
-  }
-  .replace__weak {
-    text-align: left;
-    font-size: var(--t-small);
+  .row__weak {
+    margin-top: 30px;
+    font-size: clamp(1.7rem, 8vw, 2.4rem);
   }
   .system .lines {
     font-size: clamp(2.1rem, 9vw, 3.2rem);
@@ -1218,58 +1680,52 @@
     left: 50% !important;
     top: 30% !important;
   }
-  .race {
+  .yarn {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto;
     grid-template-areas:
       'head'
-      'bars'
-      'more';
+      'figure'
+      'more'
+      'scale';
     align-content: end;
-    gap: var(--s-4);
     top: auto;
     left: 0;
     right: 0;
     bottom: 0;
+    row-gap: var(--s-3);
     padding: var(--s-5) var(--gutter) calc(var(--progress-h) + var(--s-2));
     background: var(--black);
     border-top: 1px solid var(--line);
   }
-  .race__head .lead {
+  .yarn__value {
+    font-size: clamp(3rem, 15vw, 4.4rem);
+  }
+  /* on a phone the scale names its materials short, and the marks at the ends keep inside the screen */
+  .scale__name {
+    font-size: 0.66rem;
+  }
+  .scale__long {
     display: none;
   }
-  .race__figure {
-    font-size: clamp(3.2rem, 17vw, 4.6rem);
+  .scale__short {
+    display: inline;
+  }
+  .scale__mark--rt .scale__name {
+    font-size: 0.72rem;
+  }
+  .scale__mark--rt .scale__num {
+    font-size: 0.86rem;
+  }
+  .scale__unit {
+    top: auto;
+    bottom: 0;
   }
 }
 
-/* stacked on a short screen: the race alone, the two further figures stay in "All figures" */
+/* stacked on a short screen: the yarn keeps its figure and its scale; the two further figures stay in "All figures" */
 @media (max-width: 860px) and (max-height: 720px), (max-aspect-ratio: 4/5) and (max-height: 720px) {
-  .race__more {
-    display: none;
-  }
-  .race__bars {
-    gap: 6px;
-  }
-  .race__figure {
-    font-size: clamp(2.6rem, 12vw, 3.6rem);
-  }
-  .race__head {
-    justify-items: start;
-    text-align: left;
-  }
-  .race__bar {
-    grid-template-columns: minmax(0, 1fr) 5.5rem;
-  }
-  .race__track {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-  .race__more {
-    grid-template-columns: 1fr;
-    gap: var(--s-3);
-  }
-  .race__more-reading {
+  .yarn__more {
     display: none;
   }
   .cast {

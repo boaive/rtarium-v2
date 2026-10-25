@@ -40,6 +40,15 @@
 .ground__layer--next {
   clip-path: inset(100% 0 0 0);
 }
+/* the opening tour runs on into white light: warm white washes over the ground under the 3D,
+   over the incoming screen's colour too (--wash is set by the tour and is 0 outside it) */
+.ground__wash {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--white);
+  opacity: var(--wash, 0);
+}
 .ground__layer[data-g='black'] {
   background: var(--black);
 }
@@ -140,6 +149,150 @@
   flex-direction: row-reverse;
   transform: translate(calc(-100% + 3px), -50%);
 }
+/* where the piece passes under a label, the label keeps a plate of the ground behind its words */
+.pin__words {
+  padding: 3px 6px;
+  margin: -3px -6px;
+  background: var(--yellow);
+}
+
+/*
+ * Notes on a drawing: labels standing in a column, each with a level leader to its point. Over the
+ * dark yarns a leader is black with a hairline of yellow either side, so it reads on both.
+ */
+.pin--column::before {
+  display: block;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--yellow);
+  box-shadow: 0 0 0 2px var(--black);
+}
+.pin--column .pin__lead {
+  height: 1.5px;
+  box-shadow: 0 0 0 1px rgb(253 208 1 / 0.85);
+}
+.pin--column .pin__tag::before {
+  display: none;
+}
+.pin--column .pin__words {
+  margin: 0;
+  padding: 7px 12px 7px 11px;
+  background: var(--black);
+  color: var(--white);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+}
+.pin--column .pin__tag--left {
+  transform: translate(-100%, -50%);
+}
+
+/* numbered notes on the ground (the cast panel): no chip, a fine leader */
+.pin--note::before {
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--black);
+  box-shadow: 0 0 0 2px var(--yellow);
+}
+.pin--note .pin__lead {
+  height: 1px;
+  background: var(--black);
+  box-shadow: none;
+}
+.pin--note .pin__words {
+  margin: 0;
+  padding: 0;
+  background: none;
+  color: var(--black);
+  font-size: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.pin--note .pin__tag {
+  align-items: start;
+  transform: translate(18px, -11px);
+}
+.pin--note .pin__tag--left {
+  transform: translate(calc(-100% - 18px), -11px);
+}
+.note {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr);
+  column-gap: 8px;
+  width: 14.5rem;
+  white-space: normal;
+}
+.note__num {
+  grid-row: span 2;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+.note__name {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+.note__text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--on-yellow-2);
+}
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .pin--note {
+    display: none;
+  }
+}
+
+/* a dimension between two points: ticks at both ends, its value beside it */
+.pin--span::before {
+  display: none;
+}
+.pin__dim {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.5px;
+  height: var(--span, 0px);
+  background: var(--black);
+  box-shadow: 0 0 0 1px rgb(253 208 1 / 0.85);
+}
+.pin__dim::before,
+.pin__dim::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  width: 13px;
+  height: 1.5px;
+  background: var(--black);
+  box-shadow: 0 0 0 1px rgb(253 208 1 / 0.85);
+}
+.pin__dim::before {
+  top: 0;
+}
+.pin__dim::after {
+  bottom: 0;
+}
+.pin__dim-text {
+  position: absolute;
+  left: 14px;
+  top: calc(var(--span, 0px) / 2);
+  padding: 5px 9px;
+  background: var(--yellow);
+  color: var(--black);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
 /* near the edge of the screen a callout mirrors its arm to the other side; the words stay readable */
 .pin__arm {
   position: absolute;
@@ -221,37 +374,57 @@ html[data-ground='black'] .pin__text {
 .nav.on-light {
   --nav-bg: var(--white);
 }
+/* the brand rides on a black capsule on every ground, so both logos keep their yellow */
 .nav__home {
   display: block;
-  margin-left: -14px;
-  padding: 9px 14px;
+  margin-left: -6px;
+  padding: 11px 20px 11px 16px;
   border-radius: var(--radius);
-  background: var(--nav-bg);
+  background: var(--black);
+  color: var(--white);
   text-decoration: none;
-  transition: background-color var(--d-mid) var(--ease-out);
+  box-shadow: 0 6px 18px -10px rgb(8 8 8 / 0.55);
+  transition:
+    box-shadow var(--d-mid) var(--ease-out),
+    transform var(--d-mid) var(--ease-out);
+}
+.nav__home:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -10px rgb(8 8 8 / 0.6);
+}
+/* on black the capsule would melt into the ground: a hairline of yellow keeps its edge */
+.nav.on-black .nav__home {
+  box-shadow: inset 0 0 0 1px rgb(253 208 1 / 0.32);
+}
+.nav__home:focus-visible {
+  outline-color: var(--black);
+}
+.nav.on-black .nav__home:focus-visible {
+  outline-color: var(--yellow);
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--s-3);
+  gap: 14px;
 }
 .brand__rt {
   width: auto;
-  height: 24px;
+  height: 22px;
 }
 .brand__by {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-left: var(--s-3);
-  border-left: 1px solid currentColor;
+  gap: 7px;
+  padding-left: 14px;
+  border-left: 1px solid rgb(242 240 233 / 0.28);
   font-size: 11px;
   font-weight: 500;
   line-height: 1;
+  color: rgb(242 240 233 / 0.72);
 }
 .brand__by img {
   width: auto;
-  height: 14px;
+  height: 15px;
 }
 .nav__main {
   display: flex;
@@ -365,11 +538,20 @@ html[data-ground='black'] .pin__text {
   }
 }
 @media (max-width: 860px) {
+  .nav__home {
+    padding: 9px 15px 9px 12px;
+  }
+  .brand {
+    gap: 10px;
+  }
   .brand__rt {
-    height: 19px;
+    height: 17px;
+  }
+  .brand__by {
+    padding-left: 10px;
   }
   .brand__by img {
-    height: 11px;
+    height: 12px;
   }
 }
 @media (max-width: 370px) {
@@ -525,7 +707,7 @@ html[data-ground='black'] .pin__text {
 
 /* ---- footer: one yellow screen ------------------------------------------------------------ */
 
-/* the liquid drop: over the footer's content; the yellow copy of the content sits over the drop */
+/* the black liquid over the footer's content; the yellow copy over it; the piece of mesh over both */
 .liquid {
   position: absolute;
   inset: 0;
@@ -533,6 +715,9 @@ html[data-ground='black'] .pin__text {
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+.liquid--piece {
+  z-index: 7;
 }
 
 .footer {
@@ -548,6 +733,7 @@ html[data-ground='black'] .pin__text {
 }
 .footer__body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
   gap: var(--s-7);
   padding: calc(var(--nav-h) + var(--s-6)) var(--gutter) var(--s-5);
@@ -555,7 +741,7 @@ html[data-ground='black'] .pin__text {
 .footer--screen .footer__body {
   min-height: 100svh;
 }
-/* the same footer, yellow on black, shown only inside the drop (clip set by LiquidMesh) */
+/* the same footer, yellow on black, shown only inside the liquid (clip set by LiquidMesh) */
 .footer__body--inverse {
   position: absolute;
   inset: 0;
@@ -627,12 +813,15 @@ html[data-ground='black'] .pin__text {
   display: grid;
   gap: var(--s-2);
 }
+/* the name at full width, in the same wide cut as the opening's */
 .footer__word {
-  font-size: var(--t-mega);
-  font-weight: 800;
-  letter-spacing: -0.055em;
-  line-height: 0.78;
-  margin-left: -0.04em;
+  font-family: var(--font-name);
+  font-size: clamp(2.4rem, 12.6vw, 14.4rem);
+  font-weight: 860;
+  font-stretch: 150%;
+  letter-spacing: -0.01em;
+  line-height: 0.8;
+  margin-left: -0.03em;
   white-space: nowrap;
 }
 .footer__base {

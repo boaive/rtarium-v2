@@ -10,15 +10,7 @@ html {
   scrollbar-color: rgb(8 8 8 / 0.5) transparent;
 }
 
-/* the story moves a screen at a time: each step is a snap point; the wheel is never captured */
-html.is-home {
-  scroll-snap-type: y mandatory;
-}
-@media (max-width: 860px), (pointer: coarse) {
-  html.is-home {
-    scroll-snap-type: y proximity;
-  }
-}
+/* the story scrolls freely and never pulls back: no snapping (the wheel glides, see lib/scroll) */
 
 body {
   margin: 0;

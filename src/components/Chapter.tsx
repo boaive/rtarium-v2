@@ -1,12 +1,15 @@
-import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { useStageRegion } from '../three/Stage'
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { refreshGround, useStageRegion } from '../three/Stage'
 import { setShared, useStageValue, type Ground, type PoseId } from '../three/stageStore'
 import { POSES } from '../three/poses'
+import { damp, prefersReducedMotion } from '../lib/motion'
+import { scrollToY } from '../lib/scroll'
 
 /** what a screen shows where its mesh would be when there is no 3D */
 const STILLS: Partial<Record<PoseId, string>> = {
   structure: '/img/shoot/mesh-profile.webp',
   material: '/img/shoot/mesh-macro.webp',
+  pour: '/img/shoot/mesh-fibres.webp',
   depth: '/img/render-structure.webp',
   shear: '/img/shoot/mesh-profile.webp',
   mineral: '/img/shoot/mesh-fibres.webp',
@@ -81,7 +84,7 @@ function Scene({ chapter, step, index, active, seen, sceneRef }: { chapter: stri
       id={`${chapter}-${step.id}`}
       className={`scene scene--${step.id} on-${step.ground} ${step.className ?? ''} ${active ? 'is-active' : seen ? 'is-seen' : ''}`}
       data-screen={step.ground}
-      data-index={index}
+      data-step={index}
     >
       {still && <img className="scene__still" src={still} alt="" style={{ left: `${frame[0] * 100}%`, top: `${frame[1] * 100}%` }} />}
       <div className="scene__inner">{step.render(active)}</div>
@@ -130,19 +133,160 @@ export function Chapter({ id, title, steps, className = '' }: { id: string; titl
   )
 }
 
+/** how far a slide on its way out drifts left (fraction of the width) while the next one covers it */
+const DRIFT = 0.28
+
+/**
+ * A chapter that runs sideways. The section is pinned for as many screens as it has steps, and the
+ * vertical scroll (damped, like the opening tour) carries it across: the next slide comes in from
+ * the right edge over the last one, which drifts a little left as it is covered, the same both
+ * ways; its ground comes in along the same edge (see Ground). Under every slide is one view of the
+ * mesh that travels continuously from one step's pose to the next (`Region.blend`), so the mesh
+ * never cuts. A step with nothing to draw (footage) holds the pose before it under its film.
+ * Reaching a step plays its sequence in time, as on the vertical chapters; each step is a snap point.
+ */
+export function Track({ id, title, steps, className = '' }: { id: string; title: string; steps: Step[]; className?: string }) {
+  const section = useRef<HTMLElement>(null)
+  const pin = useRef<HTMLDivElement>(null)
+  const slides = useRef<(HTMLDivElement | null)[]>([])
+  const prog = useRef(0)
+  const [step, setStep] = useState(-1)
+  const stepRef = useRef(-1)
+  const [seen, setSeen] = useState(0)
+  const failed = useStageValue('failed')
+  const n = steps.length
+  CHAPTERS.set(id, { title, labels: steps.map((s) => s.label) })
+
+  const meshPose = useMemo(
+    () =>
+      steps.map((_, i) => {
+        let j = i
+        while (j > 0 && POSES[steps[j].pose].empty) j--
+        return steps[j].pose
+      }),
+    [steps],
+  )
+  useStageRegion(
+    pin,
+    () => meshPose[Math.min(n - 1, Math.max(0, Math.round(prog.current)))],
+    () => {
+      const i = Math.min(n - 2, Math.max(0, Math.floor(prog.current)))
+      return { a: meshPose[i], b: meshPose[i + 1], t: Math.min(1, Math.max(0, prog.current - i)), ga: steps[i].ground, gb: steps[i + 1].ground }
+    },
+  )
+
+  useEffect(() => {
+    const el = section.current
+    if (!el) return
+    let raf = 0
+    let last = performance.now()
+    let p = -1
+    const place = () => {
+      slides.current.forEach((slide, i) => {
+        if (!slide) return
+        const o = p - i
+        let x = 0
+        let clip = 0
+        let shown = true
+        if (o <= -1) {
+          x = 1
+          shown = false
+        } else if (o <= 0) x = -o
+        else if (o < 1) {
+          x = -o * DRIFT
+          clip = o * (1 - DRIFT)
+        } else {
+          x = -1
+          shown = false
+        }
+        slide.style.transform = x ? `translate3d(${(x * 100).toFixed(3)}%, 0, 0)` : ''
+        slide.style.setProperty('--cover', `${(clip * 100).toFixed(3)}%`)
+        slide.style.setProperty('--edge', o > -0.995 && o < -0.005 ? '0.5' : '0')
+        slide.style.setProperty('--out', o > 0 && o < 1 ? o.toFixed(3) : '0')
+        slide.style.visibility = shown ? '' : 'hidden'
+      })
+    }
+    const tick = (now: number) => {
+      raf = 0
+      const dt = Math.min(0.1, (now - last) / 1000)
+      last = now
+      const r = el.getBoundingClientRect()
+      const vh = window.innerHeight
+      const target = Math.min(n - 1, Math.max(0, -r.top / vh))
+      p = p < 0 || prefersReducedMotion() ? target : damp(p, target, 11, dt)
+      if (Math.abs(p - target) < 1e-4) p = target
+      prog.current = p
+      place()
+      refreshGround()
+      const inside = r.top <= vh * 0.5 && r.bottom > vh * 0.5
+      const s = inside ? Math.round(target) : -1
+      if (s !== stepRef.current) {
+        stepRef.current = s
+        setStep(s)
+        if (s >= 0) setSeen((m) => m | (1 << s))
+      }
+      if (inside) setShared({ chapter: id, step: s, ground: steps[s].ground })
+      // leaving the chapter altogether resets what it has played
+      if (r.top > vh * 1.5 || r.bottom < -vh * 0.5) setSeen(0)
+      if (p !== target) raf = requestAnimationFrame(tick)
+    }
+    const kick = () => {
+      if (!raf) {
+        last = performance.now()
+        raf = requestAnimationFrame(tick)
+      }
+    }
+    kick()
+    window.addEventListener('scroll', kick, { passive: true })
+    window.addEventListener('resize', kick)
+    return () => {
+      window.removeEventListener('scroll', kick)
+      window.removeEventListener('resize', kick)
+      cancelAnimationFrame(raf)
+    }
+  }, [id, n, steps])
+
+  return (
+    <section id={id} ref={section} className={`track ${className}`} aria-label={title} style={{ '--steps': n } as CSSProperties}>
+      {steps.map((s, i) => (
+        <span key={s.id} className="track__snap" data-step={i} style={{ '--i': i } as CSSProperties} aria-hidden="true" />
+      ))}
+      <div ref={pin} className="track__pin">
+        {steps.map((s, i) => {
+          const still = failed ? STILLS[s.pose] : undefined
+          const frame = POSES[s.pose].frame
+          const active = i === step
+          return (
+            <div
+              key={s.id}
+              ref={(node) => void (slides.current[i] = node)}
+              id={`${id}-${s.id}`}
+              className={`scene scene--slide scene--${s.id} on-${s.ground} ${s.className ?? ''} ${active ? 'is-active' : (seen & (1 << i)) !== 0 ? 'is-seen' : ''}`}
+              data-screen={s.ground}
+              style={i ? { transform: 'translate3d(100%, 0, 0)', visibility: 'hidden' } : undefined}
+            >
+              {still && <img className="scene__still" src={still} alt="" style={{ left: `${frame[0] * 100}%`, top: `${frame[1] * 100}%` }} />}
+              <div className="scene__inner">{s.render(active)}</div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 /** A single full screen outside a chapter (applications, footer) that still sets the ground. */
-export function useScreen(ref: RefObject<HTMLElement | null>, chapter: string, ground: Ground) {
+export function useScreen(ref: RefObject<HTMLElement | null>, chapter: string, ground: Ground | (() => Ground)) {
   useScrollRead(ref, (top, vh, height) => {
-    if (top <= vh * 0.5 && top + height > vh * 0.5) setShared({ chapter, step: 0, ground })
+    if (top <= vh * 0.5 && top + height > vh * 0.5) setShared({ chapter, step: 0, ground: typeof ground === 'function' ? ground() : ground })
   })
 }
 
-/** Scroll to a chapter's step; the snap settles it. */
+/** Scroll to a chapter's step (a screen, or the scroll position of a step of a pinned chapter). */
 export function goToStep(chapter: string, index: number) {
-  const el = document.querySelectorAll<HTMLElement>(`#${chapter} .scene`)[index] ?? document.getElementById(chapter)
+  const el = document.querySelector<HTMLElement>(`#${chapter} [data-step="${index}"]`) ?? document.getElementById(chapter)
   if (!el) return
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: reduce ? 'auto' : 'smooth' })
+  scrollToY(el.getBoundingClientRect().top + window.scrollY)
 }
 
 /* ---- timed type --------------------------------------------------------------------------- */

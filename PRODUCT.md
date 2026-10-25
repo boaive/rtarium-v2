@@ -86,6 +86,51 @@ Confirmed figures (client technical PDF; the margin notes are treated as correct
   - Tech Space: the mesh stands near-vertical; pointing at a figure shows what it means on the mesh.
   - Footer only: a small, squarish liquid drop carrying the same mesh as the 3D (a render of it, not a drawing)
     follows the cursor; inside it the footer reads yellow on black.
+  - Fourth review (owner, 25 October 2026, binding; supersedes the above where they differ):
+    - Header: both logos in full colour on a black capsule, on every ground (their yellow vanished on yellow).
+    - Opening: "Meet" smaller than "RTARIUM.", the name in a different, wide face (Anybody, also the footer's
+      name); a broader, shallower piece of mesh, isolated, hovering over its shadow and turned so the two offset
+      faces read; callouts on clear ground; Explore redesigned (square slab with an arrow cell).
+    - The tour's cavity is annotated like a drawing (notes in a column, level leaders, the depth dimensioned);
+      the tour then runs on into white light and closes on warm white with a tile of mesh half cast in concrete,
+      "Concrete, better than ever." (the owner's line), before scrolling on.
+    - About, Innovation and Tech Space run sideways: pinned, one mesh that moves continuously between the steps,
+      the next screen coming in from the right edge over the last (EnduroSat's continuity, Enerblock's motion
+      turned sideways). Meshes smaller where they crowded the screen (Depth).
+    - Minimalism: Tech Space type smaller and clear of the header; Yarn reduced to one figure on one scale.
+    - Footer: the drop carries a symmetrical diamond lattice of doubled lines (the owner's sketch: the two faces
+      seen from above), drawn rather than rendered; the liquid moves on springs, stretches along its motion and
+      ripples.
+  - Fifth review (owner, 25 October 2026, binding; supersedes the above where they differ):
+    - The hero piece keeps clear of the name (its size stays). On "Two basalt faces, woven as one." the cursor
+      presses a hollow into the mesh, which springs back as it moves on.
+    - Leaving "Concrete, better than ever." the camera goes into the mesh and comes out as About's first view,
+      with no cut between the two.
+    - About's "In concrete" is a 3D animation too: mortar flows in across the mesh; the footage then opens in a
+      box top right, for reference; copy bottom left. All three About screens stay on yellow.
+    - What it replaces runs one thing at a time in Enerblock's stacked rows: each scroll opens the next
+      (steel fibre, AR-glass fibre, flat 2D mesh), struck through as it is reached and folded into a header bar,
+      until RTARIUM opens on black. Drawings of the replaced materials are line drawings, not photographs.
+    - Footer: the drop is the mesh itself (no dark body, no inverted copy): a cushion of the same lattice whose
+      size and outline move like liquid; the mesh's own pattern never changes.
+  - Sixth review (owner, 25 October 2026, binding; supersedes the above where they differ):
+    - Scrolling is free and smooth (no snapping back); the wheel glides.
+    - Concrete appears only where it belongs ("Concrete, better than ever." and "In concrete", plus Tech Space's
+      own slabs); never in Structure, Innovation or the Tech Space sheet.
+    - "In concrete" moves in three steps: the mesh from Material slides to the left (copy top right, footage
+      bottom right); mortar flows in; the camera stands back to the cast panel while the copy moves top left, the
+      footage top right, and three numbered notes appear (open cavity, locking mesh, concrete matrix).
+    - What it replaces: slim rows only, no pictures, on warm white; one strike per scroll; RTARIUM last, on black.
+    - Footer: a black liquid follows the cursor and turns the yellow black where it flows (the footer reads
+      yellow inside it), carrying a 3D piece of the mesh: no border, a ragged cut with yarns of uneven length,
+      both faces and their connecting fibres; the piece bends with the motion, the mesh itself never changes.
+  - Seventh review (owner, 25 October 2026): in "In concrete" the mesh first fills the left, close as in Structure
+    and Material, with the copy and the footage in one column on the right; standing back, the block sits a
+    little left of the middle with short leaders. The footer's piece is the real mesh: it bends and stretches
+    while it moves and lies flat at rest.
+  - Eighth review (owner, 25 October 2026): the "In concrete" notes stand on the left, on the copy's line, clear
+    of the copy and the footage. Scrolling holds: each screen and step is a holding point the page settles onto
+    in the direction of travel, smoothly, never pulling back.
 - Logos: `Yellow Emblem RTARIUM Logo.png`, `hemisphere one logo.png`.
 
 ## Evidence on Hand

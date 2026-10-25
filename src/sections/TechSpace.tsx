@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react'
-import { Chapter, CountUp, Lines, goToStep, type Step } from '../components/Chapter'
+import { CountUp, Lines, Track, goToStep, type Step } from '../components/Chapter'
 import { ReviewNote } from '../components/Media'
 import { StageLabel } from '../three/Stage'
 import { setShared, stage, useStageValue, type Inspect } from '../three/stageStore'
@@ -143,44 +143,62 @@ function MeshStep({ active, onAll }: { active: boolean; onAll: () => void }) {
   )
 }
 
+/** the materials' short names, where the scale is narrow */
+const SHORT: Record<string, string> = {
+  'Structural steel': 'Steel',
+  'High-strength aircraft aluminium': 'Aluminium',
+  'Titanium alloy': 'Titanium',
+  'Carbon fibre': 'Carbon',
+}
+
+/**
+ * The yarn: one figure, and where it stands on one scale of tensile strength, from nothing to carbon
+ * fibre. The scale draws itself, the materials take their places along it, RTARIUM's mark runs out
+ * to 2,620 MPa while the figure counts.
+ */
 function YarnStep({ active }: { active: boolean }) {
-  const tensile = YARN[0]
+  const [tensile, modulus, elongation] = YARN
   const max = Math.max(...tensile.bars.map((b) => b.value))
+  const others = tensile.bars.filter((b) => !b.rtarium)
+  const rt = tensile.bars.find((b) => b.rtarium)!
   return (
-    <div className="race">
-      <div className="race__head">
-        <Lines slab lines={['The yarn.']} />
-        <p className="race__figure rv" style={{ '--i': 1 } as CSSProperties}>
-          <CountUp value="2.62" active={active} duration={1800} />
-          <span className="race__unit">GPa</span>
+    <div className="yarn">
+      <Lines slab className="yarn__head" lines={['The yarn.']} />
+      <div className="yarn__figure rv" style={{ '--i': 1 } as CSSProperties}>
+        <p className="yarn__value">
+          <CountUp value={tensile.figure} active={active} duration={1800} />
+          <span className="yarn__unit">{tensile.unit}</span>
         </p>
-        <p className="lead rv" style={{ '--i': 2 } as CSSProperties}>
-          Tensile strength of the impregnated basalt yarn the mesh is woven from.
-        </p>
+        <p className="yarn__label">Tensile strength of the basalt yarn</p>
       </div>
-      <ul className="race__bars">
-        {tensile.bars.map((b, i) => (
-          <li key={b.label} className={`race__bar ${b.rtarium ? 'is-rt' : ''}`} style={{ '--i': i, '--v': b.value / max } as CSSProperties}>
-            <span className="race__label">{b.label}</span>
-            <span className="race__track" aria-hidden="true">
-              <span className="race__fill" />
-            </span>
-            <span className="race__value num">{b.value.toLocaleString('en-GB')} MPa</span>
-          </li>
-        ))}
-      </ul>
-      <div className="race__more">
-        {YARN.slice(1).map((c, i) => (
-          <p key={c.id} className="rv" style={{ '--i': 8 + i } as CSSProperties}>
-            <span className="race__more-figure num">
+      <dl className="yarn__more rv" style={{ '--i': 2 } as CSSProperties}>
+        {[modulus, elongation].map((c) => (
+          <div key={c.id}>
+            <dt>{c.title}</dt>
+            <dd className="num">
               {c.figure} {c.unit}
-            </span>
-            <span className="race__more-text">
-              <span className="race__more-title">{c.title}.</span> <span className="race__more-reading">{c.reading}</span>
-            </span>
-          </p>
+            </dd>
+          </div>
         ))}
-      </div>
+      </dl>
+      <figure className="scale" aria-label={`Tensile strength, MPa: ${tensile.bars.map((b) => `${b.label} ${b.value.toLocaleString('en-GB')}`).join(', ')}`}>
+        <div className="scale__line" aria-hidden="true">
+          {others.map((b, i) => (
+            <span key={b.label} className={`scale__mark ${i === 1 ? 'is-up' : ''} ${b.value === max ? 'is-end' : ''}`} style={{ '--x': b.value / max, '--i': i } as CSSProperties}>
+              <span className="scale__name">
+                <span className="scale__long">{b.label.replace('High-strength aircraft aluminium', 'Aircraft aluminium')}</span>
+                <span className="scale__short">{SHORT[b.label] ?? b.label}</span>
+              </span>
+              <span className="scale__num num">{b.value.toLocaleString('en-GB')}</span>
+            </span>
+          ))}
+          <span className="scale__mark scale__mark--rt" style={{ '--x': rt.value / max } as CSSProperties}>
+            <span className="scale__name">RTARIUM yarn</span>
+            <span className="scale__num num">{rt.value.toLocaleString('en-GB')}</span>
+          </span>
+        </div>
+        <figcaption className="scale__unit">MPa</figcaption>
+      </figure>
     </div>
   )
 }
@@ -197,7 +215,7 @@ function ConcreteStep({ active }: { active: boolean }) {
           <span className="cast__unit">%</span>
         </p>
         <p className="lead rv" style={{ '--i': 2 } as CSSProperties}>
-          Flexural strength, when the steel fibres in ultra-high-performance concrete are swapped for RTARIUM.
+          Flexural strength when RTARIUM replaces the steel fibres in ultra-high-performance concrete.
         </p>
       </div>
       <div className="cast__pairs">
@@ -228,7 +246,7 @@ function ConcreteStep({ active }: { active: boolean }) {
         ))}
       </div>
       <p className="caption cast__note rv" style={{ '--i': 6 } as CSSProperties}>
-        Figures describe the tested materials and configuration. The mesh, seen through the concrete in the 3D model.
+        Figures describe the tested materials and configuration.
         <ReviewNote>{CONCRETE_REVIEW}</ReviewNote>
       </p>
     </div>
@@ -238,7 +256,7 @@ function ConcreteStep({ active }: { active: boolean }) {
 /** Every figure, on one warm-white sheet, for the visitor who wants the table. */
 function FiguresSheet({ dialog }: { dialog: RefObject<HTMLDialogElement | null> }) {
   return (
-    <dialog ref={dialog} className="sheet" aria-labelledby="sheet-title" onClick={(e) => e.target === e.currentTarget && dialog.current?.close()}>
+    <dialog ref={dialog} className="sheet" aria-labelledby="sheet-title" data-lenis-prevent onClick={(e) => e.target === e.currentTarget && dialog.current?.close()}>
       <div className="sheet__inner">
         <header className="sheet__head">
           <h2 id="sheet-title">All figures</h2>
@@ -350,7 +368,7 @@ export function TechSpace() {
 
   return (
     <>
-      <Chapter id="tech" title="Tech Space" steps={steps} className="chapter--tech" />
+      <Track id="tech" title="Tech Space" steps={steps} className="chapter--tech" />
       <FiguresSheet dialog={dialog} />
       <StageLabel anchor="slab-top">Concrete</StageLabel>
       <StageLabel anchor="slab-mesh">RTARIUM mesh</StageLabel>

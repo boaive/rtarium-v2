@@ -4,7 +4,7 @@ import { APPLICATIONS, SITE } from '../content/site'
 import { useScreen } from './Chapter'
 import { LiquidMesh } from './LiquidMesh'
 
-/** The footer's content. `inverse` is the yellow-on-black copy shown only inside the liquid drop. */
+/** The footer's content. `inverse` is the yellow-on-black copy shown only inside the liquid. */
 function FooterContent({ inverse = false }: { inverse?: boolean }) {
   const Map = inverse ? 'div' : 'nav'
   return (
@@ -69,7 +69,7 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
         </p>
         <p className="footer__base">
           <span>© {new Date().getFullYear()} RTARIUM by HEMISPHERE ONE</span>
-          <img src={inverse ? '/brand/hemisphere-one-logo.png' : '/brand/hemisphere-one-logo-ink.png'} alt={inverse ? '' : 'HEMISPHERE ONE'} width={2185} height={720} />
+          <img src={inverse ? '/brand/hemisphere-one-logo.png' : '/brand/hemisphere-one-logo-ink.png'} alt={inverse ? '' : 'HEMISPHERE ONE'} width={900} height={171} />
         </p>
       </div>
     </>
@@ -78,8 +78,8 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
 
 /**
  * The close: one full yellow screen, the next step, the site map, and the name set at full width.
- * A small drop of liquid carrying the mesh follows the cursor over it; inside the drop the footer
- * reads yellow on black (an exact copy clipped to the drop, not a blend).
+ * A black liquid follows the cursor and the yellow turns black where it flows, carrying a piece of
+ * the mesh in 3D; inside it the footer reads yellow (an exact copy clipped to it, not a blend).
  */
 export function Footer({ home = false }: { home?: boolean }) {
   const ref = useRef<HTMLElement>(null)

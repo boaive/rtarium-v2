@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type AnchorHTMLAttributes, type ReactNode } from 'react'
-import { prefersReducedMotion } from './motion'
+import { scrollToY } from './scroll'
 
 /**
  * A minimal path router: the homepage and a few planned destination pages. In-page links
@@ -9,10 +9,10 @@ const RouterContext = createContext<{ path: string; go: (to: string) => void }>(
 
 function scrollToHash(hash: string) {
   const id = hash.replace('#', '')
-  if (!id) return window.scrollTo({ top: 0 })
+  if (!id) return scrollToY(0)
   const el = document.getElementById(id)
   if (!el) return
-  el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
+  scrollToY(el.getBoundingClientRect().top + window.scrollY)
 }
 
 export function Router({ children }: { children: ReactNode }) {
@@ -32,13 +32,13 @@ export function Router({ children }: { children: ReactNode }) {
         if (url.hash) {
           history.replaceState(null, '', url.hash)
           scrollToHash(url.hash)
-        } else window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+        } else scrollToY(0)
         return
       }
       history.pushState(null, '', url.pathname + url.hash)
       setPath(next)
       // the new page renders first, then lands on its chapter (or its top)
-      requestAnimationFrame(() => requestAnimationFrame(() => (url.hash ? scrollToHash(url.hash) : window.scrollTo({ top: 0 }))))
+      requestAnimationFrame(() => requestAnimationFrame(() => (url.hash ? scrollToHash(url.hash) : scrollToY(0, true))))
     },
     [path],
   )
