@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { Router, useRoute } from './lib/router'
 import { Nav } from './components/Nav'
 import { Footer } from './components/Footer'
@@ -13,6 +13,10 @@ import { Applications } from './sections/Applications'
 import { ApplicationPage, ContactPage, NotFound } from './pages/Planned'
 import { APPLICATIONS } from './content/site'
 import { setShared } from './three/stageStore'
+
+/** Façade & Cladding (overview and its three systems): its own chunk, loaded only on those pages */
+const FacadeRoutes = lazy(() => import('./facade/FacadeRoutes'))
+const isFacade = (path: string) => path === '/facade-cladding' || path.startsWith('/facade-cladding/')
 
 function Home() {
   usePointerTracking()
@@ -52,6 +56,19 @@ function Page() {
       <>
         <Nav />
         <Home />
+      </>
+    )
+  }
+  if (isFacade(path)) {
+    return (
+      <>
+        <Nav />
+        <main id="main">
+          <Suspense fallback={<div className="page" aria-busy="true" />}>
+            <FacadeRoutes path={path} />
+          </Suspense>
+        </main>
+        <Footer />
       </>
     )
   }

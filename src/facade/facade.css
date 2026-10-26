@@ -1,0 +1,941 @@
+/*
+ * Façade & Cladding. Everything here is scoped to `.fc-*` and loads only with the section's pages.
+ * It speaks the homepage's language: whole sections of yellow, black or warm white, Archivo set
+ * tight for statements, square-cut controls, words that rise once a step is reached, the mesh in
+ * its own bronze. The 3D stands on the section's own ground: nothing is drawn behind it.
+ */
+
+.fc-page {
+  position: relative;
+  --gap-step: clamp(28px, 7vh, 80px);
+  --top: calc(var(--nav-h) + clamp(58px, 9vh, 96px));
+}
+
+/* the grounds a section owns */
+.fc-page .on-yellow {
+  --bg: var(--yellow);
+}
+.fc-page .on-black {
+  --bg: var(--black);
+}
+.fc-page .on-light {
+  --bg: var(--white);
+}
+.fc-story,
+.fc-band,
+.fc-hero {
+  position: relative;
+  background: var(--bg);
+}
+
+/* ---- stories: a sticky 3D stage and full-screen steps of copy over it ---------------------- */
+
+.fc-story__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+.fc-story__steps {
+  position: relative;
+  z-index: 3;
+  margin-top: -100svh;
+  pointer-events: none;
+}
+.fc-step {
+  position: relative;
+  height: 100svh;
+}
+.fc-step__copy {
+  position: absolute;
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: var(--s-5);
+  width: min(33rem, 36vw);
+  pointer-events: auto;
+}
+.fc-step--bl .fc-step__copy {
+  left: var(--gutter);
+  bottom: var(--gap-step);
+}
+.fc-step--br .fc-step__copy {
+  right: var(--gutter);
+  bottom: var(--gap-step);
+}
+.fc-step--tl .fc-step__copy {
+  left: var(--gutter);
+  top: var(--top);
+}
+.fc-step--tr .fc-step__copy {
+  right: var(--gutter);
+  top: var(--top);
+}
+.fc-step--left .fc-step__copy {
+  left: var(--gutter);
+  top: 50%;
+  transform: translateY(-46%);
+}
+.fc-step:first-child.fc-step--bl .fc-step__copy {
+  bottom: calc(var(--gap-step) + 8px);
+}
+
+.fc-canvas {
+  position: absolute;
+  inset: 0;
+}
+.fc-canvas canvas {
+  display: block;
+}
+.fc-still {
+  position: absolute;
+  right: var(--gutter);
+  top: 50%;
+  width: min(34vw, 460px);
+  aspect-ratio: 9 / 14;
+  object-fit: cover;
+  transform: translateY(-50%);
+}
+
+/* ---- type ---------------------------------------------------------------------------------- */
+
+.fc-title {
+  font-size: clamp(2.6rem, min(5.6vw, 10vh), 6rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+.fc-h2,
+.fc-words {
+  font-size: var(--t-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-wrap: balance;
+}
+.fc-words__line {
+  display: block;
+}
+/* a page's own name outranks the step headings it shares the word reveal with */
+.fc-words.fc-title {
+  font-size: clamp(2.6rem, min(5.4vw, 9.6vh), 6rem);
+  letter-spacing: -0.045em;
+  line-height: 0.94;
+}
+
+/* a plate of the ground under the copy, where a close-up fills the screen behind it */
+.fc-step--plate .fc-step__copy {
+  padding: clamp(20px, 3vh, 32px) clamp(22px, 2.4vw, 36px);
+  margin: calc(clamp(20px, 3vh, 32px) * -1) calc(clamp(22px, 2.4vw, 36px) * -1);
+  background: var(--bg);
+}
+.fc-lede {
+  max-width: 31rem;
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--fg-2);
+  text-wrap: pretty;
+}
+.on-yellow .fc-lede {
+  color: var(--black);
+}
+.fc-small {
+  max-width: 31rem;
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--fg-2);
+  text-wrap: pretty;
+}
+/* body text breaks without leaving a word alone on its last line */
+.fc-ladder__text,
+.fc-process__text,
+.fc-ledger__to,
+.fc-next__line,
+.fc-legend small {
+  text-wrap: pretty;
+}
+.fc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fc-tags li {
+  padding: 5px 10px;
+  border: 1.5px solid currentColor;
+  font-size: var(--t-small);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* the words of a step rise once it is reached; played steps keep their end state */
+.fc-step .word__in,
+.fc-reveal .word__in {
+  transform: translateY(110%);
+}
+.fc-step.is-active .word__in,
+.fc-reveal.is-in .word__in {
+  animation: word-in 0.62s var(--ease-out) both;
+  animation-delay: calc(0.12s + var(--w, 0) * 70ms);
+}
+.fc-step.is-seen .word__in {
+  transform: none;
+}
+.fc-step .fc-rv,
+.fc-reveal .fc-rv {
+  opacity: 0;
+}
+.fc-step.is-active .fc-rv,
+.fc-reveal.is-in .fc-rv {
+  animation: rise 0.7s var(--ease-out) both;
+  animation-delay: calc(0.4s + var(--i, 0) * 0.1s);
+}
+.fc-step.is-seen .fc-rv {
+  opacity: 1;
+}
+
+/* ---- labels on the model ------------------------------------------------------------------- */
+
+.fc-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.fc-pin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--fg);
+  opacity: 0;
+  transition: opacity var(--d-mid) var(--ease-out);
+}
+.fc-pin[data-on='1'] {
+  opacity: 1;
+  transition-delay: var(--d, 0ms);
+}
+.fc-pin.is-dim[data-on='1'] {
+  opacity: 0.32;
+}
+.fc-pin::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fg);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.fc-pin__lead {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 1.5px;
+  background: var(--fg);
+  transform-origin: 0 50%;
+}
+.fc-pin__tag {
+  position: absolute;
+  margin: var(--sy, 0px) 0 0 var(--sx, 0px);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--bg);
+  transform: translate(0, -50%);
+  font-size: var(--t-small);
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.fc-pin__tag--left {
+  transform: translate(-100%, -50%);
+}
+.fc-pin__num {
+  font-weight: 700;
+}
+.fc-pin.is-focus .fc-pin__tag {
+  background: var(--fg);
+  color: var(--bg);
+}
+/* a numbered balloon: the number on a square of the inverse colour, named in the list beside it */
+.fc-pin--balloon .fc-pin__tag {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: var(--fg);
+  color: var(--bg);
+  transform: translate(-2px, -50%);
+}
+
+/* ---- the component list of the unitized unit ----------------------------------------------- */
+
+.fc-legend {
+  display: grid;
+  width: 100%;
+  border-top: 1.5px solid var(--line);
+}
+.fc-legend li {
+  border-bottom: 1.5px solid var(--line);
+}
+.fc-legend button {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr);
+  align-items: baseline;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 0;
+  border: 0;
+  background: none;
+  font-size: var(--t-body);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--d-fast) var(--ease-out);
+}
+.fc-legend button > span:first-child {
+  font-variant-numeric: tabular-nums;
+}
+.fc-legend button small {
+  display: block;
+  grid-column: 2;
+  margin-top: 2px;
+  line-height: 1.45;
+  font-size: var(--t-small);
+  font-weight: 500;
+  color: var(--fg-2);
+}
+.fc-legend[data-focus] button:not([aria-pressed='true']) {
+  color: var(--fg-2);
+}
+.fc-legend button[aria-pressed='true'] {
+  color: var(--fg);
+}
+.fc-legend button:focus-visible {
+  outline-offset: -2px;
+}
+
+/* ---- bands: the sections between the stories ---------------------------------------------- */
+
+.fc-band {
+  padding: clamp(80px, 14vh, 168px) var(--gutter);
+}
+.fc-band__head {
+  display: grid;
+  gap: var(--s-5);
+  max-width: 52rem;
+  margin-bottom: clamp(40px, 7vh, 88px);
+}
+
+/* weak point → answer: a ledger read across */
+.fc-ledger {
+  display: grid;
+  border-top: 1.5px solid currentColor;
+}
+.fc-ledger__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: var(--s-3) var(--s-6);
+  align-items: baseline;
+  padding: clamp(18px, 3vh, 30px) 0;
+  border-bottom: 1.5px solid var(--line);
+}
+.fc-ledger__head {
+  padding: var(--s-3) 0;
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--fg-2);
+}
+.fc-ledger__key {
+  font-size: clamp(1.6rem, 2.6vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+.fc-ledger__from {
+  font-size: var(--t-body);
+  color: var(--fg-2);
+}
+.fc-ledger__to {
+  font-size: var(--t-lead);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.fc-ledger__to .num {
+  font-weight: 700;
+}
+
+/* a numbered process with the shoot's photographs */
+.fc-process {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
+  gap: var(--s-5);
+}
+.fc-process__step {
+  display: grid;
+  align-content: start;
+  gap: var(--s-3);
+}
+.fc-process__img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: rgb(8 8 8 / 0.06);
+}
+.fc-process__num {
+  font-size: var(--t-small);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.fc-process__name {
+  font-size: clamp(1.15rem, 1.5vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.fc-process__text {
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--fg-2);
+}
+.fc-caption {
+  font-size: var(--t-micro);
+  color: var(--fg-2);
+}
+
+/* ---- close of a system page: the next two systems ------------------------------------------ */
+
+.fc-next {
+  display: grid;
+  gap: clamp(32px, 6vh, 64px);
+  padding: clamp(72px, 12vh, 140px) var(--gutter);
+  background: var(--black);
+  color: var(--yellow);
+  --bg: var(--black);
+}
+.fc-next__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--s-4) var(--s-6);
+}
+.fc-next__title {
+  font-size: var(--t-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.fc-next__overview {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  text-underline-offset: 0.3em;
+}
+.fc-next__list {
+  border-top: 1.5px solid var(--yellow);
+}
+.fc-next__list li {
+  border-bottom: 1.5px solid rgb(253 208 1 / 0.28);
+}
+.fc-next__link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 56px;
+  align-items: center;
+  gap: var(--s-5);
+  min-height: 112px;
+  padding: var(--s-5) 0;
+  text-decoration: none;
+}
+.fc-next__name {
+  font-size: clamp(1.6rem, 2.8vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+.fc-next__line {
+  max-width: 30rem;
+  font-size: var(--t-body);
+  color: var(--on-dark-2);
+}
+.fc-next__cell {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  background: var(--yellow);
+  color: var(--black);
+  transition: transform var(--d-mid) var(--ease-out);
+}
+.fc-next__link:hover .fc-next__cell,
+.fc-next__link:focus-visible .fc-next__cell {
+  transform: translateX(6px);
+}
+.fc-next__link:hover .fc-next__name {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.12em;
+}
+
+/* the homepage's Explore slab: black, with its arrow in a yellow cell */
+.fc-go {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: 54px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: var(--t-small);
+  font-weight: 700;
+  text-decoration: none;
+}
+.fc-go__label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 20px;
+}
+.fc-go__cell {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  border-left: 1.5px solid var(--bg);
+  transition: transform var(--d-mid) var(--ease-out);
+}
+.fc-go:hover .fc-go__cell,
+.fc-go:focus-visible .fc-go__cell {
+  transform: translateX(4px);
+}
+.fc-go:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 4px;
+}
+
+/* ---- narrow screens: the model above, the copy on a panel of ground below ------------------- */
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fc-page {
+    --top: calc(var(--nav-h) + 96px);
+  }
+  .fc-step__copy,
+  .fc-step--left .fc-step__copy {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    padding: var(--s-6) var(--gutter) calc(var(--s-6) + env(safe-area-inset-bottom));
+    background: var(--bg);
+    transform: none;
+  }
+  .fc-step--tr .fc-step__copy,
+  .fc-step--br .fc-step__copy,
+  .fc-step--tl .fc-step__copy {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+  .fc-step:first-child .fc-step__copy {
+    padding-top: var(--s-5);
+  }
+  .fc-pin--wide {
+    display: none;
+  }
+  .fc-pin__tag {
+    font-size: var(--t-micro);
+  }
+  .fc-still {
+    left: var(--gutter);
+    right: var(--gutter);
+    top: calc(var(--nav-h) + 72px);
+    width: auto;
+    height: 40svh;
+    aspect-ratio: auto;
+    transform: none;
+  }
+  .fc-ledger__row {
+    grid-template-columns: 1fr;
+    gap: var(--s-2);
+  }
+  .fc-ledger__head {
+    display: none;
+  }
+  .fc-process {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fc-next__link {
+    grid-template-columns: minmax(0, 1fr) 48px;
+  }
+  .fc-next__line {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .fc-next__cell {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    width: 48px;
+    height: 48px;
+  }
+}
+@media (max-width: 520px) {
+  .fc-process {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- placements, the overview's opening, figures, ladder, lengths, drawings ------------------ */
+
+.fc-step--right .fc-step__copy {
+  right: var(--gutter);
+  top: 50%;
+  transform: translateY(-46%);
+}
+
+/* the overview's opening: the name and the line top left, the cut panel lower right */
+.fc-hero {
+  min-height: 100svh;
+  overflow: hidden;
+}
+.fc-hero__stage {
+  position: absolute;
+  inset: 0;
+}
+.fc-hero__copy {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  justify-items: start;
+  gap: clamp(18px, 3.2vh, 32px);
+  width: min(40rem, 46vw);
+  padding: calc(var(--nav-h) + clamp(84px, 14vh, 150px)) 0 var(--s-8) var(--gutter);
+}
+.fc-statement {
+  max-width: 20em;
+  font-size: clamp(1.35rem, min(2.1vw, 3.6vh), 2.1rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+.fc-statement-xl {
+  max-width: 17em;
+  font-size: clamp(2rem, 4.4vw, 4.8rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+}
+.fc-band__head--wide {
+  max-width: none;
+}
+.fc-band--tight {
+  padding-bottom: clamp(40px, 6vh, 72px);
+}
+.fc-still--hero {
+  width: min(32vw, 420px);
+}
+
+/* the mesh-to-façade ladder: four terms in order */
+.fc-ladder {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-5);
+}
+.fc-ladder__step {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  padding-top: var(--s-4);
+  border-top: 1.5px solid currentColor;
+}
+.fc-ladder__num {
+  font-size: var(--t-small);
+}
+.fc-ladder__name {
+  font-size: clamp(1.3rem, 1.9vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.fc-ladder__text {
+  max-width: 22rem;
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--fg-2);
+}
+
+/* two columns: copy and a figure */
+.fc-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: start;
+}
+.fc-split--even {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr);
+  align-items: end;
+}
+.fc-split--even .fc-figure img {
+  aspect-ratio: 3 / 4;
+  max-height: 72svh;
+}
+.fc-figure {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+}
+.fc-figure img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+}
+.fc-figure__loop video {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+}
+.fc-ledger--two .fc-ledger__row {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+}
+.fc-ledger dd {
+  margin: 0;
+}
+.fc-process__source {
+  margin-top: var(--s-5);
+}
+
+/* panel lengths along one elevation */
+.fc-lengths {
+  display: grid;
+  gap: var(--s-6);
+}
+.fc-lengths .fc-band__head {
+  margin-bottom: 0;
+}
+.fc-seg {
+  display: inline-flex;
+  justify-self: start;
+  border: 1.5px solid currentColor;
+}
+.fc-seg button {
+  min-width: 84px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  background: none;
+  font-size: var(--t-body);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color var(--d-fast) var(--ease-out),
+    color var(--d-fast) var(--ease-out);
+}
+.fc-seg button + button {
+  border-left: 1.5px solid currentColor;
+}
+.fc-seg button[aria-pressed='true'] {
+  background: var(--fg);
+  color: var(--bg);
+}
+.fc-seg button:focus-visible {
+  outline-offset: -5px;
+}
+.fc-elev {
+  display: grid;
+  gap: var(--s-4);
+  margin: 0;
+}
+.fc-elev svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.fc-elev__dim line {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+.fc-elev__label,
+.fc-elev__panel text {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  fill: var(--fg);
+}
+.fc-elev__panel rect {
+  fill: var(--black);
+}
+.fc-elev__panel text {
+  fill: var(--yellow);
+}
+.fc-elev__panel {
+  animation: rise 0.5s var(--ease-out) both;
+  animation-delay: calc(var(--k, 0) * 40ms);
+}
+.fc-elev__read {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  font-size: var(--t-lead);
+  font-weight: 600;
+}
+.fc-elev__big {
+  font-size: var(--t-figure);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+
+/* drawings: ink on the ground, the mesh in its own bronze */
+.fc-section {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-6) 0 0;
+}
+.fc-draw {
+  width: 100%;
+  height: auto;
+}
+.fc-draw__backing,
+.fc-draw__coat {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+.fc-draw__grain {
+  fill: var(--fg);
+  opacity: 0.45;
+}
+.fc-draw__mesh line,
+.fc-draw__mesh polyline {
+  fill: none;
+  stroke: #8a6443;
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+.fc-draw__mesh polyline {
+  stroke-width: 2;
+}
+.fc-draw__ferrule {
+  fill: #6f747a;
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+.fc-draw__bolt {
+  stroke: var(--fg);
+  stroke-width: 4;
+}
+.fc-draw__mould {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+}
+.fc-draw__dim line,
+.fc-draw__lead line {
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+.fc-draw__note,
+.fc-draw__dimtext {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--fg);
+}
+.fc-draw__dimtext {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.fc-draw__note--mesh {
+  fill: #7a5638;
+}
+.fc-draw--frame {
+  background: var(--graphite);
+}
+.fc-draw__steel rect {
+  fill: #9ea3a8;
+}
+.fc-draw__steel line {
+  stroke: #9ea3a8;
+  stroke-width: 10;
+}
+.fc-draw__hole {
+  fill: var(--graphite);
+}
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fc-step--right .fc-step__copy {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    transform: none;
+  }
+  .fc-hero {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .fc-hero__copy {
+    order: 1;
+    width: auto;
+    padding: calc(var(--nav-h) + 84px) var(--gutter) 0;
+  }
+  .fc-hero__stage {
+    position: relative;
+    order: 2;
+    height: 54svh;
+  }
+  .fc-elev__panel text {
+    display: none;
+  }
+  .fc-elev__label {
+    font-size: 30px;
+  }
+  .fc-section {
+    overflow-x: auto;
+  }
+  .fc-section .fc-draw {
+    min-width: 600px;
+  }
+  .fc-ladder {
+    grid-template-columns: 1fr 1fr;
+    row-gap: var(--s-6);
+  }
+  .fc-split,
+  .fc-split--even {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fc-step--plate .fc-step__copy {
+    margin: 0;
+    padding: var(--s-6) var(--gutter) calc(var(--s-6) + env(safe-area-inset-bottom));
+  }
+}
+
+/* the rainscreen's positioning: one statement, the reasoning beside it */
+.fc-bridge {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--s-6) clamp(32px, 6vw, 96px);
+  align-items: start;
+}
+.fc-bridge__text {
+  display: grid;
+  gap: var(--s-5);
+}
+.fc-bridge__text .fc-lede:last-of-type {
+  color: var(--yellow);
+}
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fc-bridge {
+    grid-template-columns: 1fr;
+  }
+}

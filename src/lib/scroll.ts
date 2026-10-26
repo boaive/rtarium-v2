@@ -45,7 +45,9 @@ function settle() {
   idle = 0
   if (!lenis || settling || touching || holding || lenis.isStopped) return
   const root = document.documentElement
-  if (!root.classList.contains('is-home') || root.classList.contains('menu-open') || document.querySelector('dialog[open]')) return
+  // the homepage, and any page that tells its story in held screens (`is-held`)
+  const held = root.classList.contains('is-home') || root.classList.contains('is-held')
+  if (!held || root.classList.contains('menu-open') || document.querySelector('dialog[open]')) return
   const y = window.scrollY
   const vh = window.innerHeight
   const points = holdPoints()
@@ -60,7 +62,8 @@ function settle() {
   const from = heading > 0 ? before : after
   let target = heading > 0 ? after : before
   if (Number.isFinite(from) && Math.abs(y - from) < vh * NUDGE) target = from
-  if (!Number.isFinite(target)) target = heading > 0 ? before : after
+  // nothing to hold on further this way (past a story's last screen, into the footer): the page stays put
+  if (!Number.isFinite(target)) return
   // a long stretch with nothing to hold (none on this page today) is left alone
   if (!Number.isFinite(target) || Math.abs(target - y) > vh * 1.1) return
   const duration = 0.45 + 0.55 * Math.min(1, Math.abs(target - y) / vh)

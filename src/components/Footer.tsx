@@ -1,7 +1,8 @@
 import { useRef } from 'react'
 import { Link } from '../lib/router'
 import { APPLICATIONS, SITE } from '../content/site'
-import { useScreen } from './Chapter'
+import { useScrollRead } from './Chapter'
+import { setShared } from '../three/stageStore'
 import { Liquid } from './Liquid'
 
 /** The footer's content. `inverse` is the yellow-on-black copy shown only inside the liquid. */
@@ -84,7 +85,12 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
 export function Footer({ home = false }: { home?: boolean }) {
   const ref = useRef<HTMLElement>(null)
   const inverse = useRef<HTMLDivElement>(null)
-  useScreen(ref, 'footer', 'yellow')
+  // the header takes the footer's yellow once it holds the middle of the screen; a page that sets the
+  // header's ground from what is under the header itself (data-own-ground) does the footer too
+  useScrollRead(ref, (top, vh, height) => {
+    if (document.documentElement.hasAttribute('data-own-ground')) return
+    if (top <= vh * 0.5 && top + height > vh * 0.5) setShared({ chapter: 'footer', step: 0, ground: 'yellow' })
+  })
   return (
     <footer ref={ref} className={`footer ${home ? 'footer--screen' : ''}`} data-screen="yellow">
       <div className="footer__body">

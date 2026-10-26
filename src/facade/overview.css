@@ -1,0 +1,644 @@
+/*
+ * Façade & Cladding, the overview. One continuous scroll on the homepage's grounds: the opening on
+ * yellow, the story on yellow with black and warm white cards, the systems on warm white, the
+ * footer yellow again. Enerblock's way: columns parted by hairlines, cards that stack and are
+ * struck through, a drawing's title block under the 3D. Everything follows the scroll; only the
+ * 3D has motion of its own.
+ */
+
+/* ---- the opening ----------------------------------------------------------------------------- */
+
+.fco-hero {
+  position: relative;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  background: var(--yellow);
+}
+.fco-hero__stage {
+  position: absolute;
+  inset: 0;
+}
+.fco-hero__copy {
+  position: absolute;
+  z-index: 3;
+  left: var(--gutter);
+  bottom: clamp(40px, 9vh, 96px);
+  display: grid;
+  gap: var(--s-5);
+  max-width: min(48rem, 56vw);
+}
+.fco-mega {
+  font-size: clamp(3rem, min(7.6vw, 14vh), 9rem);
+  white-space: nowrap;
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.88;
+}
+.fco-hero .word__in {
+  animation: word-in 0.8s var(--ease-out) both;
+  animation-delay: calc(0.35s + var(--w, 0) * 90ms);
+}
+.fco-lede {
+  max-width: 27rem;
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.4;
+  text-wrap: pretty;
+  animation: rise 0.8s var(--ease-out) 0.9s both;
+}
+/* "Scroll", with a line that keeps running down beside it */
+.fco-cue {
+  position: absolute;
+  z-index: 3;
+  right: var(--gutter);
+  bottom: clamp(40px, 9vh, 96px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.fco-cue::after {
+  content: '';
+  width: 1.5px;
+  height: 44px;
+  background: currentColor;
+  transform-origin: top;
+  animation: cue 2.2s var(--ease-in-out) 1.6s infinite both;
+}
+@keyframes cue {
+  0% {
+    transform: scaleY(0);
+  }
+  45% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  55% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+/* the callouts on the panel, as on the homepage's opening: caps on clear ground, a fine leader */
+.fco-hero .fc-pin__tag {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.fco-still {
+  position: absolute;
+  right: var(--gutter);
+  top: 50%;
+  width: min(40vw, 620px);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  transform: translateY(-50%);
+}
+
+/* ---- the story: what RTARIUM replaces, then RTARIUM ------------------------------------------------ */
+
+/*
+ * Four blocks in the page's flow, each a screen under the rows already passed, cut into a few segments
+ * of very different sizes (Lineage moves the cuts as a block arrives and leaves, as far as it has been
+ * scrolled). Over them, sticky, the rows of what has been passed: a material's name rises into its row
+ * as its block leaves, and the rows come down into RTARIUM at the end.
+ */
+.fs {
+  --row: clamp(44px, 6vh, 56px);
+  --pad: clamp(18px, 2.8vw, 48px);
+  --rule: rgb(8 8 8 / 0.88);
+  position: relative;
+  background: var(--yellow);
+}
+
+/* the rows: a layer the size of the screen, over the blocks */
+.fs-rows {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 100svh;
+  margin-bottom: -100svh;
+  pointer-events: none;
+}
+.fs-rows ol {
+  position: relative;
+  height: 100%;
+}
+.fs-row {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  height: var(--row);
+  padding: 0 var(--pad);
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: var(--yellow);
+  color: var(--black);
+  font: inherit;
+  text-align: left;
+  opacity: 0;
+  cursor: pointer;
+}
+.fs-row[data-docked] {
+  pointer-events: auto;
+}
+.fs-row:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: -4px;
+}
+.fs-row__num {
+  min-width: 2.6rem;
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+.fs-row__tag {
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+/* the name in the row, struck once its block has gone */
+.fs-row__name {
+  position: relative;
+  margin-right: auto;
+  font-size: clamp(1rem, 1.25vw, 1.25rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+.fs-row__name::after {
+  content: '';
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: 54%;
+  height: 2px;
+  background: currentColor;
+  transform: scaleX(var(--s, 0));
+  transform-origin: left;
+}
+.fs-row:hover .fs-row__name,
+.fs-row:focus-visible .fs-row__name {
+  color: var(--on-yellow-2);
+}
+
+/* the yellow under the header, stuck with it, so what scrolls up behind the rows never shows through */
+.fs-cap {
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  height: var(--nav-h);
+  background: var(--yellow);
+}
+
+/* a block: one screen under the rows already passed (RTARIUM's under the header) */
+.fs-block {
+  position: relative;
+  height: calc(100svh - var(--nav-h) - var(--i) * var(--row));
+  overflow: hidden;
+  container-type: size;
+}
+.fs-block--last {
+  height: calc(100svh - var(--nav-h));
+}
+.fs-cell {
+  position: absolute;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+}
+/* the hairlines: each segment draws its right and bottom edge */
+.fs-cell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  box-shadow: inset -1px -1px 0 var(--rule);
+  pointer-events: none;
+}
+.fs-cell.on-black::after {
+  box-shadow: inset -1px -1px 0 rgb(253 208 1 / 0.24);
+}
+/* what a segment holds stays where it stands when the block holds the screen; its edges pass over it */
+.fs-cell__in {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--pad);
+  container-type: size;
+}
+.fs-cell--panel .fs-cell__in {
+  padding: 0;
+}
+.fs-panel {
+  position: absolute;
+  inset: 0;
+}
+
+/* a box's words: left, or set to the far side where the box says so */
+.fs-cell.is-end .fs-cell__in {
+  align-items: flex-end;
+  text-align: right;
+}
+.fs-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+.fs-label::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+}
+.fs-cell.is-end .fs-label {
+  flex-direction: row-reverse;
+}
+
+/* name, what it is, and (at the foot of the box) why it was used */
+.fs-name {
+  font-size: clamp(2.2rem, min(17cqh, 10cqw), 5.2rem);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+.fs-full {
+  margin-top: clamp(8px, 2cqh, 14px);
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--fg-2);
+}
+.fs-used {
+  display: grid;
+  gap: 6px;
+  margin-top: auto;
+}
+.fs-used__text {
+  font-size: var(--t-lead);
+  font-weight: 500;
+}
+
+/* why it is replaced: the one large line of its box */
+.fs-limit {
+  max-width: 18ch;
+  margin-top: auto;
+  font-size: clamp(1.6rem, min(15cqh, 6cqw), 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+/* the photograph, framed in its box with room round it: it grows out of its top left corner as the
+   block comes up and shrinks back into it as the block goes, its size read out at the corner it is
+   pulled by, two construction lines running on from there; on the way out it is crossed out in
+   yellow and greys */
+.fs-photo {
+  --pw: min(100cqw - 2 * var(--pad) - 64px, (100cqh - 2 * var(--pad) - 44px) * 1.333, 42rem);
+  position: relative;
+  width: var(--pw);
+  aspect-ratio: 4 / 3;
+}
+.fs-photo__frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--graphite);
+  clip-path: inset(0 calc((1 - var(--g, 1)) * 100%) calc((1 - var(--g, 1)) * 100%) 0);
+}
+.fs-photo__frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(var(--x, 0));
+}
+.fs-photo__cross {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 125%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: var(--yellow);
+  box-shadow: 0 0 0 1px rgb(8 8 8 / 0.35);
+  transform: rotate(36.87deg) scaleX(var(--x, 0));
+  transform-origin: 0 50%;
+}
+.fs-photo__dot {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  background: var(--fg);
+  transform: translate(calc(var(--g, 1) * var(--pw)), calc(var(--g, 1) * var(--pw) * 0.75));
+}
+.fs-photo__dot::before,
+.fs-photo__dot::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  background: var(--line);
+}
+.fs-photo__dot::before {
+  width: 100cqw;
+  height: 1px;
+}
+.fs-photo__dot::after {
+  width: 1px;
+  height: 100cqh;
+}
+.fs-photo__x,
+.fs-photo__y {
+  position: absolute;
+  font-size: var(--t-micro);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--fg-2);
+}
+.fs-photo__x {
+  left: 14px;
+  bottom: 8px;
+}
+.fs-photo__y {
+  right: 10px;
+  top: 12px;
+}
+.fs-credit {
+  margin-top: auto;
+  font-size: 0.68rem;
+  color: var(--fg-2);
+}
+
+/* RTARIUM's photograph fills its box (it still opens out of its corner as the block comes up) */
+.fs-block--last .fs-cell--photo .fs-cell__in {
+  padding: 0;
+}
+.fs-block--last .fs-photo {
+  width: 100cqw;
+  height: 100cqh;
+  aspect-ratio: auto;
+}
+.fs-block--last .fs-photo__dot {
+  display: none;
+}
+
+/* RTARIUM: its name, very large; what it is, set to the other corner */
+.fs-block--last .fs-cell--name .fs-cell__in {
+  justify-content: space-between;
+}
+.fs-word {
+  font-family: var(--font-name);
+  font-size: clamp(3rem, min(46cqh, 14cqw), 13rem);
+  font-weight: 800;
+  font-stretch: 150%;
+  letter-spacing: -0.01em;
+  line-height: 0.86;
+}
+.fs-block--last .fs-full {
+  align-self: flex-end;
+  margin-top: 0;
+  font-size: var(--t-lead);
+  color: var(--black);
+}
+/* what it replaces: the rows come to rest here */
+.fs-docks {
+  display: grid;
+  width: calc(100% + 2 * var(--pad));
+  margin: auto calc(-1 * var(--pad)) calc(-1 * var(--pad));
+}
+.fs-dock {
+  height: var(--row);
+}
+.fs-block--last .fs-cell--replaces .fs-cell__in {
+  padding-bottom: 0;
+}
+/* why it replaces them, along the foot: the label to one side, the words to the other */
+.fs-block--last .fs-cell--claim .fs-cell__in {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-6);
+  padding-block: 0;
+}
+.fs-block--last .fs-cell--claim .fs-label {
+  flex: none;
+}
+.fs-claim {
+  max-width: 34ch;
+  font-size: clamp(1.15rem, min(30cqh, 2.4cqw), 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-align: right;
+  text-wrap: balance;
+}
+
+/* ---- the three systems, side by side --------------------------------------------------------- */
+
+.fct {
+  position: relative;
+  background: var(--white);
+}
+.fct__inner {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100svh;
+  padding-top: calc(var(--nav-h) + clamp(24px, 5vh, 56px));
+}
+.fct__head {
+  padding: 0 var(--gutter) clamp(20px, 4vh, 36px);
+  border-bottom: 1px solid var(--line);
+}
+/* the systems' words stand still (the shared word reveal starts them below their line) */
+.fct .word__in {
+  transform: none;
+}
+.fct__title {
+  font-size: clamp(2.4rem, min(4.6vw, 8vh), 5rem);
+  font-weight: 750;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+}
+.fct__stage {
+  position: relative;
+}
+.fct__canvas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 1;
+  height: 62%;
+}
+/* the models never take the pointer from the columns under them */
+.fct__canvas,
+.fct__canvas * {
+  pointer-events: none !important;
+}
+.fct__cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: 100%;
+  min-height: clamp(520px, 68svh, 760px);
+}
+.fct-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 var(--gutter) clamp(28px, 5vh, 52px);
+  border-right: 1px solid var(--line);
+  transition: background-color 0.5s var(--ease-out);
+}
+.fct-col:last-child {
+  border-right: 0;
+}
+.fct-col.is-hover {
+  background: var(--yellow);
+}
+.fct-col__text {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: start;
+  gap: var(--s-3);
+}
+.fct-col__num {
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+.fct-col__num::after {
+  content: ' /';
+}
+/* two lines kept for every name and three for every line, so the numbers stand level across the columns */
+.fct-col__name {
+  min-height: 2em;
+  font-size: clamp(1.5rem, 2.2vw, 2.3rem);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-wrap: balance;
+}
+.fct-col__line {
+  min-height: 4.2em;
+  max-width: 22rem;
+  font-size: var(--t-body);
+  line-height: 1.4;
+  color: var(--fg-2);
+  text-wrap: pretty;
+}
+.fct-col.is-hover .fct-col__line {
+  color: var(--black);
+}
+.fct-col__go {
+  margin-top: var(--s-3);
+}
+
+/* ---- narrow screens ---------------------------------------------------------------------------- */
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fco-hero__copy {
+    right: var(--gutter);
+    max-width: none;
+    bottom: clamp(28px, 6vh, 56px);
+  }
+  .fco-mega {
+    font-size: clamp(2.6rem, 12.4vw, 5rem);
+  }
+  .fco-cue {
+    display: none;
+  }
+  /* the story: rows and type a step smaller */
+  .fs {
+    --row: 44px;
+    --pad: var(--s-4);
+  }
+  .fs-name {
+    font-size: clamp(1.8rem, min(26cqh, 11cqw), 2.6rem);
+  }
+  .fs-full {
+    margin-top: 4px;
+  }
+  .fs-used {
+    gap: 2px;
+  }
+  .fs-used__text {
+    font-size: var(--t-small);
+  }
+  .fs-limit {
+    max-width: none;
+    font-size: clamp(1.1rem, min(22cqh, 6cqw), 1.6rem);
+  }
+  .fs-photo {
+    --pw: min(100cqw - 2 * var(--pad) - 24px, (100cqh - 2 * var(--pad)) * 1.333);
+  }
+  .fs-photo__x,
+  .fs-photo__y,
+  .fs-credit {
+    display: none;
+  }
+  .fs-word {
+    font-size: clamp(2.2rem, min(46cqh, 13.5cqw), 4rem);
+  }
+  .fs-block--last .fs-full {
+    font-size: var(--t-small);
+  }
+  .fs-block--last .fs-cell--claim .fs-cell__in {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--s-2);
+  }
+  .fs-claim {
+    font-size: clamp(1rem, min(26cqh, 5cqw), 1.25rem);
+    text-align: left;
+  }
+  .fct__canvas {
+    height: 24svh;
+  }
+  .fct__cols {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    padding-top: 24svh;
+  }
+  .fct-col {
+    border-right: 0;
+    border-top: 1px solid var(--line);
+    padding-top: var(--s-5);
+  }
+  .fct-col__name,
+  .fct-col__line {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fco-hero .word__in,
+  .fco-lede,
+  .fco-cue::after {
+    animation: none;
+  }
+  /* everything stands where it ends up */
+  .fco-hero .word__in {
+    transform: none;
+  }
+  .fct-col {
+    transition: none;
+  }
+}
