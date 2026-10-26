@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { Link } from '../lib/router'
 import { APPLICATIONS, SITE } from '../content/site'
 import { useScreen } from './Chapter'
-import { LiquidMesh } from './LiquidMesh'
+import { Liquid } from './Liquid'
 
 /** The footer's content. `inverse` is the yellow-on-black copy shown only inside the liquid. */
 function FooterContent({ inverse = false }: { inverse?: boolean }) {
@@ -69,7 +69,7 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
         </p>
         <p className="footer__base">
           <span>© {new Date().getFullYear()} RTARIUM by HEMISPHERE ONE</span>
-          <img src={inverse ? '/brand/hemisphere-one-logo.png' : '/brand/hemisphere-one-logo-ink.png'} alt={inverse ? '' : 'HEMISPHERE ONE'} width={900} height={171} />
+          <img src={inverse ? '/brand/hemisphere-one-logo.png' : '/brand/hemisphere-one-logo-ink.png'} alt={inverse ? '' : 'HEMISPHERE ONE'} width={900} height={171} loading="lazy" decoding="async" />
         </p>
       </div>
     </>
@@ -78,8 +78,8 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
 
 /**
  * The close: one full yellow screen, the next step, the site map, and the name set at full width.
- * A black liquid follows the cursor and the yellow turns black where it flows, carrying a piece of
- * the mesh in 3D; inside it the footer reads yellow (an exact copy clipped to it, not a blend).
+ * While the cursor moves, a black liquid follows it and the yellow turns black where it flows;
+ * inside it the footer reads yellow (an exact copy clipped to it, not a blend).
  */
 export function Footer({ home = false }: { home?: boolean }) {
   const ref = useRef<HTMLElement>(null)
@@ -90,7 +90,7 @@ export function Footer({ home = false }: { home?: boolean }) {
       <div className="footer__body">
         <FooterContent />
       </div>
-      <LiquidMesh reveal={inverse} />
+      <Liquid reveal={inverse} />
       <div ref={inverse} className="footer__body footer__body--inverse" aria-hidden="true" inert>
         <FooterContent inverse />
       </div>

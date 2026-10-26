@@ -85,6 +85,13 @@ export interface MeshFieldProps {
   shadows?: boolean
   /** frustum-cull chunks (default true) */
   culling?: boolean
+  /** how far the shader may move a cell from its place (m): the chunks' bounds grow by it, so culling never cuts a landing cell */
+  reach?: number
+  /**
+   * Choose each chunk's detail once a frame from the default camera (default). A caller that draws
+   * several views a frame passes false and calls `group.userData.lod(camera)` before each one.
+   */
+  autoLod?: boolean
   /**
    * Cells to draw, as index ranges [i0, i1, j0, j1] on the lattice of the nx × nz sheet; they
    * may run past it on any side (the spread in the opening scene). Default: the sheet itself.
@@ -111,6 +118,8 @@ export function MeshField({
   farDistance: farDistanceProp = Infinity,
   shadows = false,
   culling = true,
+  reach = 0,
+  autoLod = true,
   span,
   hole,
   groupRef,
@@ -144,6 +153,8 @@ export function MeshField({
         mesh.userData.near = [nearest(cx - nx / 2 + 0.5, cx + w - 1 - nx / 2 + 0.5), nearest(cz - (nz - 1) / 2, cz + d - 1 - (nz - 1) / 2)]
         mesh.computeBoundingSphere()
         mesh.computeBoundingBox()
+        mesh.boundingSphere!.radius += reach
+        mesh.boundingBox!.expandByScalar(reach)
         mesh.castShadow = shadows
         mesh.receiveShadow = shadows
         if (depthMaterial) mesh.customDepthMaterial = depthMaterial
@@ -156,7 +167,7 @@ export function MeshField({
       }
     }
     return { group, chunks }
-  }, [cell, nx, nz, chunk, material, depthMaterial, shadows, i0, i1, j0, j1, hi0, hi1, hj0, hj1])
+  }, [cell, nx, nz, chunk, material, depthMaterial, shadows, reach, i0, i1, j0, j1, hi0, hi1, hj0, hj1])
 
   useEffect(
     () => () => {
@@ -175,27 +186,37 @@ export function MeshField({
   }, [group, groupRef])
 
   const tmp = useMemo(() => new THREE.Vector3(), [])
+  const lod = useMemo(
+    () => (camera: THREE.Camera) => {
+      // Detail goes by size on screen. The thresholds are distances for a 30 degree lens; a wider
+      // lens shows the same chunk smaller, so it brings them in (flying through the cavity at
+      // 62 degrees, most of the sheet does not need the heavy cell), and a longer lens pushes them out.
+      const fov = (camera as THREE.PerspectiveCamera).fov
+      const lens = fov ? Math.tan(THREE.MathUtils.degToRad(fov / 2)) / TAN_15 : 1
+      const lodDistance = lodDistanceProp
+      const farDistance = farDistanceProp
+      for (const c of chunks) {
+        if (!c.mesh.visible) continue
+        tmp.copy(c.center).applyMatrix4(group.matrixWorld)
+        const d = tmp.distanceTo(camera.position) * lens
+        // 0 = hi, 1 = lo, 2 = far; hysteresis so chunks do not flicker at a threshold
+        if (c.level === 0) {
+          if (d > lodDistance * 1.15) c.level = 1
+        } else if (c.level === 1) {
+          if (d < lodDistance) c.level = 0
+          else if (d > farDistance * 1.1) c.level = 2
+        } else if (d < farDistance) c.level = 1
+        const geo = c.level === 0 ? cell.hi : c.level === 1 ? cell.lo : cell.far
+        if (c.mesh.geometry !== geo) c.mesh.geometry = geo
+      }
+    },
+    [chunks, cell, group, lodDistanceProp, farDistanceProp, tmp],
+  )
+  useEffect(() => {
+    group.userData.lod = lod
+  }, [group, lod])
   useFrame(({ camera }) => {
-    // Detail goes by size on screen. The thresholds are distances for a 30 degree lens; a wider
-    // lens shows the same chunk smaller, so it brings them in (flying through the cavity at
-    // 62 degrees, most of the sheet does not need the heavy cell), and a longer lens pushes them out.
-    const fov = (camera as THREE.PerspectiveCamera).fov
-    const lens = fov ? Math.tan(THREE.MathUtils.degToRad(fov / 2)) / TAN_15 : 1
-    const lodDistance = lodDistanceProp
-    const farDistance = farDistanceProp
-    for (const c of chunks) {
-      tmp.copy(c.center).applyMatrix4(group.matrixWorld)
-      const d = tmp.distanceTo(camera.position) * lens
-      // 0 = hi, 1 = lo, 2 = far; hysteresis so chunks do not flicker at a threshold
-      if (c.level === 0) {
-        if (d > lodDistance * 1.15) c.level = 1
-      } else if (c.level === 1) {
-        if (d < lodDistance) c.level = 0
-        else if (d > farDistance * 1.1) c.level = 2
-      } else if (d < farDistance) c.level = 1
-      const geo = c.level === 0 ? cell.hi : c.level === 1 ? cell.lo : cell.far
-      if (c.mesh.geometry !== geo) c.mesh.geometry = geo
-    }
+    if (autoLod) lod(camera)
   })
 
   return <primitive object={group} />

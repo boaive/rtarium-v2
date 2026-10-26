@@ -1,5 +1,6 @@
-import { Component, Suspense, useEffect, useRef, type ReactNode, type RefObject } from 'react'
+import { Component, Suspense, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { PerformanceMonitor } from '@react-three/drei'
 import { StageScene } from './StageScene'
 import { setShared, stage, useStageValue, type Blend, type PoseId, type Region } from './stageStore'
 import { useIsCompact, useReducedMotion } from '../lib/motion'
@@ -108,6 +109,12 @@ export function Ground() {
 /**
  * The fixed, transparent canvas between the ground and the copy. One WebGL context for the whole
  * page: steps borrow it through `useStageRegion`.
+ *
+ * It renders at the screen's own pixel density (up to 1.75, 1.5 on phones). Only when a device
+ * cannot keep up (under two thirds of its refresh rate for most of 2.5 s, watched once the opening
+ * has been woven and its programs compiled, so loading never counts) does the density step down,
+ * to no less than 1; it steps back up once there is room again, and after six steps it stays where
+ * it is.
  */
 export function Stage() {
   const compact = useIsCompact()
@@ -115,6 +122,15 @@ export function Stage() {
   const ready = useStageValue('ready')
   const failed = useStageValue('failed')
   const supported = hasWebGL2()
+  const [quality, setQuality] = useState(1)
+  const [watch, setWatch] = useState(false)
+  useEffect(() => {
+    if (!ready) return
+    const id = window.setTimeout(() => setWatch(true), 4000)
+    return () => window.clearTimeout(id)
+  }, [ready])
+  const top = Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
+  const dpr = Math.round((1 + (top - 1) * quality) * 100) / 100
 
   useEffect(() => {
     if (!supported) setShared({ failed: true })
@@ -125,11 +141,12 @@ export function Stage() {
     <div className={`stage ${ready ? 'is-ready' : ''}`} aria-hidden="true">
       <SceneBoundary>
         <Canvas
-          dpr={[1, compact ? 1.5 : 1.75]}
+          dpr={dpr}
           shadows={!compact}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false }}
           camera={{ fov: 30, near: 0.002, far: 8, position: [0.2, 0.3, 0.4] }}
         >
+          {watch && <PerformanceMonitor factor={1} step={0.25} flipflops={6} bounds={(hz) => [hz * 0.66, hz * 0.92]} onChange={({ factor }) => setQuality(factor)} />}
           <Suspense fallback={null}>
             <StageScene compact={compact} reduced={reduced} />
           </Suspense>
@@ -180,7 +197,7 @@ export function StageLabel({ anchor, children, side = 'right', callout, column, 
   }, [anchor])
   if (span) {
     return (
-      <span ref={ref} className="pin pin--span" style={{ opacity: 0 }} data-span={span} aria-hidden="true">
+      <span ref={ref} className={`pin pin--span ${wideOnly ? 'pin--wide-only' : ''}`} style={{ opacity: 0 }} data-span={span} aria-hidden="true">
         <span className="pin__dim" />
         <span className="pin__dim-text">{children}</span>
       </span>

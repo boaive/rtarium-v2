@@ -45,7 +45,10 @@
   --gutter: clamp(18px, 4.2vw, 64px);
   --nav-h: 84px;
   --progress-h: 96px;
-  --radius: 999px;
+  /* controls, chips, tags and plates are cut square, like the headline slabs and Explore; the round
+     cut is kept for the header (its capsule, plate and buttons) and the toggle on "No plane to split along" */
+  --radius: 0;
+  --radius-round: 999px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);

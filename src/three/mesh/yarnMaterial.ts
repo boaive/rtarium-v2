@@ -18,9 +18,13 @@ import * as THREE from 'three'
  * glow at their edges as if seen through concrete.
  *
  * The build: only the cells inside a window (uWin, in cells, centred on the sheet) are drawn. When
- * the window grows, the next rings of cells drop onto the sheet from the camera side, so the
- * opening can build the mesh out past the edges of the screen and the chapters can trim it back
- * to the one tile they explain.
+ * the window grows, the next rings of cells are woven on: their yarns run out from the built sheet
+ * across each cell, the upper face first, then the lower face, then the connecting fibres that bind
+ * the two, the tip of each yarn lifted a little as it is laid (uWeave 1). When the window shrinks,
+ * the cells it leaves lift away from the camera side and dissolve (uWeave 0), so the opening can
+ * build the mesh out past the edges of the screen and the chapters can trim it back to the one
+ * tile they explain. Cells wholly outside the window collapse to a point in the vertex shader, so
+ * they cost no fragments.
  */
 export interface YarnUniforms {
   uPartDim: THREE.IUniform<THREE.Vector3>
@@ -51,6 +55,8 @@ export interface YarnUniforms {
   uBand: THREE.IUniform<number>
   /** height (m) a landing cell drops from */
   uLift: THREE.IUniform<number>
+  /** across the warp (x) and the weft (y): 1 while the window grows that way and its new cells are woven on, 0 while it shrinks and its cells lift away */
+  uWeave: THREE.IUniform<THREE.Vector2>
 }
 
 export interface YarnTextures {
@@ -78,10 +84,13 @@ uniform vec2 uPressBand;
 uniform vec2 uWin;
 uniform float uBand;
 uniform float uLift;
+uniform vec2 uWeave;
 varying float vAo;
 varying float vPart;
 varying float vPress;
 varying float vBuild;
+varying float vWeave;
+varying float vWeaving;
 
 vec3 rtOrigin() {
 #ifdef USE_INSTANCING
@@ -96,12 +105,24 @@ float rtHeight(vec2 xz) {
 }
 
 void rtDeform(inout vec3 p, inout vec3 n) {
-  // the build window: 1 = in place, 0 = not built yet; landing cells drop in from above
+  // the build window: 1 = in place, 0 = not built yet
   vec3 rtO = rtOrigin();
   vec2 rtC = vec2(rtO.x / 0.012 + 0.5, rtO.z / 0.012);
-  float rtE = min(uWin.x * 0.5 - abs(rtC.x), uWin.y * 0.5 - abs(rtC.y));
-  vBuild = clamp(rtE / uBand, 0.0, 1.0);
-  p.y += (1.0 - vBuild) * (1.0 - vBuild) * uLift;
+  float rtEx = uWin.x * 0.5 - abs(rtC.x);
+  float rtEz = uWin.y * 0.5 - abs(rtC.y);
+  vBuild = clamp(min(rtEx, rtEz) / uBand, 0.0, 1.0);
+  // weaving on: how far out across its cell this point lies, from the side facing the built sheet
+  // (0) to the open side (1), along whichever edge of the window the cell is on; each part of the
+  // mesh follows the one before it (upper face, lower face, then the fibres between them)
+  vec2 rtU = vec2(0.5 + ((p.x - rtO.x) / 0.012 - 0.5) * sign(rtC.x), 0.5 + (p.z - rtO.z) / 0.012 * sign(rtC.y));
+  float rtAxis = clamp(rtEz - rtEx + 0.5, 0.0, 1.0);
+  float rtOut = mix(rtU.y, rtU.x, rtAxis);
+  vWeaving = mix(uWeave.y, uWeave.x, rtAxis);
+  float rtLag = aPart < 0.5 ? 0.0 : (aPart < 1.5 ? 0.25 : 0.5);
+  vWeave = vBuild * 1.75 - rtLag - rtOut;
+  // a landing cell drops in from above; a yarn being woven lifts its tip a little as it is laid
+  float rtTip = 1.0 - smoothstep(0.0, 0.35, vWeave);
+  p.y += mix((1.0 - vBuild) * (1.0 - vBuild) * uLift, rtTip * (1.0 - vBuild) * uLift * 0.1, vWeaving);
   p.y += uExplode * (aPart < 0.5 ? 1.0 : (aPart < 1.5 ? -1.0 : 0.0));
   p.y += uWave * (sin(p.x * 21.0 + 1.3) * cos(p.z * 17.0 - 0.6) * 0.6
                + sin(p.x * 61.0 + p.z * 47.0) * 0.25
@@ -131,14 +152,15 @@ objectNormal = rtN;
 vAo = aAo;
 vPart = aPart;
 `
+// a cell wholly outside the window collapses to a point: no fragments to shade and throw away
 const VERTEX_POSITION = /* glsl */ `
-transformed = rtP - rtOrigin();
+transformed = vBuild > 0.0 ? rtP - rtOrigin() : vec3(0.0);
 `
 const VERTEX_DEPTH = /* glsl */ `
 vec3 rtP = transformed + rtOrigin();
 vec3 rtN = vec3(0.0, 1.0, 0.0);
 rtDeform(rtP, rtN);
-transformed = rtP - rtOrigin();
+transformed = vBuild > 0.0 ? rtP - rtOrigin() : vec3(0.0);
 vAo = aAo;
 vPart = aPart;
 `
@@ -157,8 +179,23 @@ float rtTwist = aYarn < 0.5 ? 0.0 : (aYarn < 1.5 ? 1.0 : 2.0);
 #endif
 `
 
-const FRAGMENT_PARS = /* glsl */ `
+/**
+ * Whether a fragment of the build band is drawn: a landing cell dissolves in by its whole cell (a
+ * dither), a cell being woven shows each yarn up to where it has been laid so far.
+ */
+const BUILD_KEEP = /* glsl */ `
 varying float vBuild;
+varying float vWeave;
+varying float vWeaving;
+bool rtBuilt(float dither) {
+  if (vBuild <= 0.0) return false;
+  float keep = mix(vBuild * 4.0, step(0.0, vWeave), vWeaving);
+  return dither <= keep;
+}
+`
+
+const FRAGMENT_PARS = /* glsl */ `
+${BUILD_KEEP}
 uniform vec3 uPartDim;
 uniform vec3 uPartVis;
 uniform vec3 uPartGlow;
@@ -176,7 +213,7 @@ float rtPick(vec3 v) { return vPart < 0.5 ? v.x : (vPart < 1.5 ? v.y : v.z); }
 `
 
 const FRAGMENT_COLOR = /* glsl */ `
-if (vBuild <= 0.0 || rtIgn(gl_FragCoord.xy + 17.0) > vBuild * 4.0) discard;
+if (!rtBuilt(rtIgn(gl_FragCoord.xy + 17.0))) discard;
 float rtVis = rtPick(uPartVis);
 if (rtVis < 0.999 && rtIgn(gl_FragCoord.xy) >= rtVis) discard;
 float rtPile = step(1.5, vPart);
@@ -237,6 +274,7 @@ export function createYarnUniforms(): YarnUniforms {
     uWin: { value: new THREE.Vector2(18, 18) },
     uBand: { value: 0.5 },
     uLift: { value: 0.03 },
+    uWeave: { value: new THREE.Vector2(1, 1) },
   }
 }
 
@@ -291,12 +329,12 @@ export function createYarnMaterial(opts: YarnMaterialOptions) {
       .replace('#include <common>', `#define RT_DEPTH\n#include <common>\n${VERTEX_PARS}`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>\n${VERTEX_DEPTH}`)
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nuniform vec3 uPartVis;\nvarying float vAo;\nvarying float vPart;\nvarying float vPress;
-varying float vBuild;`)
+      .replace('#include <common>', `#include <common>\nuniform vec3 uPartVis;\nvarying float vAo;\nvarying float vPart;\nvarying float vPress;\n${BUILD_KEEP}`)
       .replace(
         '#include <clipping_planes_fragment>',
         `#include <clipping_planes_fragment>
-        if (vBuild < 0.25) discard;
+        // the shadow follows the build: a dissolving cell casts once it is a quarter in
+        if (!rtBuilt(0.999)) discard;
         float rtVis = vPart < 0.5 ? uPartVis.x : (vPart < 1.5 ? uPartVis.y : uPartVis.z);
         if (rtVis < 0.5) discard;`,
       )

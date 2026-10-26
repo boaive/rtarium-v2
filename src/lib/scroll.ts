@@ -7,9 +7,9 @@ import { prefersReducedMotion } from './motion'
  * touch keeps the device's own momentum. The story also holds: every screen and every step is a
  * holding point, and once the visitor stops, the page settles onto the next one in the direction
  * they were going, so each screen is seen whole and stays put while its sequence plays. It never
- * pulls back against them: only a nudge too small to mean anything returns to where it was. Under
- * reduced motion the browser's own scrolling is left alone. Every scroll the site starts goes
- * through `scrollToY`.
+ * pulls back against them: only a nudge too small to mean anything returns to where it was, and it
+ * waits while a mouse button is held (dragging the scrollbar, selecting text). Under reduced motion
+ * the browser's own scrolling is left alone. Every scroll the site starts goes through `scrollToY`.
  */
 let lenis: Lenis | null = null
 
@@ -21,6 +21,8 @@ const HOLDS = '.hero__screen, [data-step], #applications, .footer--screen'
 
 let settling = false
 let touching = false
+/** a mouse button is down: the scrollbar, or a selection, is the visitor's until it is let go */
+let holding = false
 let lastY = 0
 let heading: 1 | -1 = 1
 let idle = 0
@@ -41,7 +43,7 @@ const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 
 function settle() {
   idle = 0
-  if (!lenis || settling || touching || lenis.isStopped) return
+  if (!lenis || settling || touching || holding || lenis.isStopped) return
   const root = document.documentElement
   if (!root.classList.contains('is-home') || root.classList.contains('menu-open') || document.querySelector('dialog[open]')) return
   const y = window.scrollY
@@ -109,6 +111,19 @@ export function startSmoothScroll() {
   }
   window.addEventListener('touchend', lift, { passive: true })
   window.addEventListener('touchcancel', lift, { passive: true })
+  // the browser does not always report the release of a scrollbar drag: the next move without a button counts
+  const letGo = () => {
+    if (!holding) return
+    holding = false
+    window.clearTimeout(idle)
+    idle = window.setTimeout(settle, IDLE)
+  }
+  window.addEventListener('mousedown', () => {
+    holding = true
+    takeBack()
+  })
+  window.addEventListener('mouseup', letGo)
+  window.addEventListener('mousemove', (e) => e.buttons === 0 && letGo(), { passive: true })
 }
 
 export function scrollToY(y: number, immediate = false) {

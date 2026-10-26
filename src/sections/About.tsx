@@ -72,7 +72,7 @@ const steps: Step[] = [
             {active ? (
               <VideoLoop src="/video/mortar-flow-wide.mp4" poster="/video/mortar-flow-wide.jpg" label="Mortar flowing into the RTARIUM mesh, close up" className="pourfilm__video" />
             ) : (
-              <img className="pourfilm__poster" src="/video/mortar-flow-wide.jpg" alt="" />
+              <img className="pourfilm__poster" src="/video/mortar-flow-wide.jpg" alt="" loading="lazy" decoding="async" />
             )}
           </div>
           <figcaption className="caption">Footage from the RTARIUM production shoot.</figcaption>

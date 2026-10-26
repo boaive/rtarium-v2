@@ -131,6 +131,22 @@ Confirmed figures (client technical PDF; the margin notes are treated as correct
   - Eighth review (owner, 25 October 2026): the "In concrete" notes stand on the left, on the copy's line, clear
     of the copy and the footage. Scrolling holds: each screen and step is a holding point the page settles onto
     in the direction of travel, smoothly, never pulling back.
+  - Ninth review (owner, 26 October 2026; supersedes the above where they differ):
+    - Footer: no mesh at all, only the black liquid. It comes only while the cursor moves and drains away once it
+      rests; it is never a plain circle (it leans into its way, swells on one side, its edge is uneven).
+    - What it replaces: no pictures; the rows are a ledger that fills the screen, the open one moving down it
+      with each scroll instead of opening in the same place; RTARIUM, last, is bigger.
+    - Wherever the mesh grows (the opening, a chapter's sheet widening), its new cells are woven on, yarn by yarn,
+      rather than dropped in from above; trimmed back, they still lift away as before.
+    - Opening: the piece is larger and seen lower, so its depth reads, and it is woven out from its middle when the
+      page opens (judged on the critique; the owner left the call to the designer).
+    - Footer: the liquid is a small asymmetric drop on the cursor, there moving or at rest (it swells a little in
+      motion); it drains only when the cursor leaves the footer.
+    - Buttons, chips, tags and plates are cut square across the site (uniform with the slabs and Explore); the
+      round cut stays where it reads best: the header (capsule, links' plate, Contact, Menu) and the "No plane to
+      split along" toggle.
+    - Concrete is shown slim, as RTARIUM makes it possible (20 to 30 mm): a 20 mm panel round the 10 mm mesh (5 mm
+      of cover beyond each face) in the opening's cast, "In concrete" and Tech Space.
 - Logos: `Yellow Emblem RTARIUM Logo.png`, `hemisphere one logo.png`.
 
 ## Evidence on Hand

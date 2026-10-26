@@ -811,45 +811,57 @@
 .stack__rows {
   position: relative;
   margin: 0;
+  padding: 0;
+  list-style: none;
   border-top: 1.5px solid var(--black);
 }
-/* a row: its number, its name and weakness, one line on the right; folded, only its top shows */
+/*
+ * A band of the ledger: its head line always shows (number, name, and once passed its weakness);
+ * opened, its body rises in from the band's foot. Heights and --w (how open, 0..1) are set by the
+ * scroll; --head is the height of its head line.
+ */
 .row {
+  --cols: 4.5rem minmax(0, 1fr) minmax(0, 22rem);
+  --gap: clamp(14px, 2.4vw, 40px);
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 0.1fr) minmax(0, 0.6fr) minmax(0, 0.3fr);
-  align-items: start;
-  column-gap: clamp(16px, 2.6vw, 44px);
-  padding: clamp(12px, 1.8vh, 16px) 0 clamp(14px, 2.4vh, 24px);
   overflow: hidden;
   border-bottom: 1.5px solid var(--black);
   background: var(--white);
   will-change: transform, height;
 }
+.row__head {
+  display: grid;
+  grid-template-columns: var(--cols);
+  align-items: center;
+  column-gap: var(--gap);
+  height: var(--head, 56px);
+}
 .row__num {
-  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
-  line-height: 1.5;
+  font-size: var(--t-small);
+  font-weight: 600;
+  transition: opacity var(--d-mid) var(--ease-out);
 }
 .row__name {
   position: relative;
-  display: inline-block;
-  font-size: clamp(1rem, 1.35vw, 1.25rem);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  line-height: 1.35;
-  text-transform: uppercase;
+  justify-self: start;
+  font-size: clamp(1.05rem, 1.45vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: opacity var(--d-mid) var(--ease-out);
 }
-/* the strike runs through the name once its row is reached, and stays when it folds */
+/* the strike runs through the name once its band is reached, and stays when it closes */
 .row__strike {
   position: absolute;
   left: -0.12em;
   right: -0.12em;
-  top: 52%;
-  height: 0.17em;
-  background: var(--black);
+  top: 54%;
+  height: 2px;
+  background: currentColor;
   transform: scaleX(0);
   transform-origin: left;
 }
@@ -867,32 +879,63 @@
     transform: scaleX(1);
   }
 }
-.row__weak {
-  margin-top: clamp(14px, 2.6vh, 28px);
-  font-size: clamp(1.9rem, min(3.6vw, 6.4vh), 3.8rem);
+/* a passed band keeps its reason beside its struck name */
+.row__tag {
+  justify-self: end;
+  font-size: var(--t-small);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.02;
-  text-wrap: balance;
+  color: var(--on-light-2);
+  white-space: nowrap;
   opacity: 0;
-  transform: translateY(14px);
+  transform: translateX(12px);
   transition:
-    opacity 0.6s var(--ease-out) 0.3s,
-    transform 0.8s var(--ease-out) 0.3s;
+    opacity var(--d-mid) var(--ease-out),
+    transform var(--d-slow) var(--ease-out);
 }
-.row.is-active .row__weak,
-.row.is-seen .row__weak {
+.row.is-seen:not(.is-active) .row__tag {
   opacity: 1;
   transform: none;
 }
+/* still to come: a quiet line */
+.row:not(.is-seen):not(.is-active) .row__num,
+.row:not(.is-seen):not(.is-active) .row__name {
+  opacity: 0.38;
+}
+.row__body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--head, 56px);
+  bottom: 0;
+  display: grid;
+  grid-template-columns: var(--cols);
+  column-gap: var(--gap);
+  align-content: end;
+  align-items: end;
+  padding-bottom: clamp(18px, 3.4vh, 40px);
+  overflow: hidden;
+  opacity: clamp(0, calc((var(--w, 0) - 0.2) * 1.7), 1);
+}
+.row__weak {
+  grid-column: 2;
+  font-size: clamp(2.6rem, min(6.4vw, 11.5vh), 7.2rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  text-wrap: balance;
+  transform: translateY(calc((1 - var(--w, 0)) * 40px));
+}
 .row__what {
-  align-self: end;
-  max-width: 24rem;
+  grid-column: 3;
+  justify-self: end;
+  max-width: 22rem;
+  padding-bottom: 0.35em;
   font-size: var(--t-small);
   line-height: 1.45;
   color: var(--on-light-2);
 }
-/* RTARIUM opens on black, across the full width, its name cut as the opening's */
+
+/* RTARIUM, the answer: on black across the full width, its name cut as the opening's, at full size */
 .row--rtarium {
   left: calc(-1 * var(--gutter));
   right: calc(-1 * var(--gutter));
@@ -903,16 +946,80 @@
 }
 .row--rtarium .row__name {
   font-family: var(--font-name);
-  font-size: clamp(1.5rem, 2.6vw, 2.5rem);
   font-weight: 860;
   font-stretch: 150%;
   letter-spacing: 0;
-  line-height: 1;
 }
-.row--rtarium .row__weak {
-  font-size: clamp(1.7rem, min(3vw, 5.4vh), 3.1rem);
+/* open, the name below takes over from the one in the head line */
+.row--rtarium.is-active .row__name {
+  opacity: 0;
+}
+.row--rtarium .row__body {
+  left: var(--gutter);
+  right: var(--gutter);
+  grid-template-areas:
+    '. word word'
+    '. what what'
+    '. ans ans';
+  row-gap: clamp(14px, 2.6vh, 30px);
+}
+.row__word {
+  grid-area: word;
+  font-family: var(--font-name);
+  font-size: clamp(3.2rem, min(9.6vw, 15vh), 11rem);
+  font-weight: 860;
+  font-stretch: 150%;
+  line-height: 0.8;
+  margin-left: -0.04em;
+  white-space: nowrap;
+  transform: translateY(calc((1 - var(--w, 0)) * 60px));
 }
 .row--rtarium .row__what {
+  grid-area: what;
+  justify-self: start;
+  max-width: 34rem;
+  padding-bottom: 0;
+  color: var(--on-dark-2);
+}
+/* the three strengths, each numbered for the compromise above it that it answers */
+.row__answers {
+  grid-area: ans;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row__answers li {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1.5px solid rgb(253 208 1 / 0.35);
+  font-size: clamp(1.5rem, min(2.6vw, 4.6vh), 2.9rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.8s var(--ease-out);
+}
+.row--rtarium.is-active .row__answers li {
+  opacity: 1;
+  transform: none;
+}
+.row--rtarium.is-active .row__answers li:nth-child(2) {
+  transition-delay: 0.12s;
+}
+.row--rtarium.is-active .row__answers li:nth-child(3) {
+  transition-delay: 0.24s;
+}
+.row__ref {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: 0;
   color: var(--on-dark-2);
 }
 
@@ -922,13 +1029,13 @@
   justify-self: start;
   padding: 4px;
   border: 1.5px solid currentColor;
-  border-radius: var(--radius);
+  border-radius: var(--radius-round);
 }
 .toggle button {
   min-height: 40px;
   padding: 0 18px;
   border: 0;
-  border-radius: var(--radius);
+  border-radius: var(--radius-round);
   background: none;
   font-size: var(--t-small);
   font-weight: 700;
@@ -1613,15 +1720,41 @@
     row-gap: var(--s-4);
   }
   .row {
-    grid-template-columns: 2.6rem minmax(0, 1fr);
+    --cols: 2.4rem minmax(0, 1fr);
+  }
+  .row__tag {
+    display: none;
+  }
+  .row__weak {
+    font-size: clamp(2.2rem, 11vw, 3.4rem);
   }
   .row__what {
     grid-column: 2;
+    justify-self: start;
     margin-top: var(--s-3);
   }
-  .row__weak {
-    margin-top: 30px;
-    font-size: clamp(1.7rem, 8vw, 2.4rem);
+  .row--rtarium .row__body {
+    grid-template-areas:
+      'word word'
+      '. what'
+      '. ans';
+    row-gap: var(--s-4);
+  }
+  .row__word {
+    font-size: clamp(2.2rem, 10.4vw, 4.4rem);
+  }
+  .row--rtarium .row__what {
+    margin-top: 0;
+  }
+  .row__answers {
+    grid-template-columns: 1fr;
+    gap: var(--s-3);
+  }
+  .row__answers li {
+    grid-template-columns: 2rem 1fr;
+    align-items: baseline;
+    padding-top: var(--s-3);
+    font-size: clamp(1.25rem, 5.6vw, 1.6rem);
   }
   .system .lines {
     font-size: clamp(2.1rem, 9vw, 3.2rem);

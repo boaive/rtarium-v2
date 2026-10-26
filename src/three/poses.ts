@@ -104,7 +104,13 @@ const base: Omit<Pose, 'tgt' | 'elev' | 'azim' | 'dist' | 'fov'> = {
 
 const h = HALF
 
-/** points of the sheet that labels pin to, in the sheet's own frame (they follow it when it stands) */
+/**
+ * Points of the sheet that labels pin to, in the sheet's own frame (they follow it when it stands),
+ * for the 10 mm sheet; a point on a face moves out or in with the faces for another thickness (see
+ * `anchorAt`). The cell's grid: the upper face's weft runs along z at x 0 and its warp along x at
+ * z 0 of each 12 mm cell, the lower face's half a cell over (x 6, z 6); face centres at ±4 mm,
+ * outer surfaces at ±5 mm; the connecting fibres cross mid-depth at x 3 or 9, z ±3.
+ */
 export const ANCHORS: Record<string, [number, number, number]> = {
   'upper-face': [h - 0.046, 0.0052, h - 0.006],
   'lower-face': [h - 0.004, -0.0052, h - 0.03],
@@ -113,9 +119,9 @@ export const ANCHORS: Record<string, [number, number, number]> = {
   'axis-y': [0.012, 0.012, -0.044],
   'axis-z': [0.012, 0.058, 0.02],
   'shear-plane': [-0.02, 0, 0.055],
-  'slab-top': [-h * 0.6, 0.068, h],
+  'slab-top': [-h * 0.6, 0.061, h],
   'slab-mesh': [h, 0.004, h * 0.4],
-  'slab-bottom': [h * 0.4, -0.068, h],
+  'slab-bottom': [h * 0.4, -0.061, h],
   'slab-yarn': [-h * 0.2, 0.005, h - 0.004],
   dimension: [h + 0.006, 0, -h],
   'dim-width': [0, 0, h + 0.008],
@@ -124,18 +130,29 @@ export const ANCHORS: Record<string, [number, number, number]> = {
   'hero-structure': [-0.07, 0.0052, -0.05],
   'hero-yarn': [0.102, 0.0052, -0.044],
   'hero-thickness': [0.08, -0.0052, 0.06],
-  // inside the cavity on the opening tour: a face above, a face below, the fibres between
-  'tour-face-a': [0.012, 0.0052, -0.03],
-  'tour-fibres': [0.012, 0, -0.03],
-  'tour-face-b': [0.012, -0.0052, -0.03],
+  // inside the cavity on the opening tour, close in front of the camera (it stands at z 0.04, between
+  // the faces) so the three read apart: the upper face's weft running overhead (x 0), a connecting
+  // fibre where it crosses mid-depth (x 9, z 9 of its cell), the lower face's warp running across
+  // below (z 6 of its cell)
+  'tour-face-a': [0, 0.004, 0.018],
+  'tour-fibres': [-0.003, 0, 0.021],
+  'tour-face-b': [0, -0.004, 0.018],
   // the cast panel at the close of "In concrete": the mortar between the yarns, a yarn of the upper
   // face, the side of the slab
   'pour-cavity': [-0.08, 0.0042, -0.066],
   'pour-mesh': [-0.087, 0.0058, 0.017],
   'pour-matrix': [-0.0945, -0.004, 0.066],
-  // the depth between them, dimensioned a little further along
-  'tour-gap': [0.03, 0.0052, -0.034],
-  'tour-gap-b': [0.03, -0.0052, -0.034],
+  // the sheet's depth, outer face to outer face, dimensioned beside them
+  'tour-gap': [0.0045, 0.005, 0.018],
+  'tour-gap-b': [0.0045, -0.005, 0.018],
+}
+
+/** An anchor for a sheet `thickness` mm deep: points on a face (within the sheet's depth) move with that face. */
+export function anchorAt(p: readonly [number, number, number], thickness: number, out: [number, number, number]) {
+  out[0] = p[0]
+  out[1] = Math.abs(p[1]) <= 0.0062 ? p[1] + Math.sign(p[1]) * ((thickness - 10) / 2000) : p[1]
+  out[2] = p[2]
+  return out
 }
 
 export const HERO_LABELS = ['hero-structure', 'hero-yarn', 'hero-thickness']
@@ -145,18 +162,20 @@ export const POUR_LABELS = ['pour-cavity', 'pour-mesh', 'pour-matrix']
 
 export const POSES: Record<PoseId, Pose> = {
   // the opening: a broad piece of the sheet lying on its own in the lower right of the yellow
-  // ground, its shadow under it, turned so the two faces read as two offset grids; the tour (TOUR)
-  // takes it from there
+  // ground, its shadow under it, turned so the two faces read as two offset grids; seen close and
+  // low enough for its depth to read, it runs off the right edge rather than reaching the name;
+  // the tour (TOUR) takes it from there
   hero: {
     ...base,
     tgt: [0, 0.01, 0],
-    elev: 52,
-    azim: 34,
-    dist: 0.64,
-    distCompact: 1.22,
+    elev: 41,
+    azim: 36,
+    dist: 0.53,
+    distCompact: 1.08,
     fov: 30,
-    frame: [0.69, 0.685],
-    frameCompact: [0.5, 0.31],
+    frame: [0.71, 0.7],
+    // phones: in the middle of the ground between the header and the copy below
+    frameCompact: [0.5, 0.37],
     sway: 4,
     press: true,
     win: [18, 12],
@@ -408,9 +427,12 @@ export const TOUR_LABELS = ['tour-face-a', 'tour-fibres', 'tour-face-b', 'tour-g
 /** how far into white light the tour has gone (0..1): the ground washes to warm white with it, and back to yellow on the way into About */
 export const tourWash = (p: number) => smoothstep(2.08, 2.5, p) * (1 - smoothstep(3.12, 3.55, p))
 
+/** the keys are fixed: built once, not every frame */
+let keyCache: TourKey[] | null = null
+
 /** The hero pose at tour position `p` (0..4), eased between its keys. Writes into `out`. */
 export function tourPose(p: number, out: Pose): Pose {
-  const keys = tourKeys()
+  const keys = (keyCache ??= tourKeys())
   let i = 0
   while (i < keys.length - 2 && p > keys[i + 1].at) i++
   const a = keys[i]
@@ -444,6 +466,8 @@ export function tourPose(p: number, out: Pose): Pose {
   out.slabs = p > 2.62 && p < 3.22 ? { gap: 0, opacity: 1, bottom: true } : undefined
   out.labels = p < 0.18 ? HERO_LABELS : p > 1.8 && p < 2.2 ? TOUR_LABELS : p > 3.9 ? POSES.structure.labels : []
   out.labelZone = p < 0.5 ? POSES.hero.labelZone : p > 3.5 ? POSES.structure.labelZone : [0.02, 0.12, 0.98, 0.86]
+  // phones: inside the cavity the labels may come down to where the copy begins
+  out.labelZoneCompact = p > 1.5 && p < 2.5 ? [0.02, 0.1, 0.98, 0.74] : p > 3.5 ? POSES.structure.labelZoneCompact : POSES.hero.labelZoneCompact
   return out
 }
 

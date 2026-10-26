@@ -101,6 +101,8 @@ await send('Emulation.setDeviceMetricsOverride', {
   mobile: Boolean(cfg.mobile),
 })
 if (cfg.mobile) await send('Emulation.setTouchEmulationEnabled', { enabled: true })
+// media: e.g. [{ "name": "prefers-reduced-motion", "value": "reduce" }]
+if (cfg.media) await send('Emulation.setEmulatedMedia', { features: cfg.media })
 
 let lastUrl = ''
 for (const s of cfg.shots) {

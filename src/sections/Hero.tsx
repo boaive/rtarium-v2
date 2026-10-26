@@ -168,7 +168,7 @@ export function Hero() {
 function CavityDimension() {
   const t = useStageValue('thickness')
   return (
-    <StageLabel anchor="tour-gap" span="tour-gap-b">
+    <StageLabel anchor="tour-gap" span="tour-gap-b" wideOnly>
       {t} mm
     </StageLabel>
   )

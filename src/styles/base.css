@@ -99,7 +99,7 @@ a {
   justify-content: center;
   gap: var(--s-2);
   min-height: 46px;
-  padding: 0 22px;
+  padding: 0 20px;
   border: 1.5px solid currentColor;
   border-radius: var(--radius);
   background: none;

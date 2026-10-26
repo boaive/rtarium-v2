@@ -293,6 +293,10 @@
   white-space: nowrap;
   transform: translateY(-50%);
 }
+.pin--span.pin--flip .pin__dim-text {
+  left: auto;
+  right: 14px;
+}
 /* near the edge of the screen a callout mirrors its arm to the other side; the words stay readable */
 .pin__arm {
   position: absolute;
@@ -379,7 +383,7 @@ html[data-ground='black'] .pin__text {
   display: block;
   margin-left: -6px;
   padding: 11px 20px 11px 16px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-round);
   background: var(--black);
   color: var(--white);
   text-decoration: none;
@@ -435,7 +439,7 @@ html[data-ground='black'] .pin__text {
   display: flex;
   gap: var(--s-1);
   padding: 0 6px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-round);
   background: var(--nav-bg);
   transition: background-color var(--d-mid) var(--ease-out);
 }
@@ -465,8 +469,11 @@ html[data-ground='black'] .pin__text {
 .nav__link[aria-current]::after {
   transform: scaleX(1);
 }
+/* the header keeps its round cut: the capsule, the links' plate, Contact, the menu button */
 .nav__contact {
   min-height: 42px;
+  padding: 0 22px;
+  border-radius: var(--radius-round);
 }
 .nav__menu {
   display: none;
@@ -476,7 +483,7 @@ html[data-ground='black'] .pin__text {
   margin-right: -10px;
   padding: 0 14px;
   border: 0;
-  border-radius: var(--radius);
+  border-radius: var(--radius-round);
   background: var(--nav-bg);
   font-size: var(--t-small);
   font-weight: 600;
@@ -707,7 +714,7 @@ html[data-ground='black'] .pin__text {
 
 /* ---- footer: one yellow screen ------------------------------------------------------------ */
 
-/* the black liquid over the footer's content; the yellow copy over it; the piece of mesh over both */
+/* the black liquid over the footer's content; the yellow copy over it */
 .liquid {
   position: absolute;
   inset: 0;
@@ -715,9 +722,6 @@ html[data-ground='black'] .pin__text {
   width: 100%;
   height: 100%;
   pointer-events: none;
-}
-.liquid--piece {
-  z-index: 7;
 }
 
 .footer {
@@ -741,7 +745,7 @@ html[data-ground='black'] .pin__text {
 .footer--screen .footer__body {
   min-height: 100svh;
 }
-/* the same footer, yellow on black, shown only inside the liquid (clip set by LiquidMesh) */
+/* the same footer, yellow on black, shown only inside the liquid (clip set by Liquid) */
 .footer__body--inverse {
   position: absolute;
   inset: 0;

@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { MeshField, PITCH, cellUrl, useCell, useYarnMaterial } from './mesh/MeshField'
 import { PressField } from './mesh/flex'
-import { ANCHORS, FIELD, HALF, POSES, POUR_OUT, TILE, blendPose, tourPose, type Pose } from './poses'
+import { ANCHORS, FIELD, HALF, POSES, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
 import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
 import { THICKNESS_OPTIONS } from '../content/technical'
 import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
@@ -20,7 +20,9 @@ import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
  * the mesh is built out past the edges of the screen, the camera slips between its two faces and on
  * into white light, and out of the white comes a tile half cast in concrete (`stage.tour`, damped).
  * Chapters that run sideways are scrubbed the same way: their one view travels continuously from
- * one step's pose to the next (`Region.blend`). Time introduces the piece: it drops in and settles.
+ * one step's pose to the next (`Region.blend`). Time introduces the piece: it is woven out from its
+ * middle to its edges while it settles onto its shadow. Wherever a view's sheet grows, its new cells
+ * are woven on; where it is trimmed back, they lift away (see yarnMaterial, uWeave).
  * The cursor presses the face and it springs back (V1's press field); a press knocks it.
  *
  * The mesh is shown in its own colour, basalt, on every ground. In Tech Space a figure under the
@@ -51,10 +53,17 @@ const SCRUB = 8
 /** a view's motion with its panel: farther (fraction), lower (deg) and turned (deg) at one screen away */
 const PARALLAX = { dist: 0.14, elev: 5, azim: 12 }
 const SWAY_PERIOD = 16
-/** the drop: starting height (m), spring stiffness and damping (a visible bounce, then still) */
-const DROP = { height: 0.16, k: 70, c: 7.5, tilt: 0.55 }
+/** the settle as it is woven: starting height (m), spring stiffness and damping (a small bounce, then still) */
+const DROP = { height: 0.05, k: 70, c: 7.5, tilt: 0.3 }
+/** the opening piece is woven out from its middle: when it starts and how long it takes (s) */
+const INTRO = { delay: 0.2, duration: 2.1 }
 /** the cursor as a load: footprint radius (m) and depth (m) */
 const CURSOR = { radius: 0.022, depth: 0.0068, restMs: 1400 }
+/**
+ * The concrete it is cast in: a slim panel, the cover beyond each face of the mesh (m). With the 10 mm
+ * mesh the panel is 20 mm, the thin end of what RTARIUM makes possible (20 to 30 mm).
+ */
+const COVER = 0.005
 /** sheet lengths shown in turn while "Sheet lengths" is under the cursor (cells of the weft) */
 const LENGTHS = [18, 25, 32]
 const SHEET = FIELD * PITCH
@@ -72,13 +81,15 @@ const tourScratch: Pose = { ...POSES.hero }
 const blendScratch: Pose = { ...POSES.hero }
 const pourScratch: Pose = { ...POSES.hero }
 const fogTarget = new THREE.Color()
+const anchorPt: [number, number, number] = [0, 0, 0]
+/** where each screen is this frame: read once, used by the choice of the active screen and by the views */
+const rects = new Map<Region, DOMRect>()
 
 /** the region across the middle of the screen, else the most visible one */
 function activeRegion(vh: number) {
   let best: Region | null = null
   let bestScore = 0
-  for (const r of stage.regions) {
-    const b = r.el.getBoundingClientRect()
+  for (const [r, b] of rects) {
     const visible = Math.min(b.bottom, vh) - Math.max(b.top, 0)
     if (visible <= 1 || b.width < 2) continue
     const score = (b.top <= vh * 0.5 && b.bottom >= vh * 0.5 ? 1e6 : 0) + visible
@@ -142,6 +153,11 @@ interface View {
     winX: number
     winZ: number
     band: number
+    /** across the warp and the weft: 1 while the sheet grows that way (new cells are woven on), 0 while it is trimmed back (they lift away) */
+    weaveX: number
+    weaveZ: number
+    weaveToX: number
+    weaveToZ: number
     stand: number
     stretch: number
     widthDim: number
@@ -194,6 +210,10 @@ function newView(pose: Pose, compact: boolean, o: number): View {
       winX: pose.win[0],
       winZ: pose.win[1],
       band: 0.5,
+      weaveX: 1,
+      weaveZ: 1,
+      weaveToX: 1,
+      weaveToZ: 1,
       stand: pose.stand,
       stretch: 1,
       widthDim: 0,
@@ -243,6 +263,10 @@ export function StageScene({ compact, reduced }: Props) {
   /** the pose of the screen holding the middle of the viewport */
   const primaryPose = useRef<PoseId>('hero')
   const started = useRef(0)
+  /** the deferred compile of hidden programs: its timer, then true once it is done (for the shadow pass) */
+  const warmup = useRef(0)
+  const warm = useRef(false)
+  useEffect(() => () => window.clearTimeout(warmup.current), [])
   const orbit = useRef({ yaw: 0, pitch: 0 })
   const drop = useRef({ y: DROP.height, v: 0, tilt: DROP.tilt, vt: 0 })
   const cleared = useRef(false)
@@ -340,6 +364,8 @@ export function StageScene({ compact, reduced }: Props) {
     const camera = state.camera as THREE.PerspectiveCamera
     const now = performance.now()
 
+    rects.clear()
+    for (const r of stage.regions) rects.set(r, r.el.getBoundingClientRect())
     const primary = activeRegion(vh)
     primaryPose.current = primary ? primary.pose() : 'none'
 
@@ -355,8 +381,8 @@ export function StageScene({ compact, reduced }: Props) {
         if (id === 'hero') drawn.push({ r, id, top: 0, bottom: vh })
         continue
       }
-      const b = r.el.getBoundingClientRect()
-      if (b.bottom <= 0 || b.top >= vh || b.width < 2) continue
+      const b = rects.get(r)
+      if (!b || b.bottom <= 0 || b.top >= vh || b.width < 2) continue
       drawn.push({ r, id, top: b.top, bottom: b.bottom })
     }
     for (const r of views.current.keys()) if (!drawn.some((d) => d.r === r)) views.current.delete(r)
@@ -374,10 +400,31 @@ export function StageScene({ compact, reduced }: Props) {
     if (!started.current) {
       started.current = now
       setShared({ ready: true })
+      // once the opening is under way, the programs of everything still hidden (concrete, mortar,
+      // the drawing lines) compile in parallel, so nothing stalls the first time it appears
+      warmup.current = window.setTimeout(() => {
+        gl.compileAsync(scene, camera)
+          .then(() => void (warm.current = true))
+          .catch(() => {})
+      }, (INTRO.delay + INTRO.duration) * 1000)
     }
     const since = (now - started.current) / 1000
     gl.clear()
     const rv = reduced ? 1 : clamp01(since / 1.6)
+    // the opening piece is woven out from its middle
+    const intro = reduced ? 1 : smoothstep(INTRO.delay, INTRO.delay + INTRO.duration, since)
+    // the casts' shadow pass compiles too: drawn once, hidden, into one pixel
+    if (warm.current === true && slabTop.current && slabBottom.current && mortar.current) {
+      warm.current = false
+      const hidden = [slabTop.current, slabBottom.current, mortar.current].filter((m) => !m.visible)
+      for (const m of hidden) m.visible = true
+      gl.setScissorTest(true)
+      gl.setScissor(0, 0, 1, 1)
+      gl.render(scene, camera)
+      gl.setScissorTest(false)
+      for (const m of hidden) m.visible = false
+      gl.clear()
+    }
 
     // ---- shared: the drag on the opening, the drop and the knock -----------------------------
     const ob = stage.orbit
@@ -404,6 +451,8 @@ export function StageScene({ compact, reduced }: Props) {
 
     const u = yarn.uniforms
     const placed = new Set<string>()
+    // the opening's copy, which its callouts keep clear of (read before any label is written)
+    const heroCopy = stage.tour < 0.2 && drawn.some((d) => d.id === 'hero') ? [...document.querySelectorAll('.hero__title, .hero__sub')].map((e) => e.getBoundingClientRect()) : []
     let flexing = false
 
     for (const view of drawn) {
@@ -416,6 +465,7 @@ export function StageScene({ compact, reduced }: Props) {
       let v = views.current.get(r)
       if (!v) {
         v = newView(pose, compact, o)
+        if (hero && intro < 1) v.fx.winX = v.fx.winZ = 0
         views.current.set(r, v)
       }
       const active = r === primary
@@ -471,11 +521,20 @@ export function StageScene({ compact, reduced }: Props) {
       const wk = reduced ? 1e4 : hero ? 10 : bl ? 6 : 2.6
       const wx0 = f.winX
       const wz0 = f.winZ
-      f.winX = damp(f.winX, pose.win[0], wk, dt)
-      f.winZ = damp(f.winZ, winZ, wk, dt)
-      // the faster the sheet grows, the more rings of cells are still dropping into place
+      const grow = hero ? intro : 1
+      f.winX = damp(f.winX, pose.win[0] * grow, wk, dt)
+      f.winZ = damp(f.winZ, winZ * grow, wk, dt)
+      // growing, the new cells are woven on; trimmed back, they lift away (each way across the sheet on its own)
+      if (f.winX - wx0 > 1e-4) f.weaveToX = 1
+      else if (f.winX - wx0 < -1e-4) f.weaveToX = 0
+      if (f.winZ - wz0 > 1e-4) f.weaveToZ = 1
+      else if (f.winZ - wz0 < -1e-4) f.weaveToZ = 0
+      f.weaveX = reduced ? f.weaveToX : damp(f.weaveX, f.weaveToX, 12, dt)
+      f.weaveZ = reduced ? f.weaveToZ : damp(f.weaveZ, f.weaveToZ, 12, dt)
+      // the faster the sheet changes, the more rings of cells are still lifting away; a weave keeps a tighter front
       const growth = (Math.abs(f.winX - wx0) + Math.abs(f.winZ - wz0)) / Math.max(dt, 1e-3)
-      f.band = reduced ? 0.5 : damp(f.band, 0.5 + Math.min(5, growth * 0.16), 6, dt)
+      const front = lerp(0.16, 0.085, (f.weaveX + f.weaveZ) / 2)
+      f.band = reduced ? 0.5 : damp(f.band, 0.5 + Math.min(5, growth * front), 6, dt)
       f.stand = damp(f.stand, pose.stand, reduced ? 1e4 : hero ? 9 : 2.6, dt)
       f.stretch = damp(f.stretch, stretch, reduced ? 1e4 : 4, dt)
       f.lift = damp(f.lift, pose.lift ?? 0, k, dt)
@@ -517,6 +576,7 @@ export function StageScene({ compact, reduced }: Props) {
       // ---- apply this view to the one scene -------------------------------------------------------
       u.uWin.value.set(f.winX, f.winZ)
       u.uBand.value = f.band
+      u.uWeave.value.set(f.weaveX, f.weaveZ)
       if (field.current) {
         // chunks wholly outside the window are not drawn at all
         for (const m of field.current.children) {
@@ -541,6 +601,8 @@ export function StageScene({ compact, reduced }: Props) {
         tile.current.scale.x = f.stretch
         tile.current.updateMatrixWorld()
       }
+      // each chunk's detail for this view's camera (two views in a transition each get their own)
+      ;(field.current?.userData.lod as ((cam: THREE.Camera) => void) | undefined)?.(camera)
       if (axes.current) {
         axes.current.visible = f.axes > 0.01
         // X, then Y, then Z grow one after the other
@@ -563,7 +625,8 @@ export function StageScene({ compact, reduced }: Props) {
         widthDim.current.visible = f.widthDim > 0.02
         widthDim.current.scale.x = Math.max(0.001, f.widthDim) / f.stretch
       }
-      const slabT = Math.max(thickness / 1000 + 0.006, 0.012)
+      // each slab runs from the mid-plane out past its face by the cover: closed, they are one slim panel
+      const slabT = thickness / 2000 + COVER
       // the concrete is cut to the piece of mesh it holds, with a margin of a cell
       const slabX = Math.min(f.winX, TILE) * PITCH + 0.012
       const slabZ = Math.min(f.winZ, TILE) * PITCH + 0.012
@@ -587,8 +650,8 @@ export function StageScene({ compact, reduced }: Props) {
         const hx = (Math.min(f.winX, TILE) * PITCH) / 2 - 0.002
         const hz = (Math.min(f.winZ, TILE) * PITCH) / 2 - 0.002
         const top = thickness / 2000 - 0.0012
-        // the panel goes on below the mesh, so standing back it reads as a cast slab
-        const bottom = -thickness / 2000 - 0.012
+        // the panel goes on below the mesh by the cover, so standing back it reads as a slim cast slab
+        const bottom = -thickness / 2000 - COVER
         mortar.current.scale.set(hx * 2, top - bottom, hz * 2)
         mortar.current.position.set(0, (top + bottom) / 2, 0)
         const ease = flow * flow * (3 - 2 * flow)
@@ -599,8 +662,12 @@ export function StageScene({ compact, reduced }: Props) {
       if (catcher.current) {
         catcher.current.visible = f.shadow > 0.01
         // the shadow falls on the ground under whatever is lowest: the mesh, or the concrete it is cast in
-        const floor = slabBottom.current?.visible ? -(slabT + f.gap) : -thickness / 2000
+        const floor = slabBottom.current?.visible ? -(slabT + f.gap) : mortar.current?.visible ? -thickness / 2000 - COVER : -thickness / 2000
         catcher.current.position.y = floor - 0.0006
+        // only the ground the shadow can reach: the sheet, and as far again as its height above the floor can throw it
+        const rise = Math.max(0, (tile.current?.position.y ?? 0) - floor)
+        const margin = 0.06 + rise * 1.6
+        catcher.current.scale.set(Math.min(f.winX, FIELD) * PITCH * f.stretch + margin * 2, Math.min(f.winZ, FIELD) * PITCH + margin * 2, 1)
         catcherMat.color.copy(SHADOW[screenGround] ?? SHADOW.yellow)
         catcherMat.opacity = (screenGround === 'light' ? 0.3 : 0.42) * f.shadow
       }
@@ -679,7 +746,8 @@ export function StageScene({ compact, reduced }: Props) {
       gl.render(scene, camera)
 
       // ---- labels pinned to this view's sheet -------------------------------------------------
-      const settled = Math.abs(c.dist - dist) < dist * 0.08 || reduced
+      // the opening's callouts wait until the piece has been woven
+      const settled = (Math.abs(c.dist - dist) < dist * 0.08 || reduced) && (!hero || intro > 0.96)
       if (!settled) continue
       const zone = compact ? pose.labelZoneCompact : pose.labelZone
       const shown = inspect === 'width' ? [...pose.labels, 'dim-width'] : inspect === 'elongation' ? [...pose.labels, 'strain'] : pose.labels
@@ -688,7 +756,7 @@ export function StageScene({ compact, reduced }: Props) {
         const p = ANCHORS[anchor]
         if (!el || !p || !tile.current) continue
         // anchors are points of the sheet: they stand, drop and stretch with it
-        vB.fromArray(p).applyMatrix4(tile.current.matrixWorld).project(camera)
+        vB.fromArray(anchorAt(p, thickness, anchorPt)).applyMatrix4(tile.current.matrixWorld).project(camera)
         const x = (vB.x * 0.5 + 0.5) * vw
         const y = (-vB.y * 0.5 + 0.5) * vh
         const inZone = x > zone[0] * vw && x < zone[2] * vw && y > panelTop + zone[1] * vh && y < panelTop + zone[3] * vh
@@ -714,19 +782,32 @@ export function StageScene({ compact, reduced }: Props) {
         // a dimension from this point to another one of the sheet
         const to = el.dataset.span ? ANCHORS[el.dataset.span] : undefined
         if (to) {
-          vA.fromArray(to).applyMatrix4(tile.current.matrixWorld).project(camera)
+          vA.fromArray(anchorAt(to, thickness, anchorPt)).applyMatrix4(tile.current.matrixWorld).project(camera)
           const yb = (-vA.y * 0.5 + 0.5) * vh
           el.style.setProperty('--span', `${(yb - y).toFixed(1)}px`)
+          // near the right edge its value stands on the other side of the line
+          el.classList.toggle('pin--flip', x > vw - 120)
         }
         const tagY = y + Number(el.dataset.dy ?? 0)
         if (el.classList.contains('pin--callout') && (tagY < y0 + 84 || tagY > y1 - 24)) continue
-        placed.add(anchor)
-        // a label near the edge of the screen turns its text inwards; a callout mirrors its arm
+        // a callout reaches out on its own side, else mirrors its arm; where neither side has clear
+        // ground (the screen's edge, the opening's headline and lede) it is not shown
         if (el.classList.contains('pin--callout') && !el.dataset.col) {
           const dx = Number(el.dataset.dx ?? 0)
           const w = (el.querySelector('.pin__tag') as HTMLElement | null)?.offsetWidth ?? 160
-          el.classList.toggle('pin--flip', dx > 0 ? x + dx + w > vw - 8 : x + dx - w < (hero && !compact ? vw * 0.46 : 8))
+          const clear = (side: number) => {
+            const end = x + side * Math.abs(dx)
+            const a = side > 0 ? end : end - w
+            const b = side > 0 ? end + w : end
+            if (a < 8 || b > vw - 8) return false
+            return !(hero ? heroCopy : []).some((r) => a < r.right + 16 && b > r.left - 16 && tagY > r.top - 16 && tagY < r.bottom + 16)
+          }
+          const own = dx > 0 ? 1 : -1
+          const side = clear(own) ? own : clear(-own) ? -own : 0
+          if (!side) continue
+          el.classList.toggle('pin--flip', side !== own)
         } else el.classList.toggle('pin--swap', el.classList.contains('pin--left') ? x < 200 : x > vw - 200)
+        placed.add(anchor)
         el.style.opacity = '1'
         el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
       }
@@ -751,11 +832,12 @@ export function StageScene({ compact, reduced }: Props) {
           nz={FIELD}
           material={yarn.material}
           depthMaterial={yarn.depthMaterial}
-          chunk={8}
+          chunk={6}
           lodDistance={compact ? 0.16 : 0.3}
           farDistance={0.9}
           shadows={!compact}
-          culling={false}
+          reach={0.04}
+          autoLod={false}
           groupRef={setField}
         />
         {/* sheet width, along the near edge, while "Sheet width" is under the cursor */}
@@ -786,7 +868,7 @@ export function StageScene({ compact, reduced }: Props) {
 
       {/* the ground the sheet lies on: receives its shadow, transparent everywhere else */}
       <mesh ref={catcher} material={catcherMat} rotation={[-Math.PI / 2, 0, 0]} visible={false} receiveShadow renderOrder={-1}>
-        <planeGeometry args={[4, 4]} />
+        <planeGeometry />
       </mesh>
 
       {/* mortar flowing in through the cavity */}
