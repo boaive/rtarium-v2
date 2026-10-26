@@ -23,7 +23,7 @@ import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
  * one step's pose to the next (`Region.blend`). Time introduces the piece: it is woven out from its
  * middle to its edges while it settles onto its shadow. Wherever a view's sheet grows, its new cells
  * are woven on; where it is trimmed back, they lift away (see yarnMaterial, uWeave).
- * The cursor presses the face and it springs back (V1's press field); a press knocks it.
+ * The cursor presses the face and it springs back (V1's press field); a click does not move it.
  *
  * The mesh is shown in its own colour, basalt, on every ground. In Tech Space a figure under the
  * cursor (`stage.inspect`) makes the mesh show what it means.
@@ -260,8 +260,6 @@ export function StageScene({ compact, reduced }: Props) {
 
   /** the views of the screens on screen, by screen */
   const views = useRef(new Map<Region, View>())
-  /** the pose of the screen holding the middle of the viewport */
-  const primaryPose = useRef<PoseId>('hero')
   const started = useRef(0)
   /** the deferred compile of hidden programs: its timer, then true once it is done (for the shadow pass) */
   const warmup = useRef(0)
@@ -289,18 +287,6 @@ export function StageScene({ compact, reduced }: Props) {
     }, 3000)
     return () => window.clearTimeout(id)
   }, [])
-
-  // a press on the opening screen knocks the panel
-  useEffect(() => {
-    const knock = (e: PointerEvent) => {
-      if ((e.target as HTMLElement | null)?.closest?.('a, button')) return
-      if (primaryPose.current !== 'hero' || stage.tour > 0.5 || reduced) return
-      drop.current.v -= 0.55
-      drop.current.vt += 1.4
-    }
-    window.addEventListener('pointerdown', knock)
-    return () => window.removeEventListener('pointerdown', knock)
-  }, [reduced])
 
   useEffect(() => {
     gl.setClearColor(0x000000, 0)
@@ -367,7 +353,6 @@ export function StageScene({ compact, reduced }: Props) {
     rects.clear()
     for (const r of stage.regions) rects.set(r, r.el.getBoundingClientRect())
     const primary = activeRegion(vh)
-    primaryPose.current = primary ? primary.pose() : 'none'
 
     // the screens in the viewport that have something to draw, each with where it is. Leaving the
     // cast, the opening holds the whole screen until its camera has come out as About's first
@@ -426,7 +411,7 @@ export function StageScene({ compact, reduced }: Props) {
       gl.clear()
     }
 
-    // ---- shared: the drag on the opening, the drop and the knock -----------------------------
+    // ---- shared: the drag on the opening and the settle as it is woven ----------------------
     const ob = stage.orbit
     if (!ob.dragging) {
       ob.yaw = damp(ob.yaw, 0, 0.6, dt)
