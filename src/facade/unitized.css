@@ -1,0 +1,1302 @@
+/*
+ * Unitized Thin Concrete Façade. The homepage's grounds take turns (yellow, black, warm white).
+ * Enerblock's grammar holds the 3D: boxes of their own that open out of a corner as their section
+ * arrives and close into the far corner as it leaves, their size read out at the moving corner,
+ * with room left under them. Names, not paragraphs. Everything follows the scroll, which is never
+ * held or taken over; only the 3D has motion of its own, and the opening plays once, as one sequence.
+ */
+
+.fu-still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---- the opening ----------------------------------------------------------------------------- */
+
+.fu-hero {
+  position: relative;
+  height: 100svh;
+  min-height: 600px;
+  overflow: hidden;
+  background: var(--yellow);
+  color: var(--black);
+}
+.fu-hero__stage {
+  position: absolute;
+  inset: 0;
+}
+.fu-hero__stage .fu-still {
+  left: auto;
+  right: var(--gutter);
+  top: 18%;
+  width: min(36vw, 520px);
+  height: 62%;
+}
+.fu-hero .fc-pin__tag {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.fu-hero__head {
+  position: absolute;
+  z-index: 3;
+  left: var(--gutter);
+  top: calc(var(--nav-h) + clamp(28px, 6vh, 72px));
+  display: grid;
+  gap: 6px;
+  animation: rise 0.8s var(--ease-out) 0.2s both;
+}
+.fu-hero__name {
+  font-size: var(--t-lead);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.fu-hero__kind {
+  max-width: 19rem;
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--on-yellow-2);
+}
+.fu-hero__foot {
+  position: absolute;
+  z-index: 3;
+  left: var(--gutter);
+  bottom: clamp(40px, 9vh, 104px);
+  display: grid;
+  gap: clamp(20px, 3.4vh, 36px);
+  max-width: min(52rem, 56vw);
+}
+.fu-mega {
+  font-size: clamp(3rem, min(6.2vw, 11.5vh), 8rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+}
+.fu-hero .word__in {
+  animation: word-in 0.8s var(--ease-out) both;
+  animation-delay: calc(0.35s + var(--w, 0) * 90ms);
+}
+/* the other two systems: a quiet line of underlined names */
+.fu-hero__also {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 22px;
+  font-size: var(--t-small);
+  font-weight: 600;
+  animation: rise 0.8s var(--ease-out) 1.1s both;
+}
+.fu-hero__also span {
+  color: var(--on-yellow-2);
+  font-weight: 500;
+}
+.fu-hero__also a {
+  color: var(--black);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.24em;
+}
+.fu-hero__also a:hover {
+  text-decoration-thickness: 2.5px;
+}
+.fu-hero__also a:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 4px;
+}
+
+/* ---- boxes that open out of a corner (six layers, four problems) ----------------------------- */
+
+.fu-box {
+  --k: 1;
+  position: relative;
+}
+.fu-box__clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 34%, #1e1e1d 0%, #151515 52%, #101010 100%);
+  clip-path: inset(0 calc((1 - var(--k)) * 100%) calc((1 - var(--k)) * 100%) 0);
+}
+.fu-box__dot {
+  position: absolute;
+  left: calc(var(--k) * 100% - 3px);
+  top: calc(var(--k) * 100% - 3px);
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  opacity: clamp(0, calc(var(--k) * 8), 1);
+  pointer-events: none;
+}
+.fu-box__x,
+.fu-box__y {
+  position: absolute;
+  font-size: var(--t-micro);
+  font-style: normal;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+.fu-box__x {
+  left: 14px;
+  top: -6px;
+}
+.fu-box__y {
+  right: 0;
+  top: 14px;
+}
+
+/* ---- six layers, on yellow -------------------------------------------------------------------- */
+
+.fu-layers {
+  position: relative;
+  height: calc(var(--run, 5) * 100svh);
+  background: var(--yellow);
+  color: var(--black);
+}
+.fu-layers__pin {
+  /* the room left under the unit's box, for its size read-out */
+  --room: clamp(84px, 12.5vh, 130px);
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: grid;
+  /* the unit's box keeps to the right gutter, and takes a little more of the screen to its left */
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr);
+  gap: clamp(28px, 3.4vw, 64px);
+  padding: calc(var(--nav-h) + clamp(20px, 4vh, 44px)) var(--gutter) clamp(28px, 6vh, 64px);
+}
+.fu-layers__copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: clamp(22px, 4vh, 44px);
+  min-height: 0;
+  /* the cards' box ends level with the foot of the unit's box */
+  padding-bottom: calc(var(--room) - clamp(28px, 6vh, 64px));
+}
+/* as large as the problems' title: the section's one heading, read from across the screen */
+.fu-layers__title {
+  font-size: clamp(2rem, min(3.8vw, 6vh), 4.2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+}
+
+/*
+ * Sticky stacking cards (six layers, four problems): a box of their own that each card comes up into
+ * from the foot, settling one heading lower than the card before and over its content, so the
+ * headings stay in view as tabs (positions set in stack.ts). The colours are set per ground.
+ */
+.fu-deck {
+  --tab: clamp(50px, 6.6vh, 64px);
+  /* how much a covered card shrinks back for each card that lies on it */
+  --shrink: 0.03;
+  --n: 6;
+  --pad-x: clamp(14px, 1.3vw, 22px);
+  --num-w: 1.7rem;
+  --gap: 12px;
+  --edge: 1.5px;
+  --card: var(--white);
+  --card-ink: var(--black);
+  --card-2: var(--on-light-2);
+  --card-edge: var(--black);
+  --lift: 0 -10px 18px -14px rgb(8 8 8 / 0.34);
+  /* a covered card recedes into the ground, by so much for each card on it */
+  --ground: var(--yellow);
+  --recede: 14%;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: min(100%, clamp(300px, 30vw, 500px));
+  overflow: hidden;
+}
+.fu-card {
+  --cover: 0;
+  --depth: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform-origin: 50% 0;
+  top: 0;
+  height: calc(100% - (var(--n) - 1) * var(--tab));
+  box-sizing: border-box;
+  border: var(--edge) solid var(--card-edge);
+  background: color-mix(in srgb, var(--ground) calc(var(--depth) * var(--recede)), var(--card));
+  color: var(--card-ink);
+  box-shadow: var(--lift);
+  visibility: hidden;
+  will-change: transform;
+}
+.fu-card__btn {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fu-card__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  height: calc(var(--tab) - var(--edge));
+  padding: 0 var(--pad-x);
+}
+.fu-card__num {
+  flex: none;
+  width: var(--num-w);
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--card-2);
+}
+.fu-card__name {
+  position: relative;
+  font-size: clamp(1.2rem, min(1.65vw, 3vh), 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+}
+.fu-deck--layers .fu-card__name {
+  font-size: clamp(1.25rem, min(1.8vw, 3.2vh), 1.9rem);
+}
+.fu-card__body {
+  /* the line at the card's foot: the name heads the card, its line closes it */
+  margin-top: auto;
+  padding: 0 var(--pad-x) clamp(16px, 2.4vh, 24px) calc(var(--pad-x) + var(--num-w) + var(--gap));
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--card-2);
+  text-wrap: pretty;
+}
+.fu-card__btn:hover .fu-card__name {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
+}
+.fu-card__btn:focus-visible {
+  outline: 2px solid var(--card-ink);
+  outline-offset: -6px;
+}
+
+/* the unit's box: less than the full height, room under it for its size */
+.fu-sheet {
+  display: grid;
+  align-content: start;
+  min-height: 0;
+  margin: 0;
+}
+.fu-sheet__box {
+  height: calc(100svh - var(--nav-h) - clamp(20px, 4vh, 44px) - var(--room));
+}
+.fu-sheet__view {
+  --pad: clamp(18px, 1.8vw, 28px);
+}
+.fu-sheet__view .fc-pin--balloon .fc-pin__tag {
+  width: 26px;
+  height: 26px;
+  font-size: var(--t-micro);
+}
+/* in the box, quietly, opening with it: which layer is in, at its top left */
+.fu-sheet__now {
+  position: absolute;
+  z-index: 3;
+  left: var(--pad);
+  top: var(--pad);
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  color: var(--yellow);
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.3;
+  pointer-events: none;
+}
+.fu-sheet__name {
+  font-weight: 700;
+}
+/* a layer back or on, at its top right */
+.fu-sheet__steps {
+  position: absolute;
+  z-index: 3;
+  right: var(--pad);
+  top: calc(var(--pad) - 4px);
+  display: flex;
+  gap: 10px;
+}
+.fu-sheet__go {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1.5px solid var(--yellow);
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--black);
+  cursor: pointer;
+  transition:
+    background-color var(--d-fast) var(--ease-out),
+    border-color var(--d-fast) var(--ease-out),
+    color var(--d-fast) var(--ease-out),
+    opacity var(--d-mid) var(--ease-out);
+}
+.fu-sheet__go:hover {
+  background: transparent;
+  color: var(--yellow);
+}
+.fu-sheet__go--back {
+  border-color: rgb(242 240 233 / 0.3);
+  background: transparent;
+  color: var(--white);
+}
+.fu-sheet__go--back:hover {
+  border-color: var(--white);
+  color: var(--white);
+}
+.fu-sheet__go--back svg {
+  transform: rotate(180deg);
+}
+.fu-sheet__go[aria-disabled='true'] {
+  opacity: 0.28;
+  cursor: default;
+  pointer-events: none;
+}
+.fu-sheet__go:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 3px;
+}
+/* the six along its foot, in the order they stand in the unit: a line each, filling as its layer comes in */
+.fu-track {
+  position: absolute;
+  z-index: 3;
+  left: var(--pad);
+  right: var(--pad);
+  bottom: calc(var(--pad) - 8px);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(8px, 1vw, 16px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* the studio darkens towards the foot under it, so its names read over the closed unit's pale face */
+.fu-track::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: calc(var(--pad) * -1);
+  right: calc(var(--pad) * -1);
+  top: -56px;
+  bottom: calc((var(--pad) - 8px) * -1);
+  background: linear-gradient(to top, rgb(16 16 16 / 0.94) 0, rgb(16 16 16 / 0.8) 42%, rgb(16 16 16 / 0) 100%);
+  pointer-events: none;
+}
+.fu-track__cell {
+  --f: 0;
+}
+.fu-track__btn {
+  display: grid;
+  align-content: start;
+  gap: 11px;
+  width: 100%;
+  padding: 0 0 8px;
+  border: 0;
+  background: none;
+  color: rgb(242 240 233 / 0.46);
+  font: inherit;
+  font-size: var(--t-micro);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  text-wrap: balance;
+  cursor: pointer;
+  transition: color var(--d-fast) var(--ease-out);
+}
+.fu-track__line {
+  position: relative;
+  height: 2px;
+  background: rgb(242 240 233 / 0.16);
+}
+.fu-track__line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  transform: scaleX(var(--f));
+  /* the layers come in from the frame on the right, so each line fills towards the left */
+  transform-origin: right;
+}
+.fu-track__cell[data-state='past'] .fu-track__btn {
+  color: rgb(242 240 233 / 0.78);
+}
+.fu-track__cell[data-state='now'] .fu-track__btn {
+  color: var(--yellow);
+}
+.fu-track__btn:hover {
+  color: var(--white);
+}
+.fu-track__btn:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 4px;
+}
+
+/* ---- slab to slab, and onto the building ------------------------------------------------------ */
+
+.fu-hang {
+  position: relative;
+  height: calc(var(--run, 3) * 100svh);
+  background: var(--white);
+  color: var(--black);
+}
+.fu-hang__pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: calc(var(--nav-h) + clamp(16px, 3vh, 32px)) var(--gutter) clamp(20px, 4vh, 44px);
+}
+.fu-hang__title {
+  font-size: clamp(1.6rem, min(2.5vw, 4.6vh), 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+/* the scene fills the pinned screen, sharp to its edges; the title and the bar stand over it */
+.fu-hang__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.fu-hang__title,
+.fu-hang .fu-bar {
+  position: relative;
+  z-index: 1;
+}
+/* the answers' bar under the scene, on the section's own warm white */
+.fu-hang .fu-bar {
+  --bar-ground: var(--white);
+  grid-row: 3;
+  justify-self: center;
+  width: min(100%, 1180px);
+}
+
+/* ---- four problems, on black: the existing technology on an open stage -------------------------- */
+
+.fu-flaws {
+  position: relative;
+  height: calc(var(--run, 3) * 100svh);
+  background: var(--black);
+  color: var(--yellow);
+}
+.fu-flaws__pin {
+  --top: calc(var(--nav-h) + clamp(20px, 4vh, 44px));
+  --foot: clamp(28px, 6vh, 64px);
+  --soft: rgb(242 240 233 / 0.62);
+  --hair: rgb(242 240 233 / 0.14);
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+/* the panel stands in the open on the right, under a soft light from above */
+.fu-flaws__stage {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 40%;
+  right: 0;
+  background:
+    radial-gradient(46% 40% at 55% 40%, rgb(242 240 233 / 0.075), transparent 72%),
+    radial-gradient(60% 34% at 55% 78%, rgb(242 240 233 / 0.035), transparent 70%);
+  /* the stage's floor fades out towards the words, so it has no edge */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16%);
+  mask-image: linear-gradient(to right, transparent 0, #000 16%);
+  cursor: grab;
+  touch-action: pan-y;
+}
+.fu-flaws__stage:active {
+  cursor: grabbing;
+}
+/* the title, the cards and their meter, in the left column */
+.fu-flaws__copy {
+  position: absolute;
+  z-index: 2;
+  left: var(--gutter);
+  top: var(--top);
+  bottom: calc(var(--foot) + 56px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, 3.6vh, 40px);
+  width: min(32rem, 34vw);
+}
+.fu-flaws__title {
+  font-size: clamp(2.2rem, min(3.8vw, 6.6vh), 4.2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+}
+/* the problems' cards: graphite under a soft sheen, warm white words, the current one marked at its corner */
+.fu-deck--flaws {
+  --n: 4;
+  --tab: clamp(60px, 7.8vh, 76px);
+  --shrink: 0.045;
+  --card: #1c1c1b;
+  --card-ink: var(--white);
+  --card-2: #9a978f;
+  --card-edge: rgb(242 240 233 / 0.12);
+  --lift: 0 -14px 30px -14px rgb(0 0 0 / 0.95);
+  --ground: var(--black);
+  --recede: 14%;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+.fu-deck--flaws .fu-card {
+  background-image: linear-gradient(160deg, rgb(242 240 233 / 0.05), transparent 46%);
+}
+.fu-deck--flaws .fu-card[data-current]::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--edge) * -1);
+  border-top: 1px solid var(--yellow);
+  border-left: 1px solid var(--yellow);
+  -webkit-mask-image: linear-gradient(135deg, #000 0, #000 14%, transparent 42%);
+  mask-image: linear-gradient(135deg, #000 0, #000 14%, transparent 42%);
+  pointer-events: none;
+}
+.fu-deck--flaws .fu-card__head {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+}
+.fu-card__count {
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--card-2);
+}
+.fu-card__count b {
+  font-weight: 700;
+  color: var(--yellow);
+}
+.fu-deck--flaws .fu-card__name {
+  font-weight: 600;
+  color: color-mix(in srgb, var(--card-2) calc(var(--cover) * 100%), var(--card-ink));
+}
+.fu-deck--flaws .fu-card__body {
+  padding-left: var(--pad-x);
+  color: var(--card-2);
+}
+.fu-card__strike {
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: 54%;
+  height: 1.5px;
+  background: currentColor;
+  transform: scaleX(var(--cover, 0));
+  transform-origin: left;
+}
+/* how far through the four: a mark per problem, filling yellow as it comes in, and the count */
+.fu-meter {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fu-meter__mark {
+  position: relative;
+  width: clamp(36px, 3.6vw, 60px);
+  height: 2px;
+  background: var(--hair);
+}
+.fu-meter__mark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--yellow);
+  transform: scaleX(var(--f, 0));
+  transform-origin: left;
+}
+.fu-meter__count {
+  margin-left: 10px;
+  font-size: var(--t-small);
+  font-weight: 500;
+  color: var(--soft);
+}
+.fu-meter__count b {
+  font-weight: 700;
+  color: var(--yellow);
+}
+/* with the last problem: a quiet way on to the answers, at the foot of the left column */
+.fu-flaws__next {
+  position: absolute;
+  z-index: 2;
+  left: var(--gutter);
+  bottom: var(--foot);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 24px;
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--on-dark-2);
+  opacity: 0;
+}
+.fu-flaws__next::before {
+  content: '';
+  width: 1.5px;
+  height: 22px;
+  background: var(--yellow);
+  transform-origin: top;
+  animation: cue 2.2s var(--ease-in-out) infinite both;
+}
+/* what is shown, under the panel: rows on hairlines, a short rule between the key and its value */
+.fu-block {
+  position: absolute;
+  z-index: 2;
+  right: var(--gutter);
+  bottom: var(--foot);
+  width: min(46vw, 700px);
+  margin: 0;
+  border-bottom: 1px solid var(--hair);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fu-block__row {
+  display: flex;
+  align-items: center;
+  min-height: clamp(38px, 5vh, 48px);
+  border-top: 1px solid var(--hair);
+}
+.fu-block dt {
+  flex: none;
+  width: 15em;
+  font-weight: 500;
+  color: var(--soft);
+}
+.fu-block dd {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 0;
+  color: var(--white);
+}
+.fu-block dd::before {
+  content: '';
+  width: 22px;
+  height: 1px;
+  background: var(--soft);
+}
+.fu-block__row--now dd {
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+/* ---- the answers, on yellow: one pinned stage (EnduroSat's satellite) ------------------------- */
+
+.fu-ans {
+  position: relative;
+  height: calc((var(--run, 7) + 1) * 100svh);
+  background: var(--yellow);
+  color: var(--black);
+}
+.fu-ans__pin {
+  --top: calc(var(--nav-h) + clamp(20px, 4vh, 44px));
+  --bar-h: 44px;
+  --bar-b: clamp(18px, 3.4vh, 32px);
+  /* the room the words are centred in, between the title and the bar */
+  --words-top: calc(var(--top) + clamp(48px, 9vh, 96px));
+  --words-foot: calc(var(--bar-b) + var(--bar-h) + 24px);
+  /* an answer's name, the space between it and its line, and a two-line name over a two-line line */
+  --name: clamp(2.4rem, min(4.3vw, 7.6vh), 4.9rem);
+  --say: clamp(14px, 2.2vh, 22px);
+  --block: calc(var(--name) * 1.88 + var(--say) + var(--t-lead) * 2.84);
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+.fu-ans__stage {
+  position: absolute;
+  inset: 0;
+}
+.fu-ans .fc-pin__tag {
+  font-weight: 700;
+}
+.fu-ans__title {
+  position: absolute;
+  z-index: 2;
+  left: var(--gutter);
+  top: var(--top);
+  font-size: clamp(1.6rem, min(2.5vw, 4.6vh), 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+/*
+ * the words: every answer in the same place on the left, one at a time. Each name is two lines and
+ * starts on the same line: where a two-line name over a two-line line is centred in the room, so
+ * one answer takes the last one's place exactly, whatever the length of its line
+ */
+.fu-ans__words {
+  position: absolute;
+  z-index: 2;
+  left: var(--gutter);
+  top: var(--words-top);
+  bottom: var(--words-foot);
+  display: grid;
+  align-items: start;
+  /* wide enough for the longest line of a name ("ferrule inserts") at every size */
+  width: min(34rem, 31vw);
+  pointer-events: none;
+}
+.fu-ans__text {
+  grid-area: 1 / 1;
+  display: grid;
+  justify-items: start;
+  gap: var(--say);
+  margin-top: max(0px, calc((100svh - var(--words-top) - var(--words-foot) - var(--block)) / 2));
+  pointer-events: auto;
+  will-change: opacity, transform;
+}
+.fu-ans__name {
+  font-size: var(--name);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+.fu-ans__line {
+  max-width: 24rem;
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.42;
+  color: var(--on-yellow-2);
+  text-wrap: pretty;
+}
+.fu-ans__figure {
+  display: flex;
+  align-items: baseline;
+  font-size: clamp(5rem, min(10.5vw, 18vh), 11rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+}
+.fu-ans__figure small {
+  margin-left: 0.06em;
+  font-size: 0.34em;
+  letter-spacing: -0.02em;
+}
+.fu-ans__figure .fu-ans__upto {
+  align-self: flex-start;
+  margin: 0.1em 0.18em 0 0;
+  font-size: 0.18em;
+  letter-spacing: -0.01em;
+}
+/*
+ * the photograph (the ferrules' only): under its words, on their left edge, opening out of its
+ * corner; seen wide, and as tall as the room left under the words, so its foot is where their room
+ * ends (no wider than a line of them)
+ */
+.fu-ans__shot {
+  position: relative;
+  height: clamp(88px, calc((100svh - var(--words-top) - var(--words-foot) - var(--block)) / 2 - var(--say)), 216px);
+  aspect-ratio: 16 / 9;
+  margin: 0;
+}
+.fu-ans__frame,
+.fu-made__frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--graphite);
+  clip-path: inset(0 calc((1 - var(--g, 1)) * 100%) calc((1 - var(--g, 1)) * 100%) 0);
+}
+.fu-ans__frame img,
+.fu-made__frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fu-ans__dot,
+.fu-made__dot {
+  position: absolute;
+  left: calc(var(--g, 1) * 100% - 3px);
+  top: calc(var(--g, 1) * 100% - 3px);
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  pointer-events: none;
+}
+.fu-ans__x,
+.fu-ans__y,
+.fu-made__x,
+.fu-made__y {
+  position: absolute;
+  font-size: var(--t-micro);
+  font-style: normal;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0.72;
+}
+.fu-ans__x,
+.fu-made__x {
+  left: 14px;
+  top: -6px;
+}
+.fu-ans__y,
+.fu-made__y {
+  right: 0;
+  top: 14px;
+}
+/*
+ * The bar along the foot (StepBar; slab to slab and the answers): a cell per step. The current one
+ * fills as its step runs (`--f`); a passed one closes to a square with its number (`--c`); the ones
+ * to come stand open, outlined.
+ */
+.fu-bar {
+  --bar-h: 44px;
+  --bar-ground: var(--yellow);
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 1.6vw, 28px);
+}
+.fu-ans .fu-bar {
+  position: absolute;
+  z-index: 3;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: var(--bar-b);
+}
+.fu-bar__list {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.fu-bar__cell {
+  --f: 0;
+  --c: 0;
+  flex: calc(1 - var(--c)) 1 0px;
+  min-width: var(--bar-h);
+}
+.fu-bar__btn {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--bar-h);
+  padding: 0;
+  border: 1.5px solid var(--black);
+  background: var(--bar-ground);
+  color: var(--black);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.fu-bar__cell[data-state='next'] .fu-bar__btn {
+  border-color: rgb(8 8 8 / 0.34);
+}
+.fu-bar__btn:hover {
+  border-color: var(--black);
+}
+.fu-bar__face {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  padding: 0 13px;
+  font-size: var(--t-micro);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.fu-bar__face .num {
+  flex: none;
+  font-weight: 600;
+  opacity: 0.72;
+}
+.fu-bar__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: calc(1 - var(--c) * 1.8);
+}
+.fu-bar__face--fill {
+  position: absolute;
+  inset: 0;
+  background: var(--black);
+  color: var(--yellow);
+  clip-path: inset(0 calc((1 - var(--f)) * 100%) 0 0);
+}
+.fu-bar__btn:focus-visible,
+.fu-bar__back:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 3px;
+}
+.fu-bar__back {
+  min-height: var(--bar-h);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--black);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 1.5px;
+  cursor: pointer;
+}
+
+/* ---- made face down --------------------------------------------------------------------------- */
+
+.fu-made {
+  position: relative;
+  padding: clamp(80px, 14vh, 160px) var(--gutter);
+  background: var(--white);
+  color: var(--black);
+}
+.fu-made__head {
+  display: grid;
+  gap: 16px;
+  margin-bottom: clamp(36px, 7vh, 80px);
+}
+.fu-made__title {
+  font-size: var(--t-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.fu-made__lede {
+  max-width: 30rem;
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--on-light-2);
+}
+/* a line runs through the steps as the section comes up */
+.fu-made__rail {
+  position: relative;
+  height: 1.5px;
+  margin-bottom: 14px;
+  background: rgb(8 8 8 / 0.12);
+}
+.fu-made__rail::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--black);
+  transform: scaleX(var(--run, 0));
+  transform-origin: left;
+}
+.fu-made__steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(16px, 1.8vw, 28px);
+}
+/* a card lifts a little, leaning from where the cursor is */
+.fu-made__step {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  transform-origin: var(--ox, 50%) var(--oy, 50%);
+  transition:
+    transform 0.5s var(--ease-out),
+    transform-origin 0.3s linear;
+}
+.fu-made__step.is-pop {
+  z-index: 2;
+  transform: translateY(-8px) scale(1.035);
+}
+.fu-made__num {
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+.fu-made__photo {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  margin: 0 0 6px;
+  transition: box-shadow 0.5s var(--ease-out);
+}
+.fu-made__step.is-pop .fu-made__photo {
+  box-shadow: 0 22px 48px rgb(8 8 8 / 0.2);
+}
+.fu-made__step.is-pop .fu-made__dot {
+  opacity: 0;
+}
+/* the photographs sit edge to edge in a row: once open, their read-outs would crowd each other */
+.fu-made__x,
+.fu-made__y {
+  opacity: calc((1 - var(--g, 1)) * 2.5);
+}
+.fu-made__name {
+  font-size: clamp(1.2rem, 1.6vw, 1.55rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.fu-made__text {
+  max-width: 22rem;
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--on-light-2);
+  text-wrap: pretty;
+}
+
+/* ---- two more ways: the overview's systems block (fct, overview.css), heading in the first column -- */
+
+.fu-more {
+  border-top: 1px solid var(--line);
+}
+.fu-more__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+.fu-more__head {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-6);
+  padding: clamp(56px, 10vh, 112px) var(--gutter) clamp(28px, 5vh, 52px);
+  border-right: 1px solid var(--line);
+}
+.fu-more__title {
+  font-size: clamp(2rem, min(3.3vw, 6vh), 3.6rem);
+}
+.fu-more__overview {
+  align-self: flex-start;
+  font-size: var(--t-small);
+  font-weight: 700;
+  color: var(--black);
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 1.5px;
+}
+.fu-more__overview:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 4px;
+}
+.fu-more__cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: clamp(480px, 66svh, 720px);
+}
+/* the models stand just under the section's top line, clear of the words below them */
+.fu-more .fct__canvas {
+  top: clamp(6px, 1.4vh, 16px);
+  height: 54%;
+}
+
+/* ---- narrow screens --------------------------------------------------------------------------- */
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fu-hero__head {
+    top: calc(var(--nav-h) + 20px);
+  }
+  .fu-hero__foot {
+    max-width: none;
+    right: var(--gutter);
+    bottom: 36px;
+  }
+  .fu-mega {
+    font-size: clamp(2.4rem, 11vw, 4rem);
+  }
+
+  .fu-layers__pin {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 14px;
+    padding-top: calc(var(--nav-h) + 12px);
+    padding-bottom: 20px;
+  }
+  .fu-layers__copy {
+    order: 2;
+  }
+  .fu-layers__title,
+  .fu-flaws__title {
+    display: none;
+  }
+  .fu-sheet__box {
+    height: 42svh;
+  }
+  /* problems on a phone: the panel at the top, what it shows under it, then the cards */
+  .fu-flaws__pin {
+    --stage-h: 38svh;
+    --foot: 18px;
+  }
+  .fu-flaws__stage {
+    left: 0;
+    top: var(--nav-h);
+    bottom: auto;
+    height: var(--stage-h);
+  }
+  .fu-block {
+    left: var(--gutter);
+    right: var(--gutter);
+    top: calc(var(--nav-h) + var(--stage-h));
+    bottom: auto;
+    width: auto;
+  }
+  .fu-block__row {
+    min-height: 30px;
+  }
+  .fu-block dt {
+    width: 11em;
+  }
+  .fu-block dd {
+    gap: 12px;
+  }
+  .fu-block dd::before {
+    width: 12px;
+  }
+  .fu-block__hint,
+  .fu-flaws__next {
+    display: none;
+  }
+  .fu-flaws__copy {
+    top: calc(var(--nav-h) + var(--stage-h) + 76px);
+    right: var(--gutter);
+    bottom: var(--foot);
+    width: auto;
+    gap: 14px;
+  }
+  .fu-deck--flaws {
+    --tab: 54px;
+  }
+  .fu-box__x,
+  .fu-box__y,
+  .fu-box__dot {
+    display: none;
+  }
+  .fu-sheet__view {
+    --pad: 14px;
+  }
+  .fu-sheet__now {
+    font-size: var(--t-micro);
+  }
+  .fu-sheet__go {
+    width: 36px;
+    height: 36px;
+  }
+  /* on a phone the track is its lines alone; the name is at the top left */
+  .fu-track {
+    gap: 5px;
+    bottom: var(--pad);
+  }
+  .fu-track__btn {
+    padding: 10px 0;
+  }
+  .fu-track__name {
+    display: none;
+  }
+  .fu-layers__copy {
+    padding-bottom: 0;
+  }
+  .fu-deck {
+    --tab: 38px;
+    --pad-x: 12px;
+    --gap: 10px;
+    --num-w: 1.4rem;
+    width: 100%;
+  }
+  .fu-deck .fu-card__name {
+    font-size: 1rem;
+  }
+  .fu-card__body {
+    font-size: var(--t-small);
+  }
+
+  .fu-bar {
+    --bar-h: 40px;
+  }
+
+  .fu-ans__pin {
+    --top: calc(var(--nav-h) + 14px);
+    --bar-h: 40px;
+  }
+  .fu-ans__title {
+    font-size: 1.25rem;
+  }
+  .fu-ans__words {
+    top: auto;
+    right: var(--gutter);
+    width: auto;
+    height: auto;
+    align-items: end;
+  }
+  .fu-ans__text {
+    margin-top: 0;
+  }
+  .fu-ans__name {
+    font-size: clamp(1.9rem, 9vw, 2.6rem);
+  }
+  .fu-ans__line {
+    font-size: var(--t-small);
+  }
+  .fu-ans__figure {
+    font-size: clamp(3.8rem, 20vw, 5.4rem);
+  }
+  /* on a phone the words sit under the textile, and the photograph would push them up into it */
+  .fu-ans__shot {
+    display: none;
+  }
+  .fu-ans__dot,
+  .fu-made__dot {
+    display: none;
+  }
+  /* on a phone only the current cell is open; the others are squares */
+  .fu-bar__cell:not([data-state='now']) {
+    --c: 1 !important;
+  }
+  .fu-bar__list {
+    gap: 4px;
+  }
+  .fu-bar__back {
+    display: none;
+  }
+
+  .fu-made__steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 32px;
+  }
+  .fu-more__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fu-more__head {
+    padding-top: 56px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .fu-more__cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* the models in the overview's band above the stacked columns */
+  .fu-more .fct__canvas {
+    top: 0;
+    height: 24svh;
+  }
+}
+
+/* under reduced motion the site's own rule plays every entrance at once, to its end */
+@media (prefers-reduced-motion: reduce) {
+  .fu-made__step {
+    transition: none;
+  }
+}

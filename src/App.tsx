@@ -39,7 +39,7 @@ function Home() {
         <TechSpace />
         <Applications />
       </main>
-      <Footer home />
+      <Footer screen />
       <Progress />
     </>
   )
@@ -68,7 +68,7 @@ function Page() {
             <FacadeRoutes path={path} />
           </Suspense>
         </main>
-        <Footer />
+        <Footer screen />
       </>
     )
   }

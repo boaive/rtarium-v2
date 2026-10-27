@@ -147,6 +147,23 @@ Confirmed figures (client technical PDF; the margin notes are treated as correct
       split along" toggle.
     - Concrete is shown slim, as RTARIUM makes it possible (20 to 30 mm): a 20 mm panel round the 10 mm mesh (5 mm
       of cover beyond each face) in the opening's cast, "In concrete" and Tech Space.
+- Façade & Cladding pages (owner, 26–27 October 2026, binding for `/facade-cladding` and its system pages; the
+  homepage keeps the reviews above):
+  - Layout and motion from Enerblock as the primary source (hairline grids, boxes that open out of a corner with
+    an X/Y read-out and construction lines, sticky columns, cards that stack), the feel of EnduroSat's space
+    service; real photographs beside professional 3D; the sub-pages in the header's hover menus.
+  - Everything moves with the scroll (how far you have scrolled is what you see), very smoothly; only 3D objects
+    have motion of their own. A screen is never held while its content swaps ("looks like a PPT"): the page keeps
+    scrolling. What has been seen collapses into struck bars that also work as navigation.
+  - Minimal: no paragraphs or tables, very little text, plenty of empty space; an item shows two points (why
+    better, its limit) or click-to-expand rows. Sections go full screen, edge to edge.
+  - The 3D is about the façade (never a phone-like slab), with a marker on the material; models in a row are seen
+    from the same diagonal front view. The unit looks real: its glazing reflects a daylight sky.
+  - Alignment matters most: on a pinned stage every step keeps the same places (each name in two lines starting
+    on one line, the 3D in one place on the words' line). At most one photograph on a stage, in the words' column;
+    a photograph beside the 3D disturbs.
+  - Controls stay square-cut, except the six-layers box's round back and next arrows (the owner's reference).
+  - RTARIUM is rigid: its returns are cut and stitched at 90°, never bent. The client's copy is kept as written.
 - Logos: `Yellow Emblem RTARIUM Logo.png`, `hemisphere one logo.png`.
 
 ## Evidence on Hand

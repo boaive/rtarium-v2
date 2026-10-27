@@ -58,7 +58,21 @@ const FOV = 24
 const DIST = 6
 const TARGET_Y = 0.55
 
-export function SystemsTrio({ play, hover, live }: { play: boolean; hover: number | null; live?: { current: boolean } }) {
+export function SystemsTrio({
+  play,
+  hover,
+  live,
+  pick,
+  fill: fillAs,
+}: {
+  play: boolean
+  hover: number | null
+  live?: { current: boolean }
+  /** which of the three to show (default all), side by side */
+  pick?: number[]
+  /** how much of its column each model takes (default: by the canvas's shape) */
+  fill?: number
+}) {
   const bus = useMemo(createBus, [])
   const size = useThree((s) => s.size)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
@@ -71,16 +85,17 @@ export function SystemsTrio({ play, hover, live }: { play: boolean; hover: numbe
       { centre: [4.2, 1.75, 0.2], base: 2.05, width: 6.9, turn: -0.95, back: 3.2, model: <RainscreenModel view="preview" bus={bus} active /> },
       // turned as far as the rainscreen, so it is seen from the same diagonal as the other two
       { centre: [0, 0.29, 0.18], base: 0.75, width: 2.25, turn: -0.98, back: 2.2, model: <StudFrameModel view="preview" bus={bus} active /> },
-    ],
-    [bus],
+    ].filter((_, i) => !pick || pick.includes(i)) as Slot[],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bus, pick?.join()],
   )
 
   // the slots sit under the three columns: a third of the view's width each
   const aspect = size.width / Math.max(1, size.height)
   const viewW = 2 * DIST * Math.tan((FOV / 2) * (Math.PI / 180)) * aspect
-  const colW = viewW / 3
+  const colW = viewW / slots.length
   // on a narrow canvas (a phone's band) the models take more of their column, or they read as specks
-  const fill = aspect < 2 ? 0.9 : 0.66
+  const fill = fillAs ?? (aspect < 2 ? 0.9 : 0.66)
   const scales = slots.map((s) => (colW * fill) / s.width)
 
   useEffect(() => {
@@ -144,7 +159,7 @@ export function SystemsTrio({ play, hover, live }: { play: boolean; hover: numbe
       <MovingKeyLight focus={[0, TARGET_Y, 0]} reach={viewW / 1.6} offset={[-2.5, 12, 5]} />
       {slots.map((s, i) => (
         // a model set back on the floor is moved out by as much as the perspective pulls it in, so it stays over its column
-        <group key={i} position={[(i - 1) * colW * (1 + ((s.back ?? 0) * scales[i]) / (DIST * Math.cos(0.16))), 0, -(s.back ?? 0) * scales[i]]}>
+        <group key={i} position={[(i - (slots.length - 1) / 2) * colW * (1 + ((s.back ?? 0) * scales[i]) / (DIST * Math.cos(0.16))), 0, -(s.back ?? 0) * scales[i]]}>
           <group ref={(g) => void (groups.current[i] = g)} visible={false}>
             {/* the model's centre to the slot, its base on the floor */}
             <group ref={(m) => void (inner.current[i] = m)} position={[-s.centre[0], -s.centre[1] + s.base, -s.centre[2]]}>

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useThree } from '@react-three/fiber'
 import { MeshField, useCell, useYarnMaterial } from '../../three/mesh/MeshField'
 
 /** basalt: the homepage's bronze-brown rovings and darker connecting fibres */
@@ -13,6 +14,9 @@ const PILE = '#4a3322'
 export function MeshInset({ nx, ny, visible = true, lod = 0.45, shadows = false }: { nx: number; ny: number; visible?: boolean; lod?: number; shadows?: boolean }) {
   const cell = useCell(10)
   const yarn = useYarnMaterial({ lite: true })
+  // the model arrives after its canvas may have stopped drawing (nothing moving): draw it in
+  const invalidate = useThree((s) => s.invalidate)
+  useEffect(() => invalidate(), [invalidate, cell, yarn])
   useEffect(() => {
     const u = yarn.uniforms
     u.uFaceColor.value.set(FACE)

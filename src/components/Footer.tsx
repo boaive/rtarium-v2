@@ -78,11 +78,12 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
 }
 
 /**
- * The close: one full yellow screen, the next step, the site map, and the name set at full width.
+ * The close: one full yellow screen (`screen`: the homepage and the Façade & Cladding pages), the next
+ * step, the site map, and the name set at full width.
  * While the cursor moves, a black liquid follows it and the yellow turns black where it flows;
  * inside it the footer reads yellow (an exact copy clipped to it, not a blend).
  */
-export function Footer({ home = false }: { home?: boolean }) {
+export function Footer({ screen = false }: { screen?: boolean }) {
   const ref = useRef<HTMLElement>(null)
   const inverse = useRef<HTMLDivElement>(null)
   // the header takes the footer's yellow once it holds the middle of the screen; a page that sets the
@@ -92,7 +93,7 @@ export function Footer({ home = false }: { home?: boolean }) {
     if (top <= vh * 0.5 && top + height > vh * 0.5) setShared({ chapter: 'footer', step: 0, ground: 'yellow' })
   })
   return (
-    <footer ref={ref} className={`footer ${home ? 'footer--screen' : ''}`} data-screen="yellow">
+    <footer ref={ref} className={`footer ${screen ? 'footer--screen' : ''}`} data-screen="yellow">
       <div className="footer__body">
         <FooterContent />
       </div>

@@ -25,11 +25,16 @@ OWN-WORLD: the V2 world unchanged: yellow / black / warm-white grounds that own 
 galvanized steel, numbered leaders on clear ground, no decoration around the 3D.
 STORY: mesh, then panel, then system; the visitor learns what each component is and where it sits, then moves
 to the next system or back to the overview.
-FIRST VIEWPORT: overview: the name of the section and the positioning line top left, a cut-away corner of a thin
-panel with its return lower right, the mesh exposed at the cut, three short leaders; system pages: the finished
-assembly isolated on the ground with the system name and one line in the clear corner opposite.
-FORM: sticky 3D stage with full-screen steps whose copy moves corner to corner per step (homepage grammar), plus
-per-page distinct blocks: pain/answer ledger and production photos (unitized), 3D section through the cavity and a
-panel-length elevation (rainscreen), section drawing and numbered casting photographs (stud frame). seed: none (brief-pinned
-world and structure, no roll).
+FIRST VIEWPORT: overview: the name of the section and the positioning line top left, a thin façade panel poured as
+the page opens lower right, three short leaders (textile, thin concrete, 20 mm); Unitized: the page's name small top
+left, "Thin skin. Anchored from within." large bottom left, one unit low right on its shadow, its skin cut back to
+RTARIUM (the one label); system pages: the finished assembly isolated on the ground with the system name and one
+line in the clear corner opposite.
+FORM (owner, 26–27 October 2026; supersedes the step grammar): one continuous scroll where everything follows the
+scroll and only the 3D has motion of its own. Enerblock boxes that open out of a corner with an X/Y read-out; sticky
+stacking cards (Unitized six layers, four problems); pinned EnduroSat stages with a segmented bar along the foot
+(slab to slab, the answers: names in two lines on one line, the 3D in one place on the words' line, one photograph
+at most, in the words' column); struck rows that stack and navigate (the overview's story); the systems block on
+warm white. Rainscreen and Stud Frame still carry the first build's step story and are to be redone in this form.
+seed: none (brief-pinned world and structure, no roll).
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

@@ -21,11 +21,48 @@ class Boundary extends Component<{ children: ReactNode; onFail: () => void }, { 
 }
 
 /**
- * One canvas for one story. It is created when its section comes within a screen of the viewport
- * and then kept, renders only when something in it moves (`frameloop="demand"`: a scene asks for
- * frames while it is on its way to a state and stops once it has settled), and is transparent, so
- * the section's own ground is the background. Without WebGL, or if the scene fails, `fallback`
- * (a photograph or nothing) stands in and the copy carries the content.
+ * Canvases still to be made, in page order. Once the page has settled, on a large screen, they are
+ * made one at a time while the browser is idle, so a scene is usually built and compiled before the
+ * visitor reaches it; a section coming near makes its own at once.
+ */
+const waiting: { el: HTMLElement; make: () => void }[] = []
+let pumping = false
+const idle = (f: () => void) => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 200))
+function pump() {
+  if (pumping || !waiting.length) return
+  pumping = true
+  idle(() => {
+    waiting.sort((a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top)
+    const next = waiting.shift()
+    next?.make()
+    // a breath between canvases, so building one never crowds the next or the visitor's scroll
+    window.setTimeout(() => {
+      pumping = false
+      pump()
+    }, 350)
+  })
+}
+/** a moment after the first canvas asks (not the page's load event, which its photographs and footage hold back) */
+let settled = false
+const pending: (() => void)[] = []
+function whenSettled(f: () => void) {
+  if (settled) return f()
+  pending.push(f)
+  if (pending.length === 1)
+    window.setTimeout(() => {
+      settled = true
+      pending.splice(0).forEach((g) => g())
+    }, 1800)
+}
+
+/**
+ * One canvas for one story. It is created when its section comes within two and a half screens of
+ * the viewport, or earlier while the browser is idle (above), and then kept; once its models are in,
+ * every material it will ever show is compiled at once (`Warm`), so nothing stalls when it first
+ * appears. It renders only when something in it moves (`frameloop="demand"`: a scene asks for frames
+ * while it is on its way to a state and stops once it has settled), and is transparent, so the
+ * section's own ground is the background. Without WebGL, or if the scene fails, `fallback` (a
+ * photograph or nothing) stands in and the copy carries the content.
  */
 export function Stage3D({
   children,
@@ -50,10 +87,28 @@ export function Stage3D({
   useEffect(() => {
     const el = host.current
     if (!el || near) return
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: '100% 0px' })
+    const make = () => setNear(true)
+    const io = new IntersectionObserver(([e]) => e.isIntersecting && make(), { rootMargin: '250% 0px' })
     io.observe(el)
-    return () => io.disconnect()
-  }, [near])
+    // on a large screen, made ahead while the browser is idle (a phone keeps to its sections' approach)
+    const entry = { el, make }
+    let queued = false
+    if (!compact) {
+      whenSettled(() => {
+        if (!host.current) return
+        queued = true
+        waiting.push(entry)
+        pump()
+      })
+    }
+    return () => {
+      io.disconnect()
+      if (queued) {
+        const i = waiting.indexOf(entry)
+        if (i >= 0) waiting.splice(i, 1)
+      }
+    }
+  }, [near, compact])
 
   const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
   return (
@@ -72,13 +127,59 @@ export function Stage3D({
               >
                 <Suspense fallback={null}>
                   <Lights keyLight={keyLight} />
+                  <Settle />
                   {children}
+                  <Warm />
                 </Suspense>
               </Canvas>
             </Boundary>
           )}
     </div>
   )
+}
+
+/**
+ * Draws again whenever the canvas changes size, and for its first few frames: a canvas created while
+ * the page is still (landed on from a link, or by a jump) would otherwise keep a first frame drawn
+ * before it had its size, since nothing else asks it for one until the page moves.
+ */
+function Settle() {
+  const size = useThree((s) => s.size)
+  const invalidate = useThree((s) => s.invalidate)
+  const left = useRef(12)
+  useEffect(() => invalidate(), [size, invalidate])
+  useFrame(() => {
+    if (left.current > 0) {
+      left.current--
+      invalidate()
+    }
+  })
+  return null
+}
+
+/**
+ * Once the scene's models are in (it mounts after them, inside the same Suspense), compiles every
+ * material in it, the hidden ones included, off the main thread where the browser allows, then asks
+ * for a frame: a part that appears later in the story (the concrete, the ferrules) is ready for it.
+ */
+function Warm() {
+  const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
+  const camera = useThree((s) => s.camera)
+  const invalidate = useThree((s) => s.invalidate)
+  useEffect(() => {
+    let live = true
+    const id = requestAnimationFrame(() => {
+      gl.compileAsync(scene, camera)
+        .then(() => live && invalidate())
+        .catch(() => {})
+    })
+    return () => {
+      live = false
+      cancelAnimationFrame(id)
+    }
+  }, [gl, scene, camera, invalidate])
+  return null
 }
 
 /** daylight from above and the side, and soft studio panels for the metals to reflect (the homepage's set) */
@@ -216,29 +317,39 @@ const tags = new WeakMap<HTMLElement, { tag: HTMLElement; lead: HTMLElement | nu
 const EDGE = 8
 /** the site header and the section's sub-navigation own the top of the screen */
 const TOP = 150
+/** how long a label going out is still seen (its fade, --d-mid, and a little over) */
+const FADE = 520
+/** when each label last went out */
+const gone = new WeakMap<HTMLElement, number>()
 
 /**
  * Writes each shown label's screen position after every frame the canvas draws. A label pushed in
  * from an edge keeps its leader on it; `bottom` keeps labels clear of what owns the foot of the
- * screen (a step bar).
+ * screen (a step bar). One going out keeps to its point while it fades.
  */
 export function LabelProjector({ bus, bottom = EDGE }: { bus: LabelBus; bottom?: number }) {
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
   useFrame(() => {
+    // the rig has moved the camera this frame, but its world matrix (what a point is projected
+    // with) is only brought up to date when the scene draws: without this a label is placed with
+    // the camera's new position and last frame's turn, and jumps about while the camera swings
+    camera.updateMatrixWorld()
+    const now = performance.now()
     for (const [id, el] of bus.els) {
       const a = bus.anchors.get(bus.alias.get(id) ?? id)
-      const want = bus.shown.has(id) && a
-      if (!want) {
+      const want = bus.shown.has(id)
+      if (!want || !a) {
+        if (el.dataset.on === '1') gone.set(el, now)
         el.dataset.on = '0'
-        continue
+        if (!a || now - (gone.get(el) ?? -FADE) >= FADE) continue
       }
       a.getWorldPosition(tmp)
       tmp.project(camera)
       const x = (tmp.x * 0.5 + 0.5) * size.width
       const y = (-tmp.y * 0.5 + 0.5) * size.height
       const inside = tmp.z < 1 && x > -20 && x < size.width + 20 && y > -20 && y < size.height + 20
-      el.dataset.on = inside ? '1' : '0'
+      if (want) el.dataset.on = inside ? '1' : '0'
       el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
       let t = tags.get(el)
       if (!t) {

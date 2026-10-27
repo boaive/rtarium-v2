@@ -54,7 +54,7 @@ const ENTRIES: NavEntry[] = [
 ]
 
 /** pages that set the header's ground themselves, screen by screen (the rest sit on warm white) */
-const OWN_GROUND = new Set(['/', '/facade-cladding'])
+const OWN_GROUND = new Set(['/', '/facade-cladding', '/facade-cladding/unitized-thin-concrete-facade'])
 
 export function Nav() {
   const { path } = useRoute()

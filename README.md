@@ -13,6 +13,11 @@ npm run preview
   model code ported from V1 (`mesh/`). Sections borrow the stage with `useStageRegion`.
 - Every technical figure is in `src/content/technical.ts`; site map, applications and contact settings in
   `src/content/site.ts`.
+- `src/facade/` holds the Façade & Cladding pages as one lazy chunk: the overview (`pages/Overview.tsx`,
+  `Lineage.tsx`), the Unitized page (sections in `unitized/`, its 3D in `three/unit/`, styles in `unitized.css`),
+  Rainscreen and Stud Frame. Each section has its own canvas (`three/Stage3D.tsx`).
+- `GPU=1 node scripts/dev-shoot.mjs shots.json` takes headless Edge screenshots of the 3D pages (the in-app preview
+  pauses animation frames); the owner's screen is about 1270 × 713 CSS px (1920 × 1200 at 150 %).
 - `?review` in the address shows the open questions beside flagged figures.
 - `assets/` holds the client's originals (not served). `PRODUCT.md` records product truth for design work;
   `docs/V2-IMPLEMENTATION-REPORT.md` is the build report and the list of client decisions.

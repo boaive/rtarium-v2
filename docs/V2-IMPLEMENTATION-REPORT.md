@@ -176,3 +176,71 @@ Holding verified with real wheel input in the headless shooter (new `wheel` acti
 | Scroll | The holding behaviour is kept (eighth review). It now waits while a mouse button is held, so dragging the scrollbar or selecting text is never pulled away | `lib/scroll.ts` |
 
 Verified with the headless Edge shooter (GPU) at 1920 × 1080, 1440 × 900, 1366 × 768, 1280 × 720, 1024 × 768 and 390 × 844, and with reduced motion; `npm run build` passes.
+
+## 12. Façade & Cladding (26–27 October 2026)
+
+The Façade & Cladding pages are one lazy chunk (`src/facade/`): the overview, the Unitized Thin Concrete Façade
+page, and the Rainscreen and Stud Frame pages. Rainscreen and Stud Frame still carry the first façade build's step
+story (`Story.tsx`) and are to be redone in the grammar below. The owner's direction for these pages is binding and
+recorded in PRODUCT.md: Enerblock's layout and motion as the primary source, EnduroSat's feel; everything moves with
+the scroll and only the 3D has motion of its own; no screen is held while its content swaps; what has been seen
+collapses into struck bars that also navigate; boxes open out of a corner with an X/Y read-out; very little text;
+3D about the façade, seen from one diagonal front view.
+
+### The overview (`pages/Overview.tsx`, `Lineage.tsx`)
+
+| Screen | What it is |
+|---|---|
+| Opening | Yellow. RTARIUM's place in the market over a thin façade panel poured as the page opens; three leaders (the textile, thin concrete, 20 mm) |
+| The story | Steel bar, GFRC / GRC and UHPC each a full-screen block of four boxes about one crossing: the photograph (X/Y read-out), its name and why it was used, why it is replaced, and that version's own 3D panel. Black and white alternate, the panel changes sides. As a block goes, its photograph is struck and greys and a struck row is drawn under the header; the rows stack and link back. RTARIUM then gets a layout of its own and the rows drop into its "Replaces" box |
+| The systems | The three systems side by side on warm white, seen from the same diagonal; a yellow column on hover |
+
+Rejected on the way: timed segment swaps, an inset framed sheet, a whole-building 3D with stacked cards, a
+horizontal strip of versions, three-box blocks, photo strips in rows, a separate thickness box, ink blocks over
+names, full-bleed photographs other than RTARIUM's.
+
+### The Unitized page (`pages/Unitized.tsx`, `unitized/`, `three/unit/`, `unitized.css`)
+
+| # | Section | Ground | What it shows |
+|---|---|---|---|
+| 1 | Opening | yellow | One unit on its shadow, the skin cut back to RTARIUM down the near pier (the cover lifts once); "Thin skin. Anchored from within." |
+| 2 | Six layers, one unit | yellow, black studio box | Stacking cards 06 → 01 beside the unit put together layer by layer: RTARIUM first, its concrete cast by a scan, then the stack closes. In the box: which layer, a step back or on, the six along the foot; numbered balloons; "20 mm" and "RTARIUM" once cast |
+| 3 | Slab to slab | warm white | How a unit hangs, then the façade going up on an X-ray building with its climbing crane; the step bar |
+| 4 | Four problems with thin panels | black | Stacking cards struck as they are covered; a conventional panel on an open stage plays each problem (crack along the fibres, clumping, the pull-out cone, thicker and heavier); a title block under it |
+| 5 | RTARIUM's answers | yellow | EnduroSat's pinned stage: XYZ strength, mesh in textile form, easy spray method, in-built ferrule inserts, up to 6 m; one scene of the textile; a bar along the foot |
+| 6 | Made face down | warm white | The production shoot in four steps |
+| 7 | Two more ways | warm white | The overview's systems block (rainscreen, stud frame) |
+| — | Footer | yellow | Full screen |
+
+### The owner's rounds on the Unitized page (27 October 2026)
+
+| Feedback | What was done | Where |
+|---|---|---|
+| Sticky stacking cards (a Webflow reference) for Six layers and Four problems | Each card comes up from the foot of its box over the last, which keeps its heading in view as a tab and recedes into the ground. Layers: warm white cards with a black hairline on yellow. Problems: graphite cards, warm white names struck when covered | `unitized/stack.ts`, `.fu-deck`, `.fu-card` |
+| Text and 3D out of step; the scroll felt held | Both read the same scroll value; no timed card swaps, no holding points | `Layers.tsx`, `Flaws.tsx` |
+| Problems: the studio box made the load arrow collide | The panel stands in the open on a dark stage under a soft light, on the right 60 % of the screen, a hairline title block under it | `Flaws.tsx`, `three/unit/FlawPanel.tsx` |
+| Answers like EnduroSat's space service | One pinned stage: words left, the 3D beside them, a segmented bar at the foot (the current cell fills, passed ones close to numbered squares). An answer plays only once its words are in; the camera moves only between answers | `Answers.tsx`, `three/unit/AnswerScene.tsx`, `StepBar.tsx` |
+| 6 m without zooming out and growing back | Real cells are woven on (the homepage's yarn window) up to 1.2 m, a sheet above; the concrete follows a little behind; the camera fits width and height so the panel never shrinks | `AnswerScene.tsx` (tallAt, tallShot) |
+| Slab to slab: "white shadows", too tall | A full-bleed sharp canvas (no soft mask); crane mast at roof + 6.5 m, head + 5.5 m; closer in | `Hang.tsx`, `three/unit/HangScene.tsx` |
+| 3D sometimes not loading | Canvases are made 2.5 screens ahead and, on large screens, the rest in page order while idle; every material is compiled once the models are in | `three/Stage3D.tsx` (pump, Warm) |
+| Six layers: the 3D box looked empty (the owner's reference image) | Inside the box: "0N / 06" and the layer's name top left; round back and next arrows top right that scroll the page to the next rest point (a quick double click goes two); the six along the foot. The arrows are round after the reference, an exception to the square-cut controls | `Layers.tsx`, `.fu-sheet__now`, `.fu-sheet__go`, `.fu-track` |
+| Left side easier to read | The title as large as the problems' title, card names a little larger, the cards a little wider | `.fu-layers__title`, `.fu-deck--layers` |
+| Problem notes shook while scrolling | A label was placed with the camera's new position but last frame's turn. The projector now brings the camera's matrix up to date first, and a fading label keeps to its point. A problem's note shows only while that problem is the whole of what is shown, so it is gone before the camera swings round the panel | `Stage3D.tsx` (LabelProjector), `Flaws.tsx` |
+| The track ran in the reverse order of the 3D | It reads as the unit stands: Thin panel on the left to Mounting frame on the right, each line filling from the right as its layer comes in. The arrows stay back and on in time | `Layers.tsx` (SEEN), `.fu-track__line` |
+| The 3D box a little bigger, not further right | About 5 % wider (it grows to the left; the right gutter holds) and 7 % taller; the camera stands a little further off, so the unit has room above the track | `.fu-layers__pin` (`--room`), `Layers.tsx` (ROOM) |
+| Mark RTARIUM as the 20 mm is | "RTARIUM" on the textile in the cut, in the same style, once the concrete is cast | `three/unit/BurstUnit.tsx` (b-mesh), `Layers.tsx` |
+| Answers: the photographs made it worse; only the ferrules may need one; alignment matters most | The textile and spray photographs are gone. Every name is set in two lines starting on one line; the 3D stands in the same place for every answer, in the middle of the room right of the words and on their line, measured from the layout; the words' column is wide enough for "ferrule inserts" at every size | `Answers.tsx`, `AnswerScene.tsx` (AnswerAxis), `.fu-ans__*` |
+| The ferrule photograph beside the 3D disturbed; top or bottom | Under the ferrules' words, on their left edge, cropped wide (the screw coming down to the ferrule), its foot where the words' room ends; no read-out; hidden on phones | `Answers.tsx`, `.fu-ans__shot` |
+| A gap beside the opening's window | A 12 mm slot between the window frame and the start of the reveal showed the yellow through; the reveal now starts just inside the window frame | `three/unit/parts.ts` (revealGeometry) |
+| The façade more realistic (glass, colours) | Coated glass reflecting a painted daylight sky with cloud and a skyline (drawn below the middle: the unit is always seen from a little above) over the dark of the room; anthracite frames; the concrete a little more neutral and matt. Shared by the opening, the six layers and the building | `three/unit/parts.ts` (skyMap, glassMap, unitMaterials) |
+
+Rejected on this page: black cards with yellow type on yellow; a solid warm white card on black; covered cards going
+grey or mustard; a studio box behind the problems' panel; timed card swaps and holding points; photographs beside
+the answers' 3D; bordered cards for the two more ways; zooming out and growing back for 6 m; a soft radial mask on
+slab to slab.
+
+Verified with the headless Edge shooter (GPU) at 1270 × 713 (the owner's screen: 1920 × 1200 at 150 %), 1280 × 720,
+1366 × 768, 1440 × 900, 1920 × 1080 and 390 × 844; label positions logged frame by frame through real wheel input;
+`npm run build` passes. Open: on a first load in the shooter the main thread stalls for 2–3 s while the page's other
+canvases are built, which delays the opening's cover lift; it is not caused by these rounds (the same with the new
+glass switched off).

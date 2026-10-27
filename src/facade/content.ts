@@ -54,7 +54,7 @@ export const REVIEW = {
   sixMetres:
     'Site map: "Can reach up to 6 meters high in single thickness". Which panel thickness and mesh option? The longest mesh sheet listed is 5.8 m.',
   layerOrder:
-    'The corrections PDF lists six components (panel, pre-glazed window, drywall-ready accessories, insulation padding, firestopping and smoke barriers, main mounting frame); the site map also lists vapour barrier, gasket, mounting bracket and mounting connection. Shown as the PDF list, with the site map items placed where they belong. Confirm.',
+    'Shown in the client\'s latest order (thin panel, insulation, vapour barriers, gasket, glazing window, mounting frame), with the mounting bracket, fire and smoke barrier and mounting connection in "Slab to slab". The earlier corrections PDF also listed drywall-ready accessories, which this page no longer shows. Confirm.',
   connection:
     'Bracket, hook and restraint details are drawn generically to show the slab-to-slab principle; they are not a product drawing.',
   doubleHeight: 'Corrections PDF: "double height capability or multi-slab connection in single unit". No unit size or weight is given.',
