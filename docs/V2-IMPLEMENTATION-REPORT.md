@@ -180,8 +180,8 @@ Verified with the headless Edge shooter (GPU) at 1920 × 1080, 1440 × 900, 1366
 ## 12. Façade & Cladding (26–27 October 2026)
 
 The Façade & Cladding pages are one lazy chunk (`src/facade/`): the overview, the Unitized Thin Concrete Façade
-page, and the Rainscreen and Stud Frame pages. Rainscreen and Stud Frame still carry the first façade build's step
-story (`Story.tsx`) and are to be redone in the grammar below. The owner's direction for these pages is binding and
+page, the Rainscreen Cladding page and the Stud Frame page. Stud Frame still carries the first façade build's step
+story (`Story.tsx`) and is to be redone in the grammar below. The owner's direction for these pages is binding and
 recorded in PRODUCT.md: Enerblock's layout and motion as the primary source, EnduroSat's feel; everything moves with
 the scroll and only the 3D has motion of its own; no screen is held while its content swaps; what has been seen
 collapses into struck bars that also navigate; boxes open out of a corner with an X/Y read-out; very little text;
@@ -244,3 +244,58 @@ Verified with the headless Edge shooter (GPU) at 1270 × 713 (the owner's screen
 `npm run build` passes. Open: on a first load in the shooter the main thread stalls for 2–3 s while the page's other
 canvases are built, which delays the opening's cover lift; it is not caused by these rounds (the same with the new
 glass switched off).
+
+### The Rainscreen page (`pages/Rainscreen.tsx`, `rainscreen/`, `three/rain/`, `rainscreen.css`, 28 October 2026)
+
+Built in the Unitized page's grammar, every detail its own (the owner: "don't make it the same"). The panels are the
+client's pink reference: tall storey-high panels in columns between ribbon windows, open joints staggered column to
+column (`three/rain/parts.ts`, concrete tinted `PINK`).
+
+| # | Section | Ground | What it shows |
+|---|---|---|---|
+| 1 | Opening | yellow | The Unitized opening's arrangement: "Rainscreen Cladding", "A ventilated weather-resistance barrier", "Weather out. Dry within."; a piece of the façade on its shadow, its near column's upper panel not yet hung (rails, brackets, wool behind), one panel cut back to RTARIUM; as the page opens the view leans in on the textile for a moment, then lets it go |
+| 2 | The barrier | yellow | Three listings in the overview's Lineage grammar: water damage, thermal bridging, the structure, each with its own 3D. A listing's black 3D box and white box open diagonally from the crossing point as it comes up and close as the next one opens, so each hands over to the next without a gap. The 3D keeps to the middle of the black box with no frame of its own: as the view goes in, the piece is cut down in 3D to what it frames, like a section model (the cut grows with the camera's distance, so the 3D stays in the middle at every step; solid cut faces where the view looks under the cut), and the rest of the box stays empty. The listing holds for a long, slow stretch of scroll while its 3D makes one move (water: from the whole piece in rain to its corner, behind the cladding: rain running off the face, the drained cavity, the dry wall; thermal: down to the foot of the façade, looking up the cavity as air rises behind the see-through column, in front of the unbroken insulation; structure: in to the cut end from the side, the panel flexing a little clear of its rails, the rail riding in its slotted bracket, the wind coming right up to the panels and running up them, stopping at the cut). Each outcome drops into a yellow row under the header (the last while the structure still holds, all three rows then standing a moment); the rows leave with the section. The building drawn as the Unitized block is (corridors, doors, party walls, windows with mullions, stair core, roof plant) |
+| 3 | Wall to skin | warm white | Slab to slab's spacing: a small bay given brackets, mineral wool with its dowels, vertical rails, then the horizontal hanger profile (the films' order); the block comes in (thick-line X-ray, its ends closed by corner posts, nothing past the cladding), the crane (standing only a little above the roof, its jib just long enough for the lift) lifts a 12 mm panel by its head and it hooks on; as it settles it is seen through to RTARIUM; from there the rest of the façade goes up with the scroll, floor by floor, and the crane goes; the step bar |
+| 4 | Trade-offs | warm white, black rising | "A concrete façade is the architect's first choice."; as the black rises over it the line becomes "Every material has its trade-offs." (one screen, the title never repeated); precast concrete, natural stone, GRC, UHPC and metal / ACP come in from the right one at a time, each settling one tab below the last, so the tabs (name, thickness, weight) build a comparison read down the columns; each card has its photograph, a turning 3D sample cut open, Gives / Costs; the names on the left appear one by one; the deck recedes before the next section |
+| 5 | RTARIUM bridges the gap | yellow | The Unitized answers' stage, six answers, the panel kept inside its room: A real concrete face; 12 mm, light to hang (the edge, then a fluted relief for "+ design depth"); Under 30 kg/m² (one square metre marked out); Anchors cast in; Nothing to age or rust (the same panel, framed as its face was: inside a 30 mm concrete border its face lifts away, RTARIUM shows through the whole panel in 3D, then the face settles back); Up to 6 m (it grows in one piece; grown, RTARIUM in its cut and its 12 mm edge are marked, the height being in the words) |
+| 6 | Two more ways | warm white | The systems block with Unitized and Stud Frame (`More current="rainscreen"`) |
+
+Owner's second round (28 October 2026): the barrier on yellow, its boxes opening diagonally a third of the
+way in, the 3D smaller, held while the scroll plays it (rain, cavity, wind with flexing panels and slotted
+brackets), the same layout for all three, rows on yellow that leave with the section; wall to skin at slab to
+slab's spacing with thicker lines and the hanger-profile step, no tag line on the lift; panels 12 mm (+ design
+depth); five materials with thickness and weight (published figures, behind `?review`); the bridge's weight
+("under 30 kg/m²", density assumed, behind `?review`) and durability answers. Time-based 3D now wakes on
+scroll (a canvas built off screen had stopped asking for frames).
+
+Owner's third round (28 October 2026): the hero's lag fixed (the page was building its other canvases, each
+repainting the same textures, while the piece settled: the textures are now drawn once per page, the
+idle building of canvases waits for the opening, and the piece settles only once the textile is in; long
+frames during the fall went from several 1–1.6 s stalls to none); the barrier as three separate pages, each
+with its own 3D and hold (Enerblock's system page reverse-engineered: Lenis smooth scroll, a sticky stage
+held for about four screens while its drawing plays); the 3D larger and centred in its box; a long, slow
+scrub; the structure seen from the side, the panel flexing outwards only, clear of its rails; the
+building drawing at the Unitized block's detail; wall to skin filling the façade with the scroll; the
+textile answer as a 3D sample; the header following the page's grounds (the page was missing from the
+header's list of pages that set their own ground).
+
+Owner's fourth round (28 October 2026): the barrier's 3D kept to the middle of its black box, the labels
+rewritten to say what is shown (rain running off the face, drained cavity, dry wall; ventilated cavity, unbroken
+insulation; panel flexes, slotted bracket); the listings handing over continuously, after the overview's Lineage
+boxes (one closes as the next opens); the rows no longer riding into the next section; wall to skin's right end
+cleaned up (the slabs stopped past the cladding, corner posts added); the trade-offs' first line turning into the
+title under the black; the textile answer back on the full panel; the 6 m length dimensioned. In passing: the
+structure's wind no longer wraps round the cut end (it drew a line across the section in the close-up).
+
+Owner's fifth round (28 October 2026): the barrier's 3D without the faded window edges (the owner: no "smoke",
+nothing that says the 3D only belongs in its box): each scene is now cut down in 3D to what its view frames, so it
+stays in the middle of the black at every step of its move; the structure's wind brought close against the panels;
+the third outcome row drawn in while the structure still holds, then a short wait before the section moves on; the
+crane lower (about 7 m above the roof, was 12) with a 19 m jib (was 28); the 6 m answer marks RTARIUM and the 12 mm
+edge instead of dimensioning the height (the owner confirmed the panel stays 12 mm at 6 m).
+
+Owner decisions on 28 October 2026: hero line in the spirit of "a perfect weather-resistance barrier", matching the
+other openings; the RTARIUM moment is a small lean in on the textile, the page never held; trade-off cards carry both
+a photograph and a 3D sample; panels go up to 6 m (not 8 m); "Deflects 90 % rainwater and wind" is published as the
+client's line (its source question stays behind `?review`). The ACP, precast and granite photographs are from Wikimedia Commons (Temdor, CC BY-SA 4.0; Achim
+Hering, CC BY 3.0; Eurico Zimbres, CC BY-SA 2.5), credited on their cards.

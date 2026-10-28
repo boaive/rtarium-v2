@@ -56,7 +56,18 @@ let seed = 7
 const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646
 
 /** a fine, even grain for concrete and mineral wool, drawn once */
+const grains = new Map<string, HTMLCanvasElement>()
 export function grainTexture(base: string, dots: number, spread: [number, number], repeat = 3) {
+  const key = `${base}|${dots}|${spread.join(',')}`
+  let c = grains.get(key)
+  if (!c) grains.set(key, (c = drawGrain(base, dots, spread)))
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+  tex.repeat.set(repeat, repeat)
+  return tex
+}
+function drawGrain(base: string, dots: number, spread: [number, number]) {
   const size = 256
   const c = document.createElement('canvas')
   c.width = c.height = size
@@ -70,11 +81,7 @@ export function grainTexture(base: string, dots: number, spread: [number, number
     g.arc(rnd() * size, rnd() * size, rnd() * 1.4 + 0.3, 0, Math.PI * 2)
     g.fill()
   }
-  const tex = new THREE.CanvasTexture(c)
-  tex.colorSpace = THREE.SRGBColorSpace
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
-  tex.repeat.set(repeat, repeat)
-  return tex
+  return c
 }
 
 export const PITCH_M = 0.012

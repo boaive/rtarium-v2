@@ -27,9 +27,22 @@ class Boundary extends Component<{ children: ReactNode; onFail: () => void }, { 
  */
 const waiting: { el: HTMLElement; make: () => void }[] = []
 let pumping = false
+/** openings playing now: while any is, no canvas is built ahead (each build stalls the page for a moment) */
+let held = 0
+/** holds the building of canvases ahead while an opening plays; returns the release (safe to call twice) */
+export function holdPump() {
+  held++
+  let done = false
+  return () => {
+    if (done) return
+    done = true
+    held = Math.max(0, held - 1)
+    if (!held) window.setTimeout(pump, 400)
+  }
+}
 const idle = (f: () => void) => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 200))
 function pump() {
-  if (pumping || !waiting.length) return
+  if (pumping || held || !waiting.length) return
   pumping = true
   idle(() => {
     waiting.sort((a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top)

@@ -35,6 +35,8 @@ scroll and only the 3D has motion of its own. Enerblock boxes that open out of a
 stacking cards (Unitized six layers, four problems); pinned EnduroSat stages with a segmented bar along the foot
 (slab to slab, the answers: names in two lines on one line, the 3D in one place on the words' line, one photograph
 at most, in the words' column); struck rows that stack and navigate (the overview's story); the systems block on
-warm white. Rainscreen and Stud Frame still carry the first build's step story and are to be redone in this form.
+warm white. Rainscreen (28 October 2026) is built in this form with its own details: barrier blocks whose boxes are
+hung with open joints and dock outcome rows (never struck), a crane installation, trade-off cards stacking in depth,
+the answers' stage for how RTARIUM bridges the gap. Stud Frame still carries the first build's step story.
 seed: none (brief-pinned world and structure, no roll).
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

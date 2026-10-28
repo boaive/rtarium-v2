@@ -354,6 +354,24 @@ const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646
  * fine sand grain and the odd pinhole; and its relief, for a bump map, from the grain alone.
  */
 function concreteMaps() {
+  const { colour, relief } = (drawn.concrete ??= drawConcrete())
+  const tex = (cv: HTMLCanvasElement, srgb: boolean) => {
+    const t = new THREE.CanvasTexture(cv)
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace
+    t.wrapS = t.wrapT = THREE.RepeatWrapping
+    t.anisotropy = 4
+    return t
+  }
+  return { map: tex(colour, true), bump: tex(relief, false) }
+}
+
+/**
+ * What each scene's textures are drawn from, drawn once for the page: a page with a dozen canvases
+ * would otherwise paint the same grain a dozen times while the visitor watches the opening.
+ */
+const drawn: { concrete?: { colour: HTMLCanvasElement; relief: HTMLCanvasElement }; glass?: HTMLCanvasElement; sky?: HTMLCanvasElement } = {}
+
+function drawConcrete() {
   const size = 512
   const colour = document.createElement('canvas')
   const relief = document.createElement('canvas')
@@ -412,14 +430,7 @@ function concreteMaps() {
     r.arc(x, y, rad, 0, Math.PI * 2)
     r.fill()
   }
-  const tex = (cv: HTMLCanvasElement, srgb: boolean) => {
-    const t = new THREE.CanvasTexture(cv)
-    if (srgb) t.colorSpace = THREE.SRGBColorSpace
-    t.wrapS = t.wrapT = THREE.RepeatWrapping
-    t.anisotropy = 4
-    return t
-  }
-  return { map: tex(colour, true), bump: tex(relief, false) }
+  return { colour, relief }
 }
 
 /**
@@ -427,6 +438,11 @@ function concreteMaps() {
  * the daylight falls in, and darkest low down. What the pane reflects is the sky (below), on top.
  */
 function glassMap() {
+  const t = new THREE.CanvasTexture((drawn.glass ??= drawGlass()))
+  t.colorSpace = THREE.SRGBColorSpace
+  return t
+}
+function drawGlass() {
   const c = document.createElement('canvas')
   c.width = 64
   c.height = 256
@@ -438,9 +454,7 @@ function glassMap() {
   grad.addColorStop(1, '#0d1215')
   g.fillStyle = grad
   g.fillRect(0, 0, 64, 256)
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  return t
+  return c
 }
 
 /**
@@ -451,6 +465,12 @@ function glassMap() {
  * would otherwise put only the street in its panes.
  */
 function skyMap() {
+  const t = new THREE.CanvasTexture((drawn.sky ??= drawSky()))
+  t.colorSpace = THREE.SRGBColorSpace
+  t.mapping = THREE.EquirectangularReflectionMapping
+  return t
+}
+function drawSky() {
   const w = 1024
   const h = 512
   const c = document.createElement('canvas')
@@ -512,10 +532,7 @@ function skyMap() {
     g.ellipse(tx, hz - tr * 0.6, tr, tr * 0.8, 0, 0, Math.PI * 2)
     g.fill()
   }
-  const t = new THREE.CanvasTexture(c)
-  t.colorSpace = THREE.SRGBColorSpace
-  t.mapping = THREE.EquirectangularReflectionMapping
-  return t
+  return c
 }
 
 /**

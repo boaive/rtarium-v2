@@ -163,6 +163,12 @@ Confirmed figures (client technical PDF; the margin notes are treated as correct
     on one line, the 3D in one place on the words' line). At most one photograph on a stage, in the words' column;
     a photograph beside the 3D disturbs.
   - Controls stay square-cut, except the six-layers box's round back and next arrows (the owner's reference).
+  - Rainscreen (28 October 2026): the panels look like the client's pink reference (tall panels in columns between
+    ribbon windows, open joints staggered); the page reuses the Unitized grammar but changes every detail (boxes hung
+    with open joints, outcome rows that dock and are never struck, cards that stack in depth). RTARIUM, wherever it
+    shows, gets a small lean in, never text. Rainscreen panels are 12 mm (+ design depth), up to 6 m, under
+    30 kg/m² (density assumed, flagged); "Deflects 90 % rainwater and wind" is published as the client's line.
+    The barrier's 3D may hold the page while the scroll plays it (the owner's request), with no jump after.
   - RTARIUM is rigid: its returns are cut and stitched at 90°, never bent. The client's copy is kept as written.
 - Logos: `Yellow Emblem RTARIUM Logo.png`, `hemisphere one logo.png`.
 

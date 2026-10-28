@@ -3,7 +3,7 @@ import '../overview.css'
 import { Link } from '../../lib/router'
 import { Arrow } from '../Shell'
 import { Words, useInView } from '../Story'
-import { FACADE, SYSTEMS } from '../content'
+import { FACADE, SYSTEMS, type SystemId } from '../content'
 import { Stage3D } from '../three/Stage3D'
 import { SystemsTrio } from '../three/SystemsTrio'
 import { useLive } from './live'
@@ -13,11 +13,11 @@ import { useLive } from './live'
  * back to the overview in the first column, the other two systems in the next two, each with its model
  * over it, seen from the same diagonal, its number as on the overview, its line and Explore. Pointing at
  * a column fills it yellow and turns its model towards the visitor; the whole column is the link's.
+ * `current` is the page's own system, left out.
  */
 
-const PICK = [1, 2]
-
-export function More() {
+export function More({ current = 'unitized' }: { current?: SystemId }) {
+  const pick = SYSTEMS.map((_, n) => n).filter((n) => SYSTEMS[n].id !== current)
   const [ref, inView] = useInView<HTMLDivElement>('0px 0px -20% 0px')
   const section = useRef<HTMLElement>(null)
   const live = useLive(section)
@@ -35,11 +35,11 @@ export function More() {
         <div className="fct__stage fu-more__stage">
           <div className="fct__canvas" aria-hidden="true">
             <Stage3D shadows keyLight={false} fallback={<img className="fu-still" src="/img/facade/panel-ivory.webp" alt="" />}>
-              <SystemsTrio play={inView} hover={hover} live={live} pick={PICK} />
+              <SystemsTrio play={inView} hover={hover} live={live} pick={pick} />
             </Stage3D>
           </div>
           <ol className="fct__cols fu-more__cols">
-            {PICK.map((n, i) => {
+            {pick.map((n, i) => {
               const s = SYSTEMS[n]
               return (
                 <li
