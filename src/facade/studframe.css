@@ -1,47 +1,7 @@
 /*
  * Stud Frame Cladding: the page is built from the Unitized and Rainscreen pages' own styles. What is
- * its own: the opening's line, longer here, set 13 % smaller than `.fu-mega`; the casting's words and
- * bar, laid out in the barrier's columns; and on site, where the joint's box stands in the room.
+ * its own: the opening's line, longer here, set 13 % smaller than `.fu-mega`.
  */
 .fs-hero .fu-mega {
   font-size: clamp(2.6rem, min(5.4vw, 10vh), 7rem);
-}
-
-/* the casting's words: one step at a time, in one place; its bar at the foot of the words' column */
-.fs-beat {
-  grid-area: 1 / 1;
-  display: grid;
-  justify-items: start;
-  align-content: end;
-  gap: clamp(10px, 2.2cqh, 18px);
-  will-change: opacity, transform;
-}
-.fs-steps {
-  justify-content: flex-end;
-}
-.fs-steps .fu-bar {
-  width: 100%;
-}
-/* (the column is narrow for five names: the step at hand names itself, the others are their numbers) */
-.fs-steps .fu-bar__cell[data-state='next'] {
-  flex: 0 0 var(--bar-h);
-}
-.fs-steps .fu-bar__cell:not([data-state='now']) .fu-bar__name {
-  display: none;
-}
-
-/* on site: the joint in close, in the Unitized page's box (`fu-box`), standing in the room right of the words */
-.fs-detail {
-  position: absolute;
-  z-index: 2;
-  right: var(--gutter);
-  top: calc(var(--top) + clamp(28px, 6vh, 64px));
-  width: min(33vw, 520px);
-  height: min(calc(min(33vw, 520px) / 1.1), calc(100svh - var(--top) - var(--bar-b) - var(--bar-h) - clamp(28px, 6vh, 64px) - 40px));
-}
-@media (max-width: 860px), (max-aspect-ratio: 4/5) {
-  .fs-detail {
-    width: min(52vw, 280px);
-    height: min(calc(min(52vw, 280px) / 1.1), 34svh);
-  }
 }
