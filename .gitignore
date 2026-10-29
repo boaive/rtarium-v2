@@ -1,6 +1,34 @@
 node_modules
 dist
+dist-ssr
+*.local
 .DS_Store
 *.tsbuildinfo
-# the client's raw originals: large, partly third-party; the site uses web copies in public/
+
+# client raw originals: large, partly third-party; site uses web copies in public/
 assets/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Editor and OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+Desktop.ini
