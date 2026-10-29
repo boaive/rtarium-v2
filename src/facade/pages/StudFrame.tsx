@@ -21,10 +21,10 @@ import { More } from '../unitized/More'
  *   two components   yellow: the barrier's listings, skin and frame, each its own black box on the
  *                    studio's grid (the skin cut back to RTARIUM, the frame's L plates breathing), rows
  *                    docking under the header
- *   cast             yellow, the same split: the words and the bar on the left, the casting in a black
- *                    box on the right; concrete sprayed, RTARIUM cut and stitched
- *   on site          yellow, pinned, in the answers' stage: to site, lifted on, locked, levelled, sealed,
- *                    on an apartment block; the bar along the foot
+ *   cast             yellow, pinned, in the answers' stage: the words on the left, the casting right of
+ *                    them, the bar along the foot; concrete in the mould, RTARIUM cut and stitched
+ *   on site          warm white, pinned: the Rainscreen page's wall to skin, on a stadium-plan tower
+ *                    (L frames, lifted on, locked, sealed, the bands going up); the bar along the foot
  *   made             warm white: the factory's steps in photographs (the Unitized page's strip)
  *   more ways        warm white: the other two systems
  *
@@ -77,7 +77,7 @@ export default function StudFrame() {
       <div className="fu" data-ground="yellow">
         <Cast />
       </div>
-      <div className="fu" data-ground="yellow">
+      <div className="fu" data-ground="light">
         <Site />
       </div>
       <div className="fu" data-ground="light">

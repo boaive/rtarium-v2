@@ -110,8 +110,8 @@ export function SkinScene({ t, live, compact }: SceneProps) {
       t={t}
       live={live}
       compact={compact}
-      open={{ target: [0, 0.26, 0.24], dist: 6.2, azim: 36, elev: 14 }}
-      close={{ target: [(CUTAWAY.x0 + CUTAWAY.x1) / 2, (CUTAWAY.v0 + CUTAWAY.v1) / 2, BACK + CUTAWAY.u], dist: 1.55, azim: 24, elev: 7 }}
+      open={{ target: [0, 0.27, 0.29], dist: 8.8, azim: 36, elev: 14 }}
+      close={{ target: [0.28, (CUTAWAY.v0 + CUTAWAY.v1) / 2 - 0.05, BACK + CUTAWAY.u * 0.6], dist: 6, azim: 24, elev: 9 }}
     >
       <Element api={api} ends cutaway />
     </Studio>
@@ -133,8 +133,8 @@ export function FrameScene({ t, live, compact }: SceneProps) {
       t={t}
       live={live}
       compact={compact}
-      open={{ target: [0, 0.26, 0.16], dist: 6.2, azim: 150, elev: 16 }}
-      close={{ target: [0.9, 0.24, 0.18], dist: 2.3, azim: 136, elev: 15 }}
+      open={{ target: [0, 0.27, 0.29], dist: 8.8, azim: 150, elev: 16 }}
+      close={{ target: [0.15, 0.26, 0.26], dist: 6.2, azim: 140, elev: 15 }}
       breathe={breathe}
     >
       <Element api={api} lattice={false} />

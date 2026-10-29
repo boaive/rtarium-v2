@@ -22,12 +22,12 @@ const LABELS: LabelSpec[] = [{ id: 'hs-mesh', text: 'RTARIUM', dx: 74, dy: -104,
 function shots(compact: boolean): [Shot, Shot] {
   return compact
     ? [
-        { target: HERO_TARGET, dist: 9.4, azim: 50, elev: 9, frame: [0.5, 0.4] },
-        { target: HERO_TARGET, dist: 8.4, azim: 60, elev: 15, frame: [0.5, 0.33] },
+        { target: HERO_TARGET, dist: 12, azim: 50, elev: 9, frame: [0.5, 0.4] },
+        { target: HERO_TARGET, dist: 10.8, azim: 60, elev: 15, frame: [0.5, 0.33] },
       ]
     : [
-        { target: HERO_TARGET, dist: 5.0, azim: 54, elev: 8, frame: [0.7, 0.5] },
-        { target: HERO_TARGET, dist: 4.5, azim: 64, elev: 14, frame: [0.7, 0.45] },
+        { target: HERO_TARGET, dist: 6.9, azim: 54, elev: 8, frame: [0.74, 0.52] },
+        { target: HERO_TARGET, dist: 6.2, azim: 64, elev: 14, frame: [0.74, 0.47] },
       ]
 }
 

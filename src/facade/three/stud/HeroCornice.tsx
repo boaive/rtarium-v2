@@ -94,6 +94,12 @@ export function HeroCornice({ bus, play, focus }: { bus: LabelBus; play: boolean
       c.visible = open < 0.995
     }
     if (api.mats) setOpacity([api.mats.cover], 1 - Math.max(0, (open - 0.35) / 0.65))
+    // the skin growing in the day's heat and shrinking back at night, the plates flexing with it: barely a shimmer
+    if (!reduced && started) {
+      api.strain.value = 0.0085 * Math.sin((performance.now() / 1000) * ((Math.PI * 2) / 7.5))
+      if (api.skin) api.skin.scale.x = 1 + api.strain.value
+      moving = true
+    }
     if (moving) invalidate()
   }, -2)
 
