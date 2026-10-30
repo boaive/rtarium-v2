@@ -8,6 +8,11 @@ dist-ssr
 # client raw originals: large, partly third-party; site uses web copies in public/
 assets/
 
+# Build output and large media files
+out/
+rtarium-film/
+rtarium-unitized/
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

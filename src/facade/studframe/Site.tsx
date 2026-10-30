@@ -14,7 +14,8 @@ import { StepBar } from '../unitized/StepBar'
  * On site: the Rainscreen page's wall to skin, the same stage and the same run. One scene on the warm
  * white page, edge to edge (the title and the bar stand over it), pinned for its run: a bay of the tower
  * given its two L frames, the tower crane bringing the element that sits on them, its top locked and its
- * joint sealed, then the tower and the rest of its bands going up by themselves. The bar along the foot
+ * joint sealed, then the tower and the rest of its bands going up by themselves, wrapping round it, and
+ * the building finished under a rising scan, its glass see-through. The bar along the foot
  * fills each step as it runs and takes you to any of them.
  */
 
@@ -24,6 +25,7 @@ const PHASES = [
   { name: 'Locked from the top', from: INSTALL.lock[0], to: INSTALL.look[1] },
   { name: 'Sealed', from: INSTALL.rod[0], to: INSTALL.bead[1] },
   { name: 'Onto the building', from: INSTALL.wide[0], to: INSTALL.fill[1] },
+  { name: 'Finished', from: INSTALL.finish[0], to: INSTALL.finish[1] },
 ]
 const RUN = 8
 
@@ -62,8 +64,8 @@ export function Site() {
     if (!el) return
     scrollToY(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * p)
   }
-  /** where each step of the bar takes you: the L frames solid, the element set, locked, sealed, the tower up */
-  const holds = [INSTALL.seats[1], INSTALL.hook[1], INSTALL.look[0] + 0.05, INSTALL.bead[1], INSTALL.out[1]].map((p) => p + 0.012)
+  /** where each step of the bar takes you: the L frames solid, the element set, locked, sealed, the tower banded, finished */
+  const holds = [INSTALL.seats[1], INSTALL.hook[1], INSTALL.look[0] + 0.05, INSTALL.bead[1], INSTALL.fill[1], INSTALL.finish[1]].map((p) => p + 0.012)
 
   return (
     <section ref={section} id="site" className="fu-hang on-light" aria-labelledby="fs-site-title" style={{ '--run': RUN } as CSSProperties}>

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem *)",
+      "mcp__6132882f-84e3-475c-bf9c-574010b1ea13__creative_get_flow_run_status",
+      "mcp__Claude_Browser__get_page_text"
+    ]
+  }
+}

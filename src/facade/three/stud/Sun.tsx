@@ -6,18 +6,21 @@ import { useFrame, useThree } from '@react-three/fiber'
  * The Gulf's midday sun: a hard, high key light that casts crisp shadows, kept at the same angle to
  * whatever the camera is looking at (`focus`, read every frame), its shadow camera sized to `reach`
  * (m) about it. Hard light here means a darker, sharper shadow on the ground, not a warmer colour: the
- * light stays white.
+ * light stays white, unless the scene hands it a `tone` (the day's heat, the night's cool), read every
+ * frame.
  */
 export function Sun({
   focus,
   reach,
   offset = [-5, 12, 6],
   intensity = 3.1,
+  tone,
 }: {
   focus: { current: THREE.Vector3 }
   reach: { current: number }
   offset?: [number, number, number]
   intensity?: number
+  tone?: { current: { intensity: number; color: THREE.Color } }
 }) {
   const light = useRef<THREE.DirectionalLight>(null)
   const scene = useThree((s) => s.scene)
@@ -37,6 +40,10 @@ export function Sun({
     l.position.set(f.x + offset[0] * k, f.y + offset[1] * k, f.z + offset[2] * k)
     l.target.position.copy(f)
     l.target.updateMatrixWorld()
+    if (tone) {
+      l.intensity = tone.current.intensity
+      l.color.copy(tone.current.color)
+    }
     if (r !== last.current) {
       const c = l.shadow.camera
       c.left = -r
