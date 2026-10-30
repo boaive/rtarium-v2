@@ -1,0 +1,407 @@
+/*
+ * Advanced Flooring, Data & AI Centres (`fdc-`). The page borrows the Façade system pages' opening,
+ * step bar and answers stage (unitized.css) and the Rainscreen trade-offs' deck (rainscreen.css);
+ * what is here is its own: the problems' cards that are struck and answered in place, the sign-offs
+ * ledger and the carbon meter.
+ */
+
+/* ---- a strike drawn through words, left to right, on every line they wrap to (`--s`, 0..1) ----- */
+
+.fdc-strike {
+  background-image: linear-gradient(var(--yellow), var(--yellow));
+  background-repeat: no-repeat;
+  background-position: 0 58%;
+  background-size: calc(var(--s, 0) * 100%) 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* ---- where traditional floors fail: the deck, each card answered in place ----------------------- */
+
+/* it opens on the opening's yellow, the black rising over it */
+.fdc-fail {
+  background: var(--yellow);
+}
+.fdc-fail .fr-trade__first,
+.fdc-fail .fr-trade__title {
+  font-size: clamp(2.2rem, min(4.3vw, 7.8vh), 5rem);
+}
+/* the client's line takes the title's place as the deck recedes, set to keep clear of it */
+.fdc-fail .fdc-fail__close {
+  font-size: clamp(1.9rem, min(3.3vw, 6.2vh), 3.9rem);
+  will-change: opacity, transform;
+}
+.fdc-fail__go .fdc-strike {
+  color: rgb(242 240 233 / calc(0.5 + (1 - var(--s, 0)) * 0.5));
+}
+.fdc-fail__go:hover .fdc-strike,
+.fdc-fail__go[aria-current] .fdc-strike {
+  color: var(--white);
+}
+
+/* the tab: number, the problem's name (struck once answered), RTARIUM's answer on the right */
+.fdc-card__tab {
+  grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+}
+.fdc-card .fr-card__name {
+  color: rgb(242 240 233 / calc(1 - var(--s, 0) * 0.42));
+}
+.fdc-card__answer {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: clamp(0.92rem, min(1.15vw, 2.2vh), 1.15rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--yellow);
+  white-space: nowrap;
+  opacity: var(--s, 0);
+  transform: translate3d(calc((1 - var(--s, 0)) * 10px), 0, 0);
+}
+.fdc-card__by {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--on-dark-2);
+}
+
+/* the photograph: the problem's, then RTARIUM's sliding in over it from the right */
+.fdc-card__media {
+  isolation: isolate;
+}
+.fdc-card__photo {
+  will-change: transform;
+}
+.fdc-card .fdc-card__photo:not(.fdc-card__photo--after) {
+  transform: translate3d(calc(var(--s, 0) * -28%), 0, 0);
+}
+.fdc-card .fdc-card__photo--after {
+  transform: translate3d(calc((1 - var(--s, 0)) * 101%), 0, 0);
+  filter: grayscale(0.15) brightness(0.62) contrast(1.05);
+}
+.fdc-card__credit {
+  z-index: 2;
+  opacity: calc(1 - var(--s, 0) * 2.5);
+}
+
+/* the words: the problem at the head of the card, struck once answered; RTARIUM's answer at its foot */
+.fdc-card__words {
+  justify-content: space-between;
+  gap: clamp(14px, 2.4vh, 26px);
+}
+.fdc-card__label {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  color: var(--on-dark-2);
+}
+.fdc-card__problem {
+  margin-top: 6px;
+  max-width: 22rem;
+  font-size: clamp(1rem, min(1.25vw, 2.4vh), 1.25rem);
+  font-weight: 600;
+  line-height: 1.32;
+  letter-spacing: -0.01em;
+  color: rgb(242 240 233 / calc(0.9 - var(--s, 0) * 0.42));
+  text-wrap: pretty;
+}
+.fdc-card__now {
+  opacity: var(--s, 0);
+  transform: translate3d(0, calc((1 - var(--s, 0)) * 12px), 0);
+}
+.fdc-card__head {
+  margin-top: 6px;
+  font-size: clamp(1.45rem, min(2.15vw, 4vh), 2.3rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--yellow);
+  text-wrap: balance;
+}
+.fdc-card__line {
+  margin-top: 10px;
+  max-width: 22rem;
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.42;
+  color: rgb(242 240 233 / 0.72);
+  text-wrap: pretty;
+}
+
+/* ---- built up from the slab: the site's footage under the pour, the levelling and the trowel ---- */
+
+.fdc-build__clip video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fdc-build__site {
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  padding: 3px 7px 4px;
+  background: rgb(8 8 8 / 0.72);
+  color: var(--yellow);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: calc(var(--g, 1) * 1.4 - 0.4);
+}
+
+/* ---- specified, approved, built: the sign-offs ledger, its last band on black --------------------- */
+
+.fdc-v {
+  position: relative;
+  height: calc((var(--rows, 4) + 0.7) * 100svh);
+  background: var(--white);
+  color: var(--black);
+}
+.fdc-v__pin {
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(18px, 4vh, 44px);
+  height: 100svh;
+  padding: calc(var(--nav-h) + clamp(16px, 3vh, 32px)) var(--gutter) clamp(18px, 3.4vh, 32px);
+  overflow: hidden;
+}
+.fdc-v__title {
+  font-size: clamp(1.7rem, min(3vw, 5.4vh), 3.2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.fdc-v__rows {
+  --cols: 4.5rem minmax(0, 1fr) minmax(0, 0.92fr);
+  --gap: clamp(14px, 2.4vw, 40px);
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1.5px solid var(--black);
+}
+.fdc-v__row {
+  --w: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  overflow: hidden;
+  border-bottom: 1px solid rgb(8 8 8 / 0.2);
+  will-change: transform, height;
+}
+/* the band's own line: its number, whose it is, and (once passed) its message, quietly */
+.fdc-v__bar {
+  display: grid;
+  grid-template-columns: var(--cols);
+  column-gap: var(--gap);
+  align-items: center;
+  height: var(--closed, 56px);
+}
+.fdc-v__num {
+  font-size: var(--t-micro);
+  font-weight: 600;
+}
+.fdc-v__role {
+  font-size: clamp(1.05rem, 1.45vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+.fdc-v__tag {
+  justify-self: end;
+  font-size: var(--t-small);
+  font-weight: 500;
+  color: var(--on-light-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  opacity: 0;
+  transition: opacity var(--d-mid) var(--ease-out);
+}
+.fdc-v__row.is-seen:not(.is-active) .fdc-v__tag {
+  opacity: calc(1 - var(--w) * 2);
+}
+.fdc-v__row:not(.is-seen):not(.is-active) .fdc-v__num,
+.fdc-v__row:not(.is-seen):not(.is-active) .fdc-v__role {
+  opacity: 0.38;
+}
+/* the open band: the message large on the left, under whose it is; what backs it on the right */
+.fdc-v__body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--closed, 56px);
+  height: calc(var(--open, 400px) - var(--closed, 56px));
+  display: grid;
+  grid-template-columns: var(--cols);
+  column-gap: var(--gap);
+  padding-bottom: clamp(14px, 2.6vh, 28px);
+  opacity: clamp(0, calc(var(--w) * 1.8 - 0.6), 1);
+  transform: translate3d(0, calc((1 - var(--w)) * 16px), 0);
+}
+.fdc-v__words {
+  grid-column: 2;
+  display: grid;
+  align-content: start;
+  gap: clamp(14px, 2.4vh, 24px);
+  padding-top: clamp(4px, 1.4vh, 14px);
+}
+.fdc-v__head {
+  font-size: clamp(2.3rem, min(4.4vw, 8vh), 5rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+.fdc-v__line {
+  max-width: 30rem;
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--on-light-2);
+  text-wrap: pretty;
+}
+.fdc-v__media {
+  grid-column: 3;
+  position: relative;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  background: #e6e3da;
+}
+.fdc-v__media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.fdc-v__model {
+  position: absolute;
+  inset: 0;
+}
+.fdc-v__model .fc-pin__tag {
+  font-weight: 700;
+}
+.fdc-v__credit {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-size: 0.62rem;
+  color: rgb(242 240 233 / 0.85);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+}
+/* the last band: on black, edge to edge, as RTARIUM's is on the homepage */
+.fdc-v__row--carbon {
+  left: calc(-1 * var(--gutter));
+  right: calc(-1 * var(--gutter));
+  padding-inline: var(--gutter);
+  border-bottom: 0;
+  background: var(--black);
+  color: var(--yellow);
+}
+.fdc-v__row--carbon .fdc-v__body {
+  left: var(--gutter);
+  right: var(--gutter);
+}
+.fdc-v__row--carbon .fdc-v__line,
+.fdc-v__row--carbon .fdc-v__tag {
+  color: var(--on-dark-2);
+}
+/* the carbon meter: a row of bars, lit down to where it has wound */
+.fdc-v__meter {
+  grid-column: 3;
+  align-self: center;
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding-bottom: 28px;
+}
+.fdc-v__meter-name {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--on-dark-2);
+}
+.fdc-v__bars {
+  position: relative;
+  display: flex;
+  gap: 3px;
+  height: clamp(90px, 17vh, 170px);
+}
+.fdc-v__bars i {
+  flex: 1;
+  background: rgb(253 208 1 / calc(0.13 + 0.87 * clamp(0, var(--lit) * var(--bars) - var(--k), 1)));
+}
+.fdc-v__mark {
+  position: absolute;
+  top: calc(100% + 10px);
+  font-size: var(--t-small);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.fdc-v__mark--was {
+  right: 0;
+  color: rgb(253 208 1 / calc(1 - var(--wind, 0) * 0.55));
+}
+.fdc-v__mark--now {
+  left: calc(var(--lit) * 100%);
+  transform: translateX(-100%);
+  color: var(--yellow);
+  opacity: clamp(0, calc(var(--wind, 0) * 3 - 0.4), 1);
+}
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fdc-v__rows {
+    --cols: 2rem minmax(0, 1fr) 0;
+  }
+  .fdc-v__tag,
+  .fdc-v__media {
+    display: none;
+  }
+  .fdc-v__head {
+    font-size: clamp(1.9rem, 8vw, 2.6rem);
+  }
+  .fdc-v__row--carbon .fdc-v__body {
+    grid-template-rows: auto auto;
+    align-content: start;
+  }
+  .fdc-v__meter {
+    grid-column: 2;
+    align-self: start;
+  }
+}
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fdc-card__tab {
+    grid-template-columns: 1.6rem minmax(0, 1fr) auto;
+  }
+  .fdc-card__by {
+    display: none;
+  }
+  .fdc-card__answer {
+    font-size: 0.78rem;
+  }
+  .fdc-card__problem {
+    font-size: 0.95rem;
+  }
+  .fdc-card__head {
+    font-size: 1.3rem;
+  }
+  .fdc-card__line {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fdc-card__photo,
+  .fdc-card__now,
+  .fdc-card__answer {
+    transition: none;
+  }
+}
