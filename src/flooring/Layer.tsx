@@ -136,7 +136,6 @@ const BLOCKS: Block[] = [
     photo: { src: '/img/site-strip.webp', alt: 'RTARIUM laid out on a site trial (stand-in photograph)' },
   },
 ]
-const N = BLOCKS.length
 
 /** how each sample is seen: turned towards the middle of the screen from whichever side it stands on */
 const SHOTS: CellShot[] = [
