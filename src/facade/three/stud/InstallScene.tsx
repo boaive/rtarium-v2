@@ -10,7 +10,7 @@ import { craneLines } from '../rain/building'
 import { FatLines, fatMaterial } from '../rain/lines'
 import { Element, createElementApi } from './Element'
 import { BACK, JOINT, LEN, PROFILE, SKIN, bandGeometry, block, merge, offsetPath, type P2 } from './cornice'
-import { TOWER, TOWER_H, TOWER_W, bandY, bayLines, elementX, towerLines } from './tower'
+import { TOWER, TOWER_H, TOWER_W, bandY, bayLines, elementX, finishGeometry, ringGeometry, scanLines, towerLines } from './tower'
 
 /**
  * On site (Stud Frame page): the Rainscreen page's wall to skin, the same choreography, on the page's
@@ -25,10 +25,20 @@ import { TOWER, TOWER_H, TOWER_W, bandY, bayLines, elementX, towerLines } from '
  *      it, and the view leans in a little
  *   4  in close on the joint with the element before it: the backing rod, then the sealant, traced
  *   5  the tower comes in behind as a drawing, its lower floors already banded; the rest of the bands go
- *      up by themselves, floor by floor, and the crane goes
+ *      up by themselves, floor by floor, wrapping right round the ends and the back
+ *   6  finished: a scan rises up the tower to its top band, and below it the drawing gives way to the
+ *      building itself (slabs, black frames, smoked glass you can see into); the roof (its parapet,
+ *      plant and the core's head) and the crane are left a drawing
+ *
+ * In RTARIUM's own colours, against the drawings' basalt pink: the cladding a bright white concrete,
+ * the glass smoked graphite, its frames black, so the white bands stand out on the dark glazing.
  *
  * Everything follows the scroll. Sizes and details show the principle; they are not a product drawing.
  */
+
+/** every drawing: basalt pink; the cladding, a bright white concrete */
+const WIRE = '#c0786a'
+const CLAD = '#f7f5ef'
 
 /** the bay followed: the fifth element of the fourth floor's band */
 const I0 = 4
@@ -59,10 +69,12 @@ export const INSTALL = {
   look: [0.5, 0.6],
   rod: [0.6, 0.63],
   bead: [0.63, 0.72],
-  wide: [0.72, 0.8],
+  wide: [0.72, 0.78],
   /** the rest of the bands going up, floor by floor, as the page is scrolled on; the crane goes at the end */
-  fill: [0.72, 0.93],
-  out: [0.92, 0.98],
+  fill: [0.72, 0.85],
+  out: [0.84, 0.89],
+  /** the drawing replaced by the finished building, floor by floor from the ground */
+  finish: [0.86, 0.97],
 } as const
 
 /** how long each element takes to settle into its place, as a share of the fill */
@@ -88,12 +100,15 @@ export function installShot(p: number, compact: boolean, settle = 0): Shot {
   const sealing = smooth(INSTALL.rod[0] - 0.03, INSTALL.rod[0] + 0.005, p) * (1 - smooth(INSTALL.bead[1], INSTALL.wide[0] + 0.02, p))
   const wide: Shot = { target: [TOWER_W * 0.5, (MAST_H + HEAD) * 0.5, -4], dist: 118 * kw, azim: -28, elev: 9, frame: [0.5, 0.52] }
   const done: Shot = { target: [TOWER_W * 0.5, TOWER_H * 0.5, -4], dist: 100 * kw, azim: -30, elev: 9, frame: [0.5, 0.5] }
+  // finished: round a little, so the bands are seen wrapping the end
+  const fin: Shot = { target: [TOWER_W * 0.55, TOWER_H * 0.52, -TOWER.r], dist: 108 * kw, azim: -42, elev: 11, frame: [0.5, 0.47] }
   let s = mixShot(near, lift, smooth(INSTALL.crane[0] - 0.02, INSTALL.lift[0] + 0.04, p))
   s = mixShot(s, back, smooth(INSTALL.lift[1] - 0.07, INSTALL.hook[1], p))
   s = mixShot(s, look, lean)
   s = mixShot(s, seal, sealing)
   s = mixShot(s, wide, smooth(INSTALL.wide[0], INSTALL.wide[1], p))
-  return mixShot(s, done, settle)
+  s = mixShot(s, done, settle)
+  return mixShot(s, fin, smooth(INSTALL.finish[0], INSTALL.finish[1], p))
 }
 
 /** a part as two things: its solid self and its drawing, the scan between them */
@@ -140,15 +155,35 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
       done: u.concrete.clone(),
       sealant: new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.32 }),
       rod: new THREE.MeshStandardMaterial({ color: '#efede6', roughness: 1 }),
+      // the finished building: its slabs, its frames, its glass, smoked but see-through so the bands read against it
+      slab: new THREE.MeshStandardMaterial({ color: '#8d8b86', roughness: 0.9, transparent: true }),
+      frame: new THREE.MeshStandardMaterial({ color: '#080808', metalness: 0.4, roughness: 0.45, transparent: true }),
+      glass: new THREE.MeshStandardMaterial({ color: '#2a3035', metalness: 0.6, roughness: 0.08, transparent: true, opacity: 0.62, depthWrite: false, side: THREE.DoubleSide }),
     }
   }, [])
-  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: '#080808', transparent: true, opacity: 0.5 }), [])
+  // the cladding a bright white concrete: the elements going up, those already up, the one the crane brings
+  useMemo(() => {
+    m.u.concrete.color.set(CLAD)
+    m.done.color.set(CLAD)
+  }, [m])
+  useEffect(() => {
+    if (!api.mats) return
+    api.mats.coat.color.set(CLAD)
+    api.mats.backing.color.set(CLAD)
+  }, [api])
+  /** the scan that rises up the tower as it is finished: below it, the building; above it, still the drawing */
+  const sweep = useMemo(() => ({ below: new THREE.Plane(new THREE.Vector3(0, -1, 0), -1e3), above: new THREE.Plane(new THREE.Vector3(0, 1, 0), 1e3) }), [])
+  useMemo(() => {
+    for (const x of [m.slab, m.frame, m.glass]) x.clippingPlanes = [sweep.below]
+  }, [m, sweep])
+  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: WIRE, transparent: true, opacity: 0.6 }), [])
   const draw = useMemo(
     () => ({
-      block: fatMaterial('#080808', 1.4, 0),
-      context: fatMaterial('#080808', 1.3, 0.3),
-      crane: fatMaterial('#080808', 1.2, 0),
-      rig: new THREE.LineBasicMaterial({ color: '#080808', transparent: true, opacity: 0 }),
+      block: fatMaterial(WIRE, 1.2, 0),
+      scan: fatMaterial('#fdd001', 3, 0),
+      context: fatMaterial(WIRE, 1.3, 0.3),
+      crane: fatMaterial(WIRE, 1.2, 0),
+      rig: new THREE.LineBasicMaterial({ color: WIRE, transparent: true, opacity: 0 }),
     }),
     [],
   )
@@ -224,11 +259,18 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
       context: bayLines(x0, x1, J0),
       skin: planarUV(bandGeometry(0, SKIN), 1.1),
       tower: towerLines(),
+      scan: scanLines(),
       rod: new THREE.TubeGeometry(jointPath(0.007), 300, 0.005, 8, false),
       bead: new THREE.TubeGeometry(jointPath(-0.003), 300, 0.0068, 10, false),
     }
   }, [])
   const crane = useMemo(() => craneLines(MAST_H, HEAD, JIB, COUNTER), [])
+  const finished = useMemo(() => ({ ...finishGeometry(), rings: Array.from({ length: TOWER.storeys }, (_, k) => ringGeometry(k)) }), [])
+  useMemo(() => {
+    // the drawing stays wherever the building is not yet: above the scan
+    draw.block.clippingPlanes = [sweep.above]
+    draw.block.clipping = true
+  }, [draw, sweep])
   const rig = useMemo(() => {
     const g = new THREE.BufferGeometry()
     g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(3 * 2 * 4), 3))
@@ -246,7 +288,12 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
       }
     // the rest go up floor by floor from the bottom, across each floor in turn
     rest.sort((p, q) => p.y - q.y || p.x - q.x)
-    return { done, rest }
+    // each floor's ring round the ends goes up with the middle of its floor's elements
+    const ringAt = Array.from({ length: TOWER.storeys }, (_, k) => {
+      const mine = rest.map((v, n) => (Math.abs(v.y - bandY(k)) < 1e-3 ? n : -1)).filter((n) => n >= 0)
+      return mine.length ? mine[Math.floor(mine.length / 2)] : -1
+    })
+    return { done, rest, ringAt }
   }, [])
 
   useEffect(
@@ -264,12 +311,16 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
       Object.values(geo).forEach((g) => g.dispose())
       crane.mast.dispose()
       crane.jib.dispose()
+      finished.slabs.dispose()
+      finished.glass.dispose()
+      finished.frames.dispose()
+      finished.rings.forEach((g) => g.dispose())
       rig.dispose()
       ink.dispose()
       disposeUnitMaterials(m.u)
-      for (const x of [m.wall, m.steel, m.done, m.sealant, m.rod]) x.dispose()
+      for (const x of [m.wall, m.steel, m.done, m.sealant, m.rod, m.slab, m.frame, m.glass]) x.dispose()
     },
-    [parts, lineMats, scanMats, draw, geo, crane, rig, ink, m],
+    [parts, lineMats, scanMats, draw, geo, crane, rig, ink, m, finished],
   )
 
   const scans = useRef<Partial<Record<Key, THREE.Group | null>>>({})
@@ -278,6 +329,9 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
   const doneMesh = useRef<THREE.InstancedMesh>(null)
   const moving = useRef<THREE.InstancedMesh>(null)
   const rod = useRef<THREE.Mesh>(null)
+  const rings = useRef<(THREE.Mesh | null)[]>([])
+  const finishGroup = useRef<THREE.Group>(null)
+  const scanLine = useRef<THREE.Group>(null)
   const bead = useRef<THREE.Mesh>(null)
   const mx = useMemo(() => new THREE.Matrix4(), [])
   const hidden = useMemo(() => new THREE.Matrix4().makeScale(0, 0, 0), [])
@@ -334,7 +388,7 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
     // 3. the tower comes in behind, faint and then clear, its banded floors with it; the bay's own drawing gives way to it
     const faint = smooth(INSTALL.block[0], INSTALL.block[0] + 0.04, p)
     const clear = smooth(INSTALL.block[0] + 0.04, INSTALL.block[1], p)
-    draw.block.opacity = faint * 0.06 + clear * 0.06 + smooth(INSTALL.wide[0], INSTALL.wide[1], p) * 0.12
+    draw.block.opacity = faint * 0.12 + clear * 0.12 + smooth(INSTALL.wide[0], INSTALL.wide[1], p) * 0.3
     draw.block.visible = draw.block.opacity > 0.003
     draw.context.opacity = 0.3 * (1 - faint)
     draw.context.visible = draw.context.opacity > 0.003
@@ -366,9 +420,29 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
       })
       mv.instanceMatrix.needsUpdate = true
     }
+    // the rings round the ends and the back: the floors below the bay's with the tower, the rest with their floor's elements
+    rings.current.forEach((ring, k) => {
+      if (!ring) return
+      const n = lots.ringAt[k]
+      const r = n < 0 ? clear : smooth(0, RISE, fill - n * each)
+      ring.visible = n < 0 ? clear > 0.003 : r > 0.003
+      ring.position.y = n < 0 ? 0 : (1 - r) * 0.5
+    })
+
+    // 6. finished: the scan rises from the ground to the roof; below it the building, above it the drawing
+    const fin = smooth(INSTALL.finish[0], INSTALL.finish[1], p)
+    // (it stops at the roof slab: the parapet, the plant and the core's head are left a drawing)
+    const y = fin <= 0 ? -1e3 : -0.5 + (TOWER_H + 0.55) * fin
+    sweep.below.constant = y
+    sweep.above.constant = -y
+    if (finishGroup.current) finishGroup.current.visible = fin > 0.001
+    draw.scan.opacity = smooth(0, 0.06, fin) * (1 - smooth(0.94, 1, fin))
+    draw.scan.visible = draw.scan.opacity > 0.003
+    if (scanLine.current) scanLine.current.position.y = y
 
     // the crane and its rig
-    const cr = craneIn * (1 - craneOut)
+    // the crane stays up: the building is not finished yet
+    const cr = craneIn
     draw.crane.opacity = 0.42 * cr
     draw.crane.visible = cr > 0.003
     draw.rig.opacity = 0.6 * cr * (1 - hooked)
@@ -430,8 +504,20 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
       {/* the floors already banded, and the bands that go up */}
       <instancedMesh ref={doneMesh} args={[geo.skin, m.done, Math.max(1, lots.done.length)]} frustumCulled={false} castShadow receiveShadow />
       <instancedMesh ref={moving} args={[geo.skin, m.u.concrete, Math.max(1, lots.rest.length)]} frustumCulled={false} castShadow />
-      {/* the tower, a drawing */}
+      {/* the rings of the bands round the ends and the back */}
+      {finished.rings.map((g, k) => (
+        <mesh key={k} ref={(el) => void (rings.current[k] = el)} geometry={g} material={lots.ringAt[k] < 0 ? m.done : m.u.concrete} visible={false} castShadow receiveShadow />
+      ))}
+      {/* the tower, a drawing, and then the building finished under the scan */}
       <FatLines geometry={geo.tower} material={draw.block} />
+      <group ref={finishGroup} visible={false}>
+        <mesh geometry={finished.slabs} material={m.slab} castShadow receiveShadow />
+        <mesh geometry={finished.frames} material={m.frame} />
+        <mesh geometry={finished.glass} material={m.glass} renderOrder={1} />
+      </group>
+      <group ref={scanLine}>
+        <FatLines geometry={geo.scan} material={draw.scan} />
+      </group>
       {/* the tower crane, a drawing; its rope and slings in the world */}
       <group position={[MAST[0], 0, MAST[1]]}>
         <FatLines geometry={crane.mast} material={draw.crane} />

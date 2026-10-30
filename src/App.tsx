@@ -17,6 +17,9 @@ import { setShared } from './three/stageStore'
 /** Façade & Cladding (overview and its three systems): its own chunk, loaded only on those pages */
 const FacadeRoutes = lazy(() => import('./facade/FacadeRoutes'))
 const isFacade = (path: string) => path === '/facade-cladding' || path.startsWith('/facade-cladding/')
+/** Advanced Flooring (overview and its three applications): the same, its own chunk */
+const FlooringRoutes = lazy(() => import('./flooring/FlooringRoutes'))
+const isFlooring = (path: string) => path === '/advanced-flooring' || path.startsWith('/advanced-flooring/')
 
 function Home() {
   usePointerTracking()
@@ -59,14 +62,12 @@ function Page() {
       </>
     )
   }
-  if (isFacade(path)) {
+  if (isFacade(path) || isFlooring(path)) {
     return (
       <>
         <Nav />
         <main id="main">
-          <Suspense fallback={<div className="page" aria-busy="true" />}>
-            <FacadeRoutes path={path} />
-          </Suspense>
+          <Suspense fallback={<div className="page" aria-busy="true" />}>{isFacade(path) ? <FacadeRoutes path={path} /> : <FlooringRoutes path={path} />}</Suspense>
         </main>
         <Footer screen />
       </>

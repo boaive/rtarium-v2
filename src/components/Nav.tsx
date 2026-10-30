@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FocusEvent } from 'react'
 import { Link, useRoute } from '../lib/router'
 import { APPLICATIONS } from '../content/site'
 import { SYSTEMS } from '../facade/content'
+import { FLOORING_APPS } from '../flooring/content'
 import { useStageValue } from '../three/stageStore'
 import { holdScroll } from '../lib/scroll'
 
@@ -49,7 +50,7 @@ const ENTRIES: NavEntry[] = [
     ],
   },
   { id: 'facade', to: app('facade').path, label: app('facade').title, items: SYSTEMS.map((s) => ({ to: s.path, label: s.title })) },
-  { id: 'flooring', to: app('flooring').path, label: app('flooring').title },
+  { id: 'flooring', to: app('flooring').path, label: app('flooring').title, items: FLOORING_APPS.map((a) => ({ to: a.path, label: a.title })) },
   { id: 'walls', to: app('walls').path, label: app('walls').title },
 ]
 

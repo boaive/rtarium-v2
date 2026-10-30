@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T00:00:00Z",
+  "title": "Design System: RTARIUM by HEMISPHERE ONE",
+  "extensions": {
+    "colorMeta": {
+      "rtarium-yellow": { "role": "primary", "displayName": "RTARIUM Yellow", "canonical": "#fdd001", "tonalRamp": ["#2a2300", "#554600", "#806a00", "#ab8d00", "#d6b100", "#fdd001", "#fee066", "#fff0b3"] },
+      "ink-black": { "role": "neutral", "displayName": "Ink Black", "canonical": "#080808", "tonalRamp": ["#080808", "#1a1a1a", "#2e2e2e", "#444444", "#5f5f5f", "#808080", "#a8a8a8", "#d4d4d4"] },
+      "warm-white": { "role": "neutral", "displayName": "Warm White", "canonical": "#f2f0e9", "tonalRamp": ["#4a483f", "#68665c", "#87857a", "#a6a499", "#c4c2b8", "#d9d7cd", "#f2f0e9", "#faf9f5"] },
+      "graphite": { "role": "neutral", "displayName": "Graphite", "canonical": "#151515", "tonalRamp": ["#151515", "#262626", "#3a3a3a", "#505050", "#6a6a6a", "#8a8a8a", "#b0b0b0", "#d8d8d8"] },
+      "gold": { "role": "tertiary", "displayName": "Mesh Gold", "canonical": "#e8a317", "tonalRamp": ["#2b1f04", "#573e08", "#82600c", "#ad8110", "#d8a214", "#e8a317", "#f3c565", "#fae3b0"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Step headings, word by word." },
+      "name": { "displayName": "Name", "purpose": "RTARIUM set as type in the opening and the footer, in Anybody at 150% width." },
+      "figure": { "displayName": "Figure", "purpose": "The one large tabular number on a technical screen." }
+    },
+    "shadows": [
+      { "name": "capsule-lift", "value": "0 6px 18px -10px rgb(8 8 8 / 0.55)", "purpose": "Soft lift under the brand capsule." },
+      { "name": "capsule-lift-hover", "value": "0 10px 22px -10px rgb(8 8 8 / 0.6)", "purpose": "Brand capsule on hover." },
+      { "name": "capsule-edge-on-black", "value": "inset 0 0 0 1px rgb(253 208 1 / 0.32)", "purpose": "Yellow hairline edge for the capsule on a black ground." },
+      { "name": "footage-drop", "value": "0 18px 40px -24px rgb(8 8 8 / 0.6)", "purpose": "Long soft shadow under the footage frame." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default easing for reveals, hovers and slabs." },
+      { "name": "ease-in-out", "value": "cubic-bezier(0.65, 0, 0.35, 1)", "purpose": "Symmetrical movement of grounds and panels." },
+      { "name": "d-fast", "value": "180ms", "purpose": "Hover colour changes." },
+      { "name": "d-mid", "value": "360ms", "purpose": "Header and capsule transitions." },
+      { "name": "d-slow", "value": "700ms", "purpose": "Larger reveals." },
+      { "name": "word-step", "value": "85ms", "purpose": "Gap between words as headings rise (95ms for the challenge statement)." },
+      { "name": "ground-change", "value": "900ms", "purpose": "Ground colour change under the 3D." }
+    ],
+    "breakpoints": [
+      { "name": "compact", "value": "860px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Solid Pill",
+      "kind": "button",
+      "refersTo": "pill-solid",
+      "description": "Primary action pill (Contact in the header).",
+      "html": "<a class=\"ds-pill\" href=\"#\">Contact</a>",
+      "css": ".ds-pill { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:0 22px; border:1.5px solid #080808; border-radius:999px; background:#080808; color:#fdd001; font-size:0.9375rem; font-weight:600; text-decoration:none; transition: background-color 180ms cubic-bezier(0.16,1,0.3,1), color 180ms cubic-bezier(0.16,1,0.3,1); } .ds-pill:hover { background:transparent; color:#080808; } .ds-pill:focus-visible { outline:2px solid currentColor; outline-offset:4px; }"
+    },
+    {
+      "name": "Ink Pill",
+      "kind": "button",
+      "refersTo": "pill-ink",
+      "description": "Larger closing call to action (footer).",
+      "html": "<a class=\"ds-pill-ink\" href=\"#\">Contact HEMISPHERE ONE</a>",
+      "css": ".ds-pill-ink { display:inline-flex; align-items:center; justify-content:center; min-height:56px; padding:0 28px; border:1.5px solid #080808; border-radius:999px; background:#080808; color:#fdd001; font-size:1.0625rem; font-weight:600; text-decoration:none; transition: background-color 180ms cubic-bezier(0.16,1,0.3,1), color 180ms cubic-bezier(0.16,1,0.3,1); } .ds-pill-ink:hover { background:transparent; color:#080808; } .ds-pill-ink:focus-visible { outline:2px solid currentColor; outline-offset:4px; }"
+    },
+    {
+      "name": "Explore Slab",
+      "kind": "button",
+      "refersTo": "explore-slab",
+      "description": "Square slab with an arrow cell; yellow runs back over it on hover.",
+      "html": "<a class=\"ds-explore\" href=\"#\"><span class=\"ds-explore__label\">Explore the mesh</span><span class=\"ds-explore__cell\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\"><path d=\"M3 10h13M11 5l5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"/></svg></span></a>",
+      "css": ".ds-explore { display:inline-flex; align-items:stretch; height:60px; background:#080808; color:#fdd001; text-decoration:none; } .ds-explore__label { display:flex; align-items:center; padding:0 24px; font-size:0.78rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; } .ds-explore__cell { display:grid; place-items:center; width:60px; border-left:1px solid rgb(253 208 1 / 0.35); } .ds-explore:hover { background:#fdd001; color:#080808; box-shadow: inset 0 0 0 1.5px #080808; } .ds-explore:focus-visible { outline:2px solid currentColor; outline-offset:4px; }"
+    },
+    {
+      "name": "Brand Capsule",
+      "kind": "nav",
+      "refersTo": "brand-capsule",
+      "description": "Black pill that keeps both logos in full colour on every ground.",
+      "html": "<span class=\"ds-brand\"><span class=\"ds-brand__rt\">RTARIUM</span><span class=\"ds-brand__by\">by HEMISPHERE ONE</span></span>",
+      "css": ".ds-brand { display:inline-flex; align-items:center; gap:14px; padding:11px 20px 11px 16px; border-radius:999px; background:#080808; color:#f2f0e9; box-shadow:0 6px 18px -10px rgb(8 8 8 / 0.55); } .ds-brand__rt { font-weight:800; letter-spacing:0.02em; color:#fdd001; } .ds-brand__by { padding-left:14px; border-left:1px solid rgb(242 240 233 / 0.28); font-size:11px; }"
+    },
+    {
+      "name": "Heading Slab",
+      "kind": "custom",
+      "refersTo": "heading-slab-line",
+      "description": "A heading line set on a block of the inverse colour.",
+      "html": "<h2 class=\"ds-slab\"><span>Reinforced</span><span>through its depth.</span></h2>",
+      "css": ".ds-slab { display:flex; flex-direction:column; align-items:flex-start; gap:0.08em; margin:0; font-size:2.6rem; font-weight:700; line-height:1.02; } .ds-slab span { padding:0.04em 0.18em 0.12em 0.14em; background:#080808; color:#fdd001; }"
+    },
+    {
+      "name": "Progress Step",
+      "kind": "chip",
+      "refersTo": "progress-step",
+      "description": "Square chip that names a step and fills while it plays.",
+      "html": "<button class=\"ds-step\" type=\"button\">Structure</button>",
+      "css": ".ds-step { display:flex; align-items:center; height:36px; min-width:110px; padding:0 14px; border:0; border-radius:0; background:#080808; color:#fdd001; font-size:0.78rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; cursor:pointer; } .ds-step:focus-visible { outline:2px solid currentColor; outline-offset:4px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Machined Slab",
+    "overview": "The site is a presentation, not a page. Every screen is a full-height field of one colour that says one thing, and the only object with real depth is the basalt mesh itself, drawn in WebGL. Everything around it is flat, hard-edged and exact: blocks of yellow, black and warm white, hairline leaders, numbered notes, and headings set on slabs of the inverse colour so they read over anything.",
+    "keyCharacteristics": [
+      "Yellow is the majority colour; black is ink and the ground of technical screens; warm white replaces white.",
+      "The mesh keeps its own basalt-bronze colour on every ground, never black.",
+      "Type and mesh both read, through contrast colours or an inverse slab, never blend modes.",
+      "One message per screen; little text; layouts vary per screen.",
+      "Flat UI, deep 3D: all depth belongs to the mesh."
+    ],
+    "rules": [
+      { "name": "The Inverse Rule", "body": "On yellow, a block is black with yellow type; on black, a block is yellow with black type. White type on black is not used; type on black is yellow.", "section": "colors" },
+      { "name": "The Own-Colour Rule", "body": "The mesh is shown in basalt bronze on every ground. It is never black, never tinted by a ground, and nothing inverts it.", "section": "colors" },
+      { "name": "The No-Blend Rule", "body": "No mix-blend-mode anywhere. Legibility comes from slabs or clear ground.", "section": "colors" },
+      { "name": "The One Face for Numbers Rule", "body": "Every measurement, large or small, is Archivo with tabular figures. No monospace face for figures.", "section": "typography" },
+      { "name": "The Word-by-Word Rule", "body": "Headings rise word by word out of their own masks once the screen is reached, then hold their end state.", "section": "typography" },
+      { "name": "The Flat-UI Rule", "body": "Surfaces are flat colour fields separated by hairlines. If a block needs to stand out, it becomes a slab of the inverse colour, not a shadowed card.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do open on yellow (#fdd001); keep it the majority colour across the story.",
+      "Do put type on a contrast colour or an inverse slab: black on yellow, yellow on black.",
+      "Do keep every screen to one message and very little text; explain in plain language first, then give the exact figure.",
+      "Do set every number in Archivo tabular figures and label it by what it describes (mesh, yarn, concrete).",
+      "Do use \"3D spacer structure\" or \"3D woven spacer\", and \"RTARIUM by HEMISPHERE ONE\" for the name.",
+      "Do make screen changes one continuous, symmetrical motion in both directions, and honour reduced motion.",
+      "Do keep a still image fallback where WebGL is unavailable, and meet WCAG 2.2 AA contrast with full keyboard access."
+    ],
+    "donts": [
+      "Don't show the mesh in black, or let any ground, blend or filter recolour it.",
+      "Don't use mix-blend-mode, cross-fades or colour washes over the mesh (the one intended wash is the tour's white light).",
+      "Don't put copy over the 3D or lay out \"left text over right 3D\".",
+      "Don't show concrete outside \"Concrete, better than ever.\", \"In concrete\" and Tech Space's own slabs.",
+      "Don't use white type on black, shadows on cards, or pills and square chips on the same control.",
+      "Don't publish \"Diamondcomb\", or any figure, test standard, certification or contact detail the client's material does not supply.",
+      "Don't resolve the open questions (19.7 vs 20.9 MPa, \"impregnated\" vs \"no chemical top-coatings\"); keep them flagged."
+    ]
+  }
+}

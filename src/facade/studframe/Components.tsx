@@ -3,14 +3,15 @@ import { damp, prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D } from '../three/Stage3D'
 import { createBus, type LabelBus } from '../three/kit'
-import { FrameScene, SkinScene } from '../three/stud/ComponentScenes'
+import { AnchorScene, DayScene, NightScene } from '../three/stud/ComponentScenes'
 import { smooth, type Progress } from '../progress'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { useLive } from '../unitized/live'
 
 /**
- * The design stage: the element's two components, in the rainscreen barrier's grammar and its styles
+ * The design stage: how the skin is held and how it moves through the day, three listings in the
+ * rainscreen barrier's grammar and its styles
  * (`rainscreen.css`, `fr-bw`): on yellow, each listing's black 3D box and white box open diagonally out
  * of the bottom right corner as it comes up, the words standing on what is left of the yellow; the
  * listing holds for a long, slow stretch of scroll while its 3D makes one move (see `ComponentScenes`),
@@ -29,35 +30,50 @@ interface Listing {
 
 const LISTINGS: Listing[] = [
   {
-    id: 'skin',
+    id: 'anchor',
     row: ['Architectural skin', '16–20 mm'],
     head: (
       <>
-        <p className="fr-fig num" aria-label="16 to 20 millimetres">
-          16–20<small>mm</small>
-        </p>
-        <p className="fr-say">An architectural concrete skin.</p>
+        <h3 className="fr-name">
+          Fixed on <br />
+          flex anchors
+        </h3>
+        <p className="fr-say">A 16–20 mm concrete skin, held to the steel stud frame by flexible L plates.</p>
         <ReviewNote>{REVIEW.skin}</ReviewNote>
       </>
     ),
-    out: ['Reinforced with', 'RTARIUM.'],
-    Scene: SkinScene,
+    out: ['Fixed over', 'Flex anchors.'],
+    Scene: AnchorScene,
   },
   {
-    id: 'frame',
+    id: 'day',
     row: ['Steel stud frame', 'Flex-anchored'],
     head: (
       <>
-        <h3 className="fr-name">
-          Steel stud <br />
-          frame
-        </h3>
-        <p className="fr-say">Its L plates flex, so the skin moves with the heat.</p>
+        <p className="fr-fig num" aria-label="45 degrees Celsius">
+          45<small>°C</small>
+        </p>
+        <p className="fr-say">In the day’s heat the skin grows. The fixed L plates bend with it, so it expands freely.</p>
         <ReviewNote>{REVIEW.heat}</ReviewNote>
       </>
     ),
-    out: ['Joined by', 'Flex anchors.'],
-    Scene: FrameScene,
+    out: ['By day, it', 'Expands freely.'],
+    Scene: DayScene,
+  },
+  {
+    id: 'night',
+    row: ['Cool nights', 'No cracks'],
+    head: (
+      <>
+        <h3 className="fr-name">
+          Cools <br />
+          at night
+        </h3>
+        <p className="fr-say">The skin draws back as the air cools, and the plates bend back with it. It stays flat and whole.</p>
+      </>
+    ),
+    out: ['By night, it shrinks', 'Without warping.'],
+    Scene: NightScene,
   },
 ]
 const N = LISTINGS.length
@@ -120,11 +136,11 @@ function ListingView({ item, k, L, compact, refs }: { item: Listing; k: number; 
           <div className="fr-bw__top">
             {k === 0 ? (
               <h2 id="fs-bw-title" className="fr-kicker">
-                Two components
+                Built to breathe with the heat
               </h2>
             ) : (
               <p className="fr-kicker" aria-hidden="true">
-                Two components
+                Built to breathe with the heat
               </p>
             )}
             <p className="fr-count num" aria-hidden="true">
@@ -275,7 +291,7 @@ export function Components() {
 
   return (
     <section ref={section} id="components" className="fr-bw" aria-labelledby="fs-bw-title" style={{ '--run': RUN } as CSSProperties}>
-      <nav ref={rowsLayer} className="fr-bw__rows" aria-label="The two components">
+      <nav ref={rowsLayer} className="fr-bw__rows" aria-label="How the skin moves with the heat">
         <ol>
           {LISTINGS.map((it, k) => (
             <li key={it.id} className="fr-bw__slot" style={{ '--k': k } as CSSProperties}>

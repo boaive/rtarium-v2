@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url'
 
 const ROUTES = [
   'advanced-flooring',
+  'advanced-flooring/data-ai-centres',
+  'advanced-flooring/automated-warehouse',
+  'advanced-flooring/semiconductor-plant',
   'facade-cladding',
   'facade-cladding/unitized-thin-concrete-facade',
   'facade-cladding/rainscreen-cladding',
