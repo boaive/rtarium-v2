@@ -205,6 +205,8 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
       const rowH = bars.current[0]?.offsetHeight ?? 0
       const W = layer.current?.offsetWidth ?? window.innerWidth
       const layerTop = layer.current?.getBoundingClientRect().top ?? 0
+      // the rows leave with the section, never riding on over the next one
+      const leave = Math.min(0, (sectionRef.current?.getBoundingClientRect().bottom ?? vh) - vh)
       const q: number[] = []
 
       blocks.current.forEach((b, k) => {
@@ -260,7 +262,7 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
         const bar = bars.current[k]
         if (!bar) return
         const rise = reduced ? Number(q[k] < -0.1) : smooth(-0.02, -0.3, q[k])
-        bar.style.transform = `translate(0px, ${(navH + k * rowH - layerTop).toFixed(1)}px)`
+        bar.style.transform = `translate(0px, ${(navH + k * rowH - layerTop + leave).toFixed(1)}px)`
         bar.style.width = `${W}px`
         bar.style.opacity = rise > 0 ? '1' : '0'
         bar.style.clipPath = `inset(0 ${((1 - ease(smooth(0, 0.3, rise))) * 100).toFixed(2)}% 0 0)`
@@ -285,7 +287,7 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', resize)
     }
-  }, [layouts])
+  }, [layouts, sectionRef])
 
   /** a row takes you back to its block */
   const go = (i: number) => {

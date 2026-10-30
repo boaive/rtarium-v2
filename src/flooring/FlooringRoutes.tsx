@@ -1,3 +1,4 @@
+import '../facade/facade.css'
 import { FLOORING, flooringAppByPath } from './content'
 import { NotFound } from '../pages/Planned'
 import Overview from './pages/Overview'

@@ -91,7 +91,7 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
     return {
       ...f,
       steel: new THREE.MeshStandardMaterial({ color: '#7d838a', metalness: 0.7, roughness: 0.38 }),
-      rust: new THREE.MeshStandardMaterial({ color: '#8a3b12', roughness: 0.9, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
+      rust: new THREE.MeshStandardMaterial({ color: '#5a2709', roughness: 0.9, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
       robot: new THREE.MeshStandardMaterial({ color: '#151515', metalness: 0.3, roughness: 0.5 }),
       carbon: new THREE.MeshStandardMaterial({ color: '#151515', roughness: 0.6, transparent: true, opacity: 0.32, depthWrite: false }),
       grid: new THREE.LineBasicMaterial({ color: '#2a2a2a', transparent: true }),
@@ -167,7 +167,6 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
   const fibreMesh = useRef<THREE.InstancedMesh>(null)
   const web = useRef<THREE.Group>(null)
   const load = useRef<THREE.Mesh>(null)
-  const span = useRef<THREE.Mesh>(null)
   const cutsX = useRef<(THREE.Mesh | null)[]>([])
   const cutsZ = useRef<(THREE.Mesh | null)[]>([])
   const robot = useRef<THREE.Group>(null)
@@ -251,11 +250,6 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
       pos.needsUpdate = true
       screed.current.geometry.computeVertexNormals()
     }
-    const lit = k === 1 ? smooth(0.5, 0.62, at1) * (1 - smooth(0.82, 0.94, at1)) : 0
-    if (span.current) {
-      span.current.visible = lit > 0.01
-      m.mark.opacity = lit
-    }
 
     // 2. the saw-cut joints close, from the middle out; then the floor opens out into one plate
     const at2 = v - 2
@@ -309,8 +303,8 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
     if (stain.current) {
       const s = k === 4 ? smooth(0.3, 0.86, at4) : 0
       stain.current.visible = s > 0.01
-      stain.current.scale.set(0.3 + 0.32 * s, 1, 0.26 + 0.28 * s)
-      m.rust.opacity = 0.55 * s
+      stain.current.scale.set(0.28 + 0.12 * s, 1, 0.24 + 0.1 * s)
+      m.rust.opacity = 0.42 * s
     }
 
     // 5. the floor's embodied carbon, a block over it, shrinks down; its outline stays where it began
@@ -337,10 +331,6 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
           <mesh geometry={geo.slabR} material={m.slab} castShadow receiveShadow />
         </group>
         <mesh ref={screed} geometry={geo.screed} material={m.screed} castShadow receiveShadow />
-        {/* where the screed spans the joint, lit while the load is on it */}
-        <mesh ref={span} position={[0, SC + 0.002, 0]} material={m.mark} visible={false}>
-          <boxGeometry args={[0.3, 0.002, D - 0.02]} />
-        </mesh>
         {CUTS_X.map((x, i) => (
           <mesh key={`x${i}`} ref={(el) => void (cutsX.current[i] = el)} geometry={geo.cutsX} material={m.ink} position={[x, 0, 0]} visible={false} />
         ))}
