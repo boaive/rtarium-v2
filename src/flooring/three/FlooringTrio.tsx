@@ -116,7 +116,9 @@ const SLOTS: Slot[] = [
   },
 ]
 
-export function FlooringTrio({ play, hover, live }: { play: boolean; hover: number | null; live?: { current: boolean } }) {
+export function FlooringTrio({ play, hover, live, pick }: { play: boolean; hover: number | null; live?: { current: boolean }; pick?: number[] }) {
+  // a page that shows only some of the three (the other applications) names which, in order
+  const slots = useMemo(() => (pick ? SLOTS.filter((_, i) => pick.includes(i)) : SLOTS), [pick?.join()]) // eslint-disable-line react-hooks/exhaustive-deps
   const size = useThree((s) => s.size)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const invalidate = useThree((s) => s.invalidate)
@@ -132,10 +134,10 @@ export function FlooringTrio({ play, hover, live }: { play: boolean; hover: numb
     [g, m],
   )
 
-  // the slots sit under the three columns: a third of the view's width each
+  // the slots sit under their columns: an equal share of the view's width each
   const aspect = size.width / Math.max(1, size.height)
   const viewW = 2 * DIST * Math.tan((FOV / 2) * (Math.PI / 180)) * aspect
-  const colW = viewW / SLOTS.length
+  const colW = viewW / slots.length
   const fill = aspect < 2 ? 0.86 : 0.62
   const scale = (colW * fill) / (P.w * Math.cos(TURN) + P.d * Math.sin(-TURN))
 
@@ -162,7 +164,7 @@ export function FlooringTrio({ play, hover, live }: { play: boolean; hover: numb
     const now = performance.now()
     let moving = false
     const sway = !reduced && (live?.current ?? false)
-    SLOTS.forEach((_, i) => {
+    slots.forEach((_, i) => {
       // each rises in its turn once the section is there; the one pointed at turns towards the visitor
       const due = since.current && (reduced || now - since.current > 180 + i * 220) ? 1 : 0
       moving = approach(s, `r${i}`, due, reduced ? 100 : 5, dt) || moving
@@ -170,7 +172,7 @@ export function FlooringTrio({ play, hover, live }: { play: boolean; hover: numb
       const gr = groups.current[i]
       if (!gr) return
       const r = 1 - Math.pow(1 - s[`r${i}`], 3)
-      gr.position.set((i - (SLOTS.length - 1) / 2) * colW, (1 - r) * -0.4, 0)
+      gr.position.set((i - (slots.length - 1) / 2) * colW, (1 - r) * -0.4, 0)
       gr.scale.setScalar(scale * Math.max(0.001, r))
       gr.visible = r > 0.002
       gr.rotation.y = TURN + 0.35 * s[`h${i}`] + (sway ? 0.05 * Math.sin(now / 1000 / 2.4 + i * 1.7) : 0)
@@ -181,7 +183,7 @@ export function FlooringTrio({ play, hover, live }: { play: boolean; hover: numb
   return (
     <>
       <MovingKeyLight focus={[0, TARGET_Y, 0]} reach={3} />
-      {SLOTS.map((slot, i) => (
+      {slots.map((slot, i) => (
         <group key={i} ref={(el) => void (groups.current[i] = el)} visible={false}>
           <mesh geometry={g.slab} material={m.slab} castShadow receiveShadow />
           <mesh geometry={g.screed} material={m.screed} receiveShadow />
