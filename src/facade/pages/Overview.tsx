@@ -128,9 +128,22 @@ export default function Overview() {
           </Stage3D>
           <Labels bus={heroBus} labels={HERO_LABELS} shown={HERO_LABELS.map((l) => l.id)} />
         </div>
+        {/* what the page is, top left, as the system pages name themselves */}
+        <header className="fco-head">
+          <p className="fco-head__name">Façade & Cladding</p>
+          <p className="fco-head__kind">Thin concrete façade panels, reinforced with RTARIUM’s 3D basalt textile.</p>
+        </header>
         <div className="fco-hero__copy">
           <Words as="h1" id="fco-title" className="fco-mega" lines={['Beyond GRC', 'and UHPC.']} />
-          <p className="fco-lede">Thin concrete façade panels, reinforced with RTARIUM’s 3D basalt textile.</p>
+          {/* the three systems, straight from the opening (the system pages' own "Also" row) */}
+          <p className="fco-also">
+            <span>Explore</span>
+            {SYSTEMS.map((s) => (
+              <Link key={s.id} to={s.path}>
+                {s.title}
+              </Link>
+            ))}
+          </p>
         </div>
         <span className="fco-cue" aria-hidden="true">
           Scroll

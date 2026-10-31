@@ -26,6 +26,24 @@
 .fdc-fail .fr-trade__title {
   font-size: clamp(2.2rem, min(4.3vw, 7.8vh), 5rem);
 }
+/* the first line alone in the middle of the yellow, as the overview's statement stands */
+.fdc-fail .fdc-fail__open {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: auto;
+  padding: calc(var(--nav-h) + var(--s-6)) var(--gutter) var(--s-7);
+  text-align: center;
+}
+/* the title's lines, each taken on its own from the middle of the screen to its corner (Problems.tsx) */
+.fdc-fail__lines > span {
+  display: block;
+  width: fit-content;
+}
+/* the deck recedes as one, from its top (Problems.tsx) */
+.fdc-fail .fr-trade__deck {
+  transform-origin: 50% 0;
+}
 /* the client's line takes the title's place as the deck recedes, set to keep clear of it */
 .fdc-fail .fdc-fail__close {
   font-size: clamp(1.9rem, min(3.3vw, 6.2vh), 3.9rem);
@@ -45,6 +63,13 @@
 }
 .fdc-card .fr-card__name {
   color: rgb(242 240 233 / calc(1 - var(--s, 0) * 0.42));
+}
+/* a card goes dark under the next as that one comes in on it: its tab is read, nothing of it shows through */
+.fdc-card .fr-card__shade {
+  opacity: max(var(--cover, 0), calc(var(--depth, 0) * 0.55));
+}
+.fdc-card:hover .fr-card__shade {
+  opacity: max(var(--cover, 0), calc(var(--depth, 0) * 0.35));
 }
 .fdc-card__answer {
   display: flex;
@@ -378,6 +403,10 @@
 }
 
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  /* on a phone the deck's own tabs are the problems' list (and the way to each): the names over it only crowd it */
+  .fdc-fail .fr-trade__nav {
+    display: none;
+  }
   .fdc-card__tab {
     grid-template-columns: 1.6rem minmax(0, 1fr) auto;
   }

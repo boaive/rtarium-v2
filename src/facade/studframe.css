@@ -5,3 +5,9 @@
 .fs-hero .fu-mega {
   font-size: clamp(2.6rem, min(5.4vw, 10vh), 7rem);
 }
+
+/* the design stage's rows: the tags in one column, their squares starting on one line */
+#components .fr-row__tag {
+  flex: none;
+  width: 8rem;
+}

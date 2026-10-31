@@ -164,7 +164,7 @@ export function finishGeometry() {
   const { storeys, fh } = TOWER
   const slabOutline = arc(0)
   const glassLine = arc(GLASS_G, 0, 36)
-  const frameLine = arc(GLASS_G + 0.03, 0, 36)
+  const frameLine = arc(GLASS_G + 0.08, 0, 36)
   const posts = along(arc(GLASS_G), MULLION)
   const slabs: THREE.BufferGeometry[] = []
   const glass: THREE.BufferGeometry[] = []
@@ -176,9 +176,9 @@ export function finishGeometry() {
     const g0 = y + 0.02
     const g1 = bandY(k) - 0.02
     glass.push(ribbon(glassLine, g0, g1))
-    for (const yy of [g0 + 0.04, y + 1.1, g1 - 0.04]) frames.push(ribbon(frameLine, yy - 0.02, yy + 0.02))
+    for (const yy of [g0 + 0.04, y + 1.1, g1 - 0.04]) frames.push(ribbon(frameLine, yy - 0.035, yy + 0.035))
     // (the ribbons carry no uv, so neither do the mullions they are merged with)
-    for (const [x, z] of posts) frames.push(new THREE.BoxGeometry(0.05, g1 - g0, 0.05).translate(x, (g0 + g1) / 2, z).deleteAttribute('uv'))
+    for (const [x, z] of posts) frames.push(new THREE.BoxGeometry(0.09, g1 - g0, 0.09).translate(x, (g0 + g1) / 2, z).deleteAttribute('uv'))
   }
   const H = storeys * fh
   slabs.push(extrudeDown(slabOutline, arc(-0.25), H + 1.0, 1.0))

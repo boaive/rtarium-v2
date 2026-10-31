@@ -3,6 +3,11 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    watch: {
+      ignored: ['**/out/**', '**/.git/**', '**/rtarium-film/**', '**/rtarium-unitized/**'],
+    },
+  },
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 900,

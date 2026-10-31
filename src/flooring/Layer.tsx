@@ -144,6 +144,8 @@ const SHOTS: CellShot[] = [
   { target: [0, -0.01, 0], azim: 34, elev: 26, zoom: 1, sway: 4 },
 ]
 const KEY: [number, number, number] = [-4, 10, 7.5]
+/** how many rows a block stands under: the last leaves its own row's slot empty, so its row is lowered into free space */
+const under = (k: number) => (k === BLOCKS.length - 1 ? BLOCKS.length : k)
 
 /* the Façade overview's timings (p: 1 at the foot of the screen, 0 read, −1 gone) */
 const OPENED = 0.3
@@ -219,7 +221,7 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
         const BW = r.width
         const BH = r.height
         // where the block is: 1 arriving at the foot of the screen, 0 read, −1 gone above
-        const p = (r.top - (navH + k * rowH)) / Math.max(1, BH)
+        const p = (r.top - (navH + under(k) * rowH)) / Math.max(1, BH)
         q.push(p)
         if (r.bottom < navH - 4 || r.top > vh + 4) return
         const c: Cut = reduced
@@ -261,11 +263,14 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
       BLOCKS.forEach((_, k) => {
         const bar = bars.current[k]
         if (!bar) return
-        const rise = reduced ? Number(q[k] < -0.1) : smooth(-0.02, -0.3, q[k])
-        bar.style.transform = `translate(0px, ${(navH + k * rowH - layerTop + leave).toFixed(1)}px)`
+        const lastOne = k === BLOCKS.length - 1
+        const rise = reduced ? Number(lastOne ? q[k] < 0.15 : q[k] < -0.1) : lastOne ? smooth(0.6, 0.15, q[k]) : smooth(-0.02, -0.3, q[k])
+        // lowered into its slot from under the row above: only what has come down past the slot's top shows
+        const e = ease(rise)
+        bar.style.transform = `translate(0px, ${(navH + k * rowH - (1 - e) * rowH - layerTop + leave).toFixed(1)}px)`
         bar.style.width = `${W}px`
         bar.style.opacity = rise > 0 ? '1' : '0'
-        bar.style.clipPath = `inset(0 ${((1 - ease(smooth(0, 0.3, rise))) * 100).toFixed(2)}% 0 0)`
+        bar.style.clipPath = `inset(${((1 - e) * 100).toFixed(2)}% 0 0 0)`
         bar.style.setProperty('--s', '0')
         const docked = rise > 0.5
         bar.tabIndex = docked ? 0 : -1
@@ -295,7 +300,7 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
     if (!b) return
     const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
     const rowH = bars.current[0]?.offsetHeight ?? 0
-    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + i * rowH))
+    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + under(i) * rowH))
   }
 
   const content = (v: Block, i: number, role: Role): ReactNode => {
@@ -342,7 +347,10 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
               <button ref={(el) => void (bars.current[i] = el)} type="button" className="fs-row" tabIndex={-1} onClick={() => go(i)} aria-label={`${v.name}. Back to it`}>
                 <span className="fs-row__num num">0{i + 1} /</span>
                 <span className="fs-row__name">{v.name}</span>
-                <span className="fs-row__tag">{v.tag}</span>
+                <span className="fs-row__tag">
+                  <i aria-hidden="true" />
+                  {v.tag}
+                </span>
               </button>
             </li>
           ))}
@@ -357,7 +365,7 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
       {BLOCKS.map((v, i) => {
         const L = layouts[i]
         return (
-          <article key={v.id} ref={(el) => void (blocks.current[i] = el)} className="fs-block" style={{ '--i': i } as CSSProperties} aria-labelledby={`ffl-${v.id}`}>
+          <article key={v.id} ref={(el) => void (blocks.current[i] = el)} className="fs-block" style={{ '--i': under(i) } as CSSProperties} aria-labelledby={`ffl-${v.id}`}>
             {ORDER.map((role) => {
               const [, , rw, rh] = L.at[role](L.rest)
               return (

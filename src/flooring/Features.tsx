@@ -35,7 +35,7 @@ const FEATURES: Feature[] = [
 
 const LABELS: LabelSpec[] = [
   { id: 'web', anchor: 'ff-web', text: 'Continuous 3D web', dx: 60, dy: -90 },
-  { id: 'load', anchor: 'ff-load', text: 'Slab deflects', dx: 60, dy: -60 },
+  { id: 'load', anchor: 'ff-load', text: 'Heavy load', dx: 60, dy: -60 },
   { id: 'joint', anchor: 'ff-joint', text: 'Screed stays whole', dx: -60, dy: 80 },
   { id: 'plate', anchor: 'ff-plate', text: 'One open plate', dx: 60, dy: 70 },
   { id: 'robot', anchor: 'ff-robot', text: 'Vibration absorbed', dx: 50, dy: -80 },

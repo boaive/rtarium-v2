@@ -5,14 +5,17 @@ import { scrollToY } from '../../lib/scroll'
 import { Stage3D } from '../../facade/three/Stage3D'
 import { smooth } from '../../facade/progress'
 import { useLive } from '../../facade/unitized/live'
+import { glide, useDeckUnderWords } from '../data/Problems'
 import { ProblemSample, type ProblemKind } from './three/ProblemSample'
 
 /**
  * The Data & AI Centres problems' deck, on the warehouse's four failures. On the opening's yellow, the
- * line that follows it; the black rises from the foot of the screen over it, carrying the answer in the
- * same place. Each card arrives as its problem and is answered in place: its name and line struck, the
- * photograph slid over to RTARIUM's, the sample turned into RTARIUM's, the answer in, in yellow. As the
- * page goes on the deck recedes and the client's messages take the title's place, in few words.
+ * line that follows it, alone in the middle of the screen; the black rises from the foot of the screen
+ * over it, carrying the answer in the same place, which then goes over to its corner. Each card arrives
+ * as its problem and is answered in place: its name and line struck, the photograph slid over to
+ * RTARIUM's, the sample turned into RTARIUM's, the answer in, in yellow. Each comes in square on the
+ * one before, which goes dark under it to its tab. As the page goes on the deck recedes as one and the
+ * client's messages take the title's place, in few words.
  */
 
 interface Problem {
@@ -97,6 +100,8 @@ const MESSAGES: (string[] | null)[] = [['Zero interference.', 'Zero curling.', '
 
 const RUN = 9.4
 const NIGHT: [number, number] = [0.016, 0.088]
+/** the title, from the middle of the screen to its corner: once the black is past its top, before the first card */
+const GLIDE: [number, number] = [0.075, 0.13]
 const CARD_AT = (k: number): [number, number] => [0.135 + k * 0.19, 0.135 + k * 0.19 + 0.055]
 const SOLVE_AT = (k: number): [number, number] => [CARD_AT(k)[1] + 0.055, CARD_AT(k)[1] + 0.11]
 const ASIDE: [number, number] = [0.9, 0.975]
@@ -120,6 +125,7 @@ export function Problems() {
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const night = useRef<HTMLDivElement>(null)
+  const first = useRef<HTMLParagraphElement>(null)
   const title = useRef<HTMLHeadingElement>(null)
   const close = useRef<HTMLDivElement>(null)
   const names = useRef<(HTMLLIElement | null)[]>([])
@@ -127,6 +133,7 @@ export function Problems() {
   const cards = useRef<(HTMLElement | null)[]>([])
   const solved = useMemo(() => PROBLEMS.map(() => ({ current: 0 })), [])
   const [now, setNow] = useState(-1)
+  useDeckUnderWords(deck, compact)
 
   useEffect(() => {
     const el = section.current
@@ -142,6 +149,8 @@ export function Problems() {
       const n = reduced ? Number(p > NIGHT[0]) : ease(smooth(NIGHT[0], NIGHT[1], p))
       night.current?.style.setProperty('--n', n.toFixed(4))
       el.dataset.ground = n > 0.5 ? 'black' : 'yellow'
+      // the title stands where the first line stood while the black rises over it, then goes over to its corner
+      glide(title.current, first.current, reduced ? Number(p < GLIDE[0]) : 1 - ease(smooth(GLIDE[0], GLIDE[1], p)))
       // the title goes first; only once it has gone do the client's messages come in, never over it
       const away = reduced ? Number(p > ASIDE[0]) : smooth(ASIDE[0], ASIDE[0] + 0.03, p)
       const back = reduced ? Number(p > ASIDE[0]) : smooth(ASIDE[0] + 0.035, ASIDE[1] - 0.005, p)
@@ -154,14 +163,17 @@ export function Problems() {
         close.current.style.transform = `translate3d(0, ${((1 - back) * 14).toFixed(2)}px, 0)`
         close.current.style.visibility = back > 0.01 ? '' : 'hidden'
       }
+      // the cards: each in from the right edge, one tab below and square on the one before, which goes
+      // dark under it to its tab
       const d = deck.current
       if (!d) return
       const W = d.clientWidth
-      const first = cards.current[0]
-      const tab = first?.querySelector<HTMLElement>('.fr-card__tab')?.offsetHeight ?? 56
-      const from = window.innerWidth - d.getBoundingClientRect().left + 24
+      const tab = cards.current[0]?.querySelector<HTMLElement>('.fr-card__tab')?.offsetHeight ?? 56
+      const from = window.innerWidth - d.offsetLeft + 24
       const arrive = PROBLEMS.map((_, k) => (reduced ? Number(p > CARD_AT(k)[0]) : ease(smooth(CARD_AT(k)[0], CARD_AT(k)[1], p))))
       const aside = reduced ? 0 : ease(smooth(ASIDE[0], ASIDE[1], p))
+      // the deck recedes as one, so no card ever slips out from under another
+      d.style.transform = aside > 0 ? `translate3d(${(aside * W * 0.1).toFixed(1)}px, 0, 0) scale(${(1 - aside * 0.12).toFixed(4)})` : ''
       let current = -1
       cards.current.forEach((c, k) => {
         if (!c) return
@@ -169,11 +181,9 @@ export function Problems() {
         if (a > 0.5) current = k
         let depth = 0
         for (let j = k + 1; j < N; j++) depth += arrive[j]
-        const x = (1 - a) * from + aside * W * 0.1
-        const y = k * tab
-        const s = (1 - Math.min(depth, 4) * 0.012) * (1 - aside * 0.12)
-        c.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${s.toFixed(4)})`
+        c.style.transform = `translate3d(${((1 - a) * from).toFixed(1)}px, ${(k * tab).toFixed(1)}px, 0)`
         c.style.visibility = a > 0.001 ? 'visible' : 'hidden'
+        c.style.setProperty('--cover', Math.min(1, depth * 1.5).toFixed(3))
         c.style.setProperty('--depth', Math.min(1, depth * 0.5 + aside * 0.55).toFixed(3))
         c.toggleAttribute('data-front', a > 0.5 && depth < 0.5)
         const v = reduced ? Number(p > SOLVE_AT(k)[0]) : smooth(SOLVE_AT(k)[0], SOLVE_AT(k)[1], p)
@@ -214,9 +224,9 @@ export function Problems() {
   return (
     <section ref={section} id="problems" className="fr-trade fdc-fail" data-ground="yellow" aria-labelledby="faw-fail-title" style={{ '--run': RUN } as CSSProperties}>
       <div className="fr-trade__pin">
-        {/* the first line on the yellow; the black rises over it, carrying the title in its place */}
-        <div className="fr-trade__copy">
-          <p className="fr-trade__first">
+        {/* the first line in the middle of the yellow; the black rises over it, carrying the title in its place */}
+        <div className="fr-trade__copy fdc-fail__open">
+          <p ref={first} className="fr-trade__first">
             Traditional screeds <br />
             were not built <br />
             for this.
@@ -224,9 +234,8 @@ export function Problems() {
         </div>
         <div ref={night} className="fr-trade__night">
           <div className="fr-trade__copy">
-            <h2 ref={title} id="faw-fail-title" className="fr-trade__title">
-              RTARIUM was <br />
-              built for this.
+            <h2 ref={title} id="faw-fail-title" className="fr-trade__title fdc-fail__lines">
+              <span>RTARIUM was</span> <span>built for this.</span>
             </h2>
           </div>
         </div>

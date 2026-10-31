@@ -10,6 +10,7 @@ import { craneLines } from '../rain/building'
 import { FatLines, fatMaterial } from '../rain/lines'
 import { Element, createElementApi } from './Element'
 import { BACK, JOINT, LEN, PROFILE, SKIN, bandGeometry, block, merge, offsetPath, type P2 } from './cornice'
+import { PINK } from '../rain/parts'
 import { TOWER, TOWER_H, TOWER_W, bandY, bayLines, elementX, finishGeometry, ringGeometry, scanLines, towerLines } from './tower'
 
 /**
@@ -27,18 +28,17 @@ import { TOWER, TOWER_H, TOWER_W, bandY, bayLines, elementX, finishGeometry, rin
  *   5  the tower comes in behind as a drawing, its lower floors already banded; the rest of the bands go
  *      up by themselves, floor by floor, wrapping right round the ends and the back
  *   6  finished: a scan rises up the tower to its top band, and below it the drawing gives way to the
- *      building itself (slabs, black frames, smoked glass you can see into); the roof (its parapet,
+ *      building itself (slabs, frames, grey glass); the roof (its parapet,
  *      plant and the core's head) and the crane are left a drawing
  *
- * In RTARIUM's own colours, against the drawings' basalt pink: the cladding a bright white concrete,
- * the glass smoked graphite, its frames black, so the white bands stand out on the dark glazing.
+ * Every drawing is a bold black; the cladding is light pink, the glass a solid grey, its frames a deeper pink.
  *
  * Everything follows the scroll. Sizes and details show the principle; they are not a product drawing.
  */
 
-/** every drawing: basalt pink; the cladding, a bright white concrete */
-const WIRE = '#c0786a'
-const CLAD = '#f7f5ef'
+/** every drawing: black; the cladding: light pink */
+const WIRE = '#080808'
+const CLAD = PINK
 
 /** the bay followed: the fifth element of the fourth floor's band */
 const I0 = 4
@@ -101,7 +101,8 @@ export function installShot(p: number, compact: boolean, settle = 0): Shot {
   const wide: Shot = { target: [TOWER_W * 0.5, (MAST_H + HEAD) * 0.5, -4], dist: 118 * kw, azim: -28, elev: 9, frame: [0.5, 0.52] }
   const done: Shot = { target: [TOWER_W * 0.5, TOWER_H * 0.5, -4], dist: 100 * kw, azim: -30, elev: 9, frame: [0.5, 0.5] }
   // finished: round a little, so the bands are seen wrapping the end
-  const fin: Shot = { target: [TOWER_W * 0.55, TOWER_H * 0.52, -TOWER.r], dist: 108 * kw, azim: -42, elev: 11, frame: [0.5, 0.47] }
+  // (far enough back that the crane, left standing, clears the header)
+  const fin: Shot = { target: [TOWER_W * 0.55, (MAST_H + HEAD) * 0.5, -TOWER.r], dist: 128 * kw, azim: -42, elev: 11, frame: [0.5, 0.5] }
   let s = mixShot(near, lift, smooth(INSTALL.crane[0] - 0.02, INSTALL.lift[0] + 0.04, p))
   s = mixShot(s, back, smooth(INSTALL.lift[1] - 0.07, INSTALL.hook[1], p))
   s = mixShot(s, look, lean)
@@ -155,13 +156,13 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
       done: u.concrete.clone(),
       sealant: new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.32 }),
       rod: new THREE.MeshStandardMaterial({ color: '#efede6', roughness: 1 }),
-      // the finished building: its slabs, its frames, its glass, smoked but see-through so the bands read against it
-      slab: new THREE.MeshStandardMaterial({ color: '#8d8b86', roughness: 0.9, transparent: true }),
-      frame: new THREE.MeshStandardMaterial({ color: '#080808', metalness: 0.4, roughness: 0.45, transparent: true }),
-      glass: new THREE.MeshStandardMaterial({ color: '#2a3035', metalness: 0.6, roughness: 0.08, transparent: true, opacity: 0.62, depthWrite: false, side: THREE.DoubleSide }),
+      // the finished building: its slabs, its frames, its glass, a solid grey, pushed back in depth so the frames on it never flicker
+      slab: new THREE.MeshStandardMaterial({ color: '#f3ebe6', roughness: 0.9, transparent: true }),
+      frame: new THREE.MeshStandardMaterial({ color: '#d9a99b', metalness: 0.2, roughness: 0.45, transparent: true }),
+      glass: new THREE.MeshStandardMaterial({ color: '#5c5f62', metalness: 0.15, roughness: 0.35, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 8 }),
     }
   }, [])
-  // the cladding a bright white concrete: the elements going up, those already up, the one the crane brings
+  // the cladding light pink: the elements going up, those already up, the one the crane brings
   useMemo(() => {
     m.u.concrete.color.set(CLAD)
     m.done.color.set(CLAD)
@@ -176,13 +177,13 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
   useMemo(() => {
     for (const x of [m.slab, m.frame, m.glass]) x.clippingPlanes = [sweep.below]
   }, [m, sweep])
-  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: WIRE, transparent: true, opacity: 0.6 }), [])
+  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: WIRE, transparent: true, opacity: 0.9 }), [])
   const draw = useMemo(
     () => ({
-      block: fatMaterial(WIRE, 1.2, 0),
+      block: fatMaterial(WIRE, 1.7, 0),
       scan: fatMaterial('#fdd001', 3, 0),
-      context: fatMaterial(WIRE, 1.3, 0.3),
-      crane: fatMaterial(WIRE, 1.2, 0),
+      context: fatMaterial(WIRE, 1.7, 0.3),
+      crane: fatMaterial(WIRE, 1.7, 0),
       rig: new THREE.LineBasicMaterial({ color: WIRE, transparent: true, opacity: 0 }),
     }),
     [],
@@ -270,6 +271,9 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
     // the drawing stays wherever the building is not yet: above the scan
     draw.block.clippingPlanes = [sweep.above]
     draw.block.clipping = true
+    // (the crane's mast stands inside the plan: it goes with the drawing, so it never shows between the finished floors)
+    draw.crane.clippingPlanes = [sweep.above]
+    draw.crane.clipping = true
   }, [draw, sweep])
   const rig = useMemo(() => {
     const g = new THREE.BufferGeometry()
@@ -364,7 +368,7 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
       if (scan) scan.visible = reveal[k] > 0.001 && reveal[k] < 0.999
     }
     // the locks' drawing shows only once their turn comes
-    lineMats.locks.opacity = 0.5 * smooth(INSTALL.lock[0] - 0.03, INSTALL.lock[0], p)
+    lineMats.locks.opacity = 0.9 * smooth(INSTALL.lock[0] - 0.03, INSTALL.lock[0], p)
 
     // 2. the crane: drawn in; the hook's path: hoisted off the ground, brought in, lowered, set on its L frames
     const craneIn = smooth(INSTALL.crane[0], INSTALL.crane[1], p)
@@ -388,9 +392,9 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
     // 3. the tower comes in behind, faint and then clear, its banded floors with it; the bay's own drawing gives way to it
     const faint = smooth(INSTALL.block[0], INSTALL.block[0] + 0.04, p)
     const clear = smooth(INSTALL.block[0] + 0.04, INSTALL.block[1], p)
-    draw.block.opacity = faint * 0.12 + clear * 0.12 + smooth(INSTALL.wide[0], INSTALL.wide[1], p) * 0.3
+    draw.block.opacity = faint * 0.45 + clear * 0.5
     draw.block.visible = draw.block.opacity > 0.003
-    draw.context.opacity = 0.3 * (1 - faint)
+    draw.context.opacity = 0.9 * (1 - faint)
     draw.context.visible = draw.context.opacity > 0.003
     setOpacity([m.done], clear)
 
@@ -443,9 +447,9 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
     // the crane and its rig
     // the crane stays up: the building is not finished yet
     const cr = craneIn
-    draw.crane.opacity = 0.42 * cr
+    draw.crane.opacity = 0.95 * cr
     draw.crane.visible = cr > 0.003
-    draw.rig.opacity = 0.6 * cr * (1 - hooked)
+    draw.rig.opacity = 0.9 * cr * (1 - hooked)
     draw.rig.visible = draw.rig.opacity > 0.003
     e.root.updateWorldMatrix(true, false)
     const lp = e.root.localToWorld(new THREE.Vector3(0, 0.48, 0.055))

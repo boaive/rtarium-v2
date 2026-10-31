@@ -28,3 +28,17 @@
 .ffo-say__text .fc-words__line {
   display: inline;
 }
+
+/* the layer's rows: the tags in one column, their squares starting on one line (as the stud frame's) */
+#layer .fs-row__tag {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  width: 10rem;
+}
+#layer .fs-row__tag i {
+  width: 9px;
+  height: 9px;
+  background: currentColor;
+}

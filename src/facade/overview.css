@@ -47,6 +47,56 @@
   text-wrap: pretty;
   animation: rise 0.8s var(--ease-out) 0.9s both;
 }
+/* the page's name and what it is, top left: the system pages' own heading (fu-hero__head) */
+.fco-head {
+  position: absolute;
+  z-index: 3;
+  left: var(--gutter);
+  top: calc(var(--nav-h) + clamp(28px, 6vh, 72px));
+  display: grid;
+  gap: 6px;
+  animation: rise 0.8s var(--ease-out) 0.2s both;
+}
+.fco-head__name {
+  font-size: var(--t-lead);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.fco-head__kind {
+  max-width: 19rem;
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--on-yellow-2);
+}
+/* the three systems, under the title: the system pages' "Also" row */
+.fco-also {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 22px;
+  font-size: var(--t-small);
+  font-weight: 600;
+  animation: rise 0.8s var(--ease-out) 1.1s both;
+}
+.fco-also span {
+  color: var(--on-yellow-2);
+  font-weight: 500;
+}
+.fco-also a {
+  color: var(--black);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.24em;
+}
+.fco-also a:hover {
+  text-decoration-thickness: 2.5px;
+}
+.fco-also a:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 4px;
+}
 /* "Scroll", with a line that keeps running down beside it */
 .fco-cue {
   position: absolute;
@@ -553,6 +603,9 @@
 /* ---- narrow screens ---------------------------------------------------------------------------- */
 
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fco-head {
+    top: calc(var(--nav-h) + 20px);
+  }
   .fco-hero__copy {
     right: var(--gutter);
     max-width: none;
@@ -631,6 +684,8 @@
 @media (prefers-reduced-motion: reduce) {
   .fco-hero .word__in,
   .fco-lede,
+  .fco-head,
+  .fco-also,
   .fco-cue::after {
     animation: none;
   }

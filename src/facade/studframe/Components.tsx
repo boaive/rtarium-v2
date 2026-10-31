@@ -16,7 +16,7 @@ import { useLive } from '../unitized/live'
  * of the bottom right corner as it comes up, the words standing on what is left of the yellow; the
  * listing holds for a long, slow stretch of scroll while its 3D makes one move (see `ComponentScenes`),
  * then its boxes fold back into the corner as the next one's open. Each is drawn into a row under the
- * header as it is passed (never struck, a way back); the last once its 3D has played. The rows leave
+ * header as it is passed (never struck, a way back); the last as its own listing arrives, so its slot is never left empty. The rows leave
  * with the section.
  */
 
@@ -77,12 +77,13 @@ const LISTINGS: Listing[] = [
   },
 ]
 const N = LISTINGS.length
+/** how many rows a listing's stage stands under: the last leaves its own row's slot empty, so its row is lowered into free space, over nothing */
+const under = (k: number) => (k === N - 1 ? N : k)
 
 /** the barrier's timings: screens of scroll per listing, the stretch of its hold in which its 3D plays, the last's row drawn in while it still holds */
 const RUN = 3.1
 const PLAY: [number, number] = [0.05, 1.75]
 const RUN_LAST = 3.25
-const DOCK: [number, number] = [1.85, 2.1]
 const OPENED = 0.3
 const CLOSING = -0.1
 const CLOSED = -0.65
@@ -130,7 +131,7 @@ function ListingView({ item, k, L, compact, refs }: { item: Listing; k: number; 
   const live = useLive(view)
   const { Scene } = item
   return (
-    <article ref={(el) => void (refs.block[k] = el)} className="fr-bw__block" style={{ '--k': k, '--run': k === N - 1 ? RUN_LAST : RUN } as CSSProperties} aria-labelledby={`fs-bw-${item.id}`}>
+    <article ref={(el) => void (refs.block[k] = el)} className="fr-bw__block" style={{ '--k': under(k), '--run': k === N - 1 ? RUN_LAST : RUN } as CSSProperties} aria-labelledby={`fs-bw-${item.id}`}>
       <div ref={(el) => void (refs.stage[k] = el)} className="fr-bw__stage">
         <div className="fr-bw__words" style={{ '--x': L.words[0], '--y': L.words[1], '--w': L.words[2], '--h': L.words[3] } as CSSProperties}>
           <div className="fr-bw__top">
@@ -213,7 +214,7 @@ export function Components() {
         if (!b || !stage) return
         const r = b.getBoundingClientRect()
         const sr = stage.getBoundingClientRect()
-        const rest = navH + k * rowH
+        const rest = navH + under(k) * rowH
         // where the listing is: 1 its stage at the foot of the screen, 0 held, −1 gone above
         const p = (sr.top - rest) / Math.max(1, sr.height)
         const [a, z] = k === 0 ? FIRST : [1, OPENED]
@@ -253,7 +254,7 @@ export function Components() {
         const row = rows.current[k]
         if (row) {
           const lastOne = k === N - 1
-          const d = reduced ? Number(lastOne ? s > DOCK[0] : p < -0.1) : ease(lastOne ? smooth(DOCK[0], DOCK[1], s) : smooth(-0.02, -0.3, p))
+          const d = reduced ? Number(lastOne ? p < 0.15 : p < -0.1) : ease(lastOne ? smooth(0.6, 0.15, p) : smooth(-0.02, -0.3, p))
           row.style.transform = `translate3d(0, ${((d - 1) * 100).toFixed(3)}%, 0)`
           row.style.visibility = d > 0.002 ? 'visible' : 'hidden'
           row.tabIndex = d > 0.5 ? 0 : -1
@@ -286,7 +287,7 @@ export function Components() {
     if (!b) return
     const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
     const rowH = rows.current[0]?.offsetHeight ?? 0
-    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + k * rowH) + PLAY[1] * window.innerHeight)
+    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + under(k) * rowH) + PLAY[1] * window.innerHeight)
   }
 
   return (

@@ -969,9 +969,10 @@
 
 /* ---- made face down --------------------------------------------------------------------------- */
 
+/* less below: the next section is the two more ways, whose models take that room under its line */
 .fu-made {
   position: relative;
-  padding: clamp(80px, 14vh, 160px) var(--gutter);
+  padding: clamp(80px, 14vh, 160px) var(--gutter) clamp(48px, 8vh, 96px);
   background: var(--white);
   color: var(--black);
 }
@@ -1102,6 +1103,15 @@
 .fu-more .fct__canvas {
   top: clamp(6px, 1.4vh, 16px);
   height: 54%;
+}
+/* the façade systems' models are tall: their band starts at the line and takes more of a taller section,
+   the scene keeping room clear above each (SystemsTrio's headroom) */
+.fu-more--tall .fu-more__cols {
+  min-height: clamp(600px, 80svh, 880px);
+}
+.fu-more--tall .fct__canvas {
+  top: 0;
+  height: 60%;
 }
 
 /* ---- narrow screens --------------------------------------------------------------------------- */

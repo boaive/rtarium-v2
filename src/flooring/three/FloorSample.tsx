@@ -121,7 +121,8 @@ export function FloorSample({ bus, kind, pour }: { bus: LabelBus; kind: SampleKi
           <Anchor bus={bus} id="fl-slab" position={[-w / 4, -slab / 2, d / 2]} />
         </>
       )}
-      <mesh position={[0, -slab - 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]} material={m.catcher} receiveShadow>
+      {/* the ground, just under the slab, so its shadow starts at its foot */}
+      <mesh position={[0, -slab - 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} material={m.catcher} receiveShadow>
         <planeGeometry args={[3, 3]} />
       </mesh>
     </group>

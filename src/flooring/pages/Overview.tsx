@@ -31,7 +31,7 @@ import { Features } from '../Features'
 const HERO_LABELS: LabelSpec[] = [
   { id: 'h-mesh', anchor: 'fl-mesh', text: 'RTARIUM 3D basalt mesh', dx: -60, dy: -110, delay: 2300 },
   { id: 'h-screed', anchor: 'fl-screed', text: 'High-strength screed', dx: 70, dy: -100, delay: 2600, wide: true },
-  { id: 'h-slab', anchor: 'fl-slab', text: 'Structural slab', dx: -70, dy: 60, delay: 2900 },
+  { id: 'h-slab', anchor: 'fl-slab', text: 'Structural slab', dx: 60, dy: 120, delay: 2900 },
 ]
 
 /** low on the right, looking down onto the floor, as the Façade overview's panel stands */
@@ -39,8 +39,8 @@ function heroShots(compact: boolean): [Shot, Shot] {
   const k = compact ? 1.7 : 1
   const f = (a: [number, number], b: [number, number]): [number, number] => (compact ? b : a)
   return [
-    { target: [0.02, -0.02, 0], dist: 1.8 * k, azim: 36, elev: 26, frame: f([0.68, 0.52], [0.5, 0.4]) },
-    { target: [0.02, -0.02, 0], dist: 1.5 * k, azim: 52, elev: 38, frame: f([0.67, 0.38], [0.5, 0.3]) },
+    { target: [0.02, -0.02, 0], dist: 2.6 * k, azim: 36, elev: 26, frame: f([0.68, 0.5], [0.5, 0.4]) },
+    { target: [0.02, -0.02, 0], dist: 2.2 * k, azim: 52, elev: 38, frame: f([0.67, 0.38], [0.5, 0.3]) },
   ]
 }
 
@@ -133,8 +133,21 @@ export default function Overview() {
           </Stage3D>
           <Labels bus={heroBus} labels={HERO_LABELS} shown={HERO_LABELS.map((l) => l.id)} />
         </div>
+        {/* what the page is, top left, as the Facade overview names itself */}
+        <header className="fco-head">
+          <p className="fco-head__name">{FLOORING.title}</p>
+          <p className="fco-head__kind">High-performance concrete overlays, reinforced with RTARIUM’s 3D basalt mesh.</p>
+        </header>
         <div className="fco-hero__copy">
           <Words as="h1" id="ffo-title" className="fco-mega" lines={['Floors that', 'never crack.']} />
+          <p className="fco-also">
+            <span>Explore</span>
+            {FLOORING_APPS.map((a) => (
+              <Link key={a.id} to={a.path}>
+                {a.title}
+              </Link>
+            ))}
+          </p>
         </div>
         <span className="fco-cue" aria-hidden="true">
           Scroll

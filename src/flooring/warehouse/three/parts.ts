@@ -5,9 +5,9 @@ import type { Shot } from '../../../facade/three/kit'
 /**
  * What stands on the warehouse floor, as drawings: the racks, the low AGV pod, the robotic picking
  * crane, the mast-lift LGV of the opening (after the yellow laser-guided trucks in the client's
- * photographs), and the machines that make the floor (the shot-blaster, the primer
- * roller, the ride-on power trowel after the client's film). The floor is the one thing shown in its
- * own materials. Sizes are of the kind, not of a project.
+ * photographs), and the machines that make the floor (the shot-blaster, the ride-on power trowel
+ * after the client's film). The floor is the one thing shown in its own materials. Sizes are of the
+ * kind, not of a project.
  */
 
 export type V3 = [number, number, number]
@@ -356,18 +356,6 @@ export function blasterLines(L: Lines) {
   L.seg([0.13, 0.94, -0.6], [0.04, 0.99, -0.65])
   L.seg([-0.13, 0.94, -0.6], [-0.04, 0.99, -0.65])
   L.seg([-0.04, 0.99, -0.65], [0.04, 0.99, -0.65])
-}
-
-/** a wide roller on a short handle, its sleeve across x; origin on the floor, the handle back along -z */
-export function rollerLines(L: Lines, w = 0.9) {
-  for (const x of [-w / 2, 0, w / 2]) circle(L, [x, 0.05, 0], 0.05, 'x', 14)
-  for (const a of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) L.seg([-w / 2, 0.05 + 0.05 * Math.sin(a), 0.05 * Math.cos(a)], [w / 2, 0.05 + 0.05 * Math.sin(a), 0.05 * Math.cos(a)])
-  L.seg([-w / 2 - 0.03, 0.05, 0], [w / 2 + 0.03, 0.05, 0])
-  L.seg([w / 2 + 0.03, 0.05, 0], [w / 2 + 0.03, 0.14, -0.05])
-  L.seg([-w / 2 - 0.03, 0.05, 0], [-w / 2 - 0.03, 0.14, -0.05])
-  L.seg([-w / 2 - 0.03, 0.14, -0.05], [w / 2 + 0.03, 0.14, -0.05])
-  L.seg([0, 0.14, -0.05], [0, 0.6, -0.42])
-  L.seg([0.02, 0.14, -0.05], [0.02, 0.6, -0.42])
 }
 
 /**

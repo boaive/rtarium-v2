@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { approach, createBus } from './kit'
@@ -16,10 +16,11 @@ import { prefersReducedMotion } from '../../lib/motion'
  * While the section is on screen (`live`) each turns a little back and forth, in time.
  */
 
-/** the lowest point of what is drawn under `root`, in world space */
-function lowest(root: THREE.Object3D) {
+/** the lowest and highest points of what is drawn under `root`, in world space */
+function extent(root: THREE.Object3D): [number, number] {
   const box = new THREE.Box3()
   let min = Infinity
+  let max = -Infinity
   root.updateWorldMatrix(true, true)
   root.traverseVisible((o) => {
     const mesh = o as THREE.Mesh
@@ -36,8 +37,9 @@ function lowest(root: THREE.Object3D) {
     }
     box.applyMatrix4(mesh.matrixWorld)
     min = Math.min(min, box.min.y)
+    max = Math.max(max, box.max.y)
   })
-  return min
+  return [min, max]
 }
 
 interface Slot {
@@ -57,6 +59,7 @@ interface Slot {
 const FOV = 24
 const DIST = 6
 const TARGET_Y = 0.55
+const TILT = 0.16
 
 export function SystemsTrio({
   play,
@@ -64,6 +67,7 @@ export function SystemsTrio({
   live,
   pick,
   fill: fillAs,
+  headroom,
 }: {
   play: boolean
   hover: number | null
@@ -72,6 +76,8 @@ export function SystemsTrio({
   pick?: number[]
   /** how much of its column each model takes (default: by the canvas's shape) */
   fill?: number
+  /** the share of the canvas's height kept clear over the models: a tall one is brought down to stand under it */
+  headroom?: number
 }) {
   const bus = useMemo(createBus, [])
   const size = useThree((s) => s.size)
@@ -96,15 +102,26 @@ export function SystemsTrio({
   const colW = viewW / slots.length
   // on a narrow canvas (a phone's band) the models take more of their column, or they read as specks
   const fill = fillAs ?? (aspect < 2 ? 0.9 : 0.66)
-  const scales = slots.map((s) => (colW * fill) / s.width)
+  /** each model's height at its own scale, measured once it is in, so the canvas's height can bound it too */
+  const [tall, setTall] = useState<number[] | null>(null)
+  // with room kept over them, no model stands taller than the line where that room starts (at its depth)
+  const camY = TARGET_Y + DIST * Math.sin(TILT)
+  const camZ = DIST * Math.cos(TILT)
+  const slope = Math.tan(Math.atan((1 - 2 * (headroom ?? 0)) * Math.tan((FOV / 2) * (Math.PI / 180))) - TILT)
+  const scales = slots.map((s, i) => {
+    const byWidth = (colW * fill) / s.width
+    const h = tall?.[i]
+    if (headroom === undefined || !h) return byWidth
+    return Math.min(byWidth, (camY + (camZ + (s.back ?? 0) * byWidth) * slope) / h)
+  })
 
   useEffect(() => {
     camera.fov = FOV
-    camera.position.set(0, TARGET_Y + DIST * Math.sin(0.16), DIST * Math.cos(0.16))
+    camera.position.set(0, camY, camZ)
     camera.lookAt(0, TARGET_Y, 0)
     camera.updateProjectionMatrix()
     invalidate()
-  }, [camera, size, invalidate])
+  }, [camera, size, camY, camZ, invalidate])
 
   const groups = useRef<(THREE.Group | null)[]>([])
   const inner = useRef<(THREE.Group | null)[]>([])
@@ -123,16 +140,19 @@ export function SystemsTrio({
     const s = t.current
     const now = performance.now()
     let moving = false
-    // each model stood on the floor by its lowest drawn point, not by a figure set by hand
+    // each model stood on the floor by its lowest drawn point, not by a figure set by hand; its height kept
     if (since.current && drawn.current < 3 && ++drawn.current === 3) {
+      const heights: number[] = []
       slots.forEach((_, i) => {
         const g = groups.current[i]
         const m = inner.current[i]
         if (!g || !m) return
-        const y = lowest(m)
-        if (!Number.isFinite(y)) return
-        m.position.y -= (y - g.getWorldPosition(new THREE.Vector3()).y) / g.scale.y
+        const [y0, y1] = extent(m)
+        if (!Number.isFinite(y0)) return
+        m.position.y -= (y0 - g.getWorldPosition(new THREE.Vector3()).y) / g.scale.y
+        heights[i] = (y1 - y0) / g.scale.y
       })
+      if (headroom !== undefined) setTall(heights)
     }
     if (drawn.current > 0 && drawn.current < 3) moving = true
     const sway = !reduced && (live?.current ?? false)
@@ -159,7 +179,7 @@ export function SystemsTrio({
       <MovingKeyLight focus={[0, TARGET_Y, 0]} reach={viewW / 1.6} offset={[-2.5, 12, 5]} />
       {slots.map((s, i) => (
         // a model set back on the floor is moved out by as much as the perspective pulls it in, so it stays over its column
-        <group key={i} position={[(i - (slots.length - 1) / 2) * colW * (1 + ((s.back ?? 0) * scales[i]) / (DIST * Math.cos(0.16))), 0, -(s.back ?? 0) * scales[i]]}>
+        <group key={i} position={[(i - (slots.length - 1) / 2) * colW * (1 + ((s.back ?? 0) * scales[i]) / camZ), 0, -(s.back ?? 0) * scales[i]]}>
           <group ref={(g) => void (groups.current[i] = g)} visible={false}>
             {/* the model's centre to the slot, its base on the floor */}
             <group ref={(m) => void (inner.current[i] = m)} position={[-s.centre[0], -s.centre[1] + s.base, -s.centre[2]]}>

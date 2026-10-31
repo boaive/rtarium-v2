@@ -13,7 +13,7 @@ import { buttonGeometry, disposeFloorKit, floorKit, layer, Lines, PITCH, pourGeo
 import { ink, useDrawing, useInkResolution } from '../../data/three/draw'
 import { AISLE, AISLE_VIEW, useAisle } from './aisle'
 import { jointSurface, screedBody } from './joint'
-import { applyCam, blasterLines, camOf, mixView, rideOnBlades, rideOnLines, rollerLines, TROWEL, type View } from './parts'
+import { applyCam, blasterLines, camOf, mixView, rideOnBlades, rideOnLines, TROWEL, type View } from './parts'
 import { ducts } from './Piece'
 
 /**
@@ -274,8 +274,6 @@ export function SolveScene({ t, bus, compact, room, live }: { t: Progress; bus: 
     rideOnBlades(Bl)
     const Sb = new Lines()
     blasterLines(Sb)
-    const Rl = new Lines()
-    rollerLines(Rl, 1.5)
     // the dimension ladder on the section's cut face, and the levels across it
     const D = new Lines()
     const dx = NEAR.x + 0.014
@@ -293,15 +291,13 @@ export function SolveScene({ t, bus, compact, room, live }: { t: Progress; bus: 
     for (let z = z0; z <= z1; z += 5.2) G.seg([x0, TOP + 0.02, z], [x1, TOP + 0.02, z])
     const Bays = new Lines()
     for (const x of PLATE.joints) Bays.seg([x, TOP + 0.03, z0], [x, TOP + 0.03, z1])
-    return { pump: sortFrom(P, [0, 0, 0]), trowel: Tr, blades: Bl, blaster: Sb, roller: Rl, dims: D, grid: sortFrom(split(G, 2), [0, 0, 0]), bays: sortFrom(split(Bays, 1.5), [0, 0, 0]) }
+    return { pump: sortFrom(P, [0, 0, 0]), trowel: Tr, blades: Bl, blaster: Sb, dims: D, grid: sortFrom(split(G, 2), [0, 0, 0]), bays: sortFrom(split(Bays, 1.5), [0, 0, 0]) }
   }, [])
   const pumpD = useDrawing(lines.pump, mats.kit)
   const trowelD = useDrawing(lines.trowel, mats.tool)
   const bladesA = useDrawing(lines.blades, mats.tool)
   const bladesB = useDrawing(lines.blades, mats.tool)
   const blasterD = useDrawing(lines.blaster, mats.tool)
-  const rollerD = useDrawing(lines.roller, mats.tool)
-  const coatRoller = useDrawing(lines.roller, mats.tool)
   const dimsD = useDrawing(lines.dims, mats.dims)
   const gridD = useDrawing(lines.grid, mats.ghost)
   const baysD = useDrawing(lines.bays, mats.bays)
@@ -325,8 +321,6 @@ export function SolveScene({ t, bus, compact, room, live }: { t: Progress; bus: 
   const hose = useRef<THREE.Mesh>(null)
   const pumpGroup = useRef<THREE.Group>(null)
   const blaster = useRef<THREE.Group>(null)
-  const roller = useRef<THREE.Group>(null)
-  const coater = useRef<THREE.Group>(null)
   const dims = useRef<THREE.Group>(null)
   const trowel = useRef<THREE.Group>(null)
   const mirror = useRef<THREE.Group>(null)
@@ -381,7 +375,7 @@ export function SolveScene({ t, bus, compact, room, live }: { t: Progress; bus: 
     applyCam(camera, size, camOf(fit(view.box, view.azim, view.elev, r, aspect, view.fill)))
     const loop = smooth(5.96, 6.3, v)
 
-    // 0. the old screed stripped off; the blaster's pass; the primer rolled; the buttons set
+    // 0. the old screed stripped off; the blaster's pass; the primer spread on; the buttons set
     const strip = smooth(0.03, 0.22, v)
     cut.strip.constant = X[1] + 0.02 - (X[1] - X[0] + 0.04) * strip
     if (oldTop.current) {
@@ -400,14 +394,8 @@ export function SolveScene({ t, bus, compact, room, live }: { t: Progress; bus: 
       blaster.current.position.set(0.8 * Math.sin(pass * Math.PI * 5), B, Z[0] + 0.42 + (Z[1] - Z[0] - 0.66) * pass)
     }
     const prime = smooth(0.52, 0.68, v)
-    const primeOn = prime > 0 && prime < 1
     keepUnderZ(cut.primer, Z[0] - 0.02 + (Z[1] - Z[0] + 0.04) * prime)
     if (primer.current) primer.current.visible = prime > 0
-    rollerD.show(primeOn ? 1 : 0)
-    if (roller.current) {
-      roller.current.visible = primeOn
-      roller.current.position.set(0.42 * Math.sin(prime * Math.PI * 3), B, Z[0] + 0.34 + (Z[1] - Z[0] - 0.42) * prime)
-    }
     const setting = smooth(0.74, 0.92, v)
     const bm = buttons.current
     if (bm) {
@@ -524,7 +512,7 @@ export function SolveScene({ t, bus, compact, room, live }: { t: Progress; bus: 
     if (rotorA.current) rotorA.current.rotation.y = tp * 70
     if (rotorB.current) rotorB.current.rotation.y = -tp * 70
 
-    // 5. the wear coat run on behind its roller; then the corner stands back to the whole stack
+    // 5. the wear coat run on; then the corner stands back to the whole stack
     const coatE = smooth(5.06, 5.42, v)
     const coated = coatE > 0.985
     if (flowMesh.current) {
@@ -532,12 +520,6 @@ export function SolveScene({ t, bus, compact, room, live }: { t: Progress; bus: 
       flowMesh.current.position.z = Z[0] - 0.04 + (Z[1] - Z[0] + 0.1) * coatE
     }
     if (coatMesh.current) coatMesh.current.visible = coated && v < 6.4
-    const coatRolling = coatE > 0 && coatE < 1
-    coatRoller.show(coatRolling ? 1 : 0)
-    if (coater.current) {
-      coater.current.visible = coatRolling
-      coater.current.position.set(0.42 * Math.sin(coatE * Math.PI * 3), TOP, Z[0] + 0.34 + (Z[1] - Z[0] - 0.42) * coatE)
-    }
     // planes that take away only what is past both: out of reach until the corner opens
     const lerp = (a: number, b: number) => a + (b - a) * corner
     keepX(cut.screedX, lerp(X[0] - 0.1, STEP.screed[0]))
@@ -614,12 +596,6 @@ export function SolveScene({ t, bus, compact, room, live }: { t: Progress; bus: 
       <mesh ref={hose} geometry={g.hose} material={m.rubber} visible={false} castShadow />
       <group ref={blaster} scale={0.62} visible={false}>
         <primitive object={blasterD.obj} />
-      </group>
-      <group ref={roller} scale={0.75} visible={false}>
-        <primitive object={rollerD.obj} />
-      </group>
-      <group ref={coater} scale={0.75} visible={false}>
-        <primitive object={coatRoller.obj} />
       </group>
       <group ref={trowel} scale={0.5} visible={false}>
         <primitive object={trowelD.obj} />

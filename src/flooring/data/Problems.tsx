@@ -8,15 +8,17 @@ import { ProblemSample, type ProblemKind } from './three/ProblemSample'
 
 /**
  * Where traditional floors fail, and how RTARIUM solves each, in the Rainscreen trade-offs' deck.
- * On the opening's yellow, the line that follows it; the black rises from the foot of the screen over
- * it, carrying the title. Then the three problems come in from the right, one card at a time.
+ * On the opening's yellow, the line that follows it, alone in the middle of the screen as the
+ * overview's statement stands; the black rises from the foot of the screen over it, carrying the title
+ * in its place, and the title goes over to its corner before the cards come in. Then the three problems
+ * come in from the right, one card at a time.
  * Each card arrives as its problem: a photograph with its own sample turning in front of it, the
  * problem in one line. Then, in the same card, it is answered: its name and its line are struck, the
  * photograph slides over to RTARIUM's, the sample turns into RTARIUM's, and the answer comes in, in
- * yellow. The next card comes in under it; the one before stays above as a tab that keeps its struck
- * name and its answer, so the deck builds into the three answers, read down the tabs. As the page goes
- * on, the deck recedes and the client's line takes the title's place. Everything follows the scroll;
- * the samples turn in time.
+ * yellow. The next card comes in one tab below it, square on it, and the one under goes dark as it does;
+ * only its tab stays, with its struck name and its answer, so the deck builds into the three answers,
+ * read down the tabs. As the page goes on, the deck recedes as one and the client's line takes the
+ * title's place. Everything follows the scroll; the samples turn in time.
  */
 
 export interface Problem {
@@ -89,12 +91,66 @@ const dcSample: SampleOf = (id, solved, live) => <ProblemSample kind={id as Prob
 /** screens of scroll in the pin, and when each thing happens along it (0..1) */
 const RUN = 7.5
 const NIGHT: [number, number] = [0.02, 0.11]
+/** the title, from the middle of the screen to its corner: once the black is past its top, before the first card */
+const GLIDE: [number, number] = [0.09, 0.155]
 const CARD_AT = (k: number): [number, number] => [0.13 + k * 0.25, 0.13 + k * 0.25 + 0.07]
 const SOLVE_AT = (k: number): [number, number] => [CARD_AT(k)[1] + 0.07, CARD_AT(k)[1] + 0.14]
 const ASIDE: [number, number] = [0.88, 0.97]
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
+/** where an element lies in the deck's pin, by its layout (no transform of its own or its parents' counted) */
+function inPin(el: HTMLElement) {
+  let x = 0
+  let y = 0
+  for (let e: HTMLElement | null = el; e && !e.classList.contains('fr-trade__pin'); e = e.offsetParent as HTMLElement | null) {
+    x += e.offsetLeft
+    y += e.offsetTop
+  }
+  return [x, y]
+}
+
+/**
+ * The title where the first line stands (`k` 1), each of its lines centred on that line's middle, or in
+ * its own corner (`k` 0); in between, line by line, so it goes over without a jump.
+ */
+export function glide(title: HTMLElement | null, first: HTMLElement | null, k: number) {
+  if (!title || !first) return
+  const [fx, fy] = inPin(first)
+  const [, ty] = inPin(title)
+  const dy = fy + first.offsetHeight / 2 - (ty + title.offsetHeight / 2)
+  title.style.transform = k > 0 ? `translate3d(0, ${(dy * k).toFixed(1)}px, 0)` : ''
+  for (const line of Array.from(title.children) as HTMLElement[]) {
+    const [lx] = inPin(line)
+    const dx = fx + first.offsetWidth / 2 - (lx + line.offsetWidth / 2)
+    line.style.transform = k > 0 ? `translate3d(${(dx * k).toFixed(1)}px, 0, 0)` : ''
+  }
+}
+
+/**
+ * On a phone the words stand across the top, over the deck: the deck starts just under them (the title,
+ * or the client's line in its place, whichever takes more lines), never on them.
+ */
+export function useDeckUnderWords(deck: { current: HTMLElement | null }, compact: boolean) {
+  useEffect(() => {
+    const d = deck.current
+    const words = d?.parentElement?.querySelector<HTMLElement>('.fr-trade__copy--front')
+    if (!d || !words) return
+    const fit = () => {
+      d.style.top = compact ? `${words.offsetTop + words.offsetHeight + 16}px` : ''
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(words)
+    window.addEventListener('resize', fit)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', fit)
+      d.style.top = ''
+    }
+  }, [deck, compact])
+}
 
 /** a card's sample, in its own small canvas, turning while the card is on screen */
 function SampleView({ id, sample, solved }: { id: string; sample: SampleOf; solved: { current: number } }) {
@@ -116,6 +172,7 @@ export function Problems({ problems = PROBLEMS, close: closing = CLOSE, sample =
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const night = useRef<HTMLDivElement>(null)
+  const first = useRef<HTMLParagraphElement>(null)
   const title = useRef<HTMLHeadingElement>(null)
   const close = useRef<HTMLParagraphElement>(null)
   const names = useRef<(HTMLLIElement | null)[]>([])
@@ -124,6 +181,7 @@ export function Problems({ problems = PROBLEMS, close: closing = CLOSE, sample =
   /** how far each card has been answered, read by its sample every frame */
   const solved = useMemo(() => problems.map(() => ({ current: 0 })), [problems])
   const [now, setNow] = useState(-1)
+  useDeckUnderWords(deck, compact)
 
   useEffect(() => {
     const el = section.current
@@ -139,6 +197,8 @@ export function Problems({ problems = PROBLEMS, close: closing = CLOSE, sample =
       const n = reduced ? Number(p > NIGHT[0]) : ease(smooth(NIGHT[0], NIGHT[1], p))
       night.current?.style.setProperty('--n', n.toFixed(4))
       el.dataset.ground = n > 0.5 ? 'black' : 'yellow'
+      // the title stands where the first line stood while the black rises over it, then goes over to its corner
+      glide(title.current, first.current, reduced ? Number(p < GLIDE[0]) : 1 - ease(smooth(GLIDE[0], GLIDE[1], p)))
       // at the end the title gives way to the client's line, in its place
       // the title goes first; only once it has gone does the client's line come in, never over it
       const away = reduced ? Number(p > ASIDE[0]) : smooth(ASIDE[0], ASIDE[0] + 0.035, p)
@@ -152,16 +212,17 @@ export function Problems({ problems = PROBLEMS, close: closing = CLOSE, sample =
         close.current.style.transform = `translate3d(0, ${((1 - back) * 14).toFixed(2)}px, 0)`
         close.current.style.visibility = back > 0.01 ? '' : 'hidden'
       }
-      // the cards: each in from the right edge to its place, one tab below the card before it; the ones
-      // above pushed back into the depth, their tabs still read
+      // the cards: each in from the right edge to its place, one tab below the card before it, square on
+      // it (same width, same edges); the one it comes in on goes dark under it, its tab still read
       const d = deck.current
       if (!d) return
       const W = d.clientWidth
-      const first = cards.current[0]
-      const tab = first?.querySelector<HTMLElement>('.fr-card__tab')?.offsetHeight ?? 56
-      const from = window.innerWidth - d.getBoundingClientRect().left + 24
+      const tab = cards.current[0]?.querySelector<HTMLElement>('.fr-card__tab')?.offsetHeight ?? 56
+      const from = window.innerWidth - d.offsetLeft + 24
       const arrive = problems.map((_, k) => (reduced ? Number(p > CARD_AT(k)[0]) : ease(smooth(CARD_AT(k)[0], CARD_AT(k)[1], p))))
       const aside = reduced ? 0 : ease(smooth(ASIDE[0], ASIDE[1], p))
+      // the deck recedes as one, so no card ever slips out from under another
+      d.style.transform = aside > 0 ? `translate3d(${(aside * W * 0.1).toFixed(1)}px, 0, 0) scale(${(1 - aside * 0.12).toFixed(4)})` : ''
       let current = -1
       cards.current.forEach((c, k) => {
         if (!c) return
@@ -169,11 +230,9 @@ export function Problems({ problems = PROBLEMS, close: closing = CLOSE, sample =
         if (a > 0.5) current = k
         let depth = 0
         for (let j = k + 1; j < N; j++) depth += arrive[j]
-        const x = (1 - a) * from + aside * W * 0.1
-        const y = k * tab
-        const s = (1 - Math.min(depth, 4) * 0.012) * (1 - aside * 0.12)
-        c.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${s.toFixed(4)})`
+        c.style.transform = `translate3d(${((1 - a) * from).toFixed(1)}px, ${(k * tab).toFixed(1)}px, 0)`
         c.style.visibility = a > 0.001 ? 'visible' : 'hidden'
+        c.style.setProperty('--cover', Math.min(1, depth * 1.5).toFixed(3))
         c.style.setProperty('--depth', Math.min(1, depth * 0.5 + aside * 0.55).toFixed(3))
         c.toggleAttribute('data-front', a > 0.5 && depth < 0.5)
         // answered in place: struck, the photograph over to RTARIUM's, the answer in
@@ -217,9 +276,9 @@ export function Problems({ problems = PROBLEMS, close: closing = CLOSE, sample =
   return (
     <section ref={section} id="problems" className="fr-trade fdc-fail" data-ground="yellow" aria-labelledby="fdc-fail-title" style={{ '--run': RUN } as CSSProperties}>
       <div className="fr-trade__pin">
-        {/* the first line on warm white; the black rises over it, carrying the title in its place */}
-        <div className="fr-trade__copy">
-          <p className="fr-trade__first">
+        {/* the first line in the middle of the yellow; the black rises over it, carrying the title in its place */}
+        <div className="fr-trade__copy fdc-fail__open">
+          <p ref={first} className="fr-trade__first">
             Traditional screeds <br />
             were not built <br />
             for this.
@@ -227,9 +286,8 @@ export function Problems({ problems = PROBLEMS, close: closing = CLOSE, sample =
         </div>
         <div ref={night} className="fr-trade__night">
           <div className="fr-trade__copy">
-            <h2 ref={title} id="fdc-fail-title" className="fr-trade__title">
-              RTARIUM was <br />
-              built for this.
+            <h2 ref={title} id="fdc-fail-title" className="fr-trade__title fdc-fail__lines">
+              <span>RTARIUM was</span> <span>built for this.</span>
             </h2>
           </div>
         </div>

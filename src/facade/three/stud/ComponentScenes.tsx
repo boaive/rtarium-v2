@@ -18,9 +18,9 @@ import { BACK, LEN, PROFILE, SKIN, offsetPath, toLocal } from './cornice'
  *
  *   anchor  the frame alone; its flex anchors come in, marked in yellow, and the skin slides in over
  *           them and is fixed there
- *   day     the sun climbs and the light warms to 45 °C: the skin grows along its length, the L plates
+ *   day     the light warms to 45 °C: the skin grows along its length, the L plates
  *           bending with it, so nothing is forced
- *   night   the sun goes down and the light cools: the skin draws back past where it started, the plates
+ *   night   the light cools: the skin draws back past where it started, the plates
  *           bending the other way, the skin whole all the while
  *
  * The skin's movement is far more than it really moves, so it can be seen at all. `t` (0..1) is how
@@ -189,52 +189,6 @@ function Arrows({ state }: { state: { current: { push: number; strain: number } 
   )
 }
 
-/** the sun (or the moon) in the dark behind the element: a disc that climbs, or sets, `at` (0 down, 1 up) */
-function Sky({ state }: { state: { current: { at: number; color: THREE.Color; glow: number } } }) {
-  const disc = useRef<THREE.Mesh>(null)
-  const halo = useRef<THREE.Mesh>(null)
-  const mats = useMemo(
-    () => ({
-      disc: new THREE.MeshBasicMaterial({ color: YELLOW, transparent: true, toneMapped: false, fog: false, depthWrite: false }),
-      halo: new THREE.MeshBasicMaterial({ color: YELLOW, transparent: true, toneMapped: false, fog: false, depthWrite: false, opacity: 0.18 }),
-    }),
-    [],
-  )
-  useEffect(
-    () => () => {
-      mats.disc.dispose()
-      mats.halo.dispose()
-    },
-    [mats],
-  )
-  const camera = useThree((s) => s.camera)
-  useFrame(() => {
-    const { at, color, glow } = state.current
-    const y = -0.6 + at * 2.6
-    for (const m of [disc.current, halo.current]) {
-      if (!m) continue
-      m.position.set(-2.6, y, 6)
-      m.quaternion.copy(camera.quaternion)
-      m.visible = glow > 0.01
-    }
-    mats.disc.color.copy(color)
-    mats.halo.color.copy(color)
-    mats.disc.opacity = glow
-    mats.halo.opacity = 0.16 * glow
-    if (halo.current) halo.current.scale.setScalar(1 + 0.15 * glow)
-  })
-  return (
-    <>
-      <mesh ref={halo} material={mats.halo} renderOrder={-1}>
-        <circleGeometry args={[0.55, 48]} />
-      </mesh>
-      <mesh ref={disc} material={mats.disc} renderOrder={-1}>
-        <circleGeometry args={[0.28, 48]} />
-      </mesh>
-    </>
-  )
-}
-
 /**
  * fixed over flex anchors: the frame stands alone, its L plates come in (yellow), and the skin slides
  * in from behind them onto their feet, where it is fixed
@@ -380,14 +334,13 @@ function Flow({ kind, state }: { kind: 'heat' | 'air'; state: { current: { amoun
 }
 
 /**
- * day, 45 °C: the sun climbs and the light warms; the camera comes in to the plates at the last stud;
+ * day, 45 °C: the light warms; the camera comes in to the plates at the last stud;
  * the skin takes in the heat (it glows, hot air rises off it) and grows along its length, past where
  * its end stood, and the L plates, fixed at the stud, bend over their length to go with it
  */
 export function DayScene({ t, live, compact }: SceneProps) {
   const api = useMemo(createElementApi, [])
   const arrows = useRef({ push: 0, strain: 0 })
-  const sun = useRef({ at: 0, color: YELLOW.clone(), glow: 0 })
   const heatFlow = useRef({ amount: 0 })
   const rest = useRef({ show: 0 })
   const play = useMemo(
@@ -405,15 +358,11 @@ export function DayScene({ t, live, compact }: SceneProps) {
       rest.current.show = smooth(0.25, 0.38, v)
       arrows.current.push = 0.7 * smooth(0.45, 0.65, v)
       arrows.current.strain = strain
-      sun.current.at = 0.55 * smooth(0.0, 0.35, v)
-      sun.current.color.copy(YELLOW)
-      sun.current.glow = smooth(0.0, 0.12, v)
     },
     [api],
   )
   return (
     <Studio t={t} live={live} compact={compact} open={OPEN} close={PLATES} move={MOVE} play={play}>
-      <Sky state={sun} />
       <Element api={api} lattice={false} />
       <RestMark state={rest} />
       <Flow kind="heat" state={heatFlow} />
@@ -423,7 +372,7 @@ export function DayScene({ t, live, compact }: SceneProps) {
 }
 
 /**
- * night: the sun sets and the light cools; the camera comes in to the same plates; the night's air is
+ * night: the light cools; the camera comes in to the same plates; the night's air is
  * drawn along the element, over it and through the cavity, and takes the heat out of the skin (its glow
  * goes, it turns cold); the skin draws back, short of where its end stood, and the plates bend back with
  * it, the skin flat and whole all the while: no warping, no cracking
@@ -431,10 +380,8 @@ export function DayScene({ t, live, compact }: SceneProps) {
 export function NightScene({ t, live, compact }: SceneProps) {
   const api = useMemo(createElementApi, [])
   const arrows = useRef({ push: 0, strain: 0 })
-  const sky = useRef({ at: 0.55, color: YELLOW.clone(), glow: 1 })
   const air = useRef({ amount: 0 })
   const rest = useRef({ show: 0 })
-  const moon = useMemo(() => new THREE.Color('#dfe6ff'), [])
   const play = useMemo(
     () => (v: number, mood: Mood) => {
       const cool = smooth(0.32, 0.9, v)
@@ -451,18 +398,11 @@ export function NightScene({ t, live, compact }: SceneProps) {
       rest.current.show = smooth(0.25, 0.38, v)
       arrows.current.push = -0.7 * smooth(0.45, 0.65, v)
       arrows.current.strain = strain
-      // the sun goes down, and the moon comes up in its place
-      const set = smooth(0.0, 0.3, v)
-      const rise = smooth(0.32, 0.6, v)
-      sky.current.at = set < 1 ? 0.55 * (1 - set) : 0.55 * rise
-      sky.current.color.copy(set < 1 ? YELLOW : moon)
-      sky.current.glow = set < 1 ? 1 - smooth(0.2, 0.3, v) : rise * 0.9
     },
-    [api, moon],
+    [api],
   )
   return (
     <Studio t={t} live={live} compact={compact} open={OPEN} close={PLATES} move={MOVE} play={play}>
-      <Sky state={sky} />
       <Element api={api} lattice={false} />
       <RestMark state={rest} />
       <Flow kind="air" state={air} />

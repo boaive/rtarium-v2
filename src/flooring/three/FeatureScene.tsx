@@ -7,6 +7,8 @@ import type { LabelBus, Shot } from '../../facade/three/kit'
 import { mixShot } from '../../facade/three/ScrubRig'
 import { smooth, type Progress } from '../../facade/progress'
 import { merge } from '../../facade/three/unit/parts'
+import { Lines } from '../../facade/three/rain/building'
+import { FatLines, fatMaterial } from '../../facade/three/rain/lines'
 import { block, disposeFloorMaterials, floorMaterials } from './floor'
 
 /**
@@ -16,11 +18,12 @@ import { block, disposeFloorMaterials, floorMaterials } from './floor'
  *
  *   0  3D basalt web          inside a border the screed lifts away: a flat mesh and loose steel fibres
  *                             in it drop out, and RTARIUM's continuous web rises in their place
- *   1  crack suppression      seen from the side: a heavy load comes down on the second bay, it drops at
+ *   1  crack suppression      seen from the side: a loaded pallet rack comes down on the second bay, it drops at
  *                             the joint, and the screed bends over the joint with it, whole
  *   2  jointless              from above: the saw-cut joints close, from the middle out, and the floor
  *                             opens out into one plate
- *   3  vibration dampening    a robot crosses the floor; the rings it sends out die within a stride
+ *   3  vibration dampening    a robot, drawn in lines, crosses the floor, its wheels turning; the rings it sends out
+ *                             die within a stride
  *   4  zero rust              two windows in the screed: steel in one rusts and stains the floor round it;
  *                             RTARIUM in the other stays as it was
  *   5  low-carbon             the floor's embodied carbon, a block over it, shrinks down
@@ -59,14 +62,91 @@ function shots(compact: boolean, ax: FeatureAxis): Shot[] {
   const fr: [number, number] = compact ? [0.5, 0.4] : [ax.x, ax.y]
   const k = compact ? 1.45 : 1
   return [
-    { target: [0, 0, 0], dist: 8.2 * k, azim: 28, elev: 34, frame: fr },
-    { target: [0.15, -0.06, 0], dist: 5.2 * k, azim: 4, elev: 7, frame: fr },
-    { target: [0, 0, 0], dist: 10.5 * k, azim: 18, elev: 64, frame: fr },
-    { target: [0, 0, 0], dist: 7.6 * k, azim: 34, elev: 36, frame: fr },
-    { target: [0, 0, 0.36], dist: 4.6 * k, azim: 12, elev: 40, frame: fr },
-    { target: [0, 0.45, 0], dist: 9.6 * k, azim: 30, elev: 20, frame: fr },
+    // one scale throughout: each stands the floor at about the same width on the screen
+    { target: [0, 0, 0], dist: 10.5 * k, azim: 28, elev: 34, frame: fr },
+    { target: [0.15, 0.25, 0], dist: 8.8 * k, azim: 4, elev: 7, frame: fr },
+    { target: [0, 0, 0], dist: 11.5 * k, azim: 18, elev: 64, frame: fr },
+    { target: [0, 0.1, 0], dist: 10.5 * k, azim: 34, elev: 36, frame: fr },
+    { target: [0, 0, 0.1], dist: 9.6 * k, azim: 12, elev: 40, frame: fr },
+    { target: [0, 0.4, 0], dist: 10.5 * k, azim: 30, elev: 20, frame: fr },
   ]
 }
+
+/** the loaded pallet rack, in lines, standing on the floor at its origin: uprights, beams, a load on each level */
+function rackLines() {
+  const L = new Lines()
+  const [w, d, h] = [0.34, 0.2, 1.0]
+  for (const x of [-w, w])
+    for (const z of [-d, d]) {
+      L.box([x - 0.02, 0, z - 0.02], [x + 0.02, h, z + 0.02])
+      L.box([x - 0.05, 0, z - 0.05], [x + 0.05, 0.012, z + 0.05])
+    }
+  // the bracing up each end
+  for (const x of [-w, w]) for (let y = 0.02; y < h - 0.1; y += 0.24) L.seg([x, y, -d], [x, y + 0.24, d])
+  for (const y of [0.04, 0.36, 0.68, h]) {
+    L.rectZ(-w, y - 0.025, w, y, d)
+    L.rectZ(-w, y - 0.025, w, y, -d)
+  }
+  // the pallets and what is on them
+  for (const y of [0.04, 0.36, 0.68])
+    for (const x of [-0.17, 0.17]) {
+      L.box([x - 0.14, y, -d + 0.02], [x + 0.14, y + 0.025, d - 0.02])
+      L.box([x - 0.13, y + 0.025, -d + 0.03], [x + 0.13, y + 0.24, d - 0.03])
+      L.seg([x - 0.13, y + 0.025, d - 0.03], [x + 0.13, y + 0.24, d - 0.03])
+      L.seg([x + 0.13, y + 0.025, d - 0.03], [x - 0.13, y + 0.24, d - 0.03])
+    }
+  return L.geometry()
+}
+
+/** the robot's body, in lines, its wheels apart: x along its way, on the floor at its origin */
+function robotLines() {
+  const L = new Lines()
+  // the chassis, its bumper, the vents along its side
+  L.box([-0.4, 0.07, -0.25], [0.4, 0.2, 0.25])
+  L.box([0.4, 0.09, -0.2], [0.46, 0.15, 0.2])
+  for (let x = -0.16; x <= 0.16; x += 0.04) L.seg([x, 0.1, 0.25], [x, 0.17, 0.25])
+  // the lift: a deck, a scissor on each side, the platform with its grid
+  L.box([-0.26, 0.2, -0.21], [0.34, 0.23, 0.21])
+  for (const z of [-0.2, 0.2]) {
+    L.seg([-0.22, 0.23, z], [0.3, 0.37, z])
+    L.seg([0.3, 0.23, z], [-0.22, 0.37, z])
+  }
+  L.box([-0.26, 0.37, -0.21], [0.34, 0.4, 0.21])
+  for (let x = -0.16; x < 0.34; x += 0.1) L.seg([x, 0.4, -0.21], [x, 0.4, 0.21])
+  for (let z = -0.14; z < 0.21; z += 0.07) L.seg([-0.26, 0.4, z], [0.34, 0.4, z])
+  // the control tower at its back: a screen and a keypad on its side, a sensor on a mast
+  L.box([-0.42, 0.2, -0.13], [-0.29, 0.54, 0.13])
+  L.rectX(-0.08, 0.42, 0.08, 0.51, -0.42)
+  L.rectZ(-0.4, 0.42, -0.31, 0.51, 0.13)
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) L.rectZ(-0.4 + i * 0.032, 0.3 + j * 0.032, -0.378 + i * 0.032, 0.322 + j * 0.032, 0.13)
+  L.seg([-0.355, 0.54, 0], [-0.355, 0.7, 0])
+  L.box([-0.38, 0.7, -0.025], [-0.33, 0.74, 0.025])
+  return L.geometry()
+}
+
+/** a wheel in lines: a tyre, a hub, its spokes, about its own centre, facing z */
+function wheelLines() {
+  const L = new Lines()
+  const R = 0.07
+  const n = 20
+  for (const [r, z] of [[R, 0.02], [R, -0.02], [0.03, 0.02]] as const)
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2
+      const b = ((i + 1) / n) * Math.PI * 2
+      L.seg([r * Math.cos(a), r * Math.sin(a), z], [r * Math.cos(b), r * Math.sin(b), z])
+    }
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2
+    L.seg([0.03 * Math.cos(a), 0.03 * Math.sin(a), 0.02], [R * Math.cos(a), R * Math.sin(a), 0.02])
+  }
+  return L.geometry()
+}
+const WHEELS: [number, number][] = [
+  [-0.26, 0.27],
+  [0.26, 0.27],
+  [-0.26, -0.27],
+  [0.26, -0.27],
+]
 
 /** a plate of screed with holes in it, laid flat (holes as x0, x1, z0, z1) */
 function holed(holes: [number, number, number, number][]) {
@@ -92,7 +172,9 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
       ...f,
       steel: new THREE.MeshStandardMaterial({ color: '#7d838a', metalness: 0.7, roughness: 0.38 }),
       rust: new THREE.MeshStandardMaterial({ color: '#5a2709', roughness: 0.9, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }),
-      robot: new THREE.MeshStandardMaterial({ color: '#151515', metalness: 0.3, roughness: 0.5 }),
+      // the rack and the robot, drawn in lines
+      wire: fatMaterial('#080808', 1.5, 1),
+      cut: new THREE.MeshBasicMaterial({ color: '#080808', toneMapped: false }),
       carbon: new THREE.MeshStandardMaterial({ color: '#151515', roughness: 0.6, transparent: true, opacity: 0.32, depthWrite: false }),
       grid: new THREE.LineBasicMaterial({ color: '#2a2a2a', transparent: true }),
       ghost: new THREE.LineBasicMaterial({ color: '#080808', transparent: true, opacity: 0.5 }),
@@ -132,12 +214,13 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
       fibre,
       bars: merge(bars),
       stain: new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2),
-      cutsX: block([-0.006, SC - 0.004, -D / 2 + 0.01], [0.006, SC + 0.0006, D / 2 - 0.01]),
-      cutsZ: block([-W / 2 + 0.01, SC - 0.004, -0.006], [W / 2 - 0.01, SC + 0.0006, 0.006]),
+      // (standing clear of the screed, so the two never fight for the same depth)
+      cutsX: block([-0.008, SC, -D / 2 + 0.01], [0.008, SC + 0.004, D / 2 - 0.01]),
+      cutsZ: block([-W / 2 + 0.01, SC, -0.008], [W / 2 - 0.01, SC + 0.004, 0.008]),
       ring: new THREE.RingGeometry(0.96, 1, 72).rotateX(-Math.PI / 2),
-      body: block([-0.17, 0.02, -0.12], [0.17, 0.11, 0.12]),
-      lamp: block([-0.05, 0.11, -0.05], [0.05, 0.13, 0.05]),
-      wheel: new THREE.CylinderGeometry(0.025, 0.025, 0.02, 14).rotateX(Math.PI / 2),
+      rack: rackLines(),
+      robot: robotLines(),
+      wheel: wheelLines(),
       carbon,
       outline,
     }
@@ -152,7 +235,7 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
   useEffect(
     () => () => {
       Object.values(geo).forEach((g) => (g as THREE.BufferGeometry).dispose?.())
-      for (const x of [m.steel, m.rust, m.robot, m.carbon, m.grid, m.ghost, ...m.rings]) x.dispose()
+      for (const x of [m.steel, m.rust, m.wire, m.cut, m.carbon, m.grid, m.ghost, ...m.rings]) x.dispose()
       disposeFloorMaterials(m)
     },
     [geo, m],
@@ -166,7 +249,8 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
   const flat = useRef<THREE.Group>(null)
   const fibreMesh = useRef<THREE.InstancedMesh>(null)
   const web = useRef<THREE.Group>(null)
-  const load = useRef<THREE.Mesh>(null)
+  const load = useRef<THREE.Group>(null)
+  const wheels = useRef<(THREE.Group | null)[]>([])
   const cutsX = useRef<(THREE.Mesh | null)[]>([])
   const cutsZ = useRef<(THREE.Mesh | null)[]>([])
   const robot = useRef<THREE.Group>(null)
@@ -239,7 +323,9 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
     const a = k === 1 ? DROP * give * settle : 0
     if (load.current) {
       load.current.visible = k === 1 && down > 0.002
-      load.current.position.set(0.7, SC + 0.25 + (1 - down) * 1.6 - Math.sin(a) * 0.7, 0)
+      // it comes down square, and tilts with the bay once it stands on it
+      load.current.position.set(0.7, SC + (1 - down) * 1.6 - Math.sin(a) * 0.7, 0)
+      load.current.rotation.z = -a
     }
     if (bay.current) bay.current.rotation.z = -a
     if (screed.current && Math.abs(a - bent.current) > 1e-5) {
@@ -270,16 +356,18 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
       c.scale.z = Math.max(0.01, s)
     })
     const grow = k === 2 ? smooth(0.62, 0.86, at2) * (1 - smooth(0.9, 1, at2)) : 0
-    if (floor.current) floor.current.scale.set(1 + 0.5 * grow, 1, 1 + 0.35 * grow)
+    if (floor.current) floor.current.scale.set(1 + 0.3 * grow, 1, 1 + 0.22 * grow)
 
     // 3. the robot crosses; each stride sends a ring out, and the floor takes it within the stride
     const at3 = v - 3
     const u = smooth(0.1, 0.86, at3)
-    const rx = -0.9 + 1.8 * u
+    const rx = -0.7 + 1.4 * u
     if (robot.current) {
       robot.current.visible = k === 3
       robot.current.position.set(rx, SC, 0)
     }
+    // its wheels roll as far as it has come
+    wheels.current.forEach((w) => void (w && (w.rotation.z = -(1.4 * u) / 0.07)))
     rings.current.forEach((r, i) => {
       if (!r) return
       const born = (i + 0.5) / RINGS
@@ -287,10 +375,10 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
       const on = k === 3 && age > 0 && at3 < 0.96
       r.visible = on
       if (!on) return
-      const s = 0.12 + age * 2.2
+      const s = 0.4 + age * 2
       r.scale.set(s, 1, s)
-      r.position.set(-0.9 + 1.8 * born, SC + 0.001, 0)
-      m.rings[i].opacity = 0.75 * Math.exp(-age * 16)
+      r.position.set(-0.7 + 1.4 * born, SC + 0.003, 0)
+      m.rings[i].opacity = 0.8 * Math.exp(-age * 11)
     })
 
     // 4. two windows: the steel in one rusts and stains the floor round it; RTARIUM in the other stays
@@ -332,10 +420,10 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
         </group>
         <mesh ref={screed} geometry={geo.screed} material={m.screed} castShadow receiveShadow />
         {CUTS_X.map((x, i) => (
-          <mesh key={`x${i}`} ref={(el) => void (cutsX.current[i] = el)} geometry={geo.cutsX} material={m.ink} position={[x, 0, 0]} visible={false} />
+          <mesh key={`x${i}`} ref={(el) => void (cutsX.current[i] = el)} geometry={geo.cutsX} material={m.cut} position={[x, 0, 0]} visible={false} renderOrder={1} />
         ))}
         {CUTS_Z.map((z, i) => (
-          <mesh key={`z${i}`} ref={(el) => void (cutsZ.current[i] = el)} geometry={geo.cutsZ} material={m.ink} position={[0, 0, z]} visible={false} />
+          <mesh key={`z${i}`} ref={(el) => void (cutsZ.current[i] = el)} geometry={geo.cutsZ} material={m.cut} position={[0, 0, z]} visible={false} renderOrder={1} />
         ))}
 
         {/* 0. the screed with its border, the cover that lifts, what is under it */}
@@ -370,19 +458,23 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
         </group>
       </group>
 
-      {/* 1. the load */}
-      <mesh ref={load} material={m.robot} castShadow visible={false}>
-        <boxGeometry args={[0.5, 0.5, 0.5]} />
-      </mesh>
+      {/* 1. the load (what is drawn in lines goes after the floor, or the floor would paint over it wherever it stands further off) */}
+      <group ref={load} visible={false} renderOrder={2}>
+        <FatLines geometry={geo.rack} material={m.wire} />
+      </group>
 
       {/* 3. the robot */}
-      <group ref={robot} visible={false}>
-        <mesh geometry={geo.body} material={m.robot} castShadow />
-        <mesh geometry={geo.lamp} material={m.mark} />
-        {[-0.11, 0.11].flatMap((x) => [-0.12, 0.12].map((z) => <mesh key={`${x}${z}`} geometry={geo.wheel} material={m.robot} position={[x, 0.025, z]} />))}
+      <group ref={robot} visible={false} renderOrder={2}>
+        <FatLines geometry={geo.robot} material={m.wire} />
+        {WHEELS.map(([x, z], i) => (
+          <group key={i} ref={(el) => void (wheels.current[i] = el)} position={[x, 0.07, z]} renderOrder={2}>
+            <FatLines geometry={geo.wheel} material={m.wire} />
+          </group>
+        ))}
+        <Anchor bus={bus} id="ff-robot" position={[-0.355, 0.72, 0]} />
       </group>
       {Array.from({ length: RINGS }, (_, i) => (
-        <mesh key={i} ref={(el) => void (rings.current[i] = el)} geometry={geo.ring} material={m.rings[i]} visible={false} />
+        <mesh key={i} ref={(el) => void (rings.current[i] = el)} geometry={geo.ring} material={m.rings[i]} visible={false} renderOrder={1} />
       ))}
 
       {/* 5. the carbon block, and its outline where it began */}
@@ -395,10 +487,9 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
       <Anchor bus={bus} id="ff-web" position={[0.3, 0.02, 0.2]} />
       <Anchor bus={bus} id="ff-old" position={[-0.4, 0.02, -0.2]} />
       <Anchor bus={bus} id="ff-joint" position={[0, SC, D / 2]} />
-      <Anchor bus={bus} id="ff-load" position={[0.7, SC + 0.5, 0.25]} />
+      <Anchor bus={bus} id="ff-load" position={[0.7, SC + 1.02, 0.2]} />
       <Anchor bus={bus} id="ff-plate" position={[0.9, SC, 0.6]} />
       <Anchor bus={bus} id="ff-cut" position={[0.6, SC, -0.4]} />
-      <Anchor bus={bus} id="ff-robot" position={[0.86, SC + 0.12, 0]} />
       <Anchor bus={bus} id="ff-steel" position={[(WIN_STEEL[0] + WIN_STEEL[1]) / 2, SC, WIN_STEEL[3]]} />
       <Anchor bus={bus} id="ff-mesh" position={[(mx0 + mx1) / 2, SC, mz1]} />
       <Anchor bus={bus} id="ff-carbon" position={[0, SC + 1.1, 0]} />

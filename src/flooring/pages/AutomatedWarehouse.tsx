@@ -22,7 +22,8 @@ import { Voices } from '../warehouse/Voices'
  *   the failure    black and red, pinned: the fast floor, and how it stops, in five beats
  *   the solution   yellow and black, pinned: the floor made again from its base, ending on the fast floor
  *   frame to floor warm white, pinned: that floor takes its racks, grows into a hall, the building drawn round it
- *   sign-offs      warm white: what it means for the consultant, the owner and the contractor
+ *   sign-offs      warm white: what it means for the consultant, the owner and the contractor, then
+ *                  the sustainability win on black
  *   more ways      warm white: the other two applications
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
