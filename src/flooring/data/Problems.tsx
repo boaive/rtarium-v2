@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D } from '../../facade/three/Stage3D'
@@ -19,8 +19,8 @@ import { ProblemSample, type ProblemKind } from './three/ProblemSample'
  * the samples turn in time.
  */
 
-interface Problem {
-  id: ProblemKind
+export interface Problem {
+  id: string
   name: string
   problem: string
   /** the answer, short, for the tab */
@@ -29,7 +29,7 @@ interface Problem {
   line: string
   photos: [Photo, Photo]
 }
-interface Photo {
+export interface Photo {
   src: string
   alt: string
   credit?: string
@@ -80,7 +80,11 @@ const PROBLEMS: Problem[] = [
     ],
   },
 ]
-const N = PROBLEMS.length
+/** the client's closing line, set in the title's place as the deck recedes */
+const CLOSE = ['Deflection mitigated.', 'Zero dust.', 'Zero downtime.']
+/** a problem's sample, for its card, turning in its own canvas */
+export type SampleOf = (id: string, solved: { current: number }, live: { current: boolean }) => ReactNode
+const dcSample: SampleOf = (id, solved, live) => <ProblemSample kind={id as ProblemKind} solved={solved} live={live} />
 
 /** screens of scroll in the pin, and when each thing happens along it (0..1) */
 const RUN = 7.5
@@ -93,19 +97,22 @@ const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
 /** a card's sample, in its own small canvas, turning while the card is on screen */
-function SampleView({ kind, solved }: { kind: ProblemKind; solved: { current: number } }) {
+function SampleView({ id, sample, solved }: { id: string; sample: SampleOf; solved: { current: number } }) {
   const host = useRef<HTMLDivElement>(null)
   const live = useLive(host)
   return (
     <div ref={host} className="fr-card__sample" aria-hidden="true">
-      <Stage3D>
-        <ProblemSample kind={kind} solved={solved} live={live} />
-      </Stage3D>
+      <Stage3D>{sample(id, solved, live)}</Stage3D>
     </div>
   )
 }
 
-export function Problems() {
+/**
+ * The deck; the Data & AI Centres page's by default. Another application brings its own three problems,
+ * its closing line and its samples.
+ */
+export function Problems({ problems = PROBLEMS, close: closing = CLOSE, sample = dcSample }: { problems?: Problem[]; close?: string[]; sample?: SampleOf }) {
+  const N = problems.length
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const night = useRef<HTMLDivElement>(null)
@@ -115,7 +122,7 @@ export function Problems() {
   const deck = useRef<HTMLDivElement>(null)
   const cards = useRef<(HTMLElement | null)[]>([])
   /** how far each card has been answered, read by its sample every frame */
-  const solved = useMemo(() => PROBLEMS.map(() => ({ current: 0 })), [])
+  const solved = useMemo(() => problems.map(() => ({ current: 0 })), [problems])
   const [now, setNow] = useState(-1)
 
   useEffect(() => {
@@ -153,7 +160,7 @@ export function Problems() {
       const first = cards.current[0]
       const tab = first?.querySelector<HTMLElement>('.fr-card__tab')?.offsetHeight ?? 56
       const from = window.innerWidth - d.getBoundingClientRect().left + 24
-      const arrive = PROBLEMS.map((_, k) => (reduced ? Number(p > CARD_AT(k)[0]) : ease(smooth(CARD_AT(k)[0], CARD_AT(k)[1], p))))
+      const arrive = problems.map((_, k) => (reduced ? Number(p > CARD_AT(k)[0]) : ease(smooth(CARD_AT(k)[0], CARD_AT(k)[1], p))))
       const aside = reduced ? 0 : ease(smooth(ASIDE[0], ASIDE[1], p))
       let current = -1
       cards.current.forEach((c, k) => {
@@ -197,7 +204,7 @@ export function Problems() {
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', on)
     }
-  }, [compact, solved])
+  }, [compact, solved, problems, N])
 
   /** to where a problem's card has been answered */
   const go = (k: number) => {
@@ -230,12 +237,15 @@ export function Problems() {
         <div className="fr-trade__copy fr-trade__copy--front">
           <div className="fr-trade__head">
             <p ref={close} className="fr-trade__title fdc-fail__close" style={{ visibility: 'hidden' }}>
-              Deflection mitigated. <br />
-              Zero dust. <br />
-              Zero downtime.
+              {closing.map((l, i) => (
+                <span key={l}>
+                  {i > 0 && <br />}
+                  {l}
+                </span>
+              ))}
             </p>
             <ol className="fr-trade__nav" aria-label="The problems">
-              {PROBLEMS.map((pr, k) => (
+              {problems.map((pr, k) => (
                 <li key={pr.id} ref={(el) => void (names.current[k] = el)} style={{ visibility: 'hidden' }}>
                   <button type="button" className="fr-trade__go fdc-fail__go" aria-current={now === k ? 'true' : undefined} onClick={() => go(k)}>
                     <span className="num">0{k + 1}</span>
@@ -248,7 +258,7 @@ export function Problems() {
         </div>
 
         <div ref={deck} className="fr-trade__deck" style={{ '--n': N } as CSSProperties}>
-          {PROBLEMS.map((pr, k) => (
+          {problems.map((pr, k) => (
             <article key={pr.id} ref={(el) => void (cards.current[k] = el)} className="fr-card fdc-card" style={{ visibility: 'hidden', zIndex: k + 1 } as CSSProperties} aria-labelledby={`fdc-card-${pr.id}`} onClick={() => go(k)}>
               {/* the tab: what stays in view once the next card lies on it: the struck problem and the answer */}
               <header className="fr-card__tab fdc-card__tab">
@@ -265,7 +275,7 @@ export function Problems() {
                 <div className="fr-card__media fdc-card__media">
                   <img className="fdc-card__photo" src={pr.photos[0].src} alt={pr.photos[0].alt} loading="lazy" decoding="async" style={pr.photos[0].pos ? { objectPosition: pr.photos[0].pos } : undefined} />
                   <img className="fdc-card__photo fdc-card__photo--after" src={pr.photos[1].src} alt={pr.photos[1].alt} loading="lazy" decoding="async" style={pr.photos[1].pos ? { objectPosition: pr.photos[1].pos } : undefined} />
-                  <SampleView kind={pr.id} solved={solved[k]} />
+                  <SampleView id={pr.id} sample={sample} solved={solved[k]} />
                   {pr.photos[0].credit && <p className="fr-card__credit fdc-card__credit">{pr.photos[0].credit}</p>}
                 </div>
                 <div className="fr-card__words fdc-card__words">
