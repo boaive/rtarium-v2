@@ -1,0 +1,51 @@
+/*
+ * Advanced Flooring, Automated Warehouse (`faw-`). The page is the Data & AI Centres page's grammar
+ * (data.css, unitized.css, rainscreen.css); what is here is only where it differs: room for the client's
+ * messages once the deck is read, and the failure's black with red, the one place on the page red appears.
+ */
+
+.faw-trade__close {
+  display: grid;
+  gap: clamp(20px, 4vh, 44px);
+  will-change: opacity, transform;
+}
+
+/* ---- the failure: black, its accent red ---------------------------------------------------------- */
+
+.faw-fail {
+  --aw-red: #ff3b2f;
+  --fg: var(--yellow);
+  --bg: var(--black);
+  background: var(--black);
+  color: var(--yellow);
+}
+/* its type: the section's title in yellow, each beat's head in white, its line in yellow */
+.faw-fail .fu-ans__title,
+.faw-fail .fu-ans__line {
+  color: var(--yellow);
+}
+.faw-fail .fu-ans__name {
+  color: var(--white);
+}
+/* its bar, in red on black */
+.faw-fail .fu-bar {
+  --bar-ground: var(--black);
+}
+.faw-fail .fu-bar__btn {
+  border-color: var(--aw-red);
+  color: var(--aw-red);
+}
+.faw-fail .fu-bar__cell[data-state='next'] .fu-bar__btn {
+  border-color: rgb(255 59 47 / 0.4);
+}
+.faw-fail .fu-bar__btn:hover {
+  border-color: var(--aw-red);
+}
+.faw-fail .fu-bar__face--fill {
+  background: var(--aw-red);
+  color: var(--black);
+}
+.faw-fail .fu-bar__btn:focus-visible {
+  outline-color: var(--aw-red);
+}
+
