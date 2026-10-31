@@ -1,0 +1,44 @@
+/*
+ * Advanced Flooring, Semiconductor Plant (`fsc-`). The page wears the Data & AI Centres page's
+ * sections (data.css, and through it unitized.css and rainscreen.css); what is here is its own: the
+ * problem's stage on black, its bar in red where the build's is black on yellow.
+ */
+
+.fu-ans.fsc-dark {
+  --red: #f43a2b;
+  background: var(--black);
+  color: var(--white);
+}
+.fsc-dark .fu-ans__title,
+.fsc-dark .fu-ans__name {
+  color: var(--white);
+}
+.fsc-dark .fu-ans__line {
+  color: var(--on-dark-2);
+}
+.fsc-dark .fc-pin {
+  --fg: var(--white);
+  --bg: var(--black);
+}
+/* the bar: outlined in red, the current step filling red, a passed one closed to its red number */
+.fsc-dark .fu-bar {
+  --bar-ground: var(--black);
+}
+.fsc-dark .fu-bar__btn,
+.fsc-dark .fu-bar__btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+.fsc-dark .fu-bar__cell[data-state='next'] .fu-bar__btn {
+  border-color: rgb(244 58 43 / 0.38);
+}
+.fsc-dark .fu-bar__cell[data-state='next'] .fu-bar__btn:hover {
+  border-color: var(--red);
+}
+.fsc-dark .fu-bar__face--fill {
+  background: var(--red);
+  color: var(--black);
+}
+.fsc-dark .fu-bar__btn:focus-visible {
+  outline-color: var(--red);
+}
