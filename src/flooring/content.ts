@@ -3,8 +3,8 @@
  *
  * Source: the client's Advanced Flooring brief (owner, 30 Oct 2026): RTARIUM as the intermediate
  * reinforcement layer for high-performance concrete overlays on structural slabs, in three
- * applications. The overview is built; the three application pages are placeholders, each in its own
- * file under `pages/`, to be built separately.
+ * applications. The overview, Data & AI Centres and Semiconductor Plant are built; Automated Warehouse
+ * is still a placeholder. Each application page is its own file under `pages/`.
  */
 
 export const FLOORING = { path: '/advanced-flooring', title: 'Advanced Flooring' } as const

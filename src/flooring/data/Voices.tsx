@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { damp, lerp, prefersReducedMotion } from '../../lib/motion'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
 import { createBus } from '../../facade/three/kit'
@@ -18,7 +18,7 @@ import { BuildUp } from './three/BuildUp'
  * homepage: the sustainability win, a carbon meter winding down as the page goes on.
  */
 
-interface Band {
+export interface Band {
   id: string
   role: string
   head: string
@@ -56,7 +56,9 @@ const BANDS: Band[] = [
     line: 'A GGBS and fly-ash green binder matrix paired with a low-embodied-carbon mineral mesh, helping the world’s tech giants hit their strict Scope 3 net-zero targets.',
   },
 ]
-const N = BANDS.length
+
+/** the sustainability win and its carbon meter: the last band, the same for every application */
+export const CARBON_BAND = BANDS[BANDS.length - 1]
 
 const LABELS: LabelSpec[] = [
   { id: 'esd', anchor: 'bu-esd', text: 'ESD coating', dx: 56, dy: -70 },
@@ -84,7 +86,12 @@ function Model() {
   )
 }
 
-export function Voices() {
+/**
+ * The ledger; the Data & AI Centres page's by default. Another application brings its own bands and
+ * the model its consultant's band shows.
+ */
+export function Voices({ bands = BANDS, model = <Model /> }: { bands?: Band[]; model?: ReactNode }) {
+  const N = bands.length
   const section = useRef<HTMLElement>(null)
   const list = useRef<HTMLOListElement>(null)
   const rows = useRef<(HTMLLIElement | null)[]>([])
@@ -157,7 +164,7 @@ export function Voices() {
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
     }
-  }, [])
+  }, [N])
 
   return (
     <section ref={section} id="voices" className="fdc-v on-light" style={{ '--rows': N } as CSSProperties} aria-labelledby="fdc-v-title">
@@ -166,7 +173,7 @@ export function Voices() {
           Specified. Approved. Built.
         </h2>
         <ol ref={list} className="fdc-v__rows">
-          {BANDS.map((b, i) => {
+          {bands.map((b, i) => {
             const carbon = b.id === 'carbon'
             return (
               <li
@@ -188,9 +195,7 @@ export function Voices() {
                     <p className="fdc-v__line">{b.line}</p>
                   </div>
                   {b.media?.kind === '3d' && (
-                    <figure className="fdc-v__media">
-                      <Model />
-                    </figure>
+                    <figure className="fdc-v__media">{model}</figure>
                   )}
                   {b.media?.kind === 'photo' && (
                     <figure className="fdc-v__media">
