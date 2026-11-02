@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer } from '@react-three/drei'
@@ -12,7 +12,7 @@ class Boundary extends Component<{ children: ReactNode; onFail: () => void }, { 
     return { failed: true }
   }
   componentDidCatch(error: unknown) {
-    console.warn('[RTARIUM] façade 3D unavailable, showing the still instead.', error)
+    console.warn('[RTARIUM] a 3D scene failed; making it again.', error)
     this.props.onFail()
   }
   render() {
@@ -74,8 +74,9 @@ function whenSettled(f: () => void) {
  * every material it will ever show is compiled at once (`Warm`), so nothing stalls when it first
  * appears. It renders only when something in it moves (`frameloop="demand"`: a scene asks for frames
  * while it is on its way to a state and stops once it has settled), and is transparent, so the
- * section's own ground is the background. Without WebGL, or if the scene fails, `fallback` (a
- * photograph or nothing) stands in and the copy carries the content.
+ * section's own ground is the background. A scene that fails (a texture that never came, a context
+ * the browser took back) is made again, a few times; only without WebGL, or after that, does
+ * `fallback` (a photograph or nothing) stand in, and the copy carries the content.
  */
 export function Stage3D({
   children,
@@ -95,7 +96,30 @@ export function Stage3D({
   const host = useRef<HTMLDivElement>(null)
   const [near, setNear] = useState(false)
   const [failed, setFailed] = useState(() => !hasWebGL2())
+  /** how many times the canvas has been made again, after a failure or a lost context */
+  const [life, setLife] = useState(0)
+  const tries = useRef(0)
   const compact = useIsCompact()
+  const again = useCallback(() => {
+    if (tries.current >= 3) return setFailed(true)
+    tries.current++
+    window.setTimeout(() => setLife((n) => n + 1), 500 * tries.current)
+  }, [])
+  // a context the browser takes back (too many on the page, a driver reset) leaves a blank canvas: make a new one
+  const onCreated = useCallback(
+    ({ gl }: { gl: THREE.WebGLRenderer }) => {
+      gl.setClearColor(0x000000, 0)
+      gl.domElement.addEventListener(
+        'webglcontextlost',
+        (e) => {
+          e.preventDefault()
+          again()
+        },
+        { once: true },
+      )
+    },
+    [again],
+  )
 
   useEffect(() => {
     const el = host.current
@@ -125,18 +149,18 @@ export function Stage3D({
 
   const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
   return (
-    <div ref={host} className={`fc-canvas ${className}`} aria-hidden="true">
+    <div ref={host} className={`fc-canvas ${className}`} aria-hidden="true" data-failed={failed ? '' : undefined}>
       {failed
         ? fallback
         : near && (
-            <Boundary onFail={() => setFailed(true)}>
+            <Boundary key={life} onFail={again}>
               <Canvas
                 frameloop="demand"
                 shadows={shadows}
                 dpr={[1, dpr]}
                 gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false }}
                 camera={{ fov: 26, near: 0.02, far: 120, position: [6, 4, 10] }}
-                onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
+                onCreated={onCreated}
               >
                 <Suspense fallback={null}>
                   <Lights keyLight={keyLight} />
