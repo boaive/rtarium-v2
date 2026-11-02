@@ -20,6 +20,9 @@ const isFacade = (path: string) => path === '/facade-cladding' || path.startsWit
 /** Advanced Flooring (overview and its three applications): the same, its own chunk */
 const FlooringRoutes = lazy(() => import('./flooring/FlooringRoutes'))
 const isFlooring = (path: string) => path === '/advanced-flooring' || path.startsWith('/advanced-flooring/')
+/** Wall Panels: one page, its own chunk */
+const WallPanels = lazy(() => import('./walls/WallPanels'))
+const isWalls = (path: string) => path === '/wall-panels'
 
 function Home() {
   usePointerTracking()
@@ -62,12 +65,14 @@ function Page() {
       </>
     )
   }
-  if (isFacade(path) || isFlooring(path)) {
+  if (isFacade(path) || isFlooring(path) || isWalls(path)) {
     return (
       <>
         <Nav />
         <main id="main">
-          <Suspense fallback={<div className="page" aria-busy="true" />}>{isFacade(path) ? <FacadeRoutes path={path} /> : <FlooringRoutes path={path} />}</Suspense>
+          <Suspense fallback={<div className="page" aria-busy="true" />}>
+            {isFacade(path) ? <FacadeRoutes path={path} /> : isFlooring(path) ? <FlooringRoutes path={path} /> : <WallPanels />}
+          </Suspense>
         </main>
         <Footer screen />
       </>

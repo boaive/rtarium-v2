@@ -123,7 +123,7 @@ const NARROW_LAST: Layout = {
 const WIDE: Layout[] = [WIDE_RIGHT, WIDE_LEFT, WIDE_RIGHT, WIDE_LAST]
 const NARROW: Layout[] = [narrow(WIDE_RIGHT.ground, WIDE_RIGHT.align), narrow(WIDE_LEFT.ground, WIDE_LEFT.align), narrow(WIDE_RIGHT.ground, WIDE_RIGHT.align), NARROW_LAST]
 
-interface Version {
+export interface Version {
   id: string
   name: string
   full: string
@@ -131,10 +131,37 @@ interface Version {
   used?: string
   replaced?: string
   claim?: string
+  /** a few facts set small under the claim (RTARIUM only) */
+  facts?: string[]
+  /** the label over its second box, when it is not the story's own (`words.replaced`) */
+  label?: string
+  /** what its row says at its end, when it is not the story's own (`words.tag`) */
+  tag?: string
   /** what the marker on the panel calls it */
   material: string
   thick: number
-  photo: { src: string; alt: string; credit?: string }
+  /** its photograph (a story that sets a second model in the photograph's box goes without) */
+  photo?: { src: string; alt: string; credit?: string }
+}
+
+/** the words a story sets over its boxes (the façade's, by default) */
+export interface LineageWords {
+  title: string
+  rows: string
+  used: string
+  replaced: string
+  claim: string
+  replaces: string
+  tag: string
+}
+const FACADE_WORDS: LineageWords = {
+  title: 'What RTARIUM replaces in a façade panel',
+  rows: 'Replaced materials',
+  used: 'Why it was used',
+  replaced: 'Why it is replaced',
+  claim: 'Why it replaces them',
+  replaces: 'Replaces',
+  tag: 'Replaced',
 }
 
 const VERSIONS: Version[] = [
@@ -183,8 +210,6 @@ const VERSIONS: Version[] = [
     photo: { src: '/img/shoot/mesh-profile.webp', alt: 'An RTARIUM sheet seen edge-on: two basalt mesh faces with fibres looping between them' },
   },
 ]
-const LAST = VERSIONS.length - 1
-const REPLACED = VERSIONS.slice(0, LAST)
 
 /** how each panel is seen: turned towards the middle of the screen from whichever side it stands on */
 const SHOTS: CellShot[] = [
@@ -218,6 +243,7 @@ const rolesOf = (L: Layout) => ORDER.filter((r) => L.at[r])
 
 /** one panel, in its own canvas: the version it shows, seen as that version is seen, swaying while on screen */
 function Panel({ k, compact }: { k: number; compact: boolean }) {
+  const LAST = VERSIONS.length - 1
   const bus = useMemo(createBus, [])
   const stage = useMemo(() => ({ value: k }), [k])
   const shot = useMemo(() => () => SHOTS[k], [k])
@@ -245,9 +271,40 @@ function Panel({ k, compact }: { k: number; compact: boolean }) {
   )
 }
 
-export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>; live?: { current: boolean } }) {
+/**
+ * The story, for any set of versions: the façade's by default. Another page brings its own versions
+ * (the last is RTARIUM), its own model for the panel's box and its own words; the boxes, the rows and
+ * the motion are the same.
+ */
+export function Lineage({
+  sectionRef,
+  versions = VERSIONS,
+  panel = (k, compact) => <Panel k={k} compact={compact} />,
+  words = FACADE_WORDS,
+  id = 'lineage',
+  finale = true,
+  second,
+}: {
+  sectionRef: RefObject<HTMLElement | null>
+  live?: { current: boolean }
+  versions?: Version[]
+  panel?: (k: number, compact: boolean) => ReactNode
+  /** a second model, in the photograph's box: a block that shows two things side by side, each in 3D */
+  second?: (k: number, compact: boolean) => ReactNode
+  words?: LineageWords
+  id?: string
+  /**
+   * Whether the last version closes the story in a layout of its own, the rows of the others struck and dropping
+   * into it (the façade's RTARIUM). Without it every version is a block like the others, its photograph never
+   * struck, and the rows are a plain index that leaves with the section.
+   */
+  finale?: boolean
+}) {
   const compact = useIsCompact()
-  const layouts = compact ? NARROW : WIDE
+  const LAST = finale ? versions.length - 1 : versions.length
+  // the materials alternate sides; RTARIUM, last, has its own layout
+  const layouts = useMemo(() => versions.map((_, k) => (k === LAST ? (compact ? NARROW_LAST : WIDE_LAST) : (compact ? NARROW : WIDE)[k % 2])), [versions, LAST, compact])
+  const REPLACED = useMemo(() => (finale ? versions.slice(0, LAST) : versions), [versions, LAST, finale])
 
   const layer = useRef<HTMLElement>(null)
   const blocks = useRef<(HTMLElement | null)[]>([])
@@ -314,7 +371,7 @@ export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | nu
         const ph = photos.current[k]
         if (ph) {
           const g = reduced ? 1 : Math.max(0.04, p >= 0 ? 1 - smooth(OPENED, 0.85, p) : 1 - smooth(CLOSING, CLOSED + 0.05, p))
-          const gone = k < LAST ? (reduced ? Number(p < -0.2) : smooth(-0.02, -0.16, p)) : 0
+          const gone = finale && k < LAST ? (reduced ? Number(p < -0.2) : smooth(-0.02, -0.16, p)) : 0
           ph.style.setProperty('--g', g.toFixed(4))
           ph.style.setProperty('--x', gone.toFixed(4))
           let size = sizes.get(ph)
@@ -328,13 +385,16 @@ export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | nu
       // the rows. As a material's block goes, its row is drawn in under the header with its name struck;
       // the block's words pass up behind it. When RTARIUM arrives the rows come down into the box beside
       // its name: first drawn in to its narrow column, then dropped into place
-      const across = reduced ? Number(q[LAST] < 0.15) : smooth(0.45, 0.25, q[LAST])
-      const down = reduced ? Number(q[LAST] < 0.15) : smooth(0.35, 0.1, q[LAST])
+      const across = !finale ? 0 : reduced ? Number(q[LAST] < 0.15) : smooth(0.45, 0.25, q[LAST])
+      const down = !finale ? 0 : reduced ? Number(q[LAST] < 0.15) : smooth(0.35, 0.1, q[LAST])
       REPLACED.forEach((_, k) => {
         const bar = bars.current[k]
         if (!bar) return
         const rise = reduced ? Number(q[k] < -0.1) : smooth(-0.02, -0.3, q[k])
-        const slot: Rect = [0, navH + k * rowH - layerTop, W, rowH]
+        // (an index without a finale leaves with the last block: as its foot comes up past the rows, they go up with it)
+        const lastFoot = blocks.current[blocks.current.length - 1]?.getBoundingClientRect().bottom ?? Infinity
+        const leave = finale ? 0 : Math.min(0, lastFoot - (navH + REPLACED.length * rowH))
+        const slot: Rect = [0, navH + k * rowH - layerTop + leave, W, rowH]
         const d = docks.current[k]?.getBoundingClientRect()
         const dock: Rect = d ? [d.left, d.top - layerTop, d.width, d.height] : slot
         const x = lerp(slot[0], dock[0], ease(across))
@@ -344,7 +404,7 @@ export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | nu
         // drawn in from the left, solid, so the block's words pass behind it
         bar.style.opacity = rise > 0 ? '1' : '0'
         bar.style.clipPath = `inset(0 ${((1 - ease(smooth(0, 0.3, rise))) * 100).toFixed(2)}% 0 0)`
-        bar.style.setProperty('--s', smooth(0.55, 1, rise).toFixed(3))
+        bar.style.setProperty('--s', finale ? smooth(0.55, 1, rise).toFixed(3) : '0')
         const docked = rise > 0.5
         bar.tabIndex = docked ? 0 : -1
         bar.toggleAttribute('data-docked', docked)
@@ -365,7 +425,7 @@ export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | nu
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', resize)
     }
-  }, [layouts])
+  }, [layouts, LAST, REPLACED])
 
   /** a row takes you back to its material: the scroll where its block is read */
   const go = (i: number) => {
@@ -392,30 +452,43 @@ export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | nu
               {v.name}
             </h3>
             <p className="fs-full">{v.full}</p>
-            <div className="fs-used">
-              <p className="fs-label">Why it was used</p>
-              <p className="fs-used__text">{v.used}</p>
-            </div>
+            {v.used && (
+              <div className="fs-used">
+                <p className="fs-label">{words.used}</p>
+                <p className="fs-used__text">{v.used}</p>
+              </div>
+            )}
           </>
         )
       case 'limit':
         return (
           <>
-            <p className="fs-label">Why it is replaced</p>
+            <p className="fs-label">{v.label ?? words.replaced}</p>
             <p className="fs-limit">{v.replaced}</p>
           </>
         )
       case 'claim':
         return (
           <>
-            <p className="fs-label">Why it replaces them</p>
-            <p className="fs-claim">{v.claim}</p>
+            <p className="fs-label">{words.claim}</p>
+            {v.facts ? (
+              <div className="fs-say">
+                <p className="fs-claim">{v.claim}</p>
+                <ul className="fs-facts">
+                  {v.facts.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="fs-claim">{v.claim}</p>
+            )}
           </>
         )
       case 'replaces':
         return (
           <>
-            <p className="fs-label">Replaces</p>
+            <p className="fs-label">{words.replaces}</p>
             <ol className="fs-docks">
               {REPLACED.map((o, j) => (
                 <li key={o.id} ref={(el) => void (docks.current[j] = el)} className="fs-dock">
@@ -426,6 +499,8 @@ export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | nu
           </>
         )
       case 'photo':
+        if (second) return second(i, compact)
+        if (!v.photo) return null
         return (
           <>
             <figure ref={(el) => void (photos.current[i] = el)} className="fs-photo">
@@ -442,21 +517,21 @@ export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | nu
           </>
         )
       case 'panel':
-        return <Panel k={i} compact={compact} />
+        return panel(i, compact)
     }
   }
 
   return (
-    <section ref={sectionRef} id="lineage" className="fs on-yellow" aria-labelledby="fs-title">
+    <section ref={sectionRef} id={id} className="fs on-yellow" aria-labelledby="fs-title">
       {/* the rows of what has been passed, over the blocks: struck, and the way back */}
-      <nav ref={layer} className="fs-rows" aria-label="Replaced materials">
+      <nav ref={layer} className="fs-rows" aria-label={words.rows}>
         <ol>
           {REPLACED.map((v, i) => (
             <li key={v.id}>
               <button ref={(el) => void (bars.current[i] = el)} type="button" className="fs-row" tabIndex={-1} onClick={() => go(i)} aria-label={`${v.name}, replaced. Back to it`}>
                 <span className="fs-row__num num">0{i + 1} /</span>
                 <span className="fs-row__name">{v.name}</span>
-                <span className="fs-row__tag">Replaced</span>
+                <span className="fs-row__tag">{v.tag ?? words.tag}</span>
               </button>
             </li>
           ))}
@@ -466,10 +541,10 @@ export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | nu
       <div className="fs-cap" aria-hidden="true" />
 
       <h2 id="fs-title" className="visually-hidden">
-        What RTARIUM replaces in a façade panel
+        {words.title}
       </h2>
 
-      {VERSIONS.map((v, i) => {
+      {versions.map((v, i) => {
         const L = layouts[i]
         return (
           <article
@@ -485,7 +560,7 @@ export function Lineage({ sectionRef }: { sectionRef: RefObject<HTMLElement | nu
                 <div
                   key={role}
                   ref={(el) => void ((cells.current[i] ??= {})[role] = el)}
-                  className={`fs-cell fs-cell--${role} on-${L.ground[role]} ${L.align[role] === 'end' ? 'is-end' : ''}`}
+                  className={`fs-cell fs-cell--${role} on-${L.ground[role]} ${L.align[role] === 'end' ? 'is-end' : ''} ${role === 'photo' && second ? 'is-3d' : ''}`}
                 >
                   <div
                     ref={(el) => void ((inners.current[i] ??= {})[role] = el)}

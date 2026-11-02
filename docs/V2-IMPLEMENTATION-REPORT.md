@@ -299,3 +299,104 @@ other openings; the RTARIUM moment is a small lean in on the textile, the page n
 a photograph and a 3D sample; panels go up to 6 m (not 8 m); "Deflects 90 % rainwater and wind" is published as the
 client's line (its source question stays behind `?review`). The ACP, precast and granite photographs are from Wikimedia Commons (Temdor, CC BY-SA 4.0; Achim
 Hering, CC BY 3.0; Eurico Zimbres, CC BY-SA 2.5), credited on their cards.
+
+## 13. Wall Panels (2 November 2026)
+
+One page, `/wall-panels` (`src/walls/`, its own chunk; styles `walls.css`, `wp-` prefix), built in the Façade &
+Cladding grammar from the client's wall-panel brief and the 100 mm panel's section, plan and tie-plate sketches
+(28 October 2026). In order:
+
+- **Opening** (yellow, the Unitized form): "Solid. Insulated. Interlocked."; one 2.4 m panel on its long edge that
+  swells from the 30 mm solid panel to the 100 mm SIP panel and back on a loop (the core grows between its halves;
+  nothing is opened), its thickness marked at the far end.
+- **Two walls → RTARIUM** (the overview's Lineage boxes, now reusable: `facade/Lineage.tsx` takes versions, a model
+  and words, the façade's by default): precast concrete ("Heavy, slow, welded on site."), the insulated metal panel
+  ("Dents, rusts, no muscle."), then RTARIUM's own layout: "The muscle of solid concrete, at the weight and speed of
+  cladding." with the client's facts under it. Photos: Achim Hering (CC BY 3.0), Mesadbal (CC0), RTARIUM's own test bay.
+- **RTARIUM's answers** (the Unitized answers stage): the client's six points over one 5.8 m bay between drawn
+  columns, cut to a section box for each close-up (span, zoned walls to the door head, the joint traced edge on,
+  bolts through the flange into the ferrules, the floor given back seen from above, the face lifted off the mesh).
+- **Solid panel** (black): the name, then the client's USP word by word with the scroll.
+- **The panels** (yellow, pinned): the 30 mm panel grows to 5.8 m, opens (covers, 15 mm RTARIUM, ferrules), splits
+  into two 15 mm leaves round the EPS/SPS core (stay-in-place) to make the 100 mm SIP panel, opens (7 + 6 + 2 each
+  side, GI tie-clips, 3 mm GRP rods, 20 mm recess). "Technical details" opens each panel's sheet: section, plan,
+  the tie plate, construction, dimensions and dynamics.
+- **Streams** (warm white): choose Affordable housing (G+1 row homes on an RC frame), Industrial building (a PEB
+  shed, SIP to the door head, solid to the eaves) or Frame structure (G+3, RC | PEB switch); the build is drawn
+  step by step and its case study opens over the page.
+
+Owner's decisions (2 November 2026): the core is published as EPS/SPS (the sketch), not the brief's XPS; the
+100 mm panel is a SIP (stay-in-place) panel; case studies drafted from the brief's figures only and flagged under
+`?review`; the 30 mm panel's ferrule grid and tongue follow the 100 mm plan (no 30 mm drawing yet). `site.ts` now
+says 30 mm solid and 100 mm SIP, up to 5.8 m (it said 80 mm and 5 m).
+
+### The owner's rounds on the Wall Panels page (2 November 2026)
+
+Round 2 replaced most of the first build; round 3 set the envelope's motion. What stands now:
+
+- **The story** (Lineage boxes): no "what it replaces". Five positive blocks from the client's paragraph (concrete
+  muscle at cladding weight, the mineral mesh, zoned engineering, 30 mm + 100 mm interlocked, factory-made and bolted),
+  each with one of RTARIUM's own photographs and its own 3D piece; passed blocks stay as numbered rows.
+- **Built for the envelope.** (the Unitized answers stage, seven slides): one 3.6 m panel (the client's 30 mm plan)
+  stands on end and grows to 5.8 m, counted and marked, comes back and turns down to lie along the wall; its
+  ferrules are X-rayed (RTARIUM, the 120 mm GRP grid, the inserts set onto the mesh), then the whole panel is marked;
+  a window of its face lifts off the basalt; the steel stands (columns 3.6 m apart, a beam at the zone's top), the
+  panel is lifted by eye bolts in its ferrules onto the beam and bolted through its tie holes (a lens draws the
+  bolt); two more panels interlock on it (a lens draws the tapered tongue taking the third into line, and the wind
+  shared); three 100 mm SIPs come in under the beam; a 230 mm masonry wall closes in and draws back, a rack moves into
+  the floor it gives back. The wall stays whole in its room; the camera moves only between slides.
+- **The panels**: an upright 600 × 1200 piece, centred; it bursts all at once through its depth, seen from the side
+  (the Unitized unit's burst), is marked, closes, divides, takes its core and joins as the 100 mm SIP, and bursts the
+  same way. Six screens of scroll, so every stretch of it moves the panel.
+- **Panel facts**: GRP at 120 mm as the plan; ferrules 1000 mm from each end, then every 1600–2000 mm, two per line
+  100 mm in from the edges (`FERRULE_LINES`); 100 mm panel: GRP rods along the length only, plus one across at each
+  tie-clip line to lock the clips.
+- **Streams**: cards carry a still rendered from each finished build (owner: our own renders, no stock photographs).
+  Each build starts close on one wall with the building's frame faint behind it, draws the frame out from it, puts
+  the panels up where the building needs them, then the rest and the finish: a single-storey home of storey-high
+  SIP panels (no rooms); a logistics hub (SIP to the docks' head at 4.8 m, solid to 9 m, four docks); an RC frame
+  (G+3, SIP infill within the frame, a window band in every bay) or a steel portal (tapered members, purlins, girts,
+  bracing; the panels outside the frame). Each opens an illustrative case study: brief, challenge, the RTARIUM wall,
+  quantities counted off the 3D building and the panels' figures, how it goes up, a drawing, the still, needs,
+  advantages and limits; no programme or cost is claimed.
+
+### The owner's fourth round on the Wall Panels page (2 November 2026)
+
+- **The story** is three blocks, not five (zoning and interlocking are left to the envelope, so nothing is said
+  twice), and each block shows its two facts as two small 3D scenes side by side, playing on a loop in time while on
+  screen (the page is never held): *Concrete muscle* (a piece hung by its ferrules, loaded to 125 kg per point; a
+  square metre on a scale, 70 kg, then the SIP's, 74 kg), *Mineral mesh* (a lifting magnet takes a steel nut off a
+  panel and leaves the panel; a piece standing in a burner's flames), *To the millimetre* (a caliper closing on the
+  edge, 30.0 mm; a square metre gathered into the 0.03 m³ of concrete it holds: lower carbon). `Lineage` takes a
+  second model for the photograph's box (`second`); the façade's story is unchanged.
+- **Built for the envelope** is six slides, every frame cropped to the 3D's room (a close look shows the room's edge
+  while the camera is in, never spills over the words or the bar), and no round lenses:
+  1. spanning: the camera holds still while the panel grows from 3.6 to 5.8 m beside its counted dimension, so the
+     growth is seen; it comes back and is laid down about its foot;
+  2. weld-free and rust-proof in one: the X-ray, a close look at the basalt (water runs over it, nothing rusts), the
+     ferrule inserts set onto the mesh, back out, the ferrules and tie holes marked;
+  3. bolt-down: two columns rise beyond the panel's ends (not in front of it); it is lifted by eye bolts in its upper
+     ferrules, carried back between them and lowered to their foot; in close, a steel angle at each tie hole is bolted
+     to the column and the panel is bolted to it, washer and nut run on;
+  4. interlocking: a second panel, then a third are lowered on; in close on a section through the wall (the RTARIUM
+     zone tinted in the cut), the third's groove comes down over the tapered tongue below and the taper takes it into
+     line; a 1.5 mm seam shows each joint;
+  5. zoned capex: the three lower panels swell into 100 mm SIPs (seen on a section, the core growing between the
+     leaves), the horizontal beam goes on over them, and three 30 mm panels are lowered on above it, no close look;
+  6. internal space, as before.
+- **The panels** (the burst): the build-up stands on the left (the name, the thickness as a figure that counts from
+  30 to 100 mm, the section drawn to scale as a strip that parts with the burst, every part in a numbered list); each
+  part's number comes up on the model as its row lights. The layers part one after another, the outermost first; the
+  SIP's stand further apart; the ferrules come off the mesh as a part of their own.
+- **Streams**: courses go up from the ground a course at a time and each is only lowered onto one that has landed
+  (the hub and portal had panels hanging mid-air); every build puts its frame up first, then one wall close, then the
+  rest; the RC frame and the steel portal share one footprint and bay grid (4 × 2 bays of 5.8 m); the close look is
+  cropped to its room. Once a build is finished, a space of its own follows with what was built, its figures counted
+  off the model and "View the case study" (the button left the header). The cards' stills were rendered again, and the
+  steel portal's case study has its own.
+- **Concrete**: new seamless maps matched to the owner's photographs: the mould face (light, fine sand, pinholes),
+  the outer face (sandy, mottled, open pores) and the cast edge, each with a normal map; panels take three materials
+  (inner face, edges, outer face).
+- **The full-screen photograph**: a 3D stage that failed (a lost WebGL context, an error) switched for good to its
+  fallback photograph, which on these stages covers the whole screen. `Stage3D` now makes a failed or lost canvas
+  again (up to three times), hides its labels if it gives up, and the Wall Panels stages have no photograph fallback.

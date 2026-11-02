@@ -73,8 +73,8 @@ export const APPLICATIONS: Application[] = [
     title: 'Wall Panels',
     points: ['Thinner', 'Longer', 'Custom size', 'Mountable', 'Weatherproof'],
     intro:
-      'A 30 mm single panel and an 80 mm insulated paired panel (20 + 40 mm insulation + 20), up to 5 m × 600 mm.',
-    pages: ['30 mm standard panel', '80 mm insulated paired panel'],
+      'A 30 mm solid panel and a 100 mm SIP insulated panel (15 + 70 mm EPS/SPS core + 15), up to 5.8 m × 600 mm.',
+    pages: ['30 mm solid panel', '100 mm SIP insulated panel'],
     image: {
       src: '/img/shoot/load-hang.webp',
       small: '/img/shoot/load-hang-sm.webp',

@@ -203,6 +203,10 @@
   z-index: 2;
   pointer-events: none;
 }
+/* a scene that could not be made has no points for its labels to keep to */
+.fc-canvas[data-failed] ~ .fc-labels {
+  display: none;
+}
 .fc-pin {
   position: absolute;
   top: 0;
