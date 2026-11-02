@@ -1,0 +1,901 @@
+/*
+ * Wall Panels (`wp-`). The page borrows the Façade & Cladding pages' grammar whole: the Unitized
+ * opening, the overview's story of boxes, the answers' pinned stage and its bar, the slab-to-slab
+ * stage. What is its own is set here.
+ */
+
+/* ---- the opening ----------------------------------------------------------------------------- */
+
+.wp-hero__line {
+  max-width: 26rem;
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--on-yellow-2);
+  animation: rise 0.8s var(--ease-out) 1.1s both;
+}
+
+/* ---- the story: RTARIUM's claim, and its facts under it, along the foot ---------------------- */
+
+.fs-say {
+  display: grid;
+  justify-items: end;
+  gap: clamp(8px, 14cqh, 14px);
+}
+.fs-facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 18px;
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.fs-facts li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fs-facts li + li::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+}
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fs-say {
+    justify-items: start;
+  }
+  .fs-facts {
+    justify-content: flex-start;
+    gap: 2px 12px;
+    font-size: 0.66rem;
+  }
+}
+
+/* ---- solid panel: the whole screen is one sentence, on black --------------------------------- */
+
+.wp-say {
+  --n: 0;
+  position: relative;
+  height: 300svh;
+  background: var(--black);
+  color: var(--yellow);
+}
+.wp-say__pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: var(--nav-h) var(--gutter) clamp(32px, 8vh, 80px);
+  overflow: hidden;
+}
+/* the name, large in the middle; the page moves it up into its place over the sentence (one element, scaled) */
+.wp-say__name {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  font-size: clamp(3.4rem, min(11vw, 20vh), 12rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+.wp-say__body {
+  display: grid;
+  justify-items: center;
+  gap: clamp(20px, 4vh, 40px);
+  max-width: min(22ch, 100%);
+  font-size: clamp(2.4rem, min(5.8vw, 10.6vh), 6.6rem);
+  text-align: center;
+}
+/* where the name comes to rest: the same type, small */
+.wp-say__slot {
+  visibility: hidden;
+  font-size: clamp(1.3rem, min(1.9vw, 3.4vh), 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+}
+.wp-say__text {
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  text-wrap: balance;
+}
+/* a word not yet reached waits, quiet, in its place; once reached it lights and settles */
+.wp-say__w {
+  --o: 0;
+  display: inline;
+  /* (quiet words wait only once the name has made way for them) */
+  opacity: calc(var(--n) * (0.12 + 0.88 * var(--o)));
+  color: color-mix(in srgb, var(--yellow) calc(var(--o) * 100%), var(--white));
+}
+@media (prefers-reduced-motion: reduce) {
+  .wp-say {
+    height: 100svh;
+  }
+}
+
+/* ---- the panels: a spec strip under the words, and the way to the technical sheet ------------ */
+
+.wp-spec {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+  gap: 0;
+  margin-top: 4px;
+  border-top: 1px solid rgb(8 8 8 / 0.22);
+}
+.wp-spec > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px 22px 0 0;
+}
+.wp-spec > div + div {
+  padding-left: 18px;
+  border-left: 1px solid rgb(8 8 8 / 0.22);
+}
+.wp-spec dt {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  color: var(--on-yellow-2);
+}
+.wp-spec dd {
+  font-size: clamp(1.05rem, min(1.6vw, 3vh), 1.5rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+.wp-go {
+  margin-top: 8px;
+}
+
+/* ---- the technical sheet: the client's figures and drawings, over the page ------------------- */
+
+html.sheet-open {
+  overflow: hidden;
+}
+.wp-sheet {
+  width: min(1180px, 100vw);
+  max-width: 100vw;
+  height: 100svh;
+  max-height: 100svh;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--white);
+  color: var(--black);
+}
+.wp-sheet::backdrop {
+  background: rgb(8 8 8 / 0.62);
+}
+.wp-sheet[open] {
+  animation: wp-sheet-in 0.55s var(--ease-out);
+}
+@keyframes wp-sheet-in {
+  from {
+    transform: translateX(6%);
+    opacity: 0;
+  }
+}
+.wp-sheet__inner {
+  padding: clamp(28px, 5vh, 56px) clamp(20px, 3.4vw, 52px) clamp(32px, 6vh, 64px);
+}
+.wp-sheet__head {
+  position: sticky;
+  top: calc(-1 * clamp(28px, 5vh, 56px));
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-5);
+  margin: calc(-1 * clamp(28px, 5vh, 56px)) calc(-1 * clamp(20px, 3.4vw, 52px)) 0;
+  padding: clamp(28px, 5vh, 56px) clamp(20px, 3.4vw, 52px) var(--s-5);
+  border-bottom: 1px solid var(--black);
+  background: var(--white);
+}
+.wp-sheet__kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.wp-sheet__kicker::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: var(--yellow);
+  outline: 1px solid var(--black);
+}
+.wp-sheet__title {
+  font-size: clamp(1.9rem, 3.6vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+.wp-sheet__close {
+  min-height: 44px;
+  padding: 0 20px;
+  background: var(--black);
+  color: var(--yellow);
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+.wp-sheet__close:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 3px;
+}
+.wp-sheet__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  border-left: 1px solid rgb(8 8 8 / 0.16);
+}
+.wp-sheet__side {
+  display: grid;
+  align-content: start;
+}
+.wp-sheet__block {
+  display: grid;
+  align-content: start;
+  gap: var(--s-4);
+  padding: var(--s-5) clamp(16px, 2vw, 28px) var(--s-6);
+  border-right: 1px solid rgb(8 8 8 / 0.16);
+  border-bottom: 1px solid rgb(8 8 8 / 0.16);
+}
+.wp-sheet__block.is-wide {
+  grid-column: 1 / -1;
+}
+.wp-sheet__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+.wp-sheet__label::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+}
+.wp-sheet__fine {
+  margin-top: var(--s-5);
+  font-size: var(--t-micro);
+  color: var(--on-light-2);
+}
+.wp-figs__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 10px 0;
+  border-top: 1px solid rgb(8 8 8 / 0.14);
+  font-size: var(--t-small);
+}
+.wp-figs__row dt {
+  color: var(--on-light-2);
+}
+.wp-figs__row dd {
+  font-weight: 600;
+  text-align: right;
+}
+.wp-figs__row dd .num {
+  font-size: 1.15em;
+  font-weight: 750;
+}
+.wp-steps {
+  display: grid;
+}
+.wp-steps li {
+  display: grid;
+  grid-template-columns: 2.4em minmax(0, 1fr);
+  gap: var(--s-2);
+  padding: 10px 0;
+  border-top: 1px solid rgb(8 8 8 / 0.14);
+  font-size: var(--t-small);
+  font-weight: 500;
+}
+.wp-steps .num {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  color: var(--on-light-2);
+}
+.wp-dg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.wp-dg--narrow {
+  max-width: 620px;
+}
+.wp-dg__num {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--black);
+  font-variant-numeric: tabular-nums;
+}
+.wp-dg__note {
+  font-size: 12.5px;
+  font-weight: 600;
+  fill: var(--black);
+}
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .wp-spec {
+    grid-template-columns: repeat(2, auto);
+  }
+  .wp-spec > div:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .wp-sheet__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- streams: the choice, three columns on warm white ------------------------------------------ */
+
+.wp-streams {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100svh;
+  padding-top: calc(var(--nav-h) + clamp(24px, 5vh, 56px));
+  background: var(--white);
+  color: var(--black);
+}
+.wp-streams__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-6);
+  padding: 0 var(--gutter) clamp(24px, 5vh, 48px);
+  border-bottom: 1px solid rgb(8 8 8 / 0.16);
+}
+.wp-streams__title {
+  font-size: var(--t-display);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+.wp-streams__line {
+  max-width: 22rem;
+  font-size: var(--t-small);
+  font-weight: 500;
+  color: var(--on-light-2);
+  text-align: right;
+}
+.wp-streams__cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.wp-stream {
+  --bg: var(--white);
+  --fg: var(--black);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: var(--s-4);
+  padding: clamp(24px, 4vh, 40px) var(--gutter) clamp(32px, 7vh, 72px);
+  border-right: 1px solid rgb(8 8 8 / 0.16);
+  background: var(--bg);
+  transition: background-color var(--d-mid) var(--ease-out);
+}
+.wp-stream:last-child {
+  border-right: 0;
+}
+.wp-stream:hover,
+.wp-stream.is-on {
+  --bg: var(--yellow);
+}
+/* a still of the stream's own build, finished */
+.wp-stream__still {
+  aspect-ratio: 3 / 2;
+  margin-bottom: var(--s-3);
+  overflow: hidden;
+  background: var(--white);
+  outline: 1px solid rgb(8 8 8 / 0.12);
+}
+.wp-stream__still img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--d-slow) var(--ease-out);
+}
+.wp-stream:hover .wp-stream__still img,
+.wp-stream.is-on .wp-stream__still img {
+  transform: scale(1.03);
+}
+.wp-stream__num {
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+.wp-stream__name {
+  align-self: end;
+  font-size: clamp(1.9rem, min(3.2vw, 6vh), 3.4rem);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+.wp-stream__line {
+  max-width: 22rem;
+  /* two lines kept for each, so the three names stand on one line */
+  min-height: 2.9em;
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--on-light-2);
+}
+.wp-stream:hover .wp-stream__line,
+.wp-stream.is-on .wp-stream__line {
+  color: var(--on-yellow-2);
+}
+.wp-stream__go {
+  justify-self: start;
+}
+
+/* ---- a stream's build: the title, its tools, the stage, the bar --------------------------------- */
+
+.wp-build__head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-5);
+}
+.wp-build__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.wp-build .fc-go {
+  --fg: var(--black);
+  --bg: var(--white);
+}
+/* RC or PEB: a two-way switch, square-cut */
+.wp-switch {
+  display: inline-flex;
+  border: 1.5px solid var(--black);
+}
+.wp-switch button {
+  min-width: 64px;
+  min-height: 50px;
+  padding: 0 16px;
+  font-size: var(--t-small);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--black);
+  transition: background-color var(--d-fast) var(--ease-out);
+}
+.wp-switch button.is-on {
+  background: var(--black);
+  color: var(--yellow);
+}
+.wp-switch button:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 2px;
+}
+
+/* the case study's lists */
+.wp-sheet__lede {
+  max-width: 46rem;
+  padding: var(--s-5) 0;
+  font-size: var(--t-lead);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.wp-sheet__para {
+  max-width: 34rem;
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.55;
+}
+.wp-sheet__still {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  outline: 1px solid rgb(8 8 8 / 0.12);
+}
+.wp-list {
+  display: grid;
+}
+.wp-list li {
+  position: relative;
+  padding: 10px 0 10px 22px;
+  border-top: 1px solid rgb(8 8 8 / 0.14);
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.45;
+}
+.wp-list li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 17px;
+  width: 7px;
+  height: 7px;
+  background: var(--black);
+}
+.wp-list--plus li::before {
+  background: var(--yellow);
+  outline: 1px solid var(--black);
+}
+.wp-list--minus li::before {
+  height: 2px;
+  top: 20px;
+  width: 9px;
+}
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .wp-streams__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .wp-streams__line {
+    text-align: left;
+  }
+  .wp-streams__cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .wp-stream {
+    border-right: 0;
+    border-bottom: 1px solid rgb(8 8 8 / 0.16);
+  }
+  .wp-build__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ---- the panels: one piece in the middle of a pinned screen, its name top left, its figures at the foot -- */
+
+.wp-panels {
+  --to100: 0;
+  position: relative;
+  height: calc((var(--run, 9) + 1) * 100svh);
+  background: var(--yellow);
+  color: var(--black);
+}
+.wp-panels__pin {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+.wp-panels__stage {
+  position: absolute;
+  inset: 0;
+}
+/* the build-up, left: the name, the thickness as a figure, the section to scale, every part in a numbered list */
+.wp-panels__side {
+  position: absolute;
+  z-index: 2;
+  left: var(--gutter);
+  top: calc(var(--nav-h) + clamp(16px, 3.4vh, 36px));
+  bottom: calc(clamp(18px, 3.4vh, 32px) + 84px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.7vh, 18px);
+  width: min(27rem, 31vw);
+}
+.wp-panels__name {
+  display: grid;
+  font-size: clamp(1.5rem, min(2.4vw, 4.4vh), 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+.wp-panels__thick {
+  display: grid;
+  margin-bottom: clamp(4px, 1.4vh, 14px);
+  font-size: var(--t-lead);
+  font-weight: 600;
+  color: var(--on-yellow-2);
+}
+.wp-panels__lists {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+}
+/* the list: its rows come in as the panel opens, each lights as its number comes up on the model */
+.wp-parts {
+  display: grid;
+  align-content: start;
+}
+.wp-parts__row {
+  --in: 0;
+  --on: 0;
+  display: grid;
+  grid-template-columns: 2.1em minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: clamp(3px, 0.75vh, 7px) 8px;
+  margin-inline: -8px;
+  border-top: 1px solid rgb(8 8 8 / calc(0.2 * var(--in)));
+  font-size: clamp(0.74rem, min(1vw, 1.9vh), 0.92rem);
+  font-weight: 600;
+  opacity: calc(var(--in) * (0.38 + 0.62 * var(--on)));
+  transform: translateX(calc((1 - var(--in)) * -18px));
+  transition:
+    background-color var(--d-fast) var(--ease-out),
+    color var(--d-fast) var(--ease-out);
+}
+.wp-parts__row[data-now] {
+  background: var(--black);
+  color: var(--yellow);
+}
+.wp-parts__num {
+  font-weight: 800;
+}
+.wp-parts__value {
+  font-weight: 750;
+  white-space: nowrap;
+}
+.wp-panels__figs {
+  display: grid;
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+/* the solid panel's words give way to the SIP panel's in the same place */
+.wp-panels__a,
+.wp-panels__b {
+  grid-area: 1 / 1;
+}
+/* (one goes before the other comes: never the two over each other) */
+.wp-panels__a {
+  opacity: clamp(0, 1 - 2 * var(--to100), 1);
+  transform: translateY(calc(var(--to100) * -6px));
+}
+.wp-panels__b {
+  opacity: clamp(0, 2 * var(--to100) - 1, 1);
+  transform: translateY(calc((1 - var(--to100)) * 6px));
+}
+.wp-panels__foot {
+  position: absolute;
+  z-index: 2;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: clamp(18px, 3.4vh, 32px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-5);
+  padding-top: var(--s-4);
+  border-top: 1px solid rgb(8 8 8 / 0.2);
+}
+.wp-panels .fc-pin__tag {
+  font-weight: 700;
+}
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .wp-panels__foot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  /* a phone: the name, figure and section at the top, the piece under them, and only the part being marked at the foot */
+  .wp-panels__side {
+    right: var(--gutter);
+    bottom: calc(clamp(18px, 3.4vh, 32px) + 112px);
+    width: auto;
+    gap: 8px;
+  }
+  .wp-panels__lists {
+    flex: none;
+    margin-top: auto;
+  }
+  .wp-parts__row {
+    display: none;
+  }
+  .wp-parts__row[data-now] {
+    display: grid;
+  }
+}
+
+/* ---- the room's edge while a camera is in close (the envelope, a build); the panel's length, counted ---- */
+
+/* the 3D is cropped to its room; while a slide looks closer, the room shows its edge, corners first */
+.wp-edge {
+  --z: 0;
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--z);
+  border: 1px solid rgb(8 8 8 / 0.28);
+  transform: scale(calc(1.012 - 0.012 * var(--z)));
+}
+.wp-edge::before,
+.wp-edge::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 0 solid var(--black);
+}
+.wp-edge::before {
+  left: -1px;
+  top: -1px;
+  border-left-width: 2px;
+  border-top-width: 2px;
+}
+.wp-edge::after {
+  right: -1px;
+  bottom: -1px;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+}
+/* the length beside the panel on end: a figure, not a note */
+.wp-span {
+  font-size: clamp(1.3rem, min(2.2vw, 4vh), 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+/* ---- the story: a fact's own 3D in each of the two boxes along a block's foot ----------------- */
+
+.fs-cell.is-3d .fs-cell__in {
+  padding: 0;
+}
+/* its name at the top of its box, what it reads at the foot (both on the box's own ground) */
+.wp-fact__name,
+.wp-fact__read {
+  position: absolute;
+  z-index: 1;
+  left: var(--pad);
+  right: var(--pad);
+  pointer-events: none;
+}
+.wp-fact__name {
+  top: var(--pad);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(1.15rem, min(6cqh, 3.4cqw), 1.9rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.wp-fact__name::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  background: currentColor;
+}
+.wp-fact__read {
+  bottom: var(--pad);
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--fg-2);
+}
+
+/* ---- a stream, built: what was built, its figures, and the way into its case study ------------- */
+
+.wp-built {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: end;
+  min-height: 70svh;
+  padding: clamp(56px, 12vh, 140px) var(--gutter) clamp(48px, 10vh, 120px);
+  border-top: 1px solid rgb(8 8 8 / 0.16);
+  background: var(--white);
+  color: var(--black);
+}
+.wp-built__kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--s-4);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.wp-built__kicker::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: var(--yellow);
+  outline: 1px solid var(--black);
+}
+.wp-built__title {
+  font-size: var(--t-display);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+.wp-built__lede {
+  max-width: 36rem;
+  margin-top: var(--s-5);
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--on-light-2);
+}
+.wp-built__side {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-5);
+}
+.wp-built__figs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  border-top: 1.5px solid var(--black);
+}
+.wp-built__figs > div {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px 0 0;
+}
+.wp-built__figs > div + div {
+  padding-left: 16px;
+  border-left: 1px solid rgb(8 8 8 / 0.16);
+}
+.wp-built__figs dt {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  color: var(--on-light-2);
+}
+.wp-built__figs dd {
+  font-size: clamp(1.8rem, min(3.6vw, 6.4vh), 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.wp-built__figs dd small {
+  margin-left: 4px;
+  font-size: 0.42em;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.wp-built__line {
+  max-width: 26rem;
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--on-light-2);
+}
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .wp-built {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    min-height: 0;
+  }
+}
+/* a fact shown by one of RTARIUM's own photographs: full to its box, its words on chips over it */
+.wp-fact--photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wp-fact--photo .wp-fact__name,
+.wp-fact--photo .wp-fact__read {
+  width: max-content;
+  max-width: calc(100% - 2 * var(--pad));
+  padding: 7px 12px;
+  background: var(--black);
+  color: var(--yellow);
+}
+.wp-fact--photo .wp-fact__name::before {
+  background: var(--yellow);
+}

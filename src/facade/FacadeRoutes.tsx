@@ -8,15 +8,16 @@ import StudFrame from './pages/StudFrame'
 
 /** Façade & Cladding: its overview and its three system pages, loaded together as one chunk. */
 export default function FacadeRoutes({ path }: { path: string }) {
-  if (path === FACADE.path) return <Overview />
-  switch (systemByPath(path)?.id) {
-    case 'unitized':
-      return <Unitized />
-    case 'rainscreen':
-      return <Rainscreen />
-    case 'stud':
-      return <StudFrame />
-    default:
-      return <NotFound />
-  }
+    if (path === FACADE.path) return <Overview />
+    switch (systemByPath(path)?.id) {
+        case 'unitized':
+            return <Unitized />
+        case 'rainscreen':
+            return <Rainscreen />
+        case 'stud':
+            return <StudFrame />
+        default:
+            return <NotFound />
+    }
 }
+

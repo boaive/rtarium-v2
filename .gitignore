@@ -12,6 +12,7 @@ assets/
 out/
 rtarium-film/
 rtarium-unitized/
+promo/
 
 # Logs
 npm-debug.log*
