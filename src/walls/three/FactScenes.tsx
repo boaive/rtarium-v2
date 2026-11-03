@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, type RefObject } from 'react'
+import { createContext, Suspense, useContext, useEffect, useMemo, useRef, type RefObject } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { smooth } from '../../facade/progress'
@@ -45,9 +45,13 @@ const easeOut = (x: number) => 1 - Math.pow(1 - x, 3)
 /** a small bounce as something lands (0..1 → 0 at the end) */
 const settle = (x: number) => (x <= 0 || x >= 1 ? 0 : Math.sin(x * Math.PI * 2.4) * (1 - x) * 0.5)
 
+/** the panel's finish in a box: light pink as on the rest of the page, the natural grey on a black box */
+const Finish = createContext<'pink' | 'natural'>('pink')
+
 function useKit() {
   const tex = useWallTextures()
-  const m = useMemo(() => wallKit(tex), [tex])
+  const finish = useContext(Finish)
+  const m = useMemo(() => wallKit(tex, finish), [tex, finish])
   useEffect(() => () => disposeWallKit(m), [m])
   return m
 }
@@ -613,6 +617,10 @@ function Carbon({ live, readout, dark }: { live: { current: boolean }; readout: 
 }
 
 export function FactScene({ fact, live, readout, dark }: { fact: Fact; live: { current: boolean }; readout: RefObject<HTMLElement | null>; dark: boolean }) {
+  return <Finish.Provider value={dark ? 'natural' : 'pink'}>{scene(fact, live, readout, dark)}</Finish.Provider>
+}
+
+function scene(fact: Fact, live: { current: boolean }, readout: RefObject<HTMLElement | null>, dark: boolean) {
   switch (fact) {
     case 'strength':
       return <Strength live={live} readout={readout} />
@@ -626,4 +634,3 @@ export function FactScene({ fact, live, readout, dark }: { fact: Fact; live: { c
       return <Carbon live={live} readout={readout} dark={dark} />
   }
 }
-

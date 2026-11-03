@@ -16,10 +16,13 @@ import { HERO_END, HERO_TARGET, HeroPanel, type HeroPhase } from './three/HeroPa
  * the 100 mm SIP panel; the camera comes back out along it; it goes back to 30 mm.
  */
 
-const LABELS: LabelSpec[] = [
-  { id: 'h-30', anchor: 'hp-thick', text: '30 mm solid', dx: 46, dy: -110, delay: 1200 },
-  { id: 'h-hole', anchor: 'hp-hole', text: 'Tie hole: to lift by, 20 mm through', dx: 40, dy: -64, delay: 1700 },
-  { id: 'h-ferrule', anchor: 'hp-ferrule', text: 'Ferrule insert: for fixing', dx: -40, dy: 72, delay: 2100 },
+const LABELS = (compact: boolean): LabelSpec[] => [
+  // (each on clear yellow: the thickness over the far end, the tie hole over the near end, the ferrule under the panel; no
+  // leader crosses another, no words over the panel)
+  { id: 'h-30', anchor: 'hp-thick', text: '30 mm solid', dx: -26, dy: -150, delay: 1200 },
+  // (its words up and to the right, over the panel's top: the yellow left of the panel stays clear)
+  { id: 'h-hole', anchor: 'hp-hole', text: 'Tie hole', dx: compact ? 22 : 44, dy: compact ? -96 : -104, delay: 1700 },
+  { id: 'h-ferrule', anchor: 'hp-ferrule', text: 'Ferrule insert: for fixing', dx: -48, dy: 78, delay: 2100 },
   { id: 'h-leaves', anchor: 'hp-thick', text: 'Two 15 mm leaves', dx: 46, dy: -96 },
   { id: 'h-core', anchor: 'hp-core', text: '70 mm EPS/SPS core', dx: 46, dy: -96 },
   { id: 'h-100', anchor: 'hp-thick', text: '100 mm SIP insulated', dx: 46, dy: -110 },
@@ -58,6 +61,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
   const shotAt = useMemo(() => (p: number) => mixShot(mixShot(s0, s1, p), s2, zoom.current), [s0, s1, s2])
   const live = useLive(sectionRef)
   const [phase, setPhase] = useState<HeroPhase>('solid')
+  const labels = useMemo(() => LABELS(compact), [compact])
 
   return (
     <section ref={sectionRef} className="fu-hero wp-hero on-yellow" aria-labelledby="wp-title">
@@ -69,7 +73,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
           <FollowScroll progress={progress} />
           <LabelProjector bus={bus} bottom={compact ? 260 : 60} />
         </Stage3D>
-        <Labels bus={bus} labels={LABELS} shown={SAY[phase]} />
+        <Labels bus={bus} labels={labels} shown={SAY[phase]} />
       </div>
 
       <header className="fu-hero__head">

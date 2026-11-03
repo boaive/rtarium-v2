@@ -130,20 +130,27 @@ export function tieGeometry() {
   const hb = TIE.body / 2
   const hw = TIE.w / 2
   const r = 2 * MM
+  // each lug 9 mm high, its round end 5 mm out (86 over the lugs); each oval hole 7.5 mm along the plate, 5.4 across
+  const lug = TIE.lug / 2
+  const lc = hb + 0.5 * MM
   s.moveTo(-hb + r, -hw)
   s.lineTo(hb - r, -hw)
   s.quadraticCurveTo(hb, -hw, hb, -hw + r)
-  s.lineTo(hb, -TIE.lug / 2 - 0.5 * MM)
-  s.absarc(hb, 0, TIE.lug / 2 + 0.5 * MM, -Math.PI / 2, Math.PI / 2, false)
+  s.lineTo(hb, -lug)
+  s.lineTo(lc, -lug)
+  s.absarc(lc, 0, lug, -Math.PI / 2, Math.PI / 2, false)
+  s.lineTo(hb, lug)
   s.lineTo(hb, hw - r)
   s.quadraticCurveTo(hb, hw, hb - r, hw)
   s.lineTo(-hb + r, hw)
   s.quadraticCurveTo(-hb, hw, -hb, hw - r)
-  s.lineTo(-hb, TIE.lug / 2 + 0.5 * MM)
-  s.absarc(-hb, 0, TIE.lug / 2 + 0.5 * MM, Math.PI / 2, (3 * Math.PI) / 2, false)
+  s.lineTo(-hb, lug)
+  s.lineTo(-lc, lug)
+  s.absarc(-lc, 0, lug, Math.PI / 2, (3 * Math.PI) / 2, false)
+  s.lineTo(-hb, -lug)
   s.lineTo(-hb, -hw + r)
   s.quadraticCurveTo(-hb, -hw, -hb + r, -hw)
-  for (const cx of [-(hb + 0.5 * MM), hb + 0.5 * MM]) {
+  for (const cx of [-ROD_Z, ROD_Z]) {
     const h = new THREE.Path()
     h.absellipse(cx, 0, 3.75 * MM, 2.7 * MM, 0, Math.PI * 2, true, 0)
     s.holes.push(h)
@@ -196,26 +203,67 @@ export interface WallKit {
   catcher: THREE.ShadowMaterial
 }
 
+/** the lightened copies of the photographs' maps (made once each, shared, never disposed with a kit) */
+const pales = new WeakMap<object, THREE.CanvasTexture>()
+const kept = new WeakSet<THREE.Texture>()
+/**
+ * A concrete map taken up towards white, keeping `keep` of its darkness (its pores, specks and cloud stay, fainter): a
+ * light-coloured concrete multiplies the map, and the photographs' grey would turn any light tint dull.
+ */
+function pale(t: THREE.Texture, keep: number) {
+  const img = t.image as CanvasImageSource & { width: number; height: number }
+  let out = pales.get(img)
+  if (!out) {
+    const c = document.createElement('canvas')
+    c.width = img.width
+    c.height = img.height
+    const g = c.getContext('2d')!
+    g.drawImage(img, 0, 0)
+    const d = g.getImageData(0, 0, c.width, c.height)
+    for (let i = 0; i < d.data.length; i += 4) for (let k = 0; k < 3; k++) d.data[i + k] = 255 - (255 - d.data[i + k]) * keep
+    g.putImageData(d, 0, 0)
+    out = new THREE.CanvasTexture(c)
+    out.colorSpace = THREE.SRGBColorSpace
+    out.wrapS = out.wrapT = THREE.RepeatWrapping
+    out.anisotropy = t.anisotropy
+    out.repeat.copy(t.repeat)
+    pales.set(img, out)
+    kept.add(out)
+  }
+  return out
+}
+
 /**
  * The panels' materials. Given the concrete maps (`useWallTextures`), the faces wear a concrete wall's skin and the
  * edges the cast edge; without them (a scene that never comes close) a fine grain.
+ *
+ * `finish`: the panel as the page shows it on yellow, in a LIGHT PINK concrete (owner, 3 Nov 2026: graphite was "too
+ * dark with yellow"), its maps' pores and specks kept; or the photographs' NATURAL grey, where the panel stands on black
+ * (the story's boxes).
  */
-export function wallKit(tex?: WallTextures): WallKit {
+export function wallKit(tex?: WallTextures, finish: 'pink' | 'natural' = 'pink'): WallKit {
   const std = (p: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial({ transparent: true, ...p })
-  const grain = () => grainTexture('#dcd6cb', 6400, [160, 224], 1)
+  const g = finish === 'pink'
+  /** the pink: the maps taken up towards white and tinted, a little of the tint given off so it stays light in shade (the
+   *  edges a shade deeper, so the panel's outline reads) */
+  const tone = g ? { face: '#ffe3de', edge: '#f8d0ca', outer: '#fddcd7', zone: '#ffe6e2' } : { face: '#ffffff', edge: '#ffffff', outer: '#ecebe7', zone: '#f2efe9' }
+  const faceMap = tex && g ? pale(tex.face, 0.38) : tex?.face
+  const edgeMap = tex && g ? pale(tex.edge, 0.45) : tex?.edge
+  const glow = (m: THREE.Texture | undefined, c: string) => (g ? { emissive: c, emissiveMap: m ?? null, emissiveIntensity: 0.3 } : {})
+  const grain = () => (g ? grainTexture('#f9e1dd', 6400, [214, 242], 1) : grainTexture('#dcd6cb', 6400, [160, 224], 1))
   const face = (p: THREE.MeshStandardMaterialParameters) =>
     tex
-      ? std({ color: '#ffffff', map: tex.face, normalMap: tex.faceN, normalScale: new THREE.Vector2(1, 1), roughness: 0.9, ...p })
-      : std({ color: '#ddd7cc', map: grain(), roughness: 0.86, ...p })
+      ? std({ color: tone.face, map: faceMap, normalMap: tex.faceN, normalScale: new THREE.Vector2(1, 1), roughness: 0.9, ...glow(faceMap, '#fbd3cd'), ...p })
+      : std({ color: '#ffffff', map: grain(), roughness: 0.86, ...p })
   return {
     concrete: face({}),
     edge: tex
-      ? std({ color: '#ffffff', map: tex.edge, normalMap: tex.edgeN, normalScale: new THREE.Vector2(0.9, 0.9), roughness: 0.95 })
-      : std({ color: '#d2cbbf', map: grain(), roughness: 0.92 }),
+      ? std({ color: tone.edge, map: edgeMap, normalMap: tex.edgeN, normalScale: new THREE.Vector2(0.9, 0.9), roughness: 0.95, ...glow(edgeMap, '#f0c3bc') })
+      : std({ color: g ? '#f8dfdb' : '#d2cbbf', map: grain(), roughness: 0.92 }),
     outer: tex
-      ? std({ color: '#ecebe7', map: tex.face, normalMap: tex.faceN, normalScale: new THREE.Vector2(1.35, 1.35), roughness: 0.95 })
-      : std({ color: '#cfc8bb', map: grain(), roughness: 0.95 }),
-    zone: face({ color: tex ? '#f2efe9' : '#d3ccc0' }),
+      ? std({ color: tone.outer, map: faceMap, normalMap: tex.faceN, normalScale: new THREE.Vector2(1.35, 1.35), roughness: 0.95, ...glow(faceMap, '#f8cdc7') })
+      : std({ color: g ? '#f8dfdb' : '#cfc8bb', map: grain(), roughness: 0.95 }),
+    zone: face({ color: tex ? tone.zone : g ? '#fbe6e2' : '#d3ccc0' }),
     rest: face({}),
     restCore: std({ color: '#f1efe8', map: grainTexture('#f1efe8', 9000, [196, 238], 3), roughness: 1 }),
     core: std({ color: '#f1efe8', map: grainTexture('#f1efe8', 9000, [196, 238], 3), roughness: 1 }),
@@ -243,7 +291,7 @@ export function disposeWallKit(m: WallKit | Record<string, unknown>) {
     done.add(x)
     const map = (x as THREE.MeshStandardMaterial).map
     const url = (map?.image as HTMLImageElement | undefined)?.src ?? ''
-    if (map && !seen.has(map) && ![...shared].some((u) => url.endsWith(u))) {
+    if (map && !seen.has(map) && !kept.has(map) && ![...shared].some((u) => url.endsWith(u))) {
       seen.add(map)
       map.dispose()
     }

@@ -28,19 +28,17 @@ export const PIECE_LEN = 3.6
 /** the run, as fractions: when each thing happens (the marks come one by one over theirs) */
 export const RUN_AT = {
   burst30: [0.03, 0.13],
-  open30: [0.1, 0.15],
+  open30: [0.032, 0.07],
   marks30: [0.15, 0.4],
   close30: [0.42, 0.5],
   divide: [0.51, 0.545],
   core: [0.545, 0.635],
   join: [0.635, 0.67],
   burst100: [0.68, 0.78],
-  open100: [0.74, 0.8],
+  open100: [0.682, 0.72],
   marks100: [0.8, 0.95],
   close100: [0.955, 0.995],
 } as const
-
-const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
 /** the parts each panel's list marks, in its order (the list's rows and the model's anchors) */
 export const ORDER30 = ['pp-cover', 'pp-tie', 'pp-ferrule', 'pp-zone', 'pp-grp', 'pp-back']
@@ -49,16 +47,21 @@ export const ORDER100 = ['pp-inner7', 'pp-ferrule100', 'pp-mesh6i', 'pp-rod', 'p
 /** how far through a run of marks we are: the k-th of n comes up at its share */
 export const markAt = ([a, b]: readonly [number, number], n: number, k: number, p: number) => smooth(a + ((b - a) * k) / n, a + ((b - a) * (k + 0.35)) / n, p)
 
+/** a straight ramp from a to b (the pose's eases are the layers' own, applied once) */
+const ramp = (a: number, b: number, v: number) => Math.min(1, Math.max(0, (v - a) / (b - a)))
+
 /** the piece's pose at `p` (0..1 of the run) */
 export function piecePoseAt(p: number, out: PiecePose) {
   const A = RUN_AT
-  const b30 = smooth(A.burst30[0], A.burst30[1], p) * (1 - smooth(A.close30[0] + 0.02, A.close30[1], p))
-  const o30 = smooth(A.open30[0], A.open30[1], p) * (1 - smooth(A.close30[0], A.close30[1] - 0.03, p))
+  const b30 = ramp(A.burst30[0], A.burst30[1], p) * (1 - ramp(A.close30[0] + 0.02, A.close30[1], p))
+  // (the RTARIUM shows as its mesh as soon as the layers part, never as a third concrete layer; it is cast in again
+  // only as they close)
+  const o30 = smooth(A.open30[0], A.open30[1], p) * (1 - smooth(A.close30[1] - 0.022, A.close30[1], p))
   const stage = 3 * smooth(A.divide[0], A.join[1], p)
   // (the three steps of the change, each its own share of the run)
   const st = p < A.divide[0] ? 0 : p < A.divide[1] ? smooth(A.divide[0], A.divide[1], p) : p < A.core[1] ? 1 + smooth(A.core[0], A.core[1], p) : 2 + smooth(A.join[0], A.join[1], p)
-  const b100 = smooth(A.burst100[0], A.burst100[1], p) * (1 - smooth(A.close100[0], A.close100[1], p))
-  const o100 = smooth(A.open100[0], A.open100[1], p) * (1 - smooth(A.close100[0] - 0.01, A.close100[1] - 0.005, p))
+  const b100 = ramp(A.burst100[0], A.burst100[1], p) * (1 - ramp(A.close100[0], A.close100[1], p))
+  const o100 = smooth(A.open100[0], A.open100[1], p) * (1 - smooth(A.close100[1] - 0.018, A.close100[1], p))
   out.stage = Number.isFinite(st) ? st : stage
   out.burst = out.stage >= 3 ? b100 : b30
   out.open = out.stage >= 3 ? o100 : o30
@@ -138,15 +141,15 @@ export function PieceStage({ t, bus, room }: { t: Progress; bus: LabelBus; room:
     const shotOf = (v: (typeof VIEW)[keyof typeof VIEW]) => fit(v.box, v.azim, v.elev, room.current, aspect, v.fill)
     const whole = shotOf(VIEW.whole)
     let shot: Shot
-    if (p < A.divide[0]) shot = between(whole, shotOf(VIEW.open30), ease(smooth(A.burst30[0], A.burst30[1], p) * (1 - smooth(A.close30[0], A.close30[1], p))))
-    else if (p < A.join[1] + 0.02) shot = between(whole, shotOf(VIEW.change), ease(smooth(A.divide[0], A.divide[0] + 0.03, p) * (1 - smooth(A.join[0] + 0.02, A.join[1] + 0.02, p))))
-    else shot = between(whole, shotOf(VIEW.open100), ease(smooth(A.burst100[0], A.burst100[1], p) * (1 - smooth(A.close100[0], A.close100[1], p))))
+    if (p < A.divide[0]) shot = between(whole, shotOf(VIEW.open30), smooth(A.burst30[0], A.burst30[1], p) * (1 - smooth(A.close30[0], A.close30[1], p)))
+    else if (p < A.join[1] + 0.02) shot = between(whole, shotOf(VIEW.change), smooth(A.divide[0], A.divide[0] + 0.03, p) * (1 - smooth(A.join[0] + 0.02, A.join[1] + 0.02, p)))
+    else shot = between(whole, shotOf(VIEW.open100), smooth(A.burst100[0], A.burst100[1], p) * (1 - smooth(A.close100[0], A.close100[1], p)))
     const to = { tx: shot.target[0], ty: shot.target[1], tz: shot.target[2], ld: Math.log(shot.dist), azim: shot.azim, elev: shot.elev, fx: shot.frame![0], fy: shot.frame![1] }
     if (!cur.current || reduced) cur.current = { ...to }
     const c = cur.current
     const dt = Math.min(delta, 1 / 20)
     let moving = false
-    for (const k of Object.keys(to) as (keyof typeof to)[]) if (approach(c, k, to[k], 7, dt, 1e-4)) moving = true
+    for (const k of Object.keys(to) as (keyof typeof to)[]) if (approach(c, k, to[k], 8, dt, 1e-4)) moving = true
     const az = (c.azim * Math.PI) / 180
     const el = (c.elev * Math.PI) / 180
     const d = Math.exp(c.ld)

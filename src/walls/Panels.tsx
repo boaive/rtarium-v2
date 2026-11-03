@@ -40,9 +40,9 @@ const PARTS100: Part[] = [
   { id: 'pp-inner7', name: 'Cover, inner face', value: '7 mm', dx: 26, dy: -32 },
   { id: 'pp-ferrule100', name: 'Ferrule inserts, for fixing', value: 'M8', dx: 34, dy: 30 },
   { id: 'pp-mesh6i', name: 'RTARIUM, 3D basalt mesh', value: '6 mm', dx: 32, dy: -36 },
-  { id: 'pp-rod', name: 'GRP rods: 100 mm in, one at each clip line', value: '3 mm', dx: 32, dy: 34 },
+  { id: 'pp-rod', name: 'GRP rods: along, 100 mm in; across at each clip', value: '3 mm', dx: 32, dy: 34 },
   { id: 'pp-cover2', name: 'Cover', value: '2 mm', dx: 30, dy: -32 },
-  { id: 'pp-clip', name: 'GI tie-clip: joins the two meshes', value: '2 mm plate', dx: -34, dy: -28 },
+  { id: 'pp-clip', name: 'GI tie-clip: joins two meshes with concrete', value: '2 mm plate', dx: -34, dy: -28 },
   { id: 'pp-core', name: 'EPS/SPS core, stay-in-place', value: '70 mm', dx: 0, dy: -40 },
   { id: 'pp-outer', name: 'Outer leaf: 2 + 6 + 7', value: '15 mm', dx: -30, dy: -34 },
 ]
@@ -112,7 +112,8 @@ export function Panels() {
       last = now
       const r = el.getBoundingClientRect()
       const target = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - window.innerHeight)))
-      p = p < 0 || reduced ? target : damp(p, target, 12, dt)
+      // (the page already glides; the panel follows it a little behind, so a wheel's tick never jumps the layers)
+      p = p < 0 || reduced ? target : damp(p, target, 6.5, dt)
       if (Math.abs(p - target) < 1e-4) p = target
       if (t.value !== p) {
         t.value = p
