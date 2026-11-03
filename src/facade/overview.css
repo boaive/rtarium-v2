@@ -359,10 +359,12 @@
    pulled by, two construction lines running on from there; on the way out it is crossed out in
    yellow and greys */
 .fs-photo {
-  --pw: min(100cqw - 2 * var(--pad) - 64px, (100cqh - 2 * var(--pad) - 44px) * 1.333, 42rem);
+  /* its frame's width over its height: 4 : 3 unless the photograph says otherwise */
+  --ar: 1.333;
+  --pw: min(100cqw - 2 * var(--pad) - 64px, (100cqh - 2 * var(--pad) - 44px) * var(--ar), 42rem);
   position: relative;
   width: var(--pw);
-  aspect-ratio: 4 / 3;
+  aspect-ratio: var(--ar);
 }
 .fs-photo__frame {
   position: absolute;
@@ -396,7 +398,7 @@
   width: 6px;
   height: 6px;
   background: var(--fg);
-  transform: translate(calc(var(--g, 1) * var(--pw)), calc(var(--g, 1) * var(--pw) * 0.75));
+  transform: translate(calc(var(--g, 1) * var(--pw)), calc(var(--g, 1) * var(--pw) / var(--ar)));
 }
 .fs-photo__dot::before,
 .fs-photo__dot::after {
@@ -639,7 +641,7 @@
     font-size: clamp(1.1rem, min(22cqh, 6cqw), 1.6rem);
   }
   .fs-photo {
-    --pw: min(100cqw - 2 * var(--pad) - 24px, (100cqh - 2 * var(--pad)) * 1.333);
+    --pw: min(100cqw - 2 * var(--pad) - 24px, (100cqh - 2 * var(--pad)) * var(--ar));
   }
   .fs-photo__x,
   .fs-photo__y,

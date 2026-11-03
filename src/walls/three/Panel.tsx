@@ -64,19 +64,21 @@ const GAP100 = 0.06
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
-/** RTARIUM as the homepage models it, `t` mm thick, `nx` × `ny` cells, centred, its face looking out along +z */
-export function Rtarium({ t, nx, ny }: { t: 6 | 15; nx: number; ny: number }) {
+/** RTARIUM as the homepage models it, `t` mm thick, `nx` × `ny` cells, centred, its face looking out along +z (`light`: its yarn paler, for a dark ground) */
+export function Rtarium({ t, nx, ny, light = false, onMaterial }: { t: 6 | 15; nx: number; ny: number; light?: boolean; onMaterial?: (m: THREE.Material) => void }) {
   const cell = useCell(t)
   const yarn = useYarnMaterial({ lite: true })
   const invalidate = useThree((s) => s.invalidate)
   useEffect(() => invalidate(), [invalidate, cell, yarn])
+  // (a scene that fades its layers takes the yarn's material, to fade it with them)
+  useEffect(() => onMaterial?.(yarn.material), [onMaterial, yarn])
   useEffect(() => {
     const u = yarn.uniforms
-    u.uFaceColor.value.set('#a07a55')
-    u.uPileColor.value.set('#4a3322')
+    u.uFaceColor.value.set(light ? '#e2c597' : '#a07a55')
+    u.uPileColor.value.set(light ? '#9c7a55' : '#4a3322')
     u.uWin.value.set(4096, 4096)
-    u.uAoStrength.value = 0.9
-  }, [yarn])
+    u.uAoStrength.value = light ? 0.5 : 0.9
+  }, [yarn, light])
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
       <MeshField cell={cell} nx={nx} nz={ny} material={yarn.material} chunk={10} lodDistance={0.5} farDistance={1.5} culling={false} />

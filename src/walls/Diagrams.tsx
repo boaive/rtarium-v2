@@ -151,7 +151,7 @@ export function Section30() {
         7.5 mm concrete cover
       </Note>
       <Note x={at(26)} y={343} tx={330} ty={330}>
-        Ferrule insert
+        Ferrule insert, for fixing
       </Note>
       <Note x={at(15)} y={foot - 6} tx={330} ty={foot - 4}>
         Female: 15 mm recess
@@ -255,7 +255,7 @@ export function PanelPlan({ kind }: { kind: 'solid' | 'sip' }) {
       viewBox="0 0 680 230"
       aria-label={
         kind === 'solid'
-          ? 'Plan of a 3.6 m solid panel, 600 mm wide: GRP rods along it 120 mm apart and across it every 600 mm; ferrule inserts 1000 mm from each end and 100 mm in; tie holes 200 mm from each end and 150 mm in'
+          ? 'Plan of a 3.6 m solid panel, 600 mm wide: GRP rods along it 120 mm apart and across it every 600 mm; ferrule inserts for fixing 1000 mm from each end and 100 mm in; 20 mm tie holes through it, to lift by, 200 mm from each end and 150 mm in'
           : 'Plan of a 3.7 m SIP panel, 600 mm wide: GI tie-clips on lines 100 mm in from each long edge, 100 mm and 800 mm apart along it; ferrule inserts and tie holes as in the solid panel'
       }
     >
@@ -281,7 +281,7 @@ export function PanelPlan({ kind }: { kind: 'solid' | 'sip' }) {
         <circle key={`f${x}-${y}`} cx={X(x)} cy={Y(y)} r={4} fill="var(--white)" stroke={INK} strokeWidth="1.2" />
       ))}
       {ties.map(([x, y]) => (
-        <circle key={`t${x}-${y}`} cx={X(x)} cy={Y(y)} r={3.2} fill={INK} />
+        <circle key={`t${x}-${y}`} cx={X(x)} cy={Y(y)} r={4.6} fill={INK} />
       ))}
       <Dim x1={X(0)} y1={24} x2={X(L)} y2={24} text={`${L.toLocaleString('en-GB')} (example length)`} />
       <Dim x1={X(0)} y1={Y(600) + 24} x2={X(200)} y2={Y(600) + 24} text="200" dy={16} />
@@ -290,14 +290,14 @@ export function PanelPlan({ kind }: { kind: 'solid' | 'sip' }) {
       <g>
         <circle cx={X(0) + 6} cy={214} r={4} fill="var(--white)" stroke={INK} strokeWidth="1.2" />
         <text x={X(0) + 16} y={218} className="wp-dg__note">
-          Ferrule insert
+          Ferrule insert, fixing
         </text>
-        <circle cx={X(0) + 136} cy={214} r={3.2} fill={INK} />
-        <text x={X(0) + 146} y={218} className="wp-dg__note">
-          Tie hole
+        <circle cx={X(0) + 166} cy={214} r={4.6} fill={INK} />
+        <text x={X(0) + 176} y={218} className="wp-dg__note">
+          Tie hole, 20 mm, lifting
         </text>
-        <line x1={X(0) + 226} x2={X(0) + 248} y1={214} y2={214} stroke={MESH} strokeWidth="1.6" strokeDasharray={kind === 'sip' ? '5 4' : undefined} />
-        <text x={X(0) + 256} y={218} className="wp-dg__note">
+        <line x1={X(0) + 312} x2={X(0) + 334} y1={214} y2={214} stroke={MESH} strokeWidth="1.6" strokeDasharray={kind === 'sip' ? '5 4' : undefined} />
+        <text x={X(0) + 342} y={218} className="wp-dg__note">
           {kind === 'solid' ? '3 mm GRP grid' : '3 mm GRP rod, with its tie-clips'}
         </text>
       </g>

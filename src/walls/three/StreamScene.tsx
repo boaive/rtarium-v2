@@ -92,6 +92,59 @@ export function StreamScene({ progress, bus, room, building }: { progress: Progr
   /** how far a panel is lowered from: a little, as a crane sets it down */
   const drop = useMemo(() => Math.min(0.36, (building.box[1][1] - building.box[0][1]) / 30), [building])
   const mesh = useRef<THREE.InstancedMesh>(null)
+  /**
+   * The panels a box will not do for: a gable's, its top cut to the roof's slope (its own geometry, in place), and a roof
+   * panel, turned to its slope. Each is drawn on its own; the rest are one instanced set, in the order of `plain`.
+   */
+  const shaped = useMemo(() => {
+    const plain: number[] = []
+    const own: { i: number; geo: THREE.BufferGeometry; tilt?: number }[] = []
+    building.panels.forEach((p, i) => {
+      if (p.cut) {
+        const g = new THREE.BoxGeometry(1, 1, 1)
+        const pos = g.getAttribute('position')
+        const k = p.cut.axis === 'x' ? 0 : 2
+        for (let j = 0; j < pos.count; j++) {
+          const x = p.a[0] + (pos.getX(j) + 0.5) * (p.b[0] - p.a[0])
+          const y = p.a[1] + (pos.getY(j) + 0.5) * (p.b[1] - p.a[1])
+          const z = p.a[2] + (pos.getZ(j) + 0.5) * (p.b[2] - p.a[2])
+          const f = (pos.getComponent(j, k) + 0.5) as number
+          pos.setXYZ(j, x, pos.getY(j) > 0 ? p.cut.y0 + (p.cut.y1 - p.cut.y0) * f : y, z)
+        }
+        g.computeVertexNormals()
+        own.push({ i, geo: g })
+      } else if (p.tilt !== undefined) own.push({ i, geo: box, tilt: p.tilt })
+      else plain.push(i)
+    })
+    return { plain, own }
+  }, [building, box])
+  useEffect(() => () => shaped.own.forEach((o) => o.geo !== box && o.geo.dispose()), [shaped, box])
+  const owned = useRef<(THREE.Mesh | null)[]>([])
+  /** the two kinds told apart by tone (the client's drawing colours them): the SIP a little deeper, the 30 mm solid lighter */
+  const TONE = useMemo(() => ({ sip: new THREE.Color('#d9d3c8'), solid: new THREE.Color('#ffffff') }), [])
+  const solidMat = useMemo(() => {
+    const x = m.concrete.clone()
+    x.color.multiply(TONE.solid)
+    return x
+  }, [m, TONE])
+  const sipMat = useMemo(() => {
+    const x = m.concrete.clone()
+    x.color.multiply(TONE.sip)
+    return x
+  }, [m, TONE])
+  useEffect(
+    () => () => {
+      solidMat.dispose()
+      sipMat.dispose()
+    },
+    [solidMat, sipMat],
+  )
+  const tint = (el: THREE.InstancedMesh | null) => {
+    mesh.current = el
+    if (!el) return
+    shaped.plain.forEach((i, k) => el.setColorAt(k, TONE[building.panels[i].kind]))
+    if (el.instanceColor) el.instanceColor.needsUpdate = true
+  }
   const mx = useMemo(() => new THREE.Matrix4(), [])
   const q = useMemo(() => new THREE.Quaternion(), [])
   const v = useMemo(() => new THREE.Vector3(), [])
@@ -146,23 +199,40 @@ export function StreamScene({ progress, bus, room, building }: { progress: Progr
     finish.show(smooth(3.5, 3.92, t))
 
     // the panels: each comes down into its place in its step's turn
+    /** how far a panel is lowered (0: not yet, 1: in place), each step's courses over most of its run */
+    const down = (i: number) => {
+      const o = order[i]
+      const [s0, s1] = o.step === 1 ? [1.14, 1.84] : [o.step + 0.08, o.step + 0.9]
+      return smooth(s0 + (s1 - s0) * o.a, s0 + (s1 - s0) * o.b, t)
+    }
     const im = mesh.current
     if (im) {
-      building.panels.forEach((p, i) => {
-        const o = order[i]
-        // each step's courses go up over most of its run (the first wall's over a little less, the camera coming in)
-        const [s0, s1] = o.step === 1 ? [1.14, 1.84] : [o.step + 0.08, o.step + 0.9]
-        const a = smooth(s0 + (s1 - s0) * o.a, s0 + (s1 - s0) * o.b, t)
+      shaped.plain.forEach((i, k) => {
+        const p = building.panels[i]
+        const a = down(i)
         const e = easeOut(a)
         v.set((p.a[0] + p.b[0]) / 2, (p.a[1] + p.b[1]) / 2 + (1 - e) * drop, (p.a[2] + p.b[2]) / 2)
         // (a panel not yet lowered is drawn at nothing)
         if (a > 0) sc.set(p.b[0] - p.a[0], p.b[1] - p.a[1], p.b[2] - p.a[2])
         else sc.setScalar(0.0001)
         mx.compose(v, q, sc)
-        im.setMatrixAt(i, mx)
+        im.setMatrixAt(k, mx)
       })
       im.instanceMatrix.needsUpdate = true
     }
+    shaped.own.forEach((o, k) => {
+      const el = owned.current[k]
+      if (!el) return
+      const p = building.panels[o.i]
+      const a = down(o.i)
+      const lift = (1 - easeOut(a)) * drop
+      el.visible = a > 0
+      if (o.tilt !== undefined) {
+        el.position.set((p.a[0] + p.b[0]) / 2, (p.a[1] + p.b[1]) / 2 + lift, (p.a[2] + p.b[2]) / 2)
+        el.rotation.set(o.tilt, 0, 0)
+        el.scale.set(p.b[0] - p.a[0], p.b[1] - p.a[1], p.b[2] - p.a[2])
+      } else el.position.set(0, lift, 0)
+    })
     if (moving) invalidate()
   }, -1)
 
@@ -170,7 +240,10 @@ export function StreamScene({ progress, bus, room, building }: { progress: Progr
   return (
     <group>
       <MovingKeyLight focus={[(a[0] + b[0]) / 2, 0, (a[2] + b[2]) / 2]} reach={Math.max(b[0] - a[0], b[2] - a[2]) * 0.8} offset={[-14, 26, 20]} />
-      <instancedMesh key={building.panels.length} ref={mesh} args={[box, m.concrete, building.panels.length]} castShadow receiveShadow frustumCulled={false} />
+      <instancedMesh key={`${building.id}-${shaped.plain.length}`} ref={tint} args={[box, m.concrete, shaped.plain.length]} castShadow receiveShadow frustumCulled={false} />
+      {shaped.own.map((o, k) => (
+        <mesh key={`${building.id}-${o.i}`} ref={(el) => void (owned.current[k] = el)} geometry={o.geo} material={building.panels[o.i].kind === 'solid' ? solidMat : sipMat} castShadow receiveShadow visible={false} />
+      ))}
       <primitive object={frame.obj} />
       <primitive object={finish.obj} />
       {building.marks.map((k) => (

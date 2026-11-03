@@ -75,7 +75,7 @@ function Build({ id }: { id: StreamId }) {
       if (!k.n) continue
       rows.push([`${name} panels`, `${k.n}`, ''], [`${name}, wall area`, k.area.toFixed(0), 'm²'], [`${name}, weight at ${kg} kg/m²`, ((k.area * kg) / 1000).toFixed(1), 't'])
     }
-    rows.push(['Ferrule inserts, to lift by', `${q.ferrules}`, ''], ['Tie holes, to bolt through', `${q.ties}`, ''])
+    rows.push(['Ferrule inserts, for fixing', `${q.ferrules}`, ''], ['Tie holes, 20 mm, to lift by', `${q.ties}`, ''])
     return rows
   }, [building])
 
@@ -307,6 +307,23 @@ export function Streams() {
         </ol>
       </section>
       {chosen && <Build key={chosen} id={chosen} />}
+      {chosen && (
+        <nav className="wp-others on-light" aria-label="The other streams">
+          <p className="wp-others__label">The other streams</p>
+          <ul className="wp-others__list">
+            {STREAMS.filter((s) => s.id !== chosen).map((s) => (
+              <li key={s.id}>
+                <button type="button" className="fc-go wp-others__go" onClick={() => choose(s.id)}>
+                  <span className="fc-go__label">{s.name}</span>
+                  <span className="fc-go__cell" aria-hidden="true">
+                    <Arrow />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
     </>
   )
 }

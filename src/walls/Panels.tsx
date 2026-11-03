@@ -4,7 +4,7 @@ import { Arrow } from '../facade/Shell'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three/Stage3D'
 import { createBus } from '../facade/three/kit'
 import { smooth, type Progress } from '../facade/progress'
-import { PieceStage, RUN_AT } from './three/PieceStage'
+import { markAt, ORDER100, ORDER30, PieceStage, RUN_AT } from './three/PieceStage'
 import type { Room } from './three/fit'
 import { Block, Figures, Sheet, Steps, useSheet } from './Sheet'
 import { PanelPlan, Section100, Section30, TiePlate } from './Diagrams'
@@ -30,33 +30,30 @@ interface Part {
 }
 const PARTS30: Part[] = [
   { id: 'pp-cover', name: 'Cover, inner face', value: '7.5 mm', dx: 26, dy: -30 },
-  { id: 'pp-tie', name: 'Tie hole, to bolt through', value: 'Fixing', dx: -34, dy: 30 },
-  { id: 'pp-ferrule', name: 'Ferrule insert, on the mesh', value: 'M8', dx: 30, dy: -34 },
+  { id: 'pp-tie', name: 'Tie hole, to lift by', value: '20 mm', dx: -34, dy: 30 },
+  { id: 'pp-ferrule', name: 'Ferrule inserts, for fixing', value: 'M8', dx: 34, dy: 30 },
   { id: 'pp-zone', name: 'RTARIUM, 3D basalt mesh', value: '15 mm', dx: 34, dy: -40 },
-  { id: 'pp-grp', name: 'GRP grid, at its mid-plane', value: '3 mm', dx: 36, dy: 34 },
-  { id: 'pp-tongue', name: 'Tongue and recess, four sides', value: '15 mm', dx: 34, dy: 24 },
+  { id: 'pp-grp', name: 'GRP grid: 4 rods 120 mm apart, across every 600', value: '3 mm', dx: 36, dy: 34 },
   { id: 'pp-back', name: 'Cover, outer face', value: '7.5 mm', dx: -32, dy: -34 },
 ]
 const PARTS100: Part[] = [
   { id: 'pp-inner7', name: 'Cover, inner face', value: '7 mm', dx: 26, dy: -32 },
-  { id: 'pp-ferrule100', name: 'Ferrule insert', value: 'M8', dx: 30, dy: -34 },
+  { id: 'pp-ferrule100', name: 'Ferrule inserts, for fixing', value: 'M8', dx: 34, dy: 30 },
   { id: 'pp-mesh6i', name: 'RTARIUM, 3D basalt mesh', value: '6 mm', dx: 32, dy: -36 },
-  { id: 'pp-rod', name: 'GRP rods, through the clips', value: '3 mm', dx: 32, dy: 34 },
+  { id: 'pp-rod', name: 'GRP rods: 100 mm in, one at each clip line', value: '3 mm', dx: 32, dy: 34 },
   { id: 'pp-cover2', name: 'Cover', value: '2 mm', dx: 30, dy: -32 },
+  { id: 'pp-clip', name: 'GI tie-clip: joins the two meshes', value: '2 mm plate', dx: -34, dy: -28 },
   { id: 'pp-core', name: 'EPS/SPS core, stay-in-place', value: '70 mm', dx: 0, dy: -40 },
-  { id: 'pp-clip', name: 'GI tie-clip', value: '2 mm plate', dx: -34, dy: -28 },
-  { id: 'pp-recess', name: 'Male / female recess', value: '20 mm', dx: -34, dy: 30 },
   { id: 'pp-outer', name: 'Outer leaf: 2 + 6 + 7', value: '15 mm', dx: -30, dy: -34 },
 ]
 const LABELS: LabelSpec[] = [
   ...PARTS30.map((p, i) => ({ id: `a${i}`, anchor: p.id, text: null, num: i + 1, dx: p.dx, dy: p.dy })),
   ...PARTS100.map((p, i) => ({ id: `b${i}`, anchor: p.id, text: null, num: i + 1, dx: p.dx, dy: p.dy })),
 ]
+// (the list's order is the model's: the run lights each part in turn by it)
+if (import.meta.env.DEV && (PARTS30.some((p, i) => p.id !== ORDER30[i]) || PARTS100.some((p, i) => p.id !== ORDER100[i]))) console.warn('Panels: the parts lists are out of the run\'s order')
 /** screens of scroll the section runs for: every stretch of it moves the panel, the strip or the list */
 const RUN = 7.5
-
-/** how far through a run of marks we are: the k-th of n comes up at its share */
-const markAt = ([a, b]: readonly [number, number], n: number, k: number, p: number) => smooth(a + ((b - a) * k) / n, a + ((b - a) * (k + 0.35)) / n, p)
 
 export function Panels() {
   const compact = useIsCompact()

@@ -880,22 +880,30 @@ html.sheet-open {
     min-height: 0;
   }
 }
-/* a fact shown by one of RTARIUM's own photographs: full to its box, its words on chips over it */
-.wp-fact--photo img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+
+/* the envelope's photograph under its words: small, clear of the bar */
+.wp-ans .fu-ans__shot {
+  height: clamp(80px, calc((100svh - var(--words-top) - var(--words-foot) - var(--block)) / 2 - var(--say) - 24px), 150px);
 }
-.wp-fact--photo .wp-fact__name,
-.wp-fact--photo .wp-fact__read {
-  width: max-content;
-  max-width: calc(100% - 2 * var(--pad));
-  padding: 7px 12px;
-  background: var(--black);
-  color: var(--yellow);
+
+/* under a stream's build and its case study: the way to the other two */
+.wp-others {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 32px;
+  padding: clamp(32px, 6vh, 64px) var(--gutter);
+  border-top: 1px solid var(--line);
+  background: var(--white);
 }
-.wp-fact--photo .wp-fact__name::before {
-  background: var(--yellow);
+.wp-others__label {
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--fg-2);
+}
+.wp-others__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
