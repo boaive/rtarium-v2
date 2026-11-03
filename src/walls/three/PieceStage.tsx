@@ -10,17 +10,20 @@ import { PW } from './piece'
 import { between, fit, type Box, type Room } from './fit'
 
 /**
- * The panels (Wall Panels), on the pinned yellow screen: one piece of panel, 600 × 1200 mm, standing upright in
- * the middle of the screen, the same piece throughout. The scroll is the clock, and the visitor can stop anywhere:
+ * The panels (Wall Panels), on the pinned yellow screen: the whole panel of the client's 30 mm plan, 600 × 3600 mm (its GRP
+ * grid, its four ferrules and four tie holes exactly as drawn: owner, 3 Nov 2026), in the middle of the room, the same
+ * panel throughout. It stands on end, leaning a little and turned so its face is seen at an angle, and its layers burst
+ * sideways, side by side, each a tall strip seen whole (the owner's sketch). The scroll is the clock, and the visitor can
+ * stop anywhere:
  *
- *   the 30 mm panel, whole  →  it bursts: all its layers stand apart through its thickness at once, the camera
- *   coming round to the side so each is seen whole (the Unitized unit's burst)  →  marked  →  it closes  →  it
- *   divides, the core goes in, it joins: the 100 mm panel  →  it bursts the same way  →  marked  →  it closes
+ *   the 30 mm panel, whole  →  it bursts: all its layers stand apart through its thickness at once  →  marked  →  it
+ *   closes  →  it divides, the core goes in, it joins: the 100 mm panel  →  it bursts the same way  →  marked  →  it
+ *   closes
  *
  * Every stretch of the scroll moves something; the camera keeps the piece, at every moment, inside its room.
  */
 
-export const PIECE_LEN = 1.2
+export const PIECE_LEN = 3.6
 
 /** the run, as fractions: when each thing happens (the marks come one by one over theirs) */
 export const RUN_AT = {
@@ -28,9 +31,9 @@ export const RUN_AT = {
   open30: [0.1, 0.15],
   marks30: [0.15, 0.4],
   close30: [0.42, 0.5],
-  divide: [0.51, 0.56],
-  core: [0.56, 0.61],
-  join: [0.61, 0.66],
+  divide: [0.51, 0.545],
+  core: [0.545, 0.635],
+  join: [0.635, 0.67],
   burst100: [0.68, 0.78],
   open100: [0.74, 0.8],
   marks100: [0.8, 0.95],
@@ -38,6 +41,13 @@ export const RUN_AT = {
 } as const
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+
+/** the parts each panel's list marks, in its order (the list's rows and the model's anchors) */
+export const ORDER30 = ['pp-cover', 'pp-tie', 'pp-ferrule', 'pp-zone', 'pp-grp', 'pp-back']
+export const ORDER100 = ['pp-inner7', 'pp-ferrule100', 'pp-mesh6i', 'pp-rod', 'pp-cover2', 'pp-clip', 'pp-core', 'pp-outer']
+
+/** how far through a run of marks we are: the k-th of n comes up at its share */
+export const markAt = ([a, b]: readonly [number, number], n: number, k: number, p: number) => smooth(a + ((b - a) * k) / n, a + ((b - a) * (k + 0.35)) / n, p)
 
 /** the piece's pose at `p` (0..1 of the run) */
 export function piecePoseAt(p: number, out: PiecePose) {
@@ -52,17 +62,57 @@ export function piecePoseAt(p: number, out: PiecePose) {
   out.stage = Number.isFinite(st) ? st : stage
   out.burst = out.stage >= 3 ? b100 : b30
   out.open = out.stage >= 3 ? o100 : o30
+  // the marking: each part lit from its mark until the next one's, the last until it closes
+  const sip = out.stage >= 3
+  const order = sip ? ORDER100 : ORDER30
+  const marks = sip ? A.marks100 : A.marks30
+  const close = sip ? A.close100 : A.close30
+  for (const id of [...ORDER30, ...ORDER100]) out.lit[id] = 0
+  order.forEach((id, k) => {
+    const next = k < order.length - 1 ? markAt(marks, order.length, k + 1, p) : 0
+    out.lit[id] = markAt(marks, order.length, k, p) * (1 - next)
+  })
+  out.marking = markAt(marks, order.length, 0, p) * (1 - smooth(close[0], close[0] + 0.02, p))
   return out
 }
 
-const W2 = PW
+/** drawn wider than its 600 mm in the burst (owner, matching the reference): every position across it scales with it */
+const ACROSS = 3
+/** and as many times its thickness, so its 30, 70 and 100 mm read in proportion with that width (gaps are the stage's, in the room) */
+const THICK = 3
+const W2 = PW * ACROSS
 const L = PIECE_LEN
-/** what the camera frames: the piece whole (from the front, a little to the side), and burst (from the side, as the Unitized unit is) */
+/**
+ * How the panel is turned (the owner's sketch, 3 Nov 2026): standing on end, its length up (the piece's own frame: x across,
+ * y along, z through it), leaning back 6°, turned 50° about the vertical, and drawn three times its width (the reference's proportion) so its face is seen at an angle and the
+ * line its layers burst along (through its thickness) runs to the right and back: the layers stand side by side, the inner
+ * face's on the left, each one a tall strip seen whole, clear of the next (checked against the gaps: nothing hidden).
+ */
+const DEG = Math.PI / 180
+const TURN = new THREE.Quaternion()
+  .setFromAxisAngle(new THREE.Vector3(0, 1, 0), -50 * DEG)
+  .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -6 * DEG))
+/** the room's box round the turned panel, its layers reaching `zr` either side of its middle (and `xr` past its edge: the core coming in) */
+function turnedBox(zr: number, xr = 0): Box {
+  const lo = new THREE.Vector3(Infinity, Infinity, Infinity)
+  const hi = new THREE.Vector3(-Infinity, -Infinity, -Infinity)
+  const v = new THREE.Vector3()
+  for (const x of [-0.02, W2 + 0.02 + xr])
+    for (const y of [-0.02, L + 0.02])
+      for (const z of [-zr, zr]) {
+        v.set(x, y, z).applyQuaternion(TURN)
+        lo.min(v)
+        hi.max(v)
+      }
+  return [lo.toArray() as [number, number, number], hi.toArray() as [number, number, number]]
+}
+const CENTRE = new THREE.Vector3(W2 / 2, L / 2, 0).applyQuaternion(TURN).toArray() as [number, number, number]
+/** what the camera frames: the panel whole; and burst, its layers' reach (30 mm: three layers and the ferrules; the SIP: seven) */
 const VIEW = {
-  whole: { box: [[-0.02, 0, -0.06], [W2 + 0.03, L, 0.06]] as Box, azim: 26, elev: 9, fill: 0.93 },
-  open30: { box: [[-0.02, 0, -0.38], [W2 + 0.02, L, 0.5]] as Box, azim: 56, elev: 13, fill: 0.94 },
-  change: { box: [[-0.02, 0, -0.18], [W2 + 0.26, L, 0.18]] as Box, azim: 32, elev: 10, fill: 0.92 },
-  open100: { box: [[-0.02, 0, -0.86], [W2 + 0.02, L, 0.86]] as Box, azim: 58, elev: 13, fill: 0.94 },
+  whole: { box: turnedBox(0.16), azim: 0, elev: 16, fill: 0.9 },
+  open30: { box: turnedBox(0.78), azim: 0, elev: 16, fill: 0.96 },
+  change: { box: turnedBox(0.4, W2 * 0.9), azim: 0, elev: 16, fill: 0.92 },
+  open100: { box: turnedBox(2.3), azim: 0, elev: 16, fill: 0.97 },
 }
 
 export function PieceStage({ t, bus, room }: { t: Progress; bus: LabelBus; room: { current: Room } }) {
@@ -70,10 +120,8 @@ export function PieceStage({ t, bus, room }: { t: Progress; bus: LabelBus; room:
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
   const reduced = useMemo(() => prefersReducedMotion(), [])
-  const pose = useRef<PiecePose>({ stage: 0, burst: 0, open: 0 })
+  const pose = useRef<PiecePose>({ stage: 0, burst: 0, open: 0, lit: {}, marking: 0 })
   const cur = useRef<Record<string, number> | null>(null)
-  const catcher = useMemo(() => new THREE.ShadowMaterial({ color: '#4a3000', transparent: true, opacity: 0.18, depthWrite: false }), [])
-  useEffect(() => () => catcher.dispose(), [catcher])
 
   useEffect(() => {
     const on = () => invalidate()
@@ -114,11 +162,12 @@ export function PieceStage({ t, bus, room }: { t: Progress; bus: LabelBus; room:
 
   return (
     <group>
-      <MovingKeyLight focus={[W2 / 2, L / 2, 0]} reach={1.4} offset={[-3, 6, 6]} />
-      <PanelPiece len={L} pose={pose} bus={bus} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[W2 / 2, -0.001, 0]} material={catcher} receiveShadow>
-        <planeGeometry args={[4, 4]} />
-      </mesh>
+      <MovingKeyLight focus={CENTRE} reach={2.6} offset={[-3, 6, 6]} />
+      <group quaternion={TURN}>
+        <group scale={[1, 1, THICK]}>
+          <PanelPiece len={L} pose={pose} bus={bus} wide={ACROSS} />
+        </group>
+      </group>
     </group>
   )
 }

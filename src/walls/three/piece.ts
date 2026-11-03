@@ -259,9 +259,9 @@ export function mouthGeometry(r: number) {
   return new THREE.CircleGeometry(r, 24)
 }
 
-/** a tie hole's sleeve through a layer, `t` thick, centred */
+/** a lifting hole's sleeve (20 mm across) through a layer, `t` thick, centred */
 export function sleeveGeometry(t: number) {
-  const g = new THREE.CylinderGeometry(7 * MM, 7 * MM, t, 20, 1, true)
+  const g = new THREE.CylinderGeometry(10 * MM, 10 * MM, t, 20, 1, true)
   g.rotateX(Math.PI / 2)
   return g
 }

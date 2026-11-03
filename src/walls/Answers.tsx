@@ -13,7 +13,8 @@ import { ANSWERS } from './content'
  * Built for the envelope, on yellow, as the Unitized page runs RTARIUM's answers: one pinned screen, the words
  * always in one place on the left (every name two lines, starting on one line), the 3D in the room right of them, a
  * bar along the foot. One wall is put up in front of you: the panel grows to 5.8 m and is laid down; it is X-rayed
- * and looked at close; it is lifted between two columns and bolted; two more interlock on it; the lower ones swell
+ * and looked at close; it is lifted by its tie holes and lowered between two steel channel posts, its ends in them,
+ * and clamped and bolted to them; two more interlock on it; the lower ones swell
  * into SIPs under a beam, solid panels go on above; a thick wall closes in and draws back. Each slide's words come
  * in, then it plays out. The 3D never leaves its room: a close look is cropped to it, and while the camera is in,
  * the room shows its edge. The ferrule fixed on the mesh, before the concrete, is one of RTARIUM's own photographs.
@@ -22,12 +23,12 @@ import { ANSWERS } from './content'
 const LABELS: LabelSpec[] = [
   { id: 'span', anchor: 'e-span', text: <span className="wp-span"><span className="wp-span-count num">3.6</span> m</span>, dx: 30, dy: -26 },
   { id: 'mesh', anchor: 'e-mesh', text: 'Inert basalt: nothing to rust', dx: -40, dy: -84 },
-  { id: 'xray', anchor: 'e-ferrule', text: 'Ferrule insert, fixed on the RTARIUM', dx: 46, dy: -92 },
-  { id: 'ferrules', anchor: 'e-ferrules', text: 'Ferrule inserts: to lift by', dx: 30, dy: -64 },
-  { id: 'ties', anchor: 'e-ties', text: 'Tie holes: to bolt through', dx: 34, dy: 60 },
-  { id: 'lift', anchor: 'e-lift', text: 'Lifted by its ferrule inserts', dx: 40, dy: -60 },
-  { id: 'angle', anchor: 'e-angle', text: 'Steel angle, bolted to the column', dx: 60, dy: -80 },
-  { id: 'bolt', anchor: 'e-bolt', text: 'Bolted through its tie holes', dx: 70, dy: 70 },
+  { id: 'xray', anchor: 'e-ferrule', text: 'Ferrule insert, cast on the RTARIUM', dx: 46, dy: -92 },
+  { id: 'ferrules', anchor: 'e-ferrules', text: 'Ferrule inserts: to fix by', dx: 30, dy: -64 },
+  { id: 'ties', anchor: 'e-ties', text: 'Tie holes: to lift by, 20 mm, through', dx: 34, dy: 60 },
+  { id: 'lift', anchor: 'e-lift', text: 'Lifted by its tie holes', dx: 40, dy: -60 },
+  { id: 'angle', anchor: 'e-angle', text: 'Steel clamp, bolted to the post', dx: 60, dy: -80 },
+  { id: 'bolt', anchor: 'e-bolt', text: 'M8 bolt, washers and nut', dx: 70, dy: 70 },
   { id: 'joint', anchor: 'e-joint', text: 'Tapered tongue, taken into its groove', dx: -60, dy: -96 },
   { id: 'sip', anchor: 'e-sip', text: '100 mm SIP · climate-controlled zone', dx: 30, dy: 56 },
   { id: 'beam', anchor: 'e-beam', text: 'Steel beam, bolted to the columns', dx: 40, dy: -64 },
@@ -120,7 +121,8 @@ export function Answers() {
         const y1 = w.top + 8
         room.current = { x: 0.04, y: (y0 - p.top) / p.height, w: 0.92, h: Math.max(0.2, (y1 - y0) / p.height) }
       } else {
-        const x0 = w.right + 40
+        // (a clear margin between the words and the 3D: it never comes up to them)
+        const x0 = w.right + Math.max(72, p.width * 0.065)
         const y0 = title.bottom + 28
         const y1 = bar.top - 32
         room.current = { x: (x0 - p.left) / p.width, y: (y0 - p.top) / p.height, w: (bar.right - x0) / p.width, h: (y1 - y0) / p.height }

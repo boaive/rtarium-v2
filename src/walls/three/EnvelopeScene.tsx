@@ -8,8 +8,9 @@ import { smooth, type Progress } from '../../facade/progress'
 import { Lines, sortFrom, split } from '../../flooring/data/three/dc'
 import { ink, useDrawing, useInkResolution } from '../../flooring/data/three/draw'
 import { Rtarium } from './Panel'
-import { disposeWallKit, fade, MM, slab, slabs, useWallTextures, wallKit } from './kit'
-import { eyeBoltGeometry, FERRULE_LINES, ferruleGeometry, ferruleTieGeometry, GRP_ALONG, rodGeometry, TIP } from './piece'
+import { plate } from './cutaway'
+import { disposeWallKit, fade, ferruleBore, ferruleRim, MM, slab, slabs, useWallTextures, wallKit } from './kit'
+import { FERRULE_LINES, ferruleGeometry, ferruleTieGeometry, GRP_ALONG, rodGeometry, TIP } from './piece'
 import { between, fit, type Box, type Room } from './fit'
 
 /**
@@ -26,9 +27,11 @@ import { between, fit, type Box, type Room } from './fit'
  *   1  weld-free,    the concrete round its first ferrules turns to an X-ray; the camera goes in close to the
  *      rust-proof    RTARIUM: water runs over the basalt and nothing rusts; the ferrule inserts are set onto the
  *                    mesh; the camera comes out, the concrete closes, and the ferrules and tie holes are marked
- *   2  bolt-down     two steel columns rise either side of the bay; eye bolts in its upper ferrules, it is lifted,
- *                    carried back between the columns and lowered to their foot; the camera goes in at its end: a
- *                    steel angle is bolted to the column and the panel is bolted to it through its tie holes
+ *   2  bolt-down     two steel channel posts rise either side of the bay, their open side (the U) to it; lifting pins
+ *                    through its upper tie holes (20 mm, through), it is lifted, carried back between the posts and
+ *                    lowered into their channels, its ends between their flanges; the camera goes in at its end: a
+ *                    steel clamp is bolted to the post's flange and to the panel, bolt, washers and nut, through holes
+ *                    in the clamp (owner, 3 Nov 2026: fixed to the posts, no rails; the U to the wall, the wall in it)
  *   3  interlocking  a second panel is lowered onto it, then a third; the camera goes in on a section through the
  *                    wall: the third's groove comes down over the tapered tongue below and is taken into line
  *   4  zoned         the three lower panels swell into 100 mm SIPs (the climate-controlled zone), a steel beam goes
@@ -36,7 +39,8 @@ import { between, fit, type Box, type Room } from './fit'
  *   5  space         a 230 mm masonry wall closes in from ours, a rack against it; it draws back, and the rack moves
  *                    up into the floor it gives back
  *
- * Sizes are the client's; the ferrule inserts and eye bolts are drawn a little larger than they are, so they read.
+ * Sizes are the client's; the lifting pins are drawn a little larger than they are, so they read. The ferrules' mouths
+ * are flush with the face (owner: no cut round them); the X-ray shows them on the mesh.
  */
 
 type Rect = [number, number, number, number]
@@ -50,9 +54,16 @@ const J = 15 * MM
 const SPAN = 5.8
 /** where the panel stands for the first two slides: in front of the wall line */
 const DZ = 1.2
-/** the columns: their near flanges 30 mm off the panels' ends, flanges across the wall */
+/** the beam's ends, inside the posts' channels: 30 mm off the panels' ends */
 const GAP = 0.03
-const COL = { d: 0.2, b: 0.2, tf: 0.01, tw: 0.008, h: 4.15, zc: -0.015 }
+/**
+ * The posts: steel channels (a U, 140 deep, 170 across its flanges) stood with their open side to the bay, so a panel's
+ * end goes in between their flanges, round the wall's thickness (to 100 mm, the SIP) with room either side; their flanges
+ * reach `inset` past the panel's end into the bay
+ */
+const COL = { d: 0.14, b: 0.17, tf: 0.01, tw: 0.008, h: 4.15, zc: -0.05, inset: 0.09 }
+/** the post's front flange: its outer face (the clamp's seat) */
+const FLANGE = COL.zc + COL.b / 2
 const BEAM = { d: 0.2, b: 0.1, tf: 0.009, tw: 0.006 }
 /** the SIP: two 15 mm leaves on a 70 mm core, 20 mm proud along its top; the beam sits on the top SIP's core */
 const CORE = 0.07
@@ -67,17 +78,24 @@ const XR: [number, number] = [0.62, 1.38]
 const XS = 1.8
 const FERRULE_AT: [number, number][] = FERRULE_LINES(L).flatMap((x) => [0.1, 0.5].map((y) => [x, y] as [number, number]))
 const TIES: [number, number][] = [0.2, L - 0.2].flatMap((x) => [0.15, 0.45].map((y) => [x, y] as [number, number]))
-const LIFT_AT = FERRULE_AT.filter(([, y]) => y > H / 2)
+/** the lifting holes it is lifted by: the upper two (20 mm, through) */
+const LIFT_AT = TIES.filter(([, y]) => y > H / 2)
 const GRP_ACROSS = [0.6, 1.2, 1.8, 2.4, 3.0]
-const EYE = 2.2
+/** a lifting pin drawn this much larger than it is, so it reads at the bay's size */
+const PIN = 1.6
 /** the ferrule inserts, drawn half as large again in the close look so they read beside the mesh */
 const BIG = 1.5
-/** the steel angle at each tie hole, 100 mm long: one leg bolted to the column, the other on the panel's face, over the hole */
-const BR = { h: 0.1, reach: 0.27, leg: 0.075, t: 0.006 }
+/**
+ * The clamp at each tie hole: a 6 mm steel plate, 80 mm tall, stepped. Its back flat on the post's front flange, bolted
+ * through it; it steps down at the flange's edge onto the panel's face and runs on over the tie hole, bolted through the
+ * panel. Its holes: one over the flange (`bolt`), one over the tie hole.
+ */
+const CL = { t: 0.006, h: 0.08, back: 0.075, reach: 0.26, bolt: COL.inset - 0.0375, hole: 0.0055 }
 /** the tie holes at a panel's near end (its far end's are the same, turned about) */
 const TIE_Y = TIES.filter(([x]) => x < L / 2).map(([, y]) => y)
-/** the bolts, an M8 drawn a little heavier (×1.25) so it reads close to */
-const BOLT = { head: 8 * MM, nut: 8 * MM, shank: 5 * MM, washer: 10 * MM }
+/** an M8 bolt, drawn a little heavier (×1.25) so it reads close to: its hex across corners, head and nut heights, its
+ *  washer, and its thread (radius, pitch and depth) */
+const BOLT = { hex: 9.4 * MM, head: 6.6 * MM, nut: 8 * MM, washer: 10.6 * MM, wt: 2 * MM, r: 5 * MM, pitch: 1.56 * MM, depth: 0.7 * MM }
 /** how far a panel is lowered from: above the room, so it comes in through its top edge */
 const DROP = 2.6
 /** a 230 mm masonry wall's inner face, measured from ours (its outer face on the SIP's) */
@@ -116,7 +134,8 @@ const V = {
   panel: { box: [[-0.05, 0, DZ - 0.04], [L + 0.05, H + J + 0.02, DZ + 0.06]], azim: 18, elev: 9, fill: 0.9 },
   mesh: { box: [[0.7, 0.06, DZ - 0.03], [1.3, 0.56, DZ + 0.03]], azim: 30, elev: 20, fill: 1 },
   low: { box: [[-0.3, 0, -0.12], [L + 0.3, 1.45, DZ + 0.12]], azim: 24, elev: 13, fill: 0.92 },
-  bolt: { box: [[-0.09, 0.07, -0.04], [0.27, 0.25, 0.09]], azim: 38, elev: 18, fill: 0.96 },
+  // (the upper clamp, from above the panel's top edge: the post's U is seen with the panel's end in it, empty above it)
+  bolt: { box: [[-0.07, 0.36, -0.15], [0.28, 0.72, 0.08]], azim: 48, elev: 26, fill: 0.96 },
   mid: { box: [[-0.3, 0, -0.12], [L + 0.3, 2.3, 0.3]], azim: 18, elev: 11, fill: 0.92 },
   joint: { box: [[XS - 0.015, 1.14, -0.04], [XS + 0.003, 1.27, 0.012]], azim: 82, elev: 10, fill: 1 },
   full: { box: [[-0.3, 0, -0.14], [L + 0.75, TOP + 0.3, 0.14]], azim: 20, elev: 10, fill: 0.95 },
@@ -192,12 +211,22 @@ function ring(Ls: Lines, c: [number, number, number], r: number, n = 40) {
   }
 }
 
-/** a hexagon prism (a bolt head, a nut) `h` long along z, `r` across corners, its back on z = 0 */
-function hex(r: number, h: number) {
-  const g = new THREE.CylinderGeometry(r, r, h, 6)
+/** a hexagon prism (a bolt head, a nut) `h` long along z, `r` across corners, its back on z = 0; `chamfer` narrows its top */
+function hex(r: number, h: number, chamfer = 1) {
+  const g = new THREE.CylinderGeometry(r * chamfer, r, h, 6)
   g.rotateX(Math.PI / 2)
   g.rotateZ(Math.PI / 6)
   g.translate(0, 0, h / 2)
+  return g
+}
+/** a threaded shank, `len` long from z = 0 back along −z: its thread turned as a fine zig-zag round it */
+function thread(len: number) {
+  const pts: THREE.Vector2[] = [new THREE.Vector2(0, 0)]
+  const n = Math.max(2, Math.round(len / (BOLT.pitch / 2)))
+  for (let i = 0; i <= n; i++) pts.push(new THREE.Vector2(BOLT.r - (i % 2 ? BOLT.depth : 0), (len * i) / n))
+  pts.push(new THREE.Vector2(0, len))
+  const g = new THREE.LatheGeometry(pts, 18)
+  g.rotateX(-Math.PI / 2)
   return g
 }
 function disc(r: number, h: number, n = 20) {
@@ -286,6 +315,8 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
       zoneSet: tint(trio()),
       zoneCut: tint(trio()),
       boreCut: k.bore.clone(),
+      // the ferrules beyond the section, which give way with it
+      zincCut: k.zinc.clone(),
       core: k.core,
       steel: new THREE.MeshStandardMaterial({ color: '#4f555c', metalness: 0.6, roughness: 0.42, clippingPlanes: [scan] }),
       yarn: new THREE.MeshStandardMaterial({ color: '#9a744f', roughness: 0.78 }),
@@ -303,15 +334,16 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
     // a SIP leaf, 15 mm; the core, a unit deep (scaled as it grows), 20 mm in at the near end and the foot
     const leaf = slabs([slab(0, L, 0, H, -0.015, 0)])
     const core = slabs([slab(0.02, L + 0.02, 0.02, H + 0.02, -1, 0)])
-    // a column, its near flange's face at x = 0 looking along +x (the other column is this one turned about)
+    // a post: a channel, its open side looking along +x (into the bay), its flanges' tips at x = 0, its web at the back
+    // (the other post is this one turned about)
     const zc = COL.zc
     const column = slabs(
       [
-        slab(-COL.tf, 0, 0, COL.h, zc - COL.b / 2, zc + COL.b / 2),
-        slab(-COL.d, -COL.d + COL.tf, 0, COL.h, zc - COL.b / 2, zc + COL.b / 2),
-        slab(-COL.d + COL.tf, -COL.tf, 0, COL.h, zc - COL.tw / 2, zc + COL.tw / 2),
+        slab(-COL.d, 0, 0, COL.h, zc + COL.b / 2 - COL.tf, zc + COL.b / 2),
+        slab(-COL.d, 0, 0, COL.h, zc - COL.b / 2, zc - COL.b / 2 + COL.tf),
+        slab(-COL.d, -COL.d + COL.tw, 0, COL.h, zc - COL.b / 2 + COL.tf, zc + COL.b / 2 - COL.tf),
       ],
-      'x',
+      'z',
     )
     // the beam between the columns, its foot at y = 0, an end plate at each end
     const beam = slabs(
@@ -324,8 +356,15 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
       ],
       'y',
     )
-    // a steel angle at a tie hole (centred on it in y), its corner on the column's flange (x = 0 here) and the panel's face
-    const angle = slabs([slab(0, BR.t, -BR.h / 2, BR.h / 2, 0, BR.leg), slab(0, GAP + BR.reach, -BR.h / 2, BR.h / 2, 0, BR.t)])
+    // the clamp at a tie hole (centred on it in y): its back on the flange with its hole, the step, its front on the panel
+    // with its hole over the tie hole
+    const back = plate(COL.inset - CL.back, -CL.h / 2, COL.inset, CL.h / 2, CL.t, [[CL.bolt, 0, CL.hole]])
+    back.translate(0, 0, FLANGE)
+    const front = plate(COL.inset + CL.t, -CL.h / 2, CL.reach, CL.h / 2, CL.t, [[TIES[0][0], 0, CL.hole]])
+    const angle = slabs([back, slab(COL.inset, COL.inset + CL.t, -CL.h / 2, CL.h / 2, 0, FLANGE + CL.t), front])
+    // a lifting pin through a hole (20 mm, so a 16 mm pin), and the ring the sling takes, standing up off its head
+    const pin = new THREE.CylinderGeometry(8 * MM, 8 * MM, 0.07, 18).rotateX(Math.PI / 2).translate(0, 0, -T / 2)
+    const ring = new THREE.TorusGeometry(16 * MM, 3.5 * MM, 10, 28).translate(0, 0.02, 0.026)
     return {
       first: { body: opened, xr: slabs(stretch(XR[0], XR[1], false)) },
       halves: { near: slabs(stretch(0, XS).filter((_, i) => i !== 1)), nearZone: slabs([zoneBar(J, XS)]), far: slabs(stretch(XS, L).filter((_, i) => i !== 1)), farZone: slabs([zoneBar(XS, L + J)]) },
@@ -335,16 +374,21 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
       column,
       beam,
       angle,
-      head: hex(BOLT.head, 5.5 * MM),
-      nut: hex(BOLT.nut, 6.5 * MM),
-      washer: disc(BOLT.washer, 1.6 * MM),
-      shank: disc(BOLT.shank / 1.25, 1, 12),
-      eye: eyeBoltGeometry(),
+      head: hex(BOLT.hex, BOLT.head, 0.86),
+      nut: hex(BOLT.hex, BOLT.nut),
+      washer: disc(BOLT.washer, BOLT.wt, 24),
+      // the shanks: through the clamp and the flange, to the nut behind it; through the clamp and the panel, to its nut
+      shankPost: thread(CL.t + COL.tf + BOLT.wt + BOLT.nut + 3 * MM),
+      shankTie: thread(CL.t + T + BOLT.wt + BOLT.nut + 3 * MM),
+      pin,
+      ring,
+      rim: ferruleRim(),
+      bore: ferruleBore(),
       ferrule: ferruleGeometry(0.02),
       tie: ferruleTieGeometry(0.02),
       rod: rodGeometry(3.2 * MM),
-      mouth: new THREE.CircleGeometry(5 * MM, 18),
-      hole: new THREE.CircleGeometry(7 * MM, 18),
+      hole: new THREE.CircleGeometry(10 * MM, 22),
+      lip: new THREE.RingGeometry(10 * MM, 12 * MM, 22),
       drop: new THREE.SphereGeometry(3 * MM, 12, 10),
       ghost: slab(0, L, 0, TOP, 0, 1),
     }
@@ -387,12 +431,12 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
     const xr = new Lines()
     xr.rectZ(XR[0], 0, XR[1], H, 0.003)
     const rings = new Lines()
-    for (const [x, y] of FERRULE_AT) ring(rings, [x, y, 0.003], 0.045)
+    for (const [x, y] of FERRULE_AT) ring(rings, [x, y, 0.003], 0.058)
     for (const [x, y] of TIES) rings.rectZ(x - 0.04, y - 0.04, x + 0.04, y + 0.04, 0.003)
-    // the slings, from each lifting eye bolt to the hook over the panel's middle, and the crane's line up from it
+    // the slings, from each lifting pin's ring to the hook over the panel's middle, and the crane's line up from it
     const apex: [number, number, number] = [L / 2, H + 1.05, 0.1]
     const sling = new Lines()
-    for (const [x, y] of LIFT_AT) sling.seg([x, y + 0.02, 0.1], apex)
+    for (const [x, y] of LIFT_AT) sling.seg([x, y + 0.0395 * PIN, 0.026 * PIN], apex)
     sling.box([apex[0] - 0.05, apex[1], apex[2] - 0.03], [apex[0] + 0.05, apex[1] + 0.14, apex[2] + 0.03])
     sling.seg([apex[0], apex[1] + 0.14, apex[2]], [apex[0], apex[1] + 4, apex[2]])
     // the two zones bracketed beside the bay
@@ -473,8 +517,8 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
   const sips = useRef<(THREE.Group | null)[]>([])
   const outerLeaves = useRef<(THREE.Group | null)[]>([])
   const cores = useRef<(THREE.Group | null)[]>([])
-  /** each panel's eye bolts, and its fixings at both ends (the angle, the column bolts, the tie bolts and their nuts) */
-  const eyes = useRef<(THREE.Group | null)[]>([])
+  /** each panel's lifting pins, and its fixings at both ends (the angle, the column bolts, the tie bolts and their nuts) */
+  const pins = useRef<(THREE.Group | null)[]>([])
   const fixings = useRef<Fix[]>([])
   const fixRef = (k: number, part: keyof Fix, end: number) => (el: THREE.Object3D | null) => {
     if (el) (fixings.current[k] ??= { angle: [], colBolts: [], tips: [], nuts: [] })[part][end] = el
@@ -577,20 +621,20 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
     ringsD.show(smooth(1.58, 1.64, p))
     fade(mats.rings, span(p, 1.58, 1.6, 1.9, 1.97))
 
-    // 2: the columns rise; eye bolts in its upper ferrules, the slings; the lift; the close look at its fixings
+    // 2: the columns rise with their rails; lifting pins through its upper lifting holes, the slings; the lift; the close
+    // look at its fixings
     const st = smooth(2.1, 2.26, p)
     scan.constant = st >= 1 ? 1e3 : -0.05 + (COL.h + 0.1) * st
     if (columns.current) columns.current.visible = st > 0.002
-    // [the eye bolts going in, coming out] for the first panel and each lifted one
-    const eyeAt: [number, number][] = [[smooth(2.24, 2.3, p), smooth(2.58, 2.62, p)], ...LIFTS.map((l) => [smooth(l.down[0] - 0.04, l.down[0] - 0.01, p), smooth(l.down[1] + 0.01, l.down[1] + 0.04, p)] as [number, number])]
-    eyes.current.forEach((e, k) => {
+    // [the pins going in, coming out] for the first panel and each lifted one
+    const pinAt: [number, number][] = [[smooth(2.24, 2.3, p), smooth(2.58, 2.62, p)], ...LIFTS.map((l) => [smooth(l.down[0] - 0.04, l.down[0] - 0.01, p), smooth(l.down[1] + 0.01, l.down[1] + 0.04, p)] as [number, number])]
+    pins.current.forEach((e, k) => {
       if (!e) return
-      const [on, off] = eyeAt[k]
+      const [on, off] = pinAt[k]
       e.visible = on > 0.01 && off < 0.99
       e.children.forEach((c) => {
-        c.position.z = 0.08 * (1 - on)
-        c.rotation.z = (1 - on) * Math.PI * 3 - off * Math.PI * 2
-        c.scale.setScalar(EYE * Math.max(1e-3, 1 - off))
+        c.position.z = 0.1 * (1 - easeOut(on)) + 0.1 * off
+        c.scale.setScalar(PIN * Math.max(1e-3, 1 - off))
       })
     })
     const slingAt: [number, number][] = [[smooth(2.29, 2.33, p), smooth(2.56, 2.59, p)], ...LIFTS.map((l) => [smooth(l.down[0] - 0.02, l.down[0], p), smooth(l.down[1], l.down[1] + 0.02, p)] as [number, number])]
@@ -607,25 +651,19 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
         o.visible = s.angle > 0.01
         o.position.z = 0.16 * (1 - s.angle)
       }
-      // the column bolts go in along x, turning; the tie bolts' shanks come through from behind; the nuts run on
-      for (const o of f.colBolts) {
-        o.visible = s.colBolts > 0.01
-        o.children.forEach((c) => {
-          c.position.x = BR.t + 0.05 * (1 - s.colBolts)
-          c.rotation.x = (1 - s.colBolts) * Math.PI * 4
-        })
+      // the bolts go in through the clamp's holes, turning: the post's first, then the panel's; the nuts run on behind
+      const run = (o: THREE.Object3D, k: number, from: number) => {
+        o.visible = k > 0.01
+        for (const seat of o.children) {
+          const b = seat.children[0]
+          if (!b) continue
+          b.position.z = from * (1 - ease(k))
+          b.rotation.z = (1 - k) * Math.PI * 4
+        }
       }
-      for (const o of f.tips) {
-        o.visible = s.tips > 0.01
-        o.position.z = -0.06 * (1 - s.tips)
-      }
-      for (const o of f.nuts) {
-        o.visible = s.nuts > 0.01
-        o.children.forEach((c) => {
-          c.position.z = BR.t + 0.05 * (1 - ease(smooth(0, 0.55, s.nuts)))
-          c.rotation.z = (1 - s.nuts) * Math.PI * 4
-        })
-      }
+      for (const o of f.colBolts) run(o, s.colBolts, 0.05)
+      for (const o of f.tips) run(o, s.tips, 0.05)
+      for (const o of f.nuts) run(o, s.nuts, -0.04)
     })
 
     // a cut panel's far end has nothing to fix: the second's and third's far fixings go with their far halves (slide 3)
@@ -655,7 +693,7 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
     })
     // the section's far halves give way while the camera is in on the joint
     const cut = span(p, 3.42, 3.48, 3.72, 3.78)
-    for (const x of [...m.cut, ...m.zoneCut, m.boreCut]) fade(x, 1 - cut)
+    for (const x of [...m.cut, ...m.zoneCut, m.boreCut, m.zincCut]) fade(x, 1 - cut)
 
     // 4: the lower three are the 100 mm SIPs of the climate-controlled zone (they become so while the camera moves on, not
     // shown: owner); the beam goes on; the solid panels above it; then the two zones are marked
@@ -709,26 +747,45 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
     el.instanceMatrix.needsUpdate = true
     el.computeBoundingSphere()
   }
-  /** the ferrule mouths and the tie holes in a panel's inner face; those beyond the section in `far`, which can fade with it */
-  const bores = (far: THREE.Material = m.bore) => {
-    const z = 0.0004
-    const near = (l: [number, number][]) => l.filter(([x]) => x < XS)
-    const out = (l: [number, number][]) => l.filter(([x]) => x >= XS)
+  /**
+   * A panel's ferrules and its lifting holes (20 mm, sleeved) in its inner face: the ferrules' mouths, a zinc rim round a
+   * threaded bore; with `cutSection`, those beyond the section are drawn in the materials that give way with it
+   */
+  const bores = (cutSection = false) => {
+    const near = (l: [number, number][]) => l.filter(([x]) => !cutSection || x < XS)
+    const out = (l: [number, number][]) => (cutSection ? l.filter(([x]) => x >= XS) : [])
+    const mouths = (l: [number, number][], zinc: THREE.Material, bore: THREE.Material, k: string) =>
+      l.length > 0 && (
+        <group key={k}>
+          <instancedMesh args={[g.rim, zinc, l.length]} ref={placeAt(l, 0.0003)} />
+          <instancedMesh args={[g.bore, bore, l.length]} ref={placeAt(l, 0.0007)} />
+        </group>
+      )
+    const holes = (l: [number, number][], bore: THREE.Material, lip: THREE.Material, k: string) =>
+      l.length > 0 && (
+        <group key={k}>
+          <instancedMesh args={[g.hole, bore, l.length]} ref={placeAt(l, 0.0004)} />
+          <instancedMesh args={[g.lip, lip, l.length]} ref={placeAt(l, 0.0005)} />
+        </group>
+      )
     return (
       <>
-        <instancedMesh args={[g.mouth, m.bore, near(FERRULE_AT).length]} ref={placeAt(near(FERRULE_AT), z)} />
-        <instancedMesh args={[g.hole, m.bore, near(TIES).length]} ref={placeAt(near(TIES), z)} />
-        <instancedMesh args={[g.mouth, far, out(FERRULE_AT).length]} ref={placeAt(out(FERRULE_AT), z)} />
-        <instancedMesh args={[g.hole, far, out(TIES).length]} ref={placeAt(out(TIES), z)} />
+        {mouths(near(FERRULE_AT), m.zinc, m.bore, 'fn')}
+        {mouths(out(FERRULE_AT), m.zincCut, m.boreCut, 'ff')}
+        {holes(near(TIES), m.bore, m.galv, 'hn')}
+        {holes(out(TIES), m.boreCut, m.zincCut, 'hf')}
       </>
     )
   }
-  /** a panel's lifting eye bolts, in its upper ferrules (hidden until it is lifted) */
-  const eyeBolts = (k: number) => (
-    <group ref={(el) => void (eyes.current[k] = el)} visible={false}>
+  /** a panel's lifting pins, through its upper lifting holes, each with the ring its sling takes (hidden until it is lifted) */
+  const liftPins = (k: number) => (
+    <group ref={(el) => void (pins.current[k] = el)} visible={false}>
       {LIFT_AT.map(([x, y]) => (
         <group key={x} position={[x, y, 0]}>
-          <mesh geometry={g.eye} material={m.zinc} castShadow />
+          <group>
+            <mesh geometry={g.pin} material={m.zinc} castShadow />
+            <mesh geometry={g.ring} material={m.zinc} castShadow />
+          </group>
         </group>
       ))}
     </group>
@@ -744,14 +801,29 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
       ))}
     </>
   )
+  /** a bolt from its seat: washer, head, and its threaded shank back through what it holds */
+  const bolt = (shank: THREE.BufferGeometry) => (
+    <group>
+      <mesh geometry={g.washer} material={m.galv} castShadow />
+      <mesh geometry={g.head} material={m.galv} position={[0, 0, BOLT.wt]} castShadow />
+      <mesh geometry={shank} material={m.galv} />
+    </group>
+  )
+  /** a nut from its seat, run on behind: its washer, then the nut (turned about, to face back along −z) */
+  const nut = (
+    <group scale={[1, 1, -1]}>
+      <mesh geometry={g.washer} material={m.galv} />
+      <mesh geometry={g.nut} material={m.galv} position={[0, 0, BOLT.wt]} castShadow />
+    </group>
+  )
   /**
-   * A panel's fixings, at both its ends: the steel angle (one leg on the column's flange, one on the panel's face over
-   * its two tie holes), two bolts through it into the column, and a bolt through each tie hole, its washer and nut
-   * run on against the angle. The far end's are the near end's, turned about.
+   * A panel's fixings, at both its ends: at each tie hole a clamp (its back on the post's front flange, its front on the
+   * panel's face), a bolt through its back and the flange with a nut behind the flange, and a bolt through its front and
+   * the panel with a nut behind the panel. The far end's are the near end's, turned about.
    */
   const fixingsOf = (k: number) =>
     [0, 1].map((e) => (
-      <group key={e} position={[e ? L + GAP : -GAP, 0, 0]} scale={[e ? -1 : 1, 1, 1]}>
+      <group key={e} position={[e ? L : 0, 0, 0]} scale={[e ? -1 : 1, 1, 1]}>
         <group ref={fixRef(k, 'angle', e)} visible={false}>
           {TIE_Y.map((y) => (
             <mesh key={y} geometry={g.angle} material={m.angle} position={[0, y, 0]} castShadow receiveShadow />
@@ -759,25 +831,27 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
         </group>
         <group ref={fixRef(k, 'colBolts', e)} visible={false}>
           {TIE_Y.map((y) => (
-            <group key={y} position={[BR.t, y, 0.045]} rotation={[0, Math.PI / 2, 0]}>
-              <mesh geometry={g.washer} material={m.galv} />
-              <mesh geometry={g.head} material={m.galv} position={[0, 0, 1.6 * MM]} />
+            <group key={y} position={[CL.bolt, y, FLANGE + CL.t]}>
+              {bolt(g.shankPost)}
             </group>
           ))}
         </group>
-        {/* the tie bolts: their shanks come through from behind, then the washers and nuts go on */}
         <group ref={fixRef(k, 'tips', e)} visible={false}>
-          {TIES.filter(([x]) => x < L / 2).map(([x, y]) => (
-            <mesh key={y} geometry={g.shank} material={m.galv} position={[GAP + x, y, -T - 0.004]} scale={[1, 1, T + BR.t + 0.016]} />
+          {TIE_Y.map((y) => (
+            <group key={y} position={[TIES[0][0], y, CL.t]}>
+              {bolt(g.shankTie)}
+            </group>
           ))}
         </group>
         <group ref={fixRef(k, 'nuts', e)} visible={false}>
-          {TIES.filter(([x]) => x < L / 2).map(([x, y]) => (
-            <group key={y} position={[GAP + x, y, BR.t]}>
-              <mesh geometry={g.washer} material={m.galv} />
-              <mesh geometry={g.nut} material={m.galv} position={[0, 0, 1.6 * MM]} castShadow />
-            </group>
-          ))}
+          {TIE_Y.flatMap((y) => [
+            <group key={`p${y}`} position={[CL.bolt, y, FLANGE - COL.tf]}>
+              {nut}
+            </group>,
+            <group key={`t${y}`} position={[TIES[0][0], y, -T]}>
+              {nut}
+            </group>,
+          ])}
         </group>
       </group>
     ))
@@ -818,19 +892,19 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
                 <Anchor bus={bus} id="e-mesh" position={[0.82, 0.42, -0.008]} />
                 <Anchor bus={bus} id="e-ferrule" position={[FERRULE_AT[1][0], FERRULE_AT[1][1] + 0.012, 0.004]} />
               </group>
-              {eyeBolts(0)}
+              {liftPins(0)}
               <primitive object={slings[0].obj} />
-              <Anchor bus={bus} id="e-ferrules" position={[FERRULE_AT[3][0], FERRULE_AT[3][1] + 0.045, 0.003]} />
+              <Anchor bus={bus} id="e-ferrules" position={[FERRULE_AT[3][0], FERRULE_AT[3][1] + 0.058, 0.003]} />
               <Anchor bus={bus} id="e-ties" position={[TIES[2][0], TIES[2][1] - 0.04, 0.003]} />
-              <Anchor bus={bus} id="e-lift" position={[LIFT_AT[1][0], LIFT_AT[1][1] + 0.05, 0.1]} />
+              <Anchor bus={bus} id="e-lift" position={[LIFT_AT[1][0], LIFT_AT[1][1] + 0.0395 * PIN, 0.026 * PIN]} />
             </group>
           </group>
         </group>
       </group>
       {/* its fixings, where it ends up (the first panel comes to rest at the foot of the bay) */}
       {fixingsOf(0)}
-      <Anchor bus={bus} id="e-angle" position={[-GAP + 0.012, TIES[0][1] + 0.03, BR.leg * 0.7]} />
-      <Anchor bus={bus} id="e-bolt" position={[TIES[0][0], TIES[0][1], BR.t + 0.009]} />
+      <Anchor bus={bus} id="e-angle" position={[COL.inset - 0.06, TIES[1][1] + CL.h / 2, FLANGE + CL.t]} />
+      <Anchor bus={bus} id="e-bolt" position={[TIES[1][0], TIES[1][1], CL.t + BOLT.wt + BOLT.head]} />
 
       {/* the dimension beside the panel on end */}
       <group ref={dims} position={[L + H + 0.32, 0, DZ]} visible={false}>
@@ -857,8 +931,8 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
           ) : (
             <mesh geometry={g.whole} material={m.conc} castShadow receiveShadow />
           )}
-          {bores(k < 2 ? m.boreCut : m.bore)}
-          {eyeBolts(k + 1)}
+          {bores(k < 2)}
+          {liftPins(k + 1)}
           <primitive object={slings[k + 1].obj} />
         </group>
       ))}
@@ -885,8 +959,8 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
 
       {/* ---- the steel: two columns, and the beam ---- */}
       <group ref={columns} visible={false}>
-        <mesh geometry={g.column} material={m.steel} position={[-GAP, 0, 0]} castShadow receiveShadow />
-        <mesh geometry={g.column} material={m.steel} position={[L + GAP, 0, 0]} scale={[-1, 1, 1]} castShadow receiveShadow />
+        <mesh geometry={g.column} material={m.steel} position={[COL.inset, 0, 0]} castShadow receiveShadow />
+        <mesh geometry={g.column} material={m.steel} position={[L - COL.inset, 0, 0]} scale={[-1, 1, 1]} castShadow receiveShadow />
       </group>
       <group ref={beamG} visible={false}>
         <mesh geometry={g.beam} material={m.beam} castShadow receiveShadow />

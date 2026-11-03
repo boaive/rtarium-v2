@@ -140,8 +140,8 @@ export interface Version {
   /** what the marker on the panel calls it */
   material: string
   thick: number
-  /** its photograph (a story that sets a second model in the photograph's box goes without) */
-  photo?: { src: string; alt: string; credit?: string }
+  /** its photograph (a story that sets a second model in the photograph's box goes without); `ratio` its frame's width over height, `pos` what to keep in it */
+  photo?: { src: string; alt: string; credit?: string; ratio?: number; pos?: string }
 }
 
 /** the words a story sets over its boxes (the façade's, by default) */
@@ -289,7 +289,7 @@ export function Lineage({
   live?: { current: boolean }
   versions?: Version[]
   panel?: (k: number, compact: boolean) => ReactNode
-  /** a second model, in the photograph's box: a block that shows two things side by side, each in 3D */
+  /** a second model, in the photograph's box: a block that shows two things side by side, each in 3D (none: its photograph) */
   second?: (k: number, compact: boolean) => ReactNode
   words?: LineageWords
   id?: string
@@ -436,6 +436,9 @@ export function Lineage({
     scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + i * rowH))
   }
 
+  /** what each block sets in its photograph's box in place of the photograph, if anything */
+  const seconds = versions.map((_, i) => second?.(i, compact) ?? null)
+
   const content = (v: Version, i: number, role: Role): ReactNode => {
     switch (role) {
       case 'name':
@@ -499,14 +502,14 @@ export function Lineage({
           </>
         )
       case 'photo':
-        if (second) return second(i, compact)
+        if (seconds[i]) return seconds[i]
         if (!v.photo) return null
         return (
           <>
-            <figure ref={(el) => void (photos.current[i] = el)} className="fs-photo">
+            <figure ref={(el) => void (photos.current[i] = el)} className="fs-photo" style={v.photo.ratio ? ({ '--ar': v.photo.ratio } as CSSProperties) : undefined}>
               <span className="fs-photo__frame">
-                <img src={v.photo.src} alt={v.photo.alt} loading="lazy" width={640} height={480} />
-                {i < LAST && <i className="fs-photo__cross" aria-hidden="true" />}
+                <img src={v.photo.src} alt={v.photo.alt} loading="lazy" width={640} height={480} style={v.photo.pos ? { objectPosition: v.photo.pos } : undefined} />
+                {finale && i < LAST && <i className="fs-photo__cross" aria-hidden="true" />}
               </span>
               <i className="fs-photo__dot" aria-hidden="true">
                 <span ref={(el) => void ((reads.current[i] ??= [])[0] = el)} className="fs-photo__x num" />
@@ -560,7 +563,7 @@ export function Lineage({
                 <div
                   key={role}
                   ref={(el) => void ((cells.current[i] ??= {})[role] = el)}
-                  className={`fs-cell fs-cell--${role} on-${L.ground[role]} ${L.align[role] === 'end' ? 'is-end' : ''} ${role === 'photo' && second ? 'is-3d' : ''}`}
+                  className={`fs-cell fs-cell--${role} on-${L.ground[role]} ${L.align[role] === 'end' ? 'is-end' : ''} ${role === 'photo' && seconds[i] ? 'is-3d' : ''}`}
                 >
                   <div
                     ref={(el) => void ((inners.current[i] ??= {})[role] = el)}

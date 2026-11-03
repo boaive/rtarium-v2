@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type RefObject } from 'react'
+import { Suspense, useEffect, useMemo, useRef, type RefObject } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { smooth } from '../../facade/progress'
@@ -7,6 +7,7 @@ import { Lines } from '../../flooring/data/three/dc'
 import { ink, useDrawing, useInkResolution } from '../../flooring/data/three/draw'
 import { disposeWallKit, MM, slab, slabs, useWallTextures, wallKit, type WallKit } from './kit'
 import { eyeBoltGeometry } from './piece'
+import { Rtarium } from './Panel'
 
 /**
  * The story's facts (Wall Panels), two to a block, each a small 3D scene that plays in time, on a loop, while it is on
@@ -15,9 +16,11 @@ import { eyeBoltGeometry } from './piece'
  *   strength  a piece of the 30 mm panel hung by two eye bolts in its ferrules; weights go on until each point carries
  *             125 kg; they come off
  *   magnet    a lifting magnet comes down on a piece lying flat, a steel nut on it: the nut goes up, the panel stays
- *   fire      a piece of the 100 mm SIP insulated panel (the fire-rated one; owner) standing in a burner's flames
+ *   fire      a piece of the 100 mm SIP insulated panel (the fire-rated one; owner): its face takes the heat, dark red
+ *             to amber, the heat falling away through its section, while a clock beside it runs to 4:00 hours (no flames)
  *   caliper   a caliper closes on the panel's edge: 30.0 mm, and again further along
- *   carbon    a square metre of the panel gathers into the concrete it holds: a cube of 0.03 m³
+ *   carbon    a square metre of the panel gives up what it is made of: its concrete gathers into a cube of 0.03 m³ and
+ *             moves off, the basalt mesh stays; less concrete, no steel (RTARIUM alone, nothing compared: owner)
  *
  * Each scene is centred on the origin, its floor at its own foot; `FACT_SIZE` is what the camera fits.
  */
@@ -27,14 +30,14 @@ export type Fact = 'strength' | 'magnet' | 'fire' | 'caliper' | 'carbon'
 export const FACT_SIZE: Record<Fact, [number, number]> = {
   strength: [1.85, 1.6],
   magnet: [1.05, 1.15],
-  fire: [0.95, 1.2],
+  fire: [1.5, 1.25],
   caliper: [0.44, 0.3],
-  carbon: [1.25, 1.12],
+  carbon: [2.0, 1.62],
 }
 /** how long each one's loop runs (s) */
-const PERIOD: Record<Fact, number> = { strength: 9, magnet: 7, fire: 8, caliper: 8, carbon: 8 }
+const PERIOD: Record<Fact, number> = { strength: 9, magnet: 7, fire: 9, caliper: 8, carbon: 10 }
 /** under reduced motion: the moment each one is held at */
-const STILL: Record<Fact, number> = { strength: 5.5, magnet: 2.9, fire: 3.5, caliper: 2.6, carbon: 3.4 }
+const STILL: Record<Fact, number> = { strength: 5.5, magnet: 2.9, fire: 6.4, caliper: 2.6, carbon: 6.4 }
 
 type Trio = [THREE.MeshStandardMaterial, THREE.MeshStandardMaterial, THREE.MeshStandardMaterial]
 const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2)
@@ -336,18 +339,22 @@ function Magnet({ live, readout }: { live: { current: boolean }; readout: RefObj
   )
 }
 
-/* ---- fire-rated: the insulated panel stands in the flames (the rating is the SIP panel's, not the mesh's) ------- */
+/* ---- fire-rated, 4 hours: the insulated panel's face takes the heat (the rating is the SIP panel's; no flames: owner) -- */
 
-const FLAME_VS = /* glsl */ `
+const HEAT_VS = /* glsl */ `
 varying vec2 vUv;
 void main() {
   vUv = uv;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`
-const FLAME_FS = /* glsl */ `
+/**
+ * Heat on a face: dark red, to orange, to amber as it builds, hottest at the foot, a slow shimmer rising through it.
+ * `uDepth` > 0 turns it into the section's: the heat falls away through the thickness (u: 0 the cool face, 1 the hot one).
+ */
+const HEAT_FS = /* glsl */ `
+uniform float uHeat;
 uniform float uTime;
-uniform float uPower;
-uniform float uSeed;
+uniform float uDepth;
 varying vec2 vUv;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -355,126 +362,94 @@ float noise(vec2 p) {
   vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
 }
-float fbm(vec2 p) {
-  float v = 0.0, a = 0.5;
-  for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; }
-  return v;
-}
 void main() {
-  vec2 uv = vUv;
-  float n = fbm(vec2(uv.x * 3.2 + uSeed, uv.y * 2.4 - uTime * 2.1));
-  float n2 = fbm(vec2(uv.x * 6.0 - uSeed, uv.y * 4.0 - uTime * 3.3));
-  float x = abs(uv.x - 0.5) * 2.0;
-  // a tongue: wide at its root, narrowing and breaking up towards its tip
-  float body = 1.0 - x - pow(uv.y, 1.25) * 1.05 + (n - 0.5) * 0.9 + (n2 - 0.5) * 0.35;
-  float m = smoothstep(0.0, 0.35, body) * smoothstep(0.0, 0.08, uv.y) * uPower;
-  vec3 deep = vec3(0.86, 0.18, 0.02);
-  vec3 mid = vec3(1.0, 0.52, 0.06);
-  vec3 core = vec3(1.0, 0.9, 0.55);
-  vec3 col = mix(deep, mid, smoothstep(0.1, 0.5, m));
-  col = mix(col, core, smoothstep(0.55, 0.95, m) * (1.0 - uv.y));
-  gl_FragColor = vec4(col, smoothstep(0.02, 0.4, m));
+  float n = noise(vec2(vUv.x * 5.0, vUv.y * 4.0 - uTime * 0.35)) * 0.6 + noise(vec2(vUv.x * 11.0 + 3.0, vUv.y * 9.0 - uTime * 0.6)) * 0.4;
+  float h = uHeat * (0.74 + 0.26 * (1.0 - vUv.y)) + (n - 0.5) * 0.12 * uHeat;
+  if (uDepth > 0.0) h *= exp(-(1.0 - vUv.x) * uDepth);
+  vec3 c = mix(vec3(0.42, 0.04, 0.02), vec3(0.9, 0.2, 0.03), smoothstep(0.05, 0.45, h));
+  c = mix(c, vec3(1.0, 0.5, 0.08), smoothstep(0.4, 0.8, h));
+  c = mix(c, vec3(1.0, 0.76, 0.3), smoothstep(0.8, 1.05, h));
+  gl_FragColor = vec4(c, smoothstep(0.02, 0.3, h) * 0.92);
 }`
+
+/** the clock: 0:00 to 4:00 hours over the heat's run */
+const BURN: [number, number] = [0.6, 5.4]
 
 function Fire({ live, readout }: { live: { current: boolean }; readout: RefObject<HTMLElement | null> }) {
   const m = useKit()
   const t = useClock('fire', live)
-  const camera = useThree((s) => s.camera)
+  const screen = useDisplay()
   const g = useMemo(() => {
-    // a piece of the 100 mm SIP upright, 600 × 1000: its two 15 mm leaves (the outer one to the flames, towards the
+    // a piece of the 100 mm SIP upright, 600 × 1000: its two 15 mm leaves (the outer one to the heat, towards the
     // camera) and the EPS/SPS core between them, showing at its edges
     const leaves = slabs([slab(-0.3, 0.3, 0.06, 1.06, 0, 0.015), slab(-0.3, 0.3, 0.06, 1.06, 0.085, 0.1)])
     const core = new THREE.BoxGeometry(0.6, 1.0, 0.07).translate(0, 0.56, 0.05)
+    // the heat on its face, and in its section along its left edge (u across the thickness: back to front)
+    const face = new THREE.PlaneGeometry(0.6, 1.0).translate(0, 0.56, 0.1006)
+    const edge = new THREE.PlaneGeometry(0.1, 1.0).rotateY(-Math.PI / 2).translate(-0.3006, 0.56, 0.05)
     return {
       leaves,
       core,
+      face,
+      edge,
       foot: new THREE.BoxGeometry(0.08, 0.06, 0.24).translate(0, 0.03, 0),
-      burner: new THREE.BoxGeometry(0.62, 0.05, 0.08).translate(0, 0.025, 0),
-      flame: new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0),
-      glow: new THREE.PlaneGeometry(0.6, 0.62).translate(0, 0.31, 0),
+      // the clock on its stand, beside the panel, turned to the camera
+      box: new THREE.BoxGeometry(0.34, 0.16, 0.06).translate(0, 0.08, 0),
+      dial: new THREE.PlaneGeometry(0.3, 0.131),
     }
   }, [])
-  const flames = useMemo(
-    () =>
-      [-0.24, -0.14, -0.05, 0.05, 0.14, 0.24].map((x, i) => ({
-        x,
-        w: 0.15 + (i % 3) * 0.025,
-        h: 0.32 + ((i * 7) % 5) * 0.03,
-        mat: new THREE.ShaderMaterial({
-          vertexShader: FLAME_VS,
-          fragmentShader: FLAME_FS,
-          uniforms: { uTime: { value: 0 }, uPower: { value: 0 }, uSeed: { value: i * 3.7 } },
-          transparent: true,
-          depthWrite: false,
-          side: THREE.DoubleSide,
-        }),
-      })),
-    [],
-  )
-  const mats = useMemo(
-    () => ({
-      steel: new THREE.MeshStandardMaterial({ color: '#34383c', metalness: 0.5, roughness: 0.5 }),
-      // the face warms where the flames reach it: a glow laid over it, strongest at the foot
-      glow: new THREE.ShaderMaterial({
-        vertexShader: FLAME_VS,
-        fragmentShader: /* glsl */ `
-          uniform float uPower;
-          varying vec2 vUv;
-          void main() {
-            float a = pow(1.0 - vUv.y, 1.6) * uPower;
-            gl_FragColor = vec4(1.0, 0.45, 0.08, a * 0.55);
-          }`,
-        uniforms: { uPower: { value: 0 } },
+  const heat = useMemo(() => {
+    const make = (depth: number) =>
+      new THREE.ShaderMaterial({
+        vertexShader: HEAT_VS,
+        fragmentShader: HEAT_FS,
+        uniforms: { uHeat: { value: 0 }, uTime: { value: 0 }, uDepth: { value: depth } },
         transparent: true,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      }),
-    }),
-    [],
-  )
+        toneMapped: false,
+      })
+    return { face: make(0), edge: make(7) }
+  }, [])
+  const mats = useMemo(() => ({ steel: new THREE.MeshStandardMaterial({ color: '#2a2d30', metalness: 0.4, roughness: 0.55 }) }), [])
   useEffect(
     () => () => {
       Object.values(g).forEach((x) => x.dispose())
-      flames.forEach((f) => f.mat.dispose())
+      Object.values(heat).forEach((x) => x.dispose())
       Object.values(mats).forEach((x) => x.dispose())
     },
-    [g, flames, mats],
+    [g, heat, mats],
   )
-  const group = useRef<THREE.Group>(null)
-  const flameRefs = useRef<(THREE.Mesh | null)[]>([])
   const light = useRef<THREE.PointLight>(null)
-  const v = useMemo(() => new THREE.Vector3(), [])
   useFrame(() => {
     const s = t.current
-    const power = smooth(0.1, 0.8, s) * (1 - smooth(6.0, 6.9, s))
-    const flicker = 0.85 + 0.15 * Math.sin(s * 23) * Math.sin(s * 7.3 + 1)
-    flames.forEach((f, i) => {
-      f.mat.uniforms.uTime.value = s
-      f.mat.uniforms.uPower.value = power * (0.9 + 0.1 * Math.sin(s * 5 + i))
-      const el = flameRefs.current[i]
-      if (!el) return
-      el.visible = power > 0.01
-      // each tongue turned to face the camera about its own upright
-      el.getWorldPosition(v)
-      el.rotation.y = Math.atan2(camera.position.x - v.x, camera.position.z - v.z)
-    })
-    mats.glow.uniforms.uPower.value = power * flicker
-    if (light.current) light.current.intensity = 2.2 * power * flicker
-    if (readout.current) readout.current.textContent = 'The 100 mm SIP insulated panel'
+    // the heat builds over the four hours, holds, and goes
+    const run = Math.min(1, Math.max(0, (s - BURN[0]) / (BURN[1] - BURN[0])))
+    const on = ease(smooth(BURN[0], BURN[1], s)) * (1 - ease(smooth(7.4, 8.4, s)))
+    for (const h of [heat.face, heat.edge]) {
+      h.uniforms.uHeat.value = 0.15 + 0.85 * on
+      h.uniforms.uTime.value = s
+      h.visible = on > 0.01
+    }
+    if (light.current) light.current.intensity = 1.6 * on
+    // the clock: hours and minutes, held at 4:00, back to 0:00 once the heat has gone
+    const mins = s > 8.4 ? 0 : Math.round(run * 240)
+    screen.write(`${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, 'h')
+    if (readout.current) readout.current.textContent = run >= 1 && s < 8.4 ? 'Fire-rated: 4 hours' : 'Heat on one face'
   }, -2)
   return (
-    <group ref={group} position={[0, -0.55, 0]}>
+    <group position={[-0.14, -0.55, 0]}>
       <mesh geometry={g.leaves} material={[m.outer, m.edge, m.concrete]} castShadow receiveShadow />
       <mesh geometry={g.core} material={m.core} castShadow receiveShadow />
-      <mesh geometry={g.glow} material={mats.glow} position={[0, 0.06, 0.101]} />
+      <mesh geometry={g.face} material={heat.face} renderOrder={4} />
+      <mesh geometry={g.edge} material={heat.edge} renderOrder={4} />
       {[-0.22, 0.22].map((x) => (
         <mesh key={x} geometry={g.foot} material={mats.steel} position={[x, 0, 0.05]} castShadow receiveShadow />
       ))}
-      <mesh geometry={g.burner} material={mats.steel} position={[0, 0, 0.18]} castShadow receiveShadow />
-      {flames.map((f, i) => (
-        <mesh key={f.x} ref={(el) => void (flameRefs.current[i] = el)} geometry={g.flame} material={f.mat} position={[f.x, 0.04, 0.17 + (i % 2) * 0.012]} scale={[f.w, f.h, 1]} renderOrder={6} />
-      ))}
-      <pointLight ref={light} position={[0, 0.18, 0.27]} color="#ff8a2a" intensity={0} distance={1.4} decay={2} />
+      <group position={[0.58, 0, 0.16]} rotation={[0, (-22 * Math.PI) / 180, 0]}>
+        <mesh geometry={g.box} material={mats.steel} castShadow receiveShadow />
+        <mesh geometry={g.dial} material={screen.material} position={[0, 0.08, 0.0305]} />
+      </group>
+      <pointLight ref={light} position={[0, 0.3, 0.45]} color="#ff7a1f" intensity={0} distance={1.5} decay={2} />
       <Ground />
     </group>
   )
@@ -558,7 +533,11 @@ function Caliper({ live, readout }: { live: { current: boolean }; readout: RefOb
   )
 }
 
-/* ---- lower carbon: a square metre gathers into the concrete it holds ------------------------------------------- */
+/* ---- lower carbon: a square metre of the wall gives up what it is made of ------------------------------------- */
+
+/** where the square metre stands, and where its concrete goes once gathered */
+const SQ_X = -0.25
+const CUBE_X = 0.62
 
 function Carbon({ live, readout, dark }: { live: { current: boolean }; readout: RefObject<HTMLElement | null>; dark: boolean }) {
   const m = useKit()
@@ -567,7 +546,7 @@ function Carbon({ live, readout, dark }: { live: { current: boolean }; readout: 
   useInkResolution(useMemo(() => [mats.outline], [mats]))
   const lines = useMemo(() => {
     const l = new Lines()
-    l.rectZ(-0.5, 0, 0.5, 1, 0.015)
+    l.rectZ(-0.5, 0, 0.5, 1, 0.012)
     // the corners marked a little proud, as a drawing's
     for (const [x, y] of [
       [-0.5, 0],
@@ -575,38 +554,59 @@ function Carbon({ live, readout, dark }: { live: { current: boolean }; readout: 
       [0.5, 1],
       [-0.5, 1],
     ]) {
-      l.seg([x - 0.03 * Math.sign(x), y, 0.015], [x + 0.03 * Math.sign(x), y, 0.015])
+      l.seg([x - 0.03 * Math.sign(x), y, 0.012], [x + 0.03 * Math.sign(x), y, 0.012])
     }
     return l
   }, [])
   const outline = useDrawing(lines, mats.outline)
   const mesh = useRef<THREE.Mesh>(null)
+  const sheet = useRef<THREE.Group>(null)
+  const frame = useRef<THREE.Group>(null)
   const last = useRef('')
   useEffect(() => () => mesh.current?.geometry.dispose(), [])
   const V = 0.03
   const C = Math.cbrt(V)
   useFrame(() => {
     const s = t.current
-    const k = ease(smooth(1.2, 2.6, s)) * (1 - ease(smooth(5.6, 7.0, s)))
+    // it parts: the concrete gathers into the cube it makes and moves off to the right, RTARIUM stays where it was
+    const k = ease(smooth(1.4, 3.0, s)) * (1 - ease(smooth(7.6, 9.2, s)))
+    const x = SQ_X * smooth(0, 0.35, k)
     // the same volume all the way: width and height move together on a log scale, the depth makes up the rest
-    const w = Math.exp(Math.log(1) + (Math.log(C) - Math.log(1)) * k)
-    const h = w
-    const d = V / (w * h)
+    const w = Math.exp(Math.log(C) * k)
+    const d = V / (w * w)
     const key = `${w.toFixed(4)}`
     const me = mesh.current
-    if (me && key !== last.current) {
-      last.current = key
-      const old = me.geometry
-      me.geometry = slabs([slab(-w / 2, w / 2, 0, h, -d / 2, d / 2)])
-      old.dispose()
+    if (me) {
+      if (key !== last.current) {
+        last.current = key
+        const old = me.geometry
+        me.geometry = slabs([slab(-w / 2, w / 2, 0, w, -d / 2, d / 2)])
+        old.dispose()
+      }
+      me.position.x = x + (CUBE_X - x) * smooth(0.25, 1, k)
     }
-    mats.outline.opacity = 0.9 * smooth(0.8, 1.3, s) * (1 - smooth(6.6, 7.3, s))
-    if (readout.current) readout.current.textContent = k > 0.5 ? '0.03 m³ of concrete in a square metre' : 'A square metre, 30 mm thick'
+    if (sheet.current) {
+      sheet.current.visible = k > 0.01
+      sheet.current.position.x = x
+    }
+    if (frame.current) frame.current.position.x = x
+    mats.outline.opacity = 0.9 * smooth(0.6, 1.0, s) * (1 - smooth(9.2, 9.8, s))
+    if (readout.current)
+      readout.current.textContent =
+        s < 1.4 || s >= 7.6 ? '1 m² of wall, 30 mm thick' : s < 3.4 ? 'Its concrete: 0.03 m³' : s < 5.6 ? 'Its reinforcement: basalt, no steel' : 'Less concrete, no steel: lower carbon'
   }, -2)
   return (
-    <group position={[0, -0.52, 0]}>
+    <group position={[0, -0.5, 0]}>
       <mesh ref={mesh} material={trio(m)} castShadow receiveShadow />
-      <primitive object={outline.obj} />
+      {/* RTARIUM, a square metre of it: what stays when the concrete has gone */}
+      <group ref={sheet} position={[SQ_X, 0.5, 0]} visible={false}>
+        <Suspense fallback={null}>
+          <Rtarium t={15} nx={84} ny={84} light={dark} />
+        </Suspense>
+      </group>
+      <group ref={frame}>
+        <primitive object={outline.obj} />
+      </group>
       <Ground />
     </group>
   )
