@@ -97,7 +97,7 @@ export function HeroPanel({ bus, live, onPhase, zoom }: { bus: LabelBus; live: {
   const m = useMemo(() => {
     const k = wallKit(tex)
     // the sleeve lining a lifting hole: dark, so the hole reads as a hole from any side
-    const sleeve = new THREE.MeshStandardMaterial({ color: '#232322', roughness: 0.7, side: THREE.DoubleSide })
+    const sleeve = new THREE.MeshStandardMaterial({ color: '#2b2726', roughness: 0.7, side: THREE.DoubleSide })
     return { ...k, sleeve }
   }, [tex])
   const L = HERO_LEN
@@ -219,8 +219,10 @@ export function HeroPanel({ bus, live, onPhase, zoom }: { bus: LabelBus; live: {
           <instancedMesh args={[g.rim, m.zinc, ferrules.length]} ref={placeAt(ferrules.map(([x, y]) => [x / 1.25, y / 1.25]), LEAF + 0.0003)} />
           <instancedMesh args={[g.bore, m.bore, ferrules.length]} ref={placeAt(ferrules.map(([x, y]) => [x / 1.25, y / 1.25]), LEAF + 0.0007)} />
         </group>
-        <Anchor bus={bus} id="hp-thick" position={[L, W, LEAF]} />
-        <Anchor bus={bus} id="hp-hole" position={[holes[3][0], holes[3][1], LEAF]} />
+        {/* (the thickness: the top's far corner, in the middle of the 30 mm) */}
+        <Anchor bus={bus} id="hp-thick" position={[L, W, 0]} />
+        {/* (the tie hole at the near end, top: its words stand off that end, clear of the panel) */}
+        <Anchor bus={bus} id="hp-hole" position={[holes[1][0], holes[1][1], LEAF]} />
         <Anchor bus={bus} id="hp-ferrule" position={[ferrules[ferrules.length - 2][0], ferrules[ferrules.length - 2][1], LEAF]} />
       </group>
       {/* the outer leaf, the inner one turned about */}

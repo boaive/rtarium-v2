@@ -16,8 +16,9 @@ import { CASES, REVIEW, STREAMS, type StreamId } from './content'
 /**
  * Streams, on warm white. First the choice: three cards, as the overview's systems stand, each with a still of its
  * own finished build, its one line and a way in. Choosing one opens its build under it, pinned as the Unitized
- * page's slab to slab, put up as on site: the frame first; one wall's panels, close; the panels where the building
- * needs them; the rest, and the finish; the bar along the foot. Once it is built, a space of its own follows: what
+ * page's slab to slab, put up as on site: it opens on one panel already in its place, the frame round it, and draws
+ * back as the frame is drawn out; one wall; the walls the building needs next; the rest, and the finish; the bar along
+ * the foot. Once it is built, a space of its own follows: what
  * was built, its figures counted off the model, and the way into its illustrative case study (which opens over the
  * page). A frame structure is an RC frame or a steel portal on one footprint: a switch over the stage changes it.
  */
@@ -88,7 +89,7 @@ function Build({ id }: { id: StreamId }) {
       const y0 = head.bottom + 20
       const y1 = bar.top - 24
       const r = (room.current = { x: (bar.left - p.left) / p.width, y: (y0 - p.top) / p.height, w: bar.width / p.width, h: (y1 - y0) / p.height })
-      // the room's edge, shown while the camera is in on the first wall
+      // the room's edge, shown while the camera is in on the first panel
       const e = edge.current
       if (e) {
         e.style.left = `${(r.x * 100).toFixed(3)}%`
@@ -114,8 +115,8 @@ function Build({ id }: { id: StreamId }) {
         el.style.setProperty('--f', smooth(i, i + 0.9, t).toFixed(4))
         el.style.setProperty('--c', (i < 3 ? smooth(i + 0.92, i + 1, t) : 0).toFixed(4))
       }
-      // a step's marks, once it has played, until the next step begins
-      const on = building.marks.filter((m) => m.step === k && t - k > 0.6).map((m) => m.id)
+      // each mark while what it names is in view and done
+      const on = building.marks.filter((m) => t >= m.show[0] && t < m.show[1]).map((m) => m.id)
       setShown((s) => (s.join() === on.join() ? s : on))
     }
     paint()

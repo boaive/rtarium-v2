@@ -4,8 +4,9 @@ import { useFrame } from '@react-three/fiber'
 import { Anchor } from '../../facade/three/Stage3D'
 import type { LabelBus } from '../../facade/three/kit'
 import { smooth } from '../../facade/progress'
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { Lines } from '../../flooring/data/three/dc'
-import { ink, useDrawing, useInkResolution } from '../../flooring/data/three/draw'
+import { useDrawing, useInkResolution } from '../../flooring/data/three/draw'
 import { Rtarium } from './Panel'
 import { disposeWallKit, faceEdge, fade, MM, slab, slabs, useWallTextures, wallKit } from './kit'
 import {
@@ -21,7 +22,9 @@ import {
   mouthGeometry,
   PW,
   rodGeometry,
+  ROD_LINE,
   ROD_LINES,
+  ROD_OVER,
   sleeveGeometry,
   T100,
   T30,
@@ -43,10 +46,11 @@ import {
  *   marking  0..1  its parts are being marked one by one: the one marked (`lit`, by the list's ids) stays whole, the
  *                  others fade back (owner, 3 Nov 2026)
  *
- * What each mark brings out: the GRP rods (the mesh fades round them, the rods darken so they read on the yellow); the
- * GI tie-clips (the EPS core fades round them, the two meshes
- * they join stay half seen, the clips widen and darken so they read, and a line runs from each clip's lugs to the mesh
- * on either side); the ferrules (both, each on the mesh, the covers faded). The ferrules are drawn wider than they are
+ * What each mark brings out: the GRP rods (the mesh fades round them, the rods darken and thicken so they read on the
+ * yellow, those along and those across alike); the GI tie-clips (the EPS core fades round them, the two meshes they join
+ * stay half seen, the clips widen and darken so they read, and from each clip's lug holes a fine dashed line, as an
+ * exploded drawing has, runs to the point on each mesh's rod where that lug hooks it, marked by a dot); the ferrules
+ * (both, each on the mesh, the covers faded). The ferrules are drawn wider than they are
  * (`FER`), their length true; their mouths are flush with the inner face, no cut round them (owner).
  *
  * Every layer is the panel's own cast concrete (the photographs' face, and their rougher edge on the edges and
@@ -71,8 +75,6 @@ const FERRULE_OUT = 0.11
 const FERRULE_OUT100 = 0.1
 /** how far each half stands from the middle while the core goes in */
 const OPEN = 0.09
-/** a tie-clip's lug, from the middle of the core (the plate is 86 mm over its lugs) */
-const TIE_LUG = 43 * MM
 /** how far back a part that is not being marked fades (a little: the rest stays in view); and further, what hides the
  *  part marked (the mesh round the GRP rods, the core round the tie-clips) */
 const FLOOR = 0.32
@@ -80,8 +82,12 @@ const DEEP = 0.08
 /** the ferrules drawn this much wider than they are (an M8 insert is a few pixels at this size), their length true */
 const FER = 2.2
 /** a tie-clip, while it is marked, drawn this much wider and thicker so it reads (it is seen nearly edge on); its 86 mm true */
-const CLIP_W = 2.2
-const CLIP_T = 3
+const CLIP_W = 3.2
+const CLIP_T = 4
+/** the GRP rods drawn this much thicker while they are marked (their length true) */
+const ROD_LIT = 1.9
+/** where a clip's lug hooks a rod, as the dot marks it on the mesh (m) */
+const HOOK_R = 0.012
 /** the GRP's own pale colour, and the deeper one it takes while marked, so it reads on the yellow */
 const GRP_BASE = new THREE.Color('#e6d6a4')
 const GRP_LIT = new THREE.Color('#7d5c22')
@@ -98,8 +104,12 @@ const Q = new THREE.Quaternion()
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
-/** the layers part one after another, the outermost first (k: how far out it is, 0..1 of the stack's half) */
-const stagger = (b: number, k: number) => ease(Math.min(1, Math.max(0, (b - 0.22 * (1 - k)) / (1 - 0.22 * (1 - k)))))
+/** the layers part one after another, the outermost first (k: how far out it is, 0..1 of the stack's half); `b` comes in
+ *  linear, so each layer is eased once (an ease on an ease starts slow and then lurches) */
+const stagger = (b: number, k: number) => {
+  const x = Math.min(1, Math.max(0, (b - 0.18 * (1 - k)) / (1 - 0.18 * (1 - k))))
+  return x * x * (3 - 2 * x)
+}
 
 type Trio = THREE.MeshStandardMaterial[]
 
@@ -228,8 +238,9 @@ export function PanelPiece({
     linesOut: useRef<THREE.Group>(null),
   }
 
-  // the tie-clips' lines: from each clip's lug (43 mm off the middle) to the mesh it hooks, a unit long, stretched at run time
-  const tieInk = useMemo(() => ink(1.6, '#080808', 0.9), [])
+  // the tie-clips' lines: from each clip's lug hole to the rod it hooks on the mesh, a unit long, stretched at run time; fine
+  // and dashed, as an exploded drawing's (solid black ones read as bars across the gap)
+  const tieInk = useMemo(() => new LineMaterial({ color: 0x1b1b1a, linewidth: 1, transparent: true, opacity: 0.6, depthWrite: false, dashed: true, dashSize: 0.028, gapSize: 0.022 }), [])
   useInkResolution(useMemo(() => [tieInk], [tieInk]))
   const lines = useMemo(() => {
     const ties = new Lines()
@@ -244,6 +255,15 @@ export function PanelPiece({
   const clipMesh = useRef<THREE.InstancedMesh>(null)
   const tiesIn = useDrawing(lines.ties, tieInk)
   const tiesOut = useDrawing(lines.tiesBack, tieInk)
+  useEffect(() => {
+    tiesIn.obj.computeLineDistances()
+    tiesOut.obj.computeLineDistances()
+  }, [tiesIn, tiesOut])
+  /** the rods of the SIP's meshes, thickened while marked; and the dots where the clips' lugs hook them */
+  const rods100 = useRef<(THREE.Mesh | null)[]>([])
+  const hooks = useRef<(THREE.InstancedMesh | null)[]>([])
+  const hookGeo = useMemo(() => new THREE.SphereGeometry(HOOK_R, 14, 10), [])
+  useEffect(() => () => hookGeo.dispose(), [hookGeo])
 
   useFrame(() => {
     const p = pose.current
@@ -346,20 +366,25 @@ export function PanelPiece({
       })
       r.ferrules100.current?.position.set(0, 0, FERRULE_OUT100 * stagger(raw, 0.5))
       for (const el of r.meshes100.current) if (el) el.visible = open > 0.01
-      // each clip's lines run from its lugs to the meshes, wherever the burst has taken them
-      const reach = T100.core / 2 + T100.inner + T100.mesh / 2 + 2 * GAP100 * stagger(raw, 2 / 3) - TIE_LUG
+      // each clip's lines run from its lug holes to the rods it hooks, wherever the burst has taken their meshes
+      const reach = 2 * GAP100 * stagger(raw, 2 / 3)
       for (const [el, sgn] of [
         [r.linesIn.current, 1],
         [r.linesOut.current, -1],
       ] as const) {
         if (!el) continue
         el.visible = clip > 0.01 && reach > 0.01
-        el.position.z = sgn * TIE_LUG
+        el.position.z = sgn * ROD_LINE
         el.scale.z = Math.max(1e-3, reach)
       }
-      fade(tieInk, 0.9 * clip)
+      fade(tieInk, 0.6 * clip)
       tiesIn.show(clip)
       tiesOut.show(clip)
+      // (the dots share the clips' steel, which darkens as they are marked)
+      for (const hk of hooks.current) if (hk) hk.visible = clip > 0.15
+      // the rods thicken while they are marked (along and across alike)
+      const kr = 1 + (ROD_LIT - 1) * grp
+      for (const rod of rods100.current) if (rod && rod.scale.x !== kr) rod.scale.x = rod.scale.z = kr
     }
   }, -2)
 
@@ -521,14 +546,31 @@ export function PanelPiece({
                         </Suspense>
                       )}
                     </group>
-                    {/* 3 mm GRP rods along the length, 100 mm in from each long edge (the 100 mm plan) */}
-                    {rodLines.map((x) => (
-                      <mesh key={x} geometry={g.rod} material={m.grp} position={[x, 0, zm]} scale={[1, L, 1]} />
+                    {/* 3 mm GRP rods along the length, 100 mm in from each long edge, through the clips' lug holes (the 100 mm plan's dashed lines along) */}
+                    {rodLines.map((x, k) => (
+                      <mesh key={x} ref={(el) => void (rods100.current[(l.z > 0 ? 0 : 50) + k] = el)} geometry={g.rod} material={m.grp} position={[x, 0, ROD_LINE]} scale={[1, L, 1]} />
                     ))}
-                    {/* and one across at each tie-clip line, through the clips' lugs, locking them */}
-                    {clipLines.map((y) => (
-                      <mesh key={`c${y}`} geometry={g.rod} material={m.grp} position={[0, y, zm]} rotation={[0, 0, -Math.PI / 2]} scale={[1, w, 1]} />
+                    {/* and one across at each tie-clip line (the plan's dashed lines across), over the rods along, beside the clips' plates: locking them */}
+                    {clipLines.map((y, k) => (
+                      <mesh
+                        key={`c${y}`}
+                        ref={(el) => void (rods100.current[(l.z > 0 ? 0 : 50) + 2 + k] = el)}
+                        geometry={g.rod}
+                        material={m.grp}
+                        position={[0, y + 2.6 * MM, ROD_OVER]}
+                        rotation={[0, 0, -Math.PI / 2]}
+                        scale={[1, w, 1]}
+                      />
                     ))}
+                    {/* where the clips' lugs hook the rods along: shown while the clips are marked */}
+                    <instancedMesh
+                      ref={(el) => {
+                        hooks.current[l.z > 0 ? 0 : 1] = el
+                        place(clips, ROD_LINE)(el)
+                      }}
+                      args={[hookGeo, m.galv, clips.length]}
+                      visible={false}
+                    />
                   </>
                 )}
                 {l.key === 'i6' && (
@@ -546,7 +588,7 @@ export function PanelPiece({
                   </>
                 )}
                 {bus && l.key === 'o7' && <group position={[w, L * 0.25, k3]}>{id('pp-outer')}</group>}
-                {bus && l.key === 'i6' && <group position={[rodLines[1], L * 0.18, zm]}>{id('pp-rod')}</group>}
+                {bus && l.key === 'i6' && <group position={[rodLines[1], L * 0.18, ROD_LINE]}>{id('pp-rod')}</group>}
                 {bus && l.key === 'i7' && <group position={[w * 0.7, L * 0.82, k3]}>{id('pp-inner7')}</group>}
                 {bus && l.key === 'i6' && <group position={[w * 0.82, L * 0.55, zm]}>{id('pp-mesh6i')}</group>}
                 {bus && l.key === 'i2' && <group position={[w, L * 0.7, (k0 + k1) / 2]}>{id('pp-cover2')}</group>}

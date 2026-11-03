@@ -337,7 +337,10 @@ export function TiePlate() {
 
 /* ---- the case studies' drawings --------------------------------------------------------------- */
 
-/** the home's plan (40 px to the m): storey-high 100 mm SIP panels all round, light steel posts, the door and windows left in the panels; one open room */
+/**
+ * The home's plan (40 px to the m), as built: 100 mm SIP walls; a window, the main door and a window in its front, two
+ * windows in its back; the L of partition closing the bedroom (30 mm | 40 mm stud | 30 mm), its door in the partition
+ */
 export function HomePlan() {
   const id = usePrefix()
   const k = 40
@@ -348,15 +351,14 @@ export function HomePlan() {
   const t = 0.1 * k
   // the openings along each wall (m from its start)
   const front = [
-    [1.2, 2.4],
+    [0.6, 1.8],
     [3.0, 4.2],
-    [4.8, 6.0],
+    [5.4, 6.6],
   ]
   const back = [
-    [1.8, 3.0],
-    [4.2, 5.4],
+    [1.2, 2.4],
+    [4.8, 6.0],
   ]
-  const side = [[2.5, 3.7]]
   const run = (holes: number[][], len: number) => {
     const out: [number, number][] = []
     let a = 0
@@ -367,92 +369,123 @@ export function HomePlan() {
     out.push([a, len])
     return out
   }
+  // the partition's legs (its bedroom face), its thickness, and its door along the leg
+  const XP = 3.1 * k
+  const ZP = 3.9 * k
+  const pt = 0.1 * k
+  const pd = [2.5 * k, 3.4 * k]
+  const leg = (d: number) => `M${x0 + XP + d} ${y0 + t} V${y0 + pd[0]} M${x0 + XP + d} ${y0 + pd[1]} V${y0 + ZP + d} H${x0 + t}`
   return (
-    <Drawing k={id.k} narrow viewBox="0 0 560 360" aria-label="Plan of the home, 7.2 by 6.2 m: storey-high 100 mm SIP panels all round, light steel posts at the corners and the door, a door and five windows left in the panels, one open room">
+    <Drawing k={id.k} narrow viewBox="0 0 560 360" aria-label="Plan of the home, 7.2 by 6.2 m: 100 mm SIP walls; a window, the main door and a window in the front, two windows in the back; an L of partition, 30 mm panels both sides of a 40 mm stud, closing a bedroom in the back left corner, its door in the partition">
       {run(back, 7.2).map(([a, b]) => (
         <rect key={`b${a}`} x={x0 + a * k} y={y0} width={(b - a) * k} height={t} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
       ))}
       {run(front, 7.2).map(([a, b]) => (
         <rect key={`f${a}`} x={x0 + a * k} y={y0 + D - t} width={(b - a) * k} height={t} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
       ))}
-      {[0, W - t].flatMap((x) =>
-        run(side, 6.2).map(([a, b]) => (
-          <rect key={`s${x}-${a}`} x={x0 + x} y={y0 + Math.max(0.1, a) * k} width={t} height={(Math.min(6.1, b) - Math.max(0.1, a)) * k} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
-        )),
-      )}
+      {[0, W - t].map((x) => (
+        <rect key={`s${x}`} x={x0 + x} y={y0 + t} width={t} height={D - 2 * t} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
+      ))}
       {[...back, ...front].map(([a, b], i) => (
         <line key={`o${i}`} x1={x0 + a * k} x2={x0 + b * k} y1={i < back.length ? y0 + t / 2 : y0 + D - t / 2} y2={i < back.length ? y0 + t / 2 : y0 + D - t / 2} stroke={INK} strokeWidth="0.8" />
       ))}
-      {side.flatMap(([a, b]) =>
-        [t / 2, W - t / 2].map((x) => <line key={`w${x}`} x1={x0 + x} x2={x0 + x} y1={y0 + a * k} y2={y0 + b * k} stroke={INK} strokeWidth="0.8" />),
-      )}
-      {[
-        [t / 2, t / 2],
-        [W - t / 2, t / 2],
-        [t / 2, D - t / 2],
-        [W - t / 2, D - t / 2],
-        [3.0 * k, D - t / 2],
-        [4.2 * k, D - t / 2],
-      ].map(([x, y], i) => (
-        <rect key={`p${i}`} x={x0 + x - 3} y={y0 + y - 3} width={6} height={6} fill={INK} />
-      ))}
-      <path d={`M ${x0 + 3.0 * k} ${y0 + D - t} A ${1.2 * k} ${1.2 * k} 0 0 1 ${x0 + 4.2 * k} ${y0 + D - t - 1.2 * k}`} fill="none" stroke={INK} strokeWidth="0.7" strokeDasharray="3 3" />
+      {/* the partition: its two 30 mm panels, the void between them dashed, its door's jambs */}
+      <g fill="none" stroke={INK}>
+        <path d={leg(0)} strokeWidth="1" />
+        <path d={leg(pt)} strokeWidth="1" />
+        <path d={leg(pt / 2)} strokeWidth="0.6" strokeDasharray="2 2" />
+        <path d={`M${x0 + XP} ${y0 + pd[0]} h${pt} M${x0 + XP} ${y0 + pd[1]} h${pt}`} strokeWidth="1" />
+      </g>
+      {/* the doors' swings */}
+      <path d={`M${x0 + 3.0 * k} ${y0 + D - t} A ${1.2 * k} ${1.2 * k} 0 0 1 ${x0 + 4.2 * k} ${y0 + D - t - 1.2 * k} V${y0 + D - t}`} fill="none" stroke={INK} strokeWidth="0.7" strokeDasharray="3 3" />
+      <path d={`M${x0 + XP + pt} ${y0 + pd[0]} A ${0.9 * k} ${0.9 * k} 0 0 1 ${x0 + XP + pt + 0.9 * k} ${y0 + pd[1]} H${x0 + XP + pt}`} fill="none" stroke={INK} strokeWidth="0.7" strokeDasharray="3 3" />
+      <text x={x0 + XP / 2} y={y0 + ZP / 2 + 4} textAnchor="middle" className="wp-dg__note">
+        Bedroom
+      </text>
+      <text x={x0 + (XP + W) / 2 + 10} y={y0 + D / 2 + 4} textAnchor="middle" className="wp-dg__note">
+        Living
+      </text>
       <Dim x1={x0} y1={y0 + D + 30} x2={x0 + W} y2={y0 + D + 30} text="7.2 m" dy={16} />
       <Dim x1={x0 - 30} y1={y0} x2={x0 - 30} y2={y0 + D} text="6.2 m" dx={-8} dy={4} anchor="end" />
-      <Note x={x0 + 0.6 * k} y={y0 + t} tx={x0 + W + 24} ty={y0 + 16}>
-        100 mm SIP, storey-high
+      <Note x={x0 + W - t / 2} y={y0 + 1.2 * k} tx={x0 + W + 24} ty={y0 + 16}>
+        100 mm SIP, vertical
       </Note>
-      <Note x={x0 + W - t / 2} y={y0 + D - t / 2} tx={x0 + W + 24} ty={y0 + D - 30}>
-        Light steel post
+      <Note x={x0 + XP + pt / 2} y={y0 + 1.4 * k} tx={x0 + W + 24} ty={y0 + D / 2 - 26}>
+        30 | 40 stud | 30
       </Note>
-      <Note x={x0 + 3.6 * k} y={y0 + D - t} tx={x0 + W + 24} ty={y0 + D / 2}>
-        Door left in the panels
+      <Note x={x0 + XP + pt / 2} y={y0 + 0.9 * k} tx={x0 + W + 24} ty={y0 + D / 2 - 6}>
+        Services in the void
+      </Note>
+      <Note x={x0 + 3.6 * k} y={y0 + D - t / 2} tx={x0 + W + 24} ty={y0 + D - 30}>
+        Main door
       </Note>
     </Drawing>
   )
 }
 
-/** the hub's front in elevation: six 5.8 m bays, 100 mm SIP to the docks' head at 4.8 m, 30 mm solid to the 9 m eaves, four dock doors */
+/**
+ * The hub's front in elevation: six 5.8 m bays; vertical 100 mm SIP to 3.6 m, the steel beam (3.7 m), vertical 30 mm
+ * solid to 8 m; three loading bays and an access door, each under its steel lintel with the horizontal panels over it
+ */
 export function ShedElevation() {
   const id = usePrefix()
-  const k = 13
-  const x0 = 30
+  const k = 12.5
+  const x0 = 34
   const base = 200
   const bay = 5.8 * k
-  const zone = 4.8 * k
-  const eaves = 9 * k
+  const zone = 3.6 * k
+  const beam = 0.1 * k
+  const top = 8 * k
   const n = 6
+  const W = bay * n
+  /** each opening: where it starts (m), its width and its height */
+  const openings = [
+    [1.5 * 5.8 - 1.5, 3.0, 2.4],
+    [2.5 * 5.8 - 1.5, 3.0, 2.4],
+    [3.5 * 5.8 - 1.5, 3.0, 2.4],
+    [4.5 * 5.8 - 0.6, 1.2, 2.4],
+  ]
   return (
-    <Drawing k={id.k} narrow viewBox="0 0 560 250" aria-label="The hub's front in elevation: six 5.8 m bays; 100 mm SIP courses up to the docks' head at 4.8 m, 30 mm solid courses up to the 9 m eaves; four dock doors, 3 by 3.6 m">
-      <rect x={x0} y={base - zone} width={bay * n} height={zone} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
-      <rect x={x0} y={base - eaves} width={bay * n} height={eaves - zone} fill={`url(#${id.stip})`} stroke={INK} strokeWidth="1" />
-      {Array.from({ length: 15 }, (_, c) => (
-        <line key={c} x1={x0} x2={x0 + bay * n} y1={base - c * 0.6 * k} y2={base - c * 0.6 * k} stroke={INK} strokeWidth="0.4" opacity="0.5" />
+    <Drawing k={id.k} narrow viewBox="0 0 560 250" aria-label="The hub's front in elevation: six 5.8 m bays; vertical 100 mm SIP panels to 3.6 m, a steel beam to 3.7 m, vertical 30 mm solid panels to 8 m; three loading bays 2.4 m high and an access door, each under a steel lintel with horizontal panels over it">
+      <rect x={x0} y={base - zone} width={W} height={zone} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
+      <rect x={x0} y={base - zone - beam} width={W} height={beam} fill={INK} />
+      <rect x={x0} y={base - top} width={W} height={top - zone - beam} fill={`url(#${id.stip})`} stroke={INK} strokeWidth="1" />
+      {/* the panels' joints: vertical, 600 mm */}
+      {Array.from({ length: Math.floor(W / (0.6 * k)) }, (_, c) => (
+        <line key={c} x1={x0 + c * 0.6 * k} x2={x0 + c * 0.6 * k} y1={base - top} y2={base} stroke={INK} strokeWidth="0.35" opacity="0.45" />
+      ))}
+      {openings.map(([u, w, h], i) => (
+        <g key={i}>
+          {/* the horizontal panels over it and its jambs, the opening, its steel lintel */}
+          <rect x={x0 + (u - 0.6) * k} y={base - zone} width={(w + 1.2) * k} height={(3.6 - h) * k} fill="var(--white)" stroke={INK} strokeWidth="0.8" />
+          <line x1={x0 + (u - 0.6) * k} x2={x0 + (u + w + 0.6) * k} y1={base - (h + 0.6) * k} y2={base - (h + 0.6) * k} stroke={INK} strokeWidth="0.6" />
+          <rect x={x0 + u * k} y={base - h * k} width={w * k} height={h * k} fill="var(--white)" stroke={INK} strokeWidth="1" />
+          <rect x={x0 + (u - 0.15) * k} y={base - h * k - 1.6} width={(w + 0.3) * k} height={3.2} fill={INK} />
+        </g>
       ))}
       {Array.from({ length: n + 1 }, (_, i) => (
-        <line key={i} x1={x0 + i * bay} x2={x0 + i * bay} y1={base} y2={base - eaves - 8} stroke={INK} strokeWidth="1.6" />
+        <line key={i} x1={x0 + i * bay} x2={x0 + i * bay} y1={base + 4} y2={base + 10} stroke={INK} strokeWidth="1.2" />
       ))}
-      {[1, 2, 3, 4].map((i) => (
-        <rect key={i} x={x0 + i * bay + bay / 2 - 1.5 * k} y={base - 3.6 * k} width={3 * k} height={3.6 * k} fill="var(--white)" stroke={INK} strokeWidth="1" />
-      ))}
-      <line x1={x0 - 8} x2={x0 + bay * n + 8} y1={base - zone} y2={base - zone} stroke={INK} strokeWidth="1.2" strokeDasharray="6 4" />
       <Dim x1={x0} y1={base + 22} x2={x0 + bay} y2={base + 22} text="5.8 m" dy={16} />
-      <Dim x1={x0 + bay * n + 20} y1={base} x2={x0 + bay * n + 20} y2={base - eaves} text="9 m" dx={8} dy={4} anchor="start" />
-      <Dim x1={x0 + bay * n + 50} y1={base} x2={x0 + bay * n + 50} y2={base - zone} text="4.8 m" dx={8} dy={4} anchor="start" />
+      <Dim x1={x0 + W + 18} y1={base} x2={x0 + W + 18} y2={base - top} text="8 m" dx={8} dy={4} anchor="start" />
+      <Dim x1={x0 + W + 48} y1={base} x2={x0 + W + 48} y2={base - zone - beam} text="3.7 m" dx={8} dy={4} anchor="start" />
       <text x={x0 + bay / 2} y={base - zone / 2 + 4} textAnchor="middle" className="wp-dg__note">
         100 mm SIP
       </text>
-      <text x={x0 + bay * 3} y={base - zone - (eaves - zone) / 2 + 4} textAnchor="middle" className="wp-dg__note">
+      <text x={x0 + bay * 3} y={base - zone - (top - zone) / 2 + 4} textAnchor="middle" className="wp-dg__note">
         30 mm solid
       </text>
-      <text x={x0 + bay * 1.5} y={base - 1.6 * k} textAnchor="middle" className="wp-dg__note">
-        Dock door
+      <text x={x0 + (openings[1][0] + 1.5) * k} y={base - 1.0 * k} textAnchor="middle" className="wp-dg__note">
+        Loading bay
       </text>
     </Drawing>
   )
 }
 
-/** a storey of the RC frame's infill in section: slab, five SIP courses to the beam's soffit, a window band, the movement joint */
+/**
+ * A storey of the RC frame's infill in section, through a window: the slab; short vertical panels to the sill (0.9 m);
+ * the window to 2.4 m; the steel lintel; the horizontal panel on it to the beam's soffit (3.0 m); the movement joint
+ */
 export function InfillSection() {
   const id = usePrefix()
   const k = 70
@@ -462,66 +495,79 @@ export function InfillSection() {
   const beam = 0.45 * k
   const slab = 0.15 * k
   const t = 0.1 * k
-  const course = (c: number) => top + H - (c + 1) * 0.6 * k
+  const floor = top + H
+  const y = (m: number) => floor - m * k
   return (
-    <Drawing k={id.k} narrow viewBox="0 0 560 300" aria-label="A storey of the RC frame's infill in section: five 600 mm SIP courses from the slab to the beam's soffit, 3 m; a window band from 1.2 to 2.4 m; a sealed movement joint under the beam">
+    <Drawing k={id.k} narrow viewBox="0 0 560 300" aria-label="A storey of the RC frame's infill in section through a window: short vertical SIP panels from the slab to the sill at 0.9 m; the window to 2.4 m; a steel lintel over it; a horizontal SIP panel on the lintel to the beam's soffit at 3 m; a sealed movement joint under the beam">
       <rect x={x - 120} y={top} width={160} height={beam} fill={`url(#${id.stip})`} stroke={INK} strokeWidth="1.2" />
-      <rect x={x - 160} y={top + H} width={200} height={slab} fill={`url(#${id.stip})`} stroke={INK} strokeWidth="1.2" />
-      {[0, 1, 4].map((c) => (
-        <rect key={c} x={x} y={course(c)} width={t} height={0.6 * k} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
-      ))}
-      <rect x={x + 2} y={course(3)} width={t - 4} height={1.2 * k} fill="none" stroke={INK} strokeWidth="1" strokeDasharray="3 3" />
+      <rect x={x - 160} y={floor} width={200} height={slab} fill={`url(#${id.stip})`} stroke={INK} strokeWidth="1.2" />
+      <rect x={x} y={y(0.9)} width={t} height={0.9 * k} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
+      <rect x={x} y={y(3.0) + 4} width={t} height={0.6 * k - 4} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
+      <rect x={x + 1} y={y(2.4)} width={t - 2} height={1.5 * k} fill="none" stroke={INK} strokeWidth="1" strokeDasharray="3 3" />
+      <rect x={x - 2} y={y(2.4) - 3.5} width={t + 4} height={7} fill={INK} />
       <rect x={x} y={top + beam} width={t} height={4} fill="var(--white)" stroke={INK} strokeWidth="0.8" />
       <Note x={x + t / 2} y={top + beam + 2} tx={x + 120} ty={top + beam - 6}>
         Sealed movement joint
       </Note>
-      <Note x={x + t} y={course(3) + 0.6 * k} tx={x + 120} ty={course(3) + 0.6 * k}>
-        Window band, 1.2 to 2.4 m
+      <Note x={x + t} y={y(2.7)} tx={x + 120} ty={y(2.75)}>
+        Horizontal panel over it
       </Note>
-      <Note x={x + t} y={course(0) + 0.3 * k} tx={x + 120} ty={course(0) + 0.3 * k}>
-        100 mm SIP courses, 600 mm
+      <Note x={x + t + 2} y={y(2.4)} tx={x + 120} ty={y(2.4) + 10}>
+        Steel lintel
+      </Note>
+      <Note x={x + t} y={y(1.6)} tx={x + 120} ty={y(1.6) + 6}>
+        Window, 0.9 to 2.4 m
+      </Note>
+      <Note x={x + t} y={y(0.45)} tx={x + 120} ty={y(0.45)}>
+        Short vertical panels
       </Note>
       <text x={x - 40} y={top + beam / 2 + 4} textAnchor="middle" className="wp-dg__note">
         Beam
       </text>
-      <text x={x - 80} y={top + H + slab / 2 + 4} textAnchor="middle" className="wp-dg__note">
+      <text x={x - 80} y={floor + slab / 2 + 4} textAnchor="middle" className="wp-dg__note">
         Slab
       </text>
-      <Dim x1={x - 190} y1={top} x2={x - 190} y2={top + H} text="3.45 m" dx={-8} dy={4} anchor="end" />
-      <Dim x1={x + t + 40} y1={top + beam} x2={x + t + 40} y2={top + H} text="3 m" dx={8} dy={4} anchor="start" />
+      <Dim x1={x - 190} y1={top} x2={x - 190} y2={floor} text="3.45 m" dx={-8} dy={4} anchor="end" />
+      <Dim x1={x - 30} y1={top + beam} x2={x - 30} y2={floor} text="3 m" dx={-8} dy={4} anchor="end" />
     </Drawing>
   )
 }
 
-/** a section across the steel portal's wall: the tapered column, the girts on it, the panels outside them, SIP to 3 m, solid to the 7.2 m eaves */
+/**
+ * A section across the steel portal's wall: the tapered column, and the panels outside it: SIP to 3.6 m, the steel
+ * beam with its U-track (3.7 m), 30 mm solid on light-gauge studs to the 7.2 m eaves
+ */
 export function PortalSection() {
   const id = usePrefix()
   const k = 30
   const base = 260
   const x = 300
   const E = 7.2 * k
-  const zone = 3 * k
+  const zone = 3.6 * k
+  const bm = 0.1 * k
   const g = 0.3 * k
   return (
-    <Drawing k={id.k} narrow viewBox="0 0 560 290" aria-label="A section across the portal's wall: a tapered steel column, 300 mm at its base and 600 at the haunch; Z girts on its outer flange; the panels outside the girts, 100 mm SIP to 3 m and 30 mm solid to the 7.2 m eaves">
+    <Drawing k={id.k} narrow viewBox="0 0 560 290" aria-label="A section across the portal's wall: a tapered steel column, 300 mm at its base and 600 at the haunch; the panels outside it: 100 mm SIP to 3.6 m, a steel beam with a U-track on it to 3.7 m, 30 mm solid above on light-gauge studs to the 7.2 m eaves">
       <path d={`M ${x} ${base} L ${x} ${base - E} L ${x + 0.6 * k} ${base - E + 0.6 * k} L ${x + 0.3 * k} ${base} Z`} fill="none" stroke={INK} strokeWidth="1.4" />
       <path d={`M ${x} ${base - E} L ${x + 6 * k} ${base - E - 0.45 * k} M ${x + 0.6 * k} ${base - E + 0.6 * k} L ${x + 6 * k} ${base - E + 0.05 * k}`} fill="none" stroke={INK} strokeWidth="1.2" />
-      {Array.from({ length: 5 }, (_, i) => base - (0.9 + i * 1.5) * k).map((y) => (
-        <path key={y} d={`M ${x} ${y} h ${-g} M ${x - g} ${y} v -6 M ${x} ${y} v 6`} fill="none" stroke={INK} strokeWidth="1.4" />
-      ))}
       <rect x={x - g - 0.1 * k} y={base - zone} width={0.1 * k} height={zone} fill={`url(#${id.core})`} stroke={INK} strokeWidth="1" />
-      <rect x={x - g - 0.03 * k} y={base - E} width={0.03 * k} height={E - zone} fill={`url(#${id.stip})`} stroke={INK} strokeWidth="1" />
+      <rect x={x - g - 0.1 * k} y={base - zone - bm} width={0.25 * k} height={bm} fill={INK} />
+      <rect x={x - g - 0.1 * k} y={base - E} width={0.03 * k} height={E - zone - bm} fill={`url(#${id.stip})`} stroke={INK} strokeWidth="1" />
+      <rect x={x - g - 0.07 * k} y={base - E} width={0.07 * k} height={E - zone - bm} fill="none" stroke={INK} strokeWidth="0.6" strokeDasharray="3 2" />
       <line x1={x - 90} x2={x + 6.5 * k} y1={base} y2={base} stroke={INK} strokeWidth="1.2" />
       <Dim x1={x - 120} y1={base} x2={x - 120} y2={base - E} text="7.2 m" dx={-8} dy={4} anchor="end" />
-      <Dim x1={x - 80} y1={base} x2={x - 80} y2={base - zone} text="3 m" dx={-8} dy={4} anchor="end" />
+      <Dim x1={x - 80} y1={base} x2={x - 80} y2={base - zone - bm} text="3.7 m" dx={-8} dy={4} anchor="end" />
       <Note x={x - g - 0.1 * k} y={base - 0.6 * k} tx={x - 170} ty={base - 0.4 * k} anchor="end">
         100 mm SIP
       </Note>
-      <Note x={x - g - 0.03 * k} y={base - 5.6 * k} tx={x - 170} ty={base - 5.9 * k} anchor="end">
+      <Note x={x - g - 0.1 * k} y={base - 5.6 * k} tx={x - 170} ty={base - 5.9 * k} anchor="end">
         30 mm solid
       </Note>
-      <Note x={x - g / 2} y={base - 4.5 * k} tx={x + 70} ty={base - 3.8 * k}>
-        Z girts on the column
+      <Note x={x - g + 0.1 * k} y={base - zone - bm / 2} tx={x + 70} ty={base - 3.3 * k}>
+        Steel beam, U-track on top
+      </Note>
+      <Note x={x - g - 0.035 * k} y={base - 5.0 * k} tx={x + 70} ty={base - 5.2 * k}>
+        Light-gauge studs
       </Note>
       <Note x={x + 0.2 * k} y={base - 1.2 * k} tx={x + 70} ty={base - 1.6 * k}>
         Tapered steel column

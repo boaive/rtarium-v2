@@ -26,6 +26,13 @@ export const TIP = 6 * MM
 export const T30 = { cover: 7.5 * MM, zone: 15 * MM }
 export const T100 = { outer: 7 * MM, mesh: 6 * MM, inner: 2 * MM, leaf: 15 * MM, core: 70 * MM, recess: 20 * MM }
 export const GRP_R = 1.5 * MM
+/**
+ * The 100 mm panel's rods, through its thickness from the middle of the core: the rods along the length on the line of
+ * the clips' lug holes (43 mm out, less the 0.5 mm and half the 7.5 mm hole: in the mesh, near its core side); the rods
+ * across on their outer side, crossing over them, beside each clip's plate (which they lock in place)
+ */
+export const ROD_LINE = 38.75 * MM
+export const ROD_OVER = ROD_LINE + 3 * MM
 
 /**
  * The ferrule inserts' lines along a panel (owner, 2 Nov 2026, and the 30 mm plan): 1000 mm in from each end, then
@@ -143,25 +150,32 @@ export function rodGeometry(r = GRP_R) {
 
 /**
  * The GI tie-clip as it stands in the panel: a 2 mm plate, flat across the panel's length (thin in y), 20 mm wide
- * (x) and 86 mm through (z) over its two lugs, the lugs' holes taking the GRP rods (client's 2mm THK PLATE).
+ * (x) and 86 mm through (z) over its two lugs (client's 2mm THK PLATE): a 76 mm body, a lug 9 mm high and 5 mm out at
+ * each end, each lug's oval hole 7.5 mm along the plate and 5.4 mm across it, 0.5 mm in from the lug's end. The holes'
+ * axis runs along the panel's length: the GRP rods along the length go through them, in the meshes.
  */
 export function clipGeometry() {
   const hb = 38 * MM
   const hw = 10 * MM
-  const lug = 5 * MM
+  const lug = 4.5 * MM
+  const lc = hb + 0.5 * MM
   const s = new THREE.Shape()
   s.moveTo(-hb, -hw)
   s.lineTo(hb, -hw)
   s.lineTo(hb, -lug)
-  s.absarc(hb, 0, lug, -Math.PI / 2, Math.PI / 2, false)
+  s.lineTo(lc, -lug)
+  s.absarc(lc, 0, lug, -Math.PI / 2, Math.PI / 2, false)
+  s.lineTo(hb, lug)
   s.lineTo(hb, hw)
   s.lineTo(-hb, hw)
   s.lineTo(-hb, lug)
-  s.absarc(-hb, 0, lug, Math.PI / 2, (3 * Math.PI) / 2, false)
+  s.lineTo(-lc, lug)
+  s.absarc(-lc, 0, lug, Math.PI / 2, (3 * Math.PI) / 2, false)
+  s.lineTo(-hb, -lug)
   s.lineTo(-hb, -hw)
-  for (const cx of [-(hb + 0.5 * MM), hb + 0.5 * MM]) {
+  for (const cx of [-ROD_LINE, ROD_LINE]) {
     const h = new THREE.Path()
-    h.absellipse(cx, 0, 2.7 * MM, 3.75 * MM, 0, Math.PI * 2, true, 0)
+    h.absellipse(cx, 0, 3.75 * MM, 2.7 * MM, 0, Math.PI * 2, true, 0)
     s.holes.push(h)
   }
   const g = new THREE.ExtrudeGeometry(s, { depth: 2 * MM, bevelEnabled: false, curveSegments: 14 })

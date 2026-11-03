@@ -7,41 +7,92 @@ import { smooth, type Progress } from '../../facade/progress'
 import { prefersReducedMotion } from '../../lib/motion'
 import { Lines, split } from '../../flooring/data/three/dc'
 import { ink, useDrawing, useInkResolution } from '../../flooring/data/three/draw'
-import { disposeWallKit, wallKit } from './kit'
-import { between, fit, type Room } from './fit'
-import type { Building } from './buildings'
+import { between, fit, type Box, type Room } from './fit'
+import type { Building, Mat, Part } from './buildings'
 
 /**
- * A stream's building, on the warm white page, pinned for its run, as the Unitized page's slab to slab and the Data &
- * AI Centres page's frame to floor: four steps, the scroll the clock, the building put up as it would be on site.
+ * A stream's building, on the warm white page, pinned for its run, as the Unitized page's slab to slab: the scroll the
+ * clock, the building put up as it would be on site. It never opens on an empty stage (owner, 3 Nov 2026):
  *
- *   0  the frame     the whole building's frame is drawn out from where its first wall will stand
- *   1  one wall      the camera goes in on that wall: its panels go up course by course, each lowered onto the one
- *                    below
- *   2  as required   the camera stands back; the panels go up where the building needs them next, course by course
- *   3  the rest      the rest go up; the finish (roof, doors, windows, docks) is drawn round them
+ *   0  one panel    the first panel already stands in its place, close, the frame drawn just round it; the camera
+ *                   draws slowly back as the rest of the frame is drawn out from it, to the whole building
+ *   1  one wall     its panels go up course by course, each lowered onto the one below: the jambs, the steel lintels
+ *                   over the openings, the horizontal panels on them (on a large building the camera goes part of
+ *                   the way in on that wall meanwhile)
+ *   2  as required  the walls the building needs next
+ *   3  the rest     the rest, and the finish: the windows and doors set in from outside (the home's partition first,
+ *                   the camera going in on it: one side, the services in the void, the other side)
  *
- * Panels never hang in the air: within a step every wall rises a course at a time, and a course is only lowered once
- * the one under it has landed. The panels are the one thing in their own concrete; the rest is a drawing. Every shot
- * is fitted to the room between the title and the bar, so nothing ever leaves it. `progress` runs 0..1.
+ * The panels, their steel and the fittings are solid, each in its standard colour; the structure is a drawing. Every
+ * shot is fitted to the room between the title and the bar, so nothing ever leaves it. `progress` runs 0..1.
  */
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3)
 
-/** the drawing's segments sorted by their distance from a point, and those distances (for drawing it out to a radius) */
+/** how close the camera is on the first panel (0..1), at `t` (0..4): the room shows its edge while it is */
+export const closerAt = (t: number) => 1 - ease(smooth(0.04, 0.96, t))
+
+/** each step's run of the clock; within step 3, the panels take its first part and the finish the rest */
+const RUN: Record<number, [number, number]> = { 1: [1.06, 1.92], 2: [2.06, 2.92], 3: [3.04, 3.96] }
+const REST3: [number, number] = [0, 0.55]
+
+/**
+ * The drawing's segments sorted by their distance from a point across the ground (their height left out, so a column
+ * is drawn whole, never a piece of it hanging in the air), and those distances (for drawing it out to a radius)
+ */
 function byDistance(L: Lines, o: [number, number, number]) {
   const p = L.pts
   const n = p.length / 6
-  const d = Array.from({ length: n }, (_, i) => Math.hypot((p[i * 6] + p[i * 6 + 3]) / 2 - o[0], (p[i * 6 + 1] + p[i * 6 + 4]) / 2 - o[1], (p[i * 6 + 2] + p[i * 6 + 5]) / 2 - o[2]))
+  const d = Array.from({ length: n }, (_, i) => Math.hypot((p[i * 6] + p[i * 6 + 3]) / 2 - o[0], (p[i * 6 + 2] + p[i * 6 + 5]) / 2 - o[2]))
   const idx = Array.from({ length: n }, (_, i) => i).sort((a, b) => d[a] - d[b])
   const out = new Lines()
   for (const i of idx) out.pts.push(...p.slice(i * 6, i * 6 + 6))
   return { lines: out, dist: idx.map((i) => d[i]) }
 }
 
-/** how far the camera is in on the first wall (0..1), at `t` (0..4): the room shows its edge while it is */
-export const closerAt = (t: number) => ease(smooth(0.82, 1.12, t)) * (1 - ease(smooth(1.86, 2.2, t)))
+/**
+ * When each part goes in (on the build's clock), and from where. Within a step (or a phase of one) the parts go up a
+ * course at a time, all its walls together, a wave along each wall; each slot ends before the course above begins, so
+ * nothing is lowered onto what has not landed. What is set in from outside (a window, a door) goes in as one, along.
+ */
+function schedule(parts: Part[], seed: number) {
+  const out = parts.map(() => ({ t0: -1, t1: 0 }))
+  const groups = new Map<string, number[]>()
+  parts.forEach((p, i) => {
+    if (i === seed) return
+    const ph = p.phase ?? (p.step === 3 ? REST3 : [0, 1])
+    const k = `${p.step}|${ph[0]}|${ph[1]}|${p.from ? 'in' : 'up'}`
+    if (!groups.has(k)) groups.set(k, [])
+    groups.get(k)!.push(i)
+  })
+  for (const ids of groups.values()) {
+    const p0 = parts[ids[0]]
+    const [r0, r1] = RUN[p0.step]
+    const ph = p0.phase ?? (p0.step === 3 ? REST3 : [0, 1])
+    const [g0, g1] = [r0 + (r1 - r0) * ph[0], r0 + (r1 - r0) * ph[1]]
+    const pos = ids.map((i) => parts[i].a[0] + parts[i].a[2])
+    const lo = Math.min(...pos)
+    const hi = Math.max(...pos)
+    const heights = p0.from ? [0] : [...new Set(ids.map((i) => Math.round(parts[i].a[1] * 100)))].sort((x, y) => x - y)
+    const slot = 1 / (heights.length + 0.5)
+    ids.forEach((i, k) => {
+      const course = p0.from ? 0 : heights.indexOf(Math.round(parts[i].a[1] * 100))
+      const wave = hi > lo ? (pos[k] - lo) / (hi - lo) : 0
+      const a = p0.from ? 0.55 * wave : (course + 0.5 * wave) * slot
+      const b = p0.from ? a + 0.45 : a + 0.85 * slot
+      out[i] = { t0: g0 + (g1 - g0) * a, t1: g0 + (g1 - g0) * b }
+    })
+  }
+  return out
+}
+
+/** each kind of part's look: a painted panel matt, the steel a little metallic, the glass clear */
+function material(mat: Mat, color: string) {
+  const metal = mat === 'steel' || mat === 'metal'
+  if (mat === 'glass') return new THREE.MeshStandardMaterial({ color, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.45, depthWrite: false })
+  return new THREE.MeshStandardMaterial({ color, roughness: metal ? 0.4 : mat === 'frame' || mat === 'door' ? 0.5 : 0.78, metalness: metal ? 0.55 : 0.02 })
+}
 
 export function StreamScene({ progress, bus, room, building }: { progress: Progress; bus: LabelBus; room: { current: Room }; building: Building }) {
   const gl = useThree((s) => s.gl)
@@ -50,56 +101,38 @@ export function StreamScene({ progress, bus, room, building }: { progress: Progr
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
   const reduced = useMemo(() => prefersReducedMotion(), [])
-  const m = useMemo(wallKit, [])
-  useEffect(() => () => disposeWallKit(m), [m])
   const box = useMemo(() => new THREE.BoxGeometry(1, 1, 1), [])
   useEffect(() => () => box.dispose(), [box])
 
-  const mats = useMemo(() => ({ frame: ink(1.05, '#080808', 0.85), finish: ink(1, '#080808', 0.75) }), [])
-  useInkResolution(useMemo(() => Object.values(mats), [mats]))
+  const inks = useMemo(() => ({ frame: ink(1.05, '#080808', 0.85), finish: ink(1, '#080808', 0.7) }), [])
+  useInkResolution(useMemo(() => Object.values(inks), [inks]))
+  const seedPart = building.parts[building.seed]
   const lines = useMemo(() => {
-    const frame = split(building.frame, 0.8)
-    const out = byDistance(frame, building.origin)
-    return { frame: out.lines, finish: split(building.finish, 1.2) }
+    const frame = byDistance(split(building.frame, 0.8), building.origin)
+    return { frame: frame.lines, dist: frame.dist, finish: split(building.finish, 1.2) }
   }, [building])
-  const frame = useDrawing(lines.frame, mats.frame)
-  const finish = useDrawing(lines.finish, mats.finish)
+  const frame = useDrawing(lines.frame, inks.frame)
+  const finish = useDrawing(lines.finish, inks.finish)
+  /** the start: the first panel and a little room round it, and how far out the frame is drawn there */
+  const start = useMemo(() => {
+    const [a, b] = [seedPart.a, seedPart.b]
+    const h = b[1] - a[1]
+    const m = Math.max(1.0, h * 0.42)
+    const sb: Box = [
+      [a[0] - m, 0, a[2] - m],
+      [b[0] + m, b[1] + m * 0.4, b[2] + m],
+    ]
+    return { box: sb, r0: Math.max(2.6, h * 1.2), rmax: lines.dist[lines.dist.length - 1] ?? 1 }
+  }, [seedPart, lines])
 
-  /**
-   * When each panel is lowered, within its step: the step's courses (every height a panel starts at) go up one after
-   * another, all its walls together, a wave along each wall; each panel's slot ends before the course above it begins,
-   * so a panel is only ever lowered onto one that has landed.
-   */
-  const order = useMemo(() => {
-    const out = building.panels.map(() => ({ a: 0, b: 0, step: 0 }))
-    const steps = [...new Set(building.panels.map((p) => p.step))]
-    for (const st of steps) {
-      const ids = building.panels.map((_, i) => i).filter((i) => building.panels[i].step === st)
-      const heights = [...new Set(ids.map((i) => Math.round(building.panels[i].a[1] * 100)))].sort((x, y) => x - y)
-      const along = ids.map((i) => building.panels[i].a[0] + building.panels[i].a[2])
-      const lo = Math.min(...along)
-      const hi = Math.max(...along)
-      const slot = 1 / (heights.length + 0.5)
-      ids.forEach((i, k) => {
-        const course = heights.indexOf(Math.round(building.panels[i].a[1] * 100))
-        const wave = hi > lo ? (along[k] - lo) / (hi - lo) : 0
-        const a = (course + 0.5 * wave) * slot
-        out[i] = { a, b: a + 0.85 * slot, step: st }
-      })
-    }
-    return out
-  }, [building])
-  /** how far a panel is lowered from: a little, as a crane sets it down */
+  const order = useMemo(() => schedule(building.parts, building.seed), [building])
+  /** how far a part is lowered from: a little, as a crane sets it down */
   const drop = useMemo(() => Math.min(0.36, (building.box[1][1] - building.box[0][1]) / 30), [building])
-  const mesh = useRef<THREE.InstancedMesh>(null)
-  /**
-   * The panels a box will not do for: a gable's, its top cut to the roof's slope (its own geometry, in place), and a roof
-   * panel, turned to its slope. Each is drawn on its own; the rest are one instanced set, in the order of `plain`.
-   */
-  const shaped = useMemo(() => {
-    const plain: number[] = []
-    const own: { i: number; geo: THREE.BufferGeometry; tilt?: number }[] = []
-    building.panels.forEach((p, i) => {
+  /** the parts a box will not do for (a gable's, cut to the roof) on their own; the rest instanced, a set for each material */
+  const sets = useMemo(() => {
+    const plain = new Map<Mat, number[]>()
+    const own: { i: number; geo: THREE.BufferGeometry }[] = []
+    building.parts.forEach((p, i) => {
       if (p.cut) {
         const g = new THREE.BoxGeometry(1, 1, 1)
         const pos = g.getAttribute('position')
@@ -108,43 +141,27 @@ export function StreamScene({ progress, bus, room, building }: { progress: Progr
           const x = p.a[0] + (pos.getX(j) + 0.5) * (p.b[0] - p.a[0])
           const y = p.a[1] + (pos.getY(j) + 0.5) * (p.b[1] - p.a[1])
           const z = p.a[2] + (pos.getZ(j) + 0.5) * (p.b[2] - p.a[2])
-          const f = (pos.getComponent(j, k) + 0.5) as number
+          const f = pos.getComponent(j, k) + 0.5
           pos.setXYZ(j, x, pos.getY(j) > 0 ? p.cut.y0 + (p.cut.y1 - p.cut.y0) * f : y, z)
         }
         g.computeVertexNormals()
         own.push({ i, geo: g })
-      } else if (p.tilt !== undefined) own.push({ i, geo: box, tilt: p.tilt })
-      else plain.push(i)
+      } else {
+        if (!plain.has(p.mat)) plain.set(p.mat, [])
+        plain.get(p.mat)!.push(i)
+      }
     })
-    return { plain, own }
-  }, [building, box])
-  useEffect(() => () => shaped.own.forEach((o) => o.geo !== box && o.geo.dispose()), [shaped, box])
+    return { plain: [...plain.entries()], own }
+  }, [building])
+  useEffect(() => () => sets.own.forEach((o) => o.geo.dispose()), [sets])
+  const mats = useMemo(() => {
+    const out = new Map<Mat, THREE.MeshStandardMaterial>()
+    for (const p of building.parts) if (!out.has(p.mat)) out.set(p.mat, material(p.mat, building.colors[p.mat] ?? '#cccccc'))
+    return out
+  }, [building])
+  useEffect(() => () => mats.forEach((x) => x.dispose()), [mats])
+  const meshes = useRef<(THREE.InstancedMesh | null)[]>([])
   const owned = useRef<(THREE.Mesh | null)[]>([])
-  /** the two kinds told apart by tone (the client's drawing colours them): the SIP a little deeper, the 30 mm solid lighter */
-  const TONE = useMemo(() => ({ sip: new THREE.Color('#d9d3c8'), solid: new THREE.Color('#ffffff') }), [])
-  const solidMat = useMemo(() => {
-    const x = m.concrete.clone()
-    x.color.multiply(TONE.solid)
-    return x
-  }, [m, TONE])
-  const sipMat = useMemo(() => {
-    const x = m.concrete.clone()
-    x.color.multiply(TONE.sip)
-    return x
-  }, [m, TONE])
-  useEffect(
-    () => () => {
-      solidMat.dispose()
-      sipMat.dispose()
-    },
-    [solidMat, sipMat],
-  )
-  const tint = (el: THREE.InstancedMesh | null) => {
-    mesh.current = el
-    if (!el) return
-    shaped.plain.forEach((i, k) => el.setColorAt(k, TONE[building.panels[i].kind]))
-    if (el.instanceColor) el.instanceColor.needsUpdate = true
-  }
   const mx = useMemo(() => new THREE.Matrix4(), [])
   const q = useMemo(() => new THREE.Quaternion(), [])
   const v = useMemo(() => new THREE.Vector3(), [])
@@ -163,14 +180,24 @@ export function StreamScene({ progress, bus, room, building }: { progress: Progr
 
   useFrame((_, delta) => {
     const t = progress.value * 4
-    // the camera: the whole building while its frame is drawn, in on the first wall while its panels go up, then
-    // standing back to the whole again, turning a little as the rest go up
+    // the camera: close on the first panel, drawing back to the whole building as its frame is drawn out; then the whole,
+    // turning a little as the rest goes up (and in on the home's partition while it goes in)
     const aspect = size.width / Math.max(1, size.height)
     const [fa, fe] = building.views.first
     const [wa, we] = building.views.whole
-    const first = fit(building.first, fa, fe, room.current, aspect, 0.8)
-    const whole = fit(building.box, wa + 8 * smooth(2.2, 4, t), we, room.current, aspect, 0.86)
-    const shot = between(whole, first, closerAt(t))
+    const near = fit(start.box, fa, fe, room.current, aspect, 0.62)
+    const whole = fit(building.box, wa + 6 * smooth(1.2, 4, t), we, room.current, aspect, 0.86)
+    let shot = between(near, whole, 1 - closerAt(t))
+    // a large building's first wall: part of the way in on it while it goes up, back out for the next
+    if (building.first) {
+      const w = 0.5 * ease(smooth(1.0, 1.22, t) * (1 - smooth(1.86, 2.12, t)))
+      if (w > 0) shot = between(shot, fit(building.first, fa, fe + 4, room.current, aspect, 0.86), w)
+    }
+    const cl = building.close
+    if (cl) {
+      const w = ease(smooth(cl.at[0], cl.at[1], t) * (1 - smooth(cl.at[2], cl.at[3], t)))
+      if (w > 0) shot = between(shot, fit(cl.box, cl.view[0], cl.view[1], room.current, aspect, 0.8), w)
+    }
     const to = { tx: shot.target[0], ty: shot.target[1], tz: shot.target[2], ld: Math.log(shot.dist), azim: shot.azim, elev: shot.elev, fx: shot.frame![0], fy: shot.frame![1] }
     if (!cur.current || reduced) cur.current = { ...to }
     const c = cur.current
@@ -187,51 +214,53 @@ export function StreamScene({ progress, bus, room, building }: { progress: Progr
     camera.lookAt(c.tx, c.ty, c.tz)
     camera.setViewOffset(size.width, size.height, -(c.fx - 0.5) * size.width, -(c.fy - 0.5) * size.height, size.width, size.height)
     camera.updateProjectionMatrix()
-    // nothing is drawn outside the room: the close look at the first wall is cropped to it
+    // nothing is drawn outside the room: the close look is cropped to it
     const r = room.current
     gl.setScissorTest(true)
     gl.setScissor(r.x * size.width - 6, (1 - r.y - r.h) * size.height - 6, r.w * size.width + 12, r.h * size.height + 12)
 
-    // the frame: drawn first, out from where the first wall will stand; it steps back a little as the walls go on
-    frame.show(smooth(0.06, 0.8, t))
-    mats.frame.opacity = 0.85 - 0.25 * smooth(2.2, 3.4, t)
-    // the finish, drawn round the walls in the last step
-    finish.show(smooth(3.5, 3.92, t))
-
-    // the panels: each comes down into its place in its step's turn
-    /** how far a panel is lowered (0: not yet, 1: in place), each step's courses over most of its run */
-    const down = (i: number) => {
-      const o = order[i]
-      const [s0, s1] = o.step === 1 ? [1.14, 1.84] : [o.step + 0.08, o.step + 0.9]
-      return smooth(s0 + (s1 - s0) * o.a, s0 + (s1 - s0) * o.b, t)
+    // the frame: just round the first panel at the start, drawn out from it to the whole as the camera draws back; it
+    // steps back a little as the walls go on
+    const reach = start.r0 + (start.rmax - start.r0) * ease(smooth(0.02, 0.94, t))
+    let n = 0
+    for (let lo = 0, hi = lines.dist.length; lo < hi; ) {
+      const mid = (lo + hi) >> 1
+      if (lines.dist[mid] <= reach) lo = n = mid + 1
+      else hi = mid
     }
-    const im = mesh.current
-    if (im) {
-      shaped.plain.forEach((i, k) => {
-        const p = building.panels[i]
-        const a = down(i)
-        const e = easeOut(a)
-        v.set((p.a[0] + p.b[0]) / 2, (p.a[1] + p.b[1]) / 2 + (1 - e) * drop, (p.a[2] + p.b[2]) / 2)
-        // (a panel not yet lowered is drawn at nothing)
+    frame.show(lines.dist.length ? n / lines.dist.length : 0)
+    inks.frame.opacity = 0.85 - 0.25 * smooth(2.2, 3.4, t)
+    finish.show(smooth(3.62, 3.9, t))
+
+    /** how far a part is in (0: not yet, 1: in place) */
+    const inAt = (i: number) => (i === building.seed ? 1 : smooth(order[i].t0, order[i].t1, t))
+    const place = (p: Part, k: number) => {
+      const e = easeOut(k)
+      v.set((p.a[0] + p.b[0]) / 2, (p.a[1] + p.b[1]) / 2, (p.a[2] + p.b[2]) / 2)
+      if (p.from) v.set(v.x + p.from[0] * (1 - e), v.y + p.from[1] * (1 - e), v.z + p.from[2] * (1 - e))
+      else v.y += (1 - e) * drop
+    }
+    sets.plain.forEach(([, ids], s) => {
+      const im = meshes.current[s]
+      if (!im) return
+      ids.forEach((i, k) => {
+        const p = building.parts[i]
+        const a = inAt(i)
+        place(p, a)
+        // (a part not yet in is drawn at nothing)
         if (a > 0) sc.set(p.b[0] - p.a[0], p.b[1] - p.a[1], p.b[2] - p.a[2])
         else sc.setScalar(0.0001)
         mx.compose(v, q, sc)
         im.setMatrixAt(k, mx)
       })
       im.instanceMatrix.needsUpdate = true
-    }
-    shaped.own.forEach((o, k) => {
+    })
+    sets.own.forEach((o, k) => {
       const el = owned.current[k]
       if (!el) return
-      const p = building.panels[o.i]
-      const a = down(o.i)
-      const lift = (1 - easeOut(a)) * drop
+      const a = inAt(o.i)
       el.visible = a > 0
-      if (o.tilt !== undefined) {
-        el.position.set((p.a[0] + p.b[0]) / 2, (p.a[1] + p.b[1]) / 2 + lift, (p.a[2] + p.b[2]) / 2)
-        el.rotation.set(o.tilt, 0, 0)
-        el.scale.set(p.b[0] - p.a[0], p.b[1] - p.a[1], p.b[2] - p.a[2])
-      } else el.position.set(0, lift, 0)
+      el.position.set(0, (1 - easeOut(a)) * drop, 0)
     })
     if (moving) invalidate()
   }, -1)
@@ -240,9 +269,19 @@ export function StreamScene({ progress, bus, room, building }: { progress: Progr
   return (
     <group>
       <MovingKeyLight focus={[(a[0] + b[0]) / 2, 0, (a[2] + b[2]) / 2]} reach={Math.max(b[0] - a[0], b[2] - a[2]) * 0.8} offset={[-14, 26, 20]} />
-      <instancedMesh key={`${building.id}-${shaped.plain.length}`} ref={tint} args={[box, m.concrete, shaped.plain.length]} castShadow receiveShadow frustumCulled={false} />
-      {shaped.own.map((o, k) => (
-        <mesh key={`${building.id}-${o.i}`} ref={(el) => void (owned.current[k] = el)} geometry={o.geo} material={building.panels[o.i].kind === 'solid' ? solidMat : sipMat} castShadow receiveShadow visible={false} />
+      {sets.plain.map(([mat, ids], s) => (
+        <instancedMesh
+          key={`${building.id}-${mat}-${ids.length}`}
+          ref={(el) => void (meshes.current[s] = el)}
+          args={[box, mats.get(mat), ids.length]}
+          castShadow={mat !== 'glass'}
+          receiveShadow
+          frustumCulled={false}
+          renderOrder={mat === 'glass' ? 2 : 0}
+        />
+      ))}
+      {sets.own.map((o, k) => (
+        <mesh key={`${building.id}-${o.i}`} ref={(el) => void (owned.current[k] = el)} geometry={o.geo} material={mats.get(building.parts[o.i].mat)} castShadow receiveShadow visible={false} />
       ))}
       <primitive object={frame.obj} />
       <primitive object={finish.obj} />
