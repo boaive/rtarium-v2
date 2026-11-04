@@ -76,7 +76,7 @@ export function Hang() {
     <section ref={section} id="hang" className="fu-hang on-light" aria-labelledby="fu-hang-title" style={{ '--run': RUN } as CSSProperties}>
       <div className="fu-hang__pin">
         <h2 id="fu-hang-title" className="fu-hang__title">
-          Slab to slab.
+          Hang. Seal. Join. Done.
           <ReviewNote>{REVIEW.connection}</ReviewNote>
         </h2>
         <div ref={stage} className="fu-hang__stage" aria-hidden="true">

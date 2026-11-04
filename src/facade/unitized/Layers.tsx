@@ -38,8 +38,8 @@ const LAYER_LINE: Record<Layer, string> = {
   frame: 'Carries the unit and hangs it from the slab.',
   window: 'Glazed off-site and fixed in the frame.',
   gasket: 'Seals the joints against wind and rain.',
-  vapour: 'Stops indoor moisture reaching the insulation.',
-  insulation: 'Keeps the heat in, behind the thin panel.',
+  vapour: 'Stops indoor moisture from reaching the insulation.',
+  insulation: 'The interior temperature stays steady behind the thin panel.',
   panel: 'RTARIUM textile, cast in 20 mm of concrete.',
 }
 

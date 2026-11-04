@@ -18,7 +18,7 @@ const steps: Step[] = [
     // the whole screen is the sentence; its words arrive one by one
     render: () => (
       <div className="copy copy--full">
-        <Statement text="Thin concrete has relied on steel fibre, glass fibre and flat mesh. Each brings a weakness with it." />
+        <Statement text="Thin concrete has traditionally relied on steel fibre, glass fibre and flat mesh. Each has its own inherent weaknesses." />
       </div>
     ),
   },
@@ -35,7 +35,7 @@ const ROWS: Row[] = [
   { id: 'steel', name: 'Steel fibre', weak: 'Corrodes.', what: 'Short steel fibres, mixed through the concrete.' },
   { id: 'glass', name: 'AR-glass fibre', weak: 'Vulnerable to alkali.', what: 'Chopped glass strands, mixed through the concrete.' },
   { id: 'flat', name: 'Flat 2D mesh', weak: 'Works in one plane.', what: 'A single grid that reinforces only along the sheet.' },
-  { id: 'rtarium', name: 'RTARIUM', weak: 'Non-corrosive. Alkali-resistant. Three-dimensional.', what: 'Basalt: two mesh faces held apart by fibres that run through the depth.' },
+  { id: 'rtarium', name: 'RTARIUM', weak: 'Non-corrosive. Alkali-resistant. Three-dimensional.', what: '3D basalt mesh that reinforces concrete through an interconnected structure woven into its depth.' },
 ]
 
 /**

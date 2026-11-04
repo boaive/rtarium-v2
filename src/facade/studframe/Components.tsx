@@ -50,10 +50,10 @@ const LISTINGS: Listing[] = [
     row: ['Steel stud frame', 'Flex-anchored'],
     head: (
       <>
-        <p className="fr-fig num" aria-label="45 degrees Celsius">
-          45<small>°C</small>
+        <p className="fr-fig num">
+          Expands in the heat
         </p>
-        <p className="fr-say">In the day’s heat the skin grows. The fixed L plates bend with it, so it expands freely.</p>
+        <p className="fr-say">The façade expands in the heat. Flexible L-plates accommodate the shift.</p>
         <ReviewNote>{REVIEW.heat}</ReviewNote>
       </>
     ),
@@ -69,7 +69,7 @@ const LISTINGS: Listing[] = [
           Cools <br />
           at night
         </h3>
-        <p className="fr-say">The skin draws back as the air cools, and the plates bend back with it. It stays flat and whole.</p>
+        <p className="fr-say">As temperatures fall, the skin contracts and the flexible plates move with it, maintaining a stable, even façade.</p>
       </>
     ),
     out: ['By night, it shrinks', 'Without warping.'],

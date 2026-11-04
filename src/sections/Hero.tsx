@@ -95,7 +95,7 @@ export function Hero() {
           {failed && <img className="hero__still" src="/img/render-structure.webp" alt="" />}
           <div className="hero__copy">
             {/* on scroll the headline drifts into the mesh and dissolves (--p) */}
-            <Lines as="h1" id="hero-title" className="hero__title" lines={['Meet', 'RTARIUM.']} />
+            <Lines as="h1" id="hero-title" className="hero__title" lines={['Introducing', 'RTARIUM.']} />
             <div className="hero__sub">
               <p className="hero__lede rv" style={{ '--i': 2 } as CSSProperties}>
                 A three-dimensional basalt mesh for advanced concrete applications.
@@ -128,7 +128,7 @@ export function Hero() {
 
         <div className={`hero__screen hero__screen--inside scene ${state(2)}`} data-screen="yellow">
           <div className="hero__say hero__say--tr">
-            <Lines slab lines={['Between them, a cavity', 'for concrete to fill.']} />
+            <Lines slab lines={['An open core', 'for concrete.']} />
           </div>
         </div>
 
@@ -137,7 +137,7 @@ export function Hero() {
           <div className="hero__cast">
             <Lines lines={['Concrete,', 'better than ever.']} />
             <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
-              Mortar fills the cavity and locks round the mesh, in three dimensions.
+              Mortar fills the cavity and locks around the mesh, creating an integrated structure.
             </p>
           </div>
         </div>

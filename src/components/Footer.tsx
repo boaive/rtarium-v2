@@ -11,7 +11,7 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
   return (
     <>
       <div className="footer__top">
-        <p className="footer__line">Bring us the floor, façade or wall you are planning.</p>
+        <p className="footer__line">Bring RTARIUM into your next project. Talk to our team about your design, dimensions and reinforcement requirements.</p>
         <Link to="/contact" className="pill pill--ink footer__cta">
           Contact HEMISPHERE ONE
           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">

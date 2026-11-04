@@ -26,18 +26,18 @@ interface Step {
   review?: string
 }
 const STEPS: Step[] = [
-  { id: 'mould', name: 'Mould', head: ['The', 'mould'], line: 'CNC-routed timber, the cornice’s face as its cavity.' },
+  { id: 'mould', name: 'Mould', head: ['The', 'mould'], line: 'A CNC-routed timber mould, shaped to the exact cornice profile.' },
   {
     id: 'spray',
     name: 'Spray-up',
     head: ['Sprayed,', 'stitched'],
-    line: 'Concrete sprayed in. RTARIUM cut, stitched and laid in.',
+    line: 'Concrete is sprayed into the mould. RTARIUM is cut, stitched and positioned within the layer.',
     photo: { src: '/img/facade/stud-spray.webp', alt: 'A hopper gun spraying the face coat into a timber mould', pos: '50% 54%' },
     review: REVIEW.skin,
   },
-  { id: 'frame', name: 'Stud frame', head: ['Stud', 'frame'], line: 'Galvanized tubes, drilled at the ferrules’ intervals.' },
-  { id: 'join', name: 'Frame onto skin', head: ['Frame', 'onto skin'], line: 'Set on the ferrule inserts and locked.' },
-  { id: 'cure', name: 'Cured', head: ['Cured,', 'demoulded'], line: 'A controlled cure, then out of the mould.' },
+  { id: 'frame', name: 'Stud frame', head: ['Stud', 'frame'], line: 'Galvanized steel tubes are drilled at intervals matching the ferrule positions.' },
+  { id: 'join', name: 'Frame, secured.', head: ['Frame,', 'secured.'], line: 'The frame is positioned over the ferrule inserts and secured in place.' },
+  { id: 'cure', name: 'Cured', head: ['Cured,', 'demoulded'], line: 'The concrete is cured under controlled conditions and then removed from the mould.' },
 ]
 const N = STEPS.length
 
@@ -185,7 +185,7 @@ export function Cast() {
         </div>
 
         <h2 id="fs-cast-title" className="fu-ans__title">
-          Cast in five steps
+          Cast in 5 steps. Every step happens under factory control.
         </h2>
 
         <div ref={room} className="fu-ans__words">

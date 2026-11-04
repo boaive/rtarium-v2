@@ -36,26 +36,26 @@ interface Answer {
 }
 
 const ANSWERS: Answer[] = [
-  { id: 'xyz', name: 'XYZ strength', head: ['XYZ', 'strength'], line: 'One 3D textile reinforces the panel in all three directions.', labels: ['x', 'y', 'z'] },
+  { id: 'xyz', name: 'Reinforced in 3D.', head: ['Reinforced', 'in 3D.'], line: 'One 3D textile reinforces the panel in all three directions.', labels: ['x', 'y', 'z'] },
   {
     id: 'textile',
     name: 'Mesh in textile form',
     head: ['Mesh in', 'textile form'],
-    line: 'One continuous textile, cut and stitched to shape. Nothing loose to clump.',
+    line: 'Cut and stitched to the shape of the panel. Nothing loose, nothing to clump.',
     labels: ['stitch'],
   },
-  { id: 'spray', name: 'Easy spray method', head: ['Easy spray', 'method'], line: 'Face coat, textile, backing: sprayed, not poured.', labels: ['face'] },
+  { id: 'spray', name: 'Easy spray method', head: ['Easy spray', 'method'], line: 'Face coat, textile, then backing. Every panel was built the same way, in the same order.', labels: ['face'] },
   {
     id: 'ferrules',
     name: 'In-built ferrule inserts',
     head: ['In-built', 'ferrule inserts'],
-    line: 'The fixings are set in the textile before the backing goes on.',
+    line: 'Ferrules are set into the textile before the backing goes on.',
     // (a tall shot, seen wide: the screw coming down to the ferrule in the textile)
     photo: { src: '/img/facade/ferrule-in-mesh.webp', alt: 'A ferrule insert set into the RTARIUM textile in the mould', pos: '50% 50%' },
     labels: ['ferrule'],
     review: REVIEW.ferrules,
   },
-  { id: 'tall', name: 'Up to 6 m high', line: 'High, in a single thickness.', labels: ['thick'], figure: true, review: REVIEW.sixMetres },
+  { id: 'tall', name: 'Up to 6 m high', line: 'High, with no extra thickness.', labels: ['thick'], figure: true, review: REVIEW.sixMetres },
 ]
 
 const LABELS: LabelSpec[] = [
@@ -225,7 +225,7 @@ export function Answers() {
         </div>
 
         <h2 id="fu-answers-title" className="fu-ans__title">
-          RTARIUM’s answers
+          The RTARIUM Solution
         </h2>
 
         {/* the words, all in one place, one answer at a time, each name starting on the same line */}
@@ -265,7 +265,7 @@ export function Answers() {
         </div>
 
         <StepBar
-          label="RTARIUM’s answers"
+          label="The RTARIUM Solution"
           names={ANSWERS.map((a) => a.name)}
           step={step}
           onGo={goToAnswer}

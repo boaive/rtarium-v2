@@ -38,3 +38,8 @@ lerna-debug.log*
 *.sw?
 Thumbs.db
 Desktop.ini
+
+# Reference screenshots
+mobile conversion/
+.playwright-mcp/
+*.zip

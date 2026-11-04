@@ -60,7 +60,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
       </header>
 
       <div className="fu-hero__foot">
-        <Words as="p" className="fu-mega" lines={['Thin skin.', 'Anchored from within.']} />
+        <Words as="p" className="fu-mega" lines={['Thin concrete skin.', 'Reinforced from within.']} />
         <p className="fu-hero__also">
           <span>Also</span>
           {others.map((s) => (
