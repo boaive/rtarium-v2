@@ -23,7 +23,7 @@ const steps: Step[] = [
       <div className="copy copy--br">
         <Lines lines={['A mesh with', 'a third dimension.']} />
         <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
-          Two basalt mesh faces, held apart by fibres that run through the depth.
+          Two basalt mesh faces, connected by vertical fibres to form a 3D structure.
         </p>
         <p className="figure rv" style={{ '--i': 4 } as CSSProperties}>
           <span className="figure__label">Thickness options</span>
@@ -43,7 +43,7 @@ const steps: Step[] = [
         <Lines lines={['Woven from', 'volcanic rock.']} />
         <div className="copy__aside">
           <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
-            100% natural basalt, melted, drawn into continuous filaments, then woven.
+            Made from natural basalt, transformed into continuous filaments and woven into a reinforcing mesh.
           </p>
           <ol className="chain" aria-label="How the mesh is made">
             {MAKING.map((m, i) => (

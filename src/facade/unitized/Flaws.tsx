@@ -21,8 +21,8 @@ import { paintCards } from './stack'
  */
 
 const FLAWS = [
-  { name: 'Direction weakness', line: 'Fibres lie one way. Across them, the panel cracks.' },
-  { name: 'Clumping', line: 'Loose fibre bunches up and leaves weak, bare zones.' },
+  { name: 'Direction weakness', line: 'Fibres settle in one direction. Load the panel across them and it cracks first.' },
+  { name: 'Clumping', line: 'Loose fibre bunches together. Between the bunches, nothing reinforces the panel.' },
   { name: 'Isolated anchorage', line: 'Each fixing holds on a small cone of concrete.' },
   { name: 'Length to weight ratio', line: 'A longer panel has to be thicker, and heavier.' },
 ]

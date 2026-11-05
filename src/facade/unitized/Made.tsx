@@ -10,10 +10,10 @@ import { smooth } from '../progress'
  */
 
 const MADE = [
-  { img: '/img/facade/mould-release.webp', pos: '50% 62%', name: 'The mould', text: 'Flat and inverted, coated with release agent.', alt: 'A worker brushing release agent into a timber mould lined for a thin panel' },
-  { img: '/img/facade/face-coat.webp', pos: '50% 72%', name: 'Face coat', text: 'Sprayed in first. It becomes the face of the building.', alt: 'A face coat being sprayed into the mould with a hopper gun' },
+  { img: '/img/facade/mould-release.webp', pos: '50% 62%', name: 'The mould', text: 'Flat, face down, coated with release agent.', alt: 'A worker brushing release agent into a timber mould lined for a thin panel' },
+  { img: '/img/facade/face-coat.webp', pos: '50% 72%', name: 'Face coat', text: 'Sprayed first. This is the surface the building will show.', alt: 'A face coat being sprayed into the mould with a hopper gun' },
   { img: '/img/facade/mesh-formed.webp', pos: '50% 78%', name: 'RTARIUM', text: 'Cut and stitched to the shape of the mould, then laid in.', alt: 'RTARIUM cut and stitched up at both edges to the shape of the mould' },
-  { img: '/img/facade/backing-coat.webp', pos: '50% 40%', name: 'Backing', text: 'Sprayed over the mesh to the full thickness.', alt: 'The backing mix being sprayed over the mesh in the mould' },
+  { img: '/img/facade/backing-coat.webp', pos: '50% 40%', name: 'Backing', text: 'Sprayed over the textile to the full thickness.', alt: 'The backing mix being sprayed over the mesh in the mould' },
 ]
 
 export function Made() {
@@ -77,7 +77,7 @@ export function Made() {
         <h2 id="fu-made-title" className="fu-made__title">
           Made face down.
         </h2>
-        <p className="fu-made__lede">Sprayed, not poured: the face coat first, then RTARIUM, then the backing.</p>
+        <p className="fu-made__lede">The finished face goes down first. The surface is set before the structure is added.</p>
       </header>
       <div ref={rail} className="fu-made__rail" aria-hidden="true" />
       <ol className="fu-made__steps" data-pop={pop ?? undefined}>

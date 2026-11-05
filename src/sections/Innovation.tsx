@@ -54,7 +54,7 @@ const steps: Step[] = [
     // the axes grow on the left; the copy hangs from the top right
     render: () => (
       <div className="copy copy--tr">
-        <Lines slab lines={['Reinforced', 'through its depth.']} />
+        <Lines slab lines={['Strength across', 'all three axes.']} />
         <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
           A flat mesh reinforces only along the sheet. RTARIUM’s connecting fibres add the third direction, so load is
           carried in X, Y and Z.
