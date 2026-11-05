@@ -23,17 +23,16 @@
   position: absolute;
   z-index: 3;
   left: var(--gutter);
-  bottom: clamp(40px, 9vh, 96px);
+  bottom: clamp(36px, 8vh, 96px);
   display: grid;
   gap: var(--s-5);
-  max-width: min(48rem, 56vw);
+  max-width: min(44rem, 50vw);
 }
 .fco-mega {
-  font-size: clamp(3rem, min(7.6vw, 14vh), 9rem);
-  white-space: nowrap;
-  font-weight: 800;
-  letter-spacing: -0.055em;
-  line-height: 0.88;
+  font-size: var(--t-line);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
 }
 .fco-hero .word__in {
   animation: word-in 0.8s var(--ease-out) both;
@@ -52,23 +51,26 @@
   position: absolute;
   z-index: 3;
   left: var(--gutter);
-  top: calc(var(--nav-h) + clamp(28px, 6vh, 72px));
+  top: calc(var(--nav-h) + clamp(20px, 4.4vh, 56px));
   display: grid;
-  gap: 6px;
+  gap: clamp(10px, 2vh, 18px);
+  max-width: min(62rem, 50vw);
   animation: rise 0.8s var(--ease-out) 0.2s both;
 }
 .fco-head__name {
-  font-size: var(--t-lead);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
+  font-size: var(--t-title);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.96;
+  text-wrap: balance;
 }
 .fco-head__kind {
-  max-width: 19rem;
-  font-size: var(--t-small);
+  max-width: 27em;
+  font-size: var(--t-kind);
   font-weight: 500;
-  line-height: 1.4;
-  color: var(--on-yellow-2);
+  letter-spacing: -0.012em;
+  line-height: 1.26;
+  text-wrap: pretty;
 }
 /* the three systems, under the title: the system pages' "Also" row */
 .fco-also {
@@ -213,11 +215,12 @@
   font-size: var(--t-small);
   font-weight: 600;
 }
+
 .fs-row__tag {
   font-size: var(--t-small);
   font-weight: 700;
 }
-/* the name in the row, struck once its block has gone */
+/* the row's name: an index back into the story */
 .fs-row__name {
   position: relative;
   margin-right: auto;
@@ -225,17 +228,6 @@
   font-weight: 750;
   letter-spacing: -0.03em;
   white-space: nowrap;
-}
-.fs-row__name::after {
-  content: '';
-  position: absolute;
-  left: -3px;
-  right: -3px;
-  top: 54%;
-  height: 2px;
-  background: currentColor;
-  transform: scaleX(var(--s, 0));
-  transform-origin: left;
 }
 .fs-row:hover .fs-row__name,
 .fs-row:focus-visible .fs-row__name {
@@ -298,11 +290,6 @@
   inset: 0;
 }
 
-/* a box's words: left, or set to the far side where the box says so */
-.fs-cell.is-end .fs-cell__in {
-  align-items: flex-end;
-  text-align: right;
-}
 .fs-label {
   display: flex;
   align-items: center;
@@ -315,9 +302,6 @@
   width: 7px;
   height: 7px;
   background: currentColor;
-}
-.fs-cell.is-end .fs-label {
-  flex-direction: row-reverse;
 }
 
 /* name, what it is, and (at the foot of the box) why it was used */
@@ -356,8 +340,7 @@
 
 /* the photograph, framed in its box with room round it: it grows out of its top left corner as the
    block comes up and shrinks back into it as the block goes, its size read out at the corner it is
-   pulled by, two construction lines running on from there; on the way out it is crossed out in
-   yellow and greys */
+   pulled by, two construction lines running on from there */
 .fs-photo {
   /* its frame's width over its height: 4 : 3 unless the photograph says otherwise */
   --ar: 1.333;
@@ -377,20 +360,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: grayscale(var(--x, 0));
 }
-.fs-photo__cross {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 125%;
-  height: 3px;
-  margin-top: -1.5px;
-  background: var(--yellow);
-  box-shadow: 0 0 0 1px rgb(8 8 8 / 0.35);
-  transform: rotate(36.87deg) scaleX(var(--x, 0));
-  transform-origin: 0 50%;
-}
+
 .fs-photo__dot {
   position: absolute;
   left: -3px;
@@ -451,7 +422,7 @@
   display: none;
 }
 
-/* RTARIUM: its name, very large; what it is, set to the other corner */
+/* RTARIUM: its name, very large; what it is under it */
 .fs-block--last .fs-cell--name .fs-cell__in {
   justify-content: space-between;
 }
@@ -464,28 +435,15 @@
   line-height: 0.86;
 }
 .fs-block--last .fs-full {
-  align-self: flex-end;
   margin-top: 0;
   font-size: var(--t-lead);
   color: var(--black);
 }
-/* what it replaces: the rows come to rest here */
-.fs-docks {
-  display: grid;
-  width: calc(100% + 2 * var(--pad));
-  margin: auto calc(-1 * var(--pad)) calc(-1 * var(--pad));
-}
-.fs-dock {
-  height: var(--row);
-}
-.fs-block--last .fs-cell--replaces .fs-cell__in {
-  padding-bottom: 0;
-}
-/* why it replaces them, along the foot: the label to one side, the words to the other */
+
+/* why it replaces them, along the foot: the label, then the words, left to right */
 .fs-block--last .fs-cell--claim .fs-cell__in {
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
   gap: var(--s-6);
   padding-block: 0;
 }
@@ -493,12 +451,10 @@
   flex: none;
 }
 .fs-claim {
-  max-width: 34ch;
-  font-size: clamp(1.15rem, min(30cqh, 2.4cqw), 2.1rem);
+  font-size: clamp(1.15rem, min(30cqh, 2.2cqw), 2.1rem);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
-  text-align: right;
   text-wrap: balance;
 }
 
@@ -607,6 +563,11 @@
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
   .fco-head {
     top: calc(var(--nav-h) + 20px);
+    right: var(--gutter);
+    max-width: none;
+  }
+  .fco-head__name {
+    font-size: clamp(2.3rem, 10.4vw, 3.6rem);
   }
   .fco-hero__copy {
     right: var(--gutter);
@@ -614,7 +575,7 @@
     bottom: clamp(28px, 6vh, 56px);
   }
   .fco-mega {
-    font-size: clamp(2.6rem, 12.4vw, 5rem);
+    font-size: clamp(1.5rem, 6.6vw, 2.4rem);
   }
   .fco-cue {
     display: none;
@@ -662,7 +623,6 @@
   }
   .fs-claim {
     font-size: clamp(1rem, min(26cqh, 5cqw), 1.25rem);
-    text-align: left;
   }
   .fct__canvas {
     height: 24svh;

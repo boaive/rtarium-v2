@@ -4,18 +4,17 @@ import '../../facade/rainscreen.css'
 import '../data.css'
 import '../semi.css'
 import { setShared, type Ground } from '../../three/stageStore'
-import { scrollToY } from '../../lib/scroll'
 import { FacadePage, usePageMeta } from '../../facade/Shell'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
 import { createBus } from '../../facade/three/kit'
 import { useLive } from '../../facade/unitized/live'
-import { Problems, type Problem, type SampleOf } from '../data/Problems'
+import { Problems, type Problem } from '../data/Problems'
 import { CARBON_BAND, Voices, type Band } from '../data/Voices'
 import { More } from '../data/More'
 import { Hero } from '../semi/Hero'
 import { Stage, type SceneOf, type Step } from '../semi/Stage'
+import { FailStage, type FailSceneOf, type Reason } from '../FailStage'
 import { FloorFrame } from '../semi/FloorFrame'
-import { CardSample, type CardKind } from '../semi/three/CardSample'
 import { THREAT_CUTS, ThreatScene } from '../semi/three/ThreatScene'
 import { BuildScene } from '../semi/three/BuildScene'
 import { BuildUp } from '../semi/three/BuildUp'
@@ -25,10 +24,10 @@ import { BuildUp } from '../semi/three/BuildUp'
  * taking turns:
  *
  *   the opening    yellow: a piece of a cleanroom's floor on its waffle slab, a process tool drawn on it
- *   three failures yellow rising to black: micro-vibration, cleanroom dust, chemicals and ESD, each a
- *                  card struck and answered in place
- *   the problem    black, its bar red, pinned: the nanometre a fab prints to, the tremor from the floor
- *                  that loses a die, the plant under the slab, the vapour and dust a screed lets through
+ *   three failures black, one screen: conventional screed against RTARIUM on micro-vibration, cleanroom
+ *                  dust, chemicals and ESD, in one table
+ *   the problem    black, one screen: the nanometre a fab prints to, the tremor from the floor that loses
+ *                  a die, the plant under the slab, the vapour and dust a screed lets through, in one list
  *   yield kept     yellow, pinned: how RTARIUM's floor answers each threat, in seven steps from the slab
  *   frame to floor warm white, pinned: the floor grows into the cleanroom, the fab drawn round it
  *   sign-offs      warm white: what it means for the consultant, the owner and the contractor, then
@@ -49,49 +48,33 @@ const PROBLEMS: Problem[] = [
     id: 'vibration',
     name: 'Micro-vibration',
     problem: 'Building vibration misaligns lithography tools and destroys whole batches of wafers.',
-    tab: 'A monolithic damper',
     head: 'Damped at the slab.',
     line: '80 mm RC and 20 mm RTARIUM bond into one shock absorber, raising the floor’s damping ratio.',
-    photos: [
-      { src: '/img/flooring/sc-cleanroom.webp', alt: 'The cleanroom of a semiconductor plant under yellow light, its process tools along the walls', credit: 'Photo: NASA, public domain' },
-      { src: '/img/shoot/mesh-macro.webp', alt: 'RTARIUM basalt mesh, close up' },
-    ],
   },
   {
     id: 'dust',
     name: 'Cleanroom dust',
     problem: 'Screeds delaminate over time, shedding fine dust that overwhelms the filters.',
-    tab: 'Dense, non-dusting',
     head: 'Dense. Zero dust.',
     line: 'An exceptionally dense surface matrix that will not dust under mechanical stress.',
-    photos: [
-      { src: '/img/flooring/sc-ffu.webp', alt: 'A cleanroom under construction: the fan-filter ceiling grid over a bare floor', credit: 'Photo: Rudolf Simon, M+W Group, CC BY-SA 2.0 DE' },
-      { src: '/img/flooring/dc-site-gloss.webp', alt: 'A long, level strip of freshly laid RTARIUM screed, glossy, between the columns of a hall' },
-    ],
   },
   {
     id: 'esd',
     name: 'Chemicals & ESD',
     problem: 'Washdowns crack and blister resin top-coats, breaking the path to ground.',
-    tab: 'An unbroken path to ground',
     head: 'Stable under the coat.',
     line: 'A chemical-resistant sub-base: no cracking, no bubbling, a continuous path to ground.',
-    photos: [
-      { src: '/img/flooring/sc-wetbench.webp', alt: 'Two people in cleanroom suits at a wet bench under orange light', credit: 'Photo: UCL MAPS, CC BY 2.0' },
-      { src: '/img/flooring/dc-site-strip.webp', alt: 'A strip of RTARIUM screed, finished, on the slab of a building under construction', pos: '30% 50%' },
-    ],
   },
 ]
 const CLOSE = ['Micro-vibration arrested.', 'Zero dust.', 'Continuous ESD.']
-const sample: SampleOf = (id, solved, live) => <CardSample kind={id as CardKind} solved={solved} live={live} />
 
-/* The client's scenes 1 and 2, in five steps. */
-const THREAT: Step[] = [
-  { id: 'standard', name: 'The nano-scale standard', head: ['Printed to', 'the nanometre'], line: 'EUV scanners print circuits onto silicon wafers, under amber light.', labels: ['scanner', 'amhs'] },
-  { id: 'line', name: 'The laser line', head: ['One line,', 'held still'], line: 'The beam must hold its place while every line is printed.', labels: ['line'] },
-  { id: 'shock', name: 'The shockwave', head: ['A tremor', 'from the floor'], line: 'A micro-vibration reaches the stage. The line blurs; the die is lost.', labels: ['wave', 'defect'] },
-  { id: 'under', name: 'Under the floor', head: ['Pumps, chillers,', 'slab creep'], line: 'Plant shakes the slab, and a brittle topping passes all of it up.', labels: ['plant', 'topping'] },
-  { id: 'dust', name: 'Vapour and dust', head: ['Vapour in,', 'dust out'], line: 'Moisture rises through the concrete; the screed sheds cement dust at its joints.', labels: ['vapour', 'dust'] },
+/* The client's scenes 1 and 2, as five reasons. */
+const THREAT: Reason[] = [
+  { id: 'standard', name: 'Printed to the nanometre', line: 'EUV scanners print circuits onto silicon wafers, under amber light.', labels: ['scanner', 'amhs'] },
+  { id: 'line', name: 'One line, held still', line: 'The beam must hold its place while every line is printed.', labels: ['line'] },
+  { id: 'shock', name: 'A tremor from the floor', line: 'A micro-vibration reaches the stage. The line blurs; the die is lost.', labels: ['wave', 'defect'] },
+  { id: 'under', name: 'Pumps, chillers, slab creep', line: 'Plant shakes the slab, and a brittle topping passes all of it up.', labels: ['plant', 'topping'] },
+  { id: 'dust', name: 'Vapour in, dust out', line: 'Moisture rises through the concrete; the screed sheds cement dust at its joints.', labels: ['vapour', 'dust'] },
 ]
 const THREAT_LABELS: LabelSpec[] = [
   { id: 'scanner', anchor: 'tt-scanner', text: 'EUV scanner', dx: 70, dy: -60 },
@@ -107,20 +90,20 @@ const THREAT_LABELS: LabelSpec[] = [
 
 /* The client's scenes 3 to 8, the first two of scene 3's actions taken as one step. */
 const BUILD: Step[] = [
-  { id: 'grind', name: 'Diamond ground', head: ['Diamond', 'ground'], line: 'The old topping cleared, the slab ground to a clean CSP-4 profile.', labels: ['csp', 'grinder'] },
-  { id: 'seal', name: 'Sealed and set out', head: ['Sealed,', 'set to a laser'], line: 'An epoxy vapour barrier, then height buttons set to a laser grid, to the millimetre.', labels: ['barrier', 'laser', 'button'] },
-  { id: 'mesh', name: 'RTARIUM mesh', head: ['10 mm', 'RTARIUM mesh'], line: 'Set on the buttons and locked in the centre: 5 mm below, 5 mm above.', labels: ['mesh', 'low', 'mid', 'up'] },
+  { id: 'grind', name: 'Prepare the slab', head: ['Prepare', 'the slab'], line: 'Remove the old topping and grind the slab to a clean CSP-4 profile.', labels: ['csp', 'grinder'] },
+  { id: 'seal', name: 'Set the barrier and levels.', head: ['Set the barrier', 'and levels.'], line: 'Apply an epoxy vapour barrier, then position the height buttons using a laser grid for millimetre-level accuracy.', labels: ['barrier', 'laser', 'button'] },
+  { id: 'mesh', name: 'Lay the RTARIUM mesh', head: ['Lay the', 'RTARIUM mesh'], line: 'Set the mesh on the height buttons and secure it at the centre, leaving 5 mm of cover below and 5 mm above.', labels: ['mesh', 'low', 'mid', 'up'] },
   {
     id: 'pour',
-    name: 'Self-levelling pour',
-    head: ['Graphene', 'self-levelling'],
-    line: '800 mm slump flow from an enclosed mixer-pump. No pockets, no seams.',
+    name: 'Pump the self-levelling screed',
+    head: ['Pump the self-', 'levelling screed'],
+    line: 'Pump graphene concrete using an enclosed mixer-pump, achieving an 800 mm slump flow for consistent delivery without pockets or seams.',
     labels: ['pump', 'flow'],
     clip: { src: '/video/dc-pour.mp4', poster: '/video/dc-pour.jpg', label: 'On site: concrete pumped onto the floor through the hose' },
   },
-  { id: 'pore', name: 'Pore-refined cure', head: ['Pore-refined', 'as it cures'], line: 'Graphene seals the capillaries: nothing left to outgas or dust.', labels: ['pores'] },
-  { id: 'flat', name: 'Jointless, ground flat', head: ['Jointless,', 'ground flat'], line: 'One monolithic plate, ground ultra-flat for the cleanroom.', labels: ['grinder5', 'joint'] },
-  { id: 'esd', name: 'ESD armour', head: ['Cleanroom', 'armour'], line: 'A conductive primer, a copper grounding grid, a high-gloss ESD top coat.', labels: ['cond', 'tape', 'coat'] },
+  { id: 'pore', name: 'Allow the surface to cure', head: ['Allow the', 'surface to cure'], line: 'As the concrete cures, graphene helps seal the capillaries, reducing the potential for outgassing and dust formation.', labels: ['pores'] },
+  { id: 'flat', name: 'Grind the surface to a level finish', head: ['Grind the surface', 'to a level finish'], line: 'Create a single monolithic plate and grind it to an ultra-flat finish suitable for cleanroom environments.', labels: ['grinder5', 'joint'] },
+  { id: 'esd', name: 'Apply the ESD coating', head: ['Apply the', 'ESD coating'], line: 'Apply a conductive primer, followed by a copper grounding grid and a high-gloss ESD top coat.', labels: ['cond', 'tape', 'coat'] },
 ]
 const BUILD_LABELS: LabelSpec[] = [
   { id: 'csp', anchor: 'sb-csp', text: 'CSP-4 profile', dx: 60, dy: 80 },
@@ -142,7 +125,7 @@ const BUILD_LABELS: LabelSpec[] = [
   { id: 'coat', anchor: 'sb-coat', text: 'High-gloss ESD top coat', dx: 60, dy: -90 },
 ]
 
-const threatScene: SceneOf = (t, bus, compact, room, live) => <ThreatScene t={t} bus={bus} compact={compact} room={room} live={live} />
+const threatScene: FailSceneOf = (t, bus, compact, room, live) => <ThreatScene t={t} bus={bus} compact={compact} room={room} live={live} />
 const buildScene: SceneOf = (t, bus, compact, room) => <BuildScene t={t} bus={bus} compact={compact} room={room} />
 
 /* The client's messages for the three people who sign the floor off, then the sustainability win. */
@@ -230,51 +213,42 @@ export default function SemiconductorPlant() {
     }
   }, [])
 
-  const back = (
-    <button
-      type="button"
-      className="fu-bar__back"
-      onClick={() => {
-        const el = document.getElementById('threat')
-        if (el) scrollToY(el.getBoundingClientRect().top + window.scrollY)
-      }}
-    >
-      Back to the problem
-    </button>
-  )
-
   return (
     <FacadePage>
       <div className="fu" data-ground="yellow">
         <Hero sectionRef={hero} />
       </div>
-      <div className="fu">
-        <Problems problems={PROBLEMS} close={CLOSE} sample={sample} />
+      <div className="fu" data-ground="black">
+        <Problems
+          problems={PROBLEMS}
+          close={CLOSE}
+          title={
+            <>
+              Traditional screeds were not built for this. <b>RTARIUM was built for this.</b>
+            </>
+          }
+        />
       </div>
       <div className="fu" data-ground="black">
-        <Stage
+        <FailStage
           id="threat"
           title="Where yield is lost"
-          steps={THREAT}
-          stretch={[1.3, 1.4, 1.5, 1.5, 1.5]}
+          label="How a fab floor fails"
+          reasons={THREAT}
           labels={THREAT_LABELS}
-          tone="black"
-          barLabel="How a fab floor fails"
-          fallback={<img className="fu-still" src="/img/flooring/sc-cleanroom.webp" alt="" />}
           scene={threatScene}
           cuts={THREAT_CUTS}
+          fallback={<img className="fu-still" src="/img/flooring/sc-cleanroom.webp" alt="" />}
         />
       </div>
       <div className="fu" data-ground="yellow">
         <Stage
           id="build"
-          title="How yield is kept"
+          title="How yield is maintained"
           steps={BUILD}
           stretch={[1.4, 1.5, 1.5, 1.7, 1.5, 1.4, 1.6]}
           labels={BUILD_LABELS}
-          tone="yellow"
           barLabel="How the floor is built"
-          after={back}
           fallback={<img className="fu-still" src="/img/flooring/dc-site-strip.webp" alt="" />}
           scene={buildScene}
         />

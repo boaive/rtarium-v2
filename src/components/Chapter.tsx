@@ -26,7 +26,7 @@ const STILLS: Partial<Record<PoseId, string>> = {
  * (see Ground). Each step's copy lags the scroll a little (`--o`, -1 below .. 0 in place .. 1
  * above), so screens slide rather than cut. Reaching a step (it holds the middle of the screen)
  * plays its sequence in time: words rise one by one, figures count, the mesh glides to its pose.
- * The wheel is never captured; each step is a snap point.
+ * The wheel is never captured and nothing snaps: the page stops where the visitor stops.
  */
 
 export interface Step {
@@ -143,7 +143,7 @@ const DRIFT = 0.28
  * ways; its ground comes in along the same edge (see Ground). Under every slide is one view of the
  * mesh that travels continuously from one step's pose to the next (`Region.blend`), so the mesh
  * never cuts. A step with nothing to draw (footage) holds the pose before it under its film.
- * Reaching a step plays its sequence in time, as on the vertical chapters; each step is a snap point.
+ * Reaching a step plays its sequence in time, as on the vertical chapters.
  */
 export function Track({ id, title, steps, className = '' }: { id: string; title: string; steps: Step[]; className?: string }) {
   const section = useRef<HTMLElement>(null)

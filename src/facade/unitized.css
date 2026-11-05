@@ -45,72 +45,49 @@
   position: absolute;
   z-index: 3;
   left: var(--gutter);
-  top: calc(var(--nav-h) + clamp(28px, 6vh, 72px));
+  top: calc(var(--nav-h) + clamp(20px, 4.4vh, 56px));
   display: grid;
-  gap: 6px;
+  gap: clamp(10px, 2vh, 18px);
+  max-width: min(62rem, 50vw);
   animation: rise 0.8s var(--ease-out) 0.2s both;
 }
+/* what the page is about, first and largest; the line under it follows, a step down */
 .fu-hero__name {
-  font-size: var(--t-lead);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
+  font-size: var(--t-title);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.96;
+  text-wrap: balance;
 }
 .fu-hero__kind {
-  max-width: 19rem;
-  font-size: var(--t-small);
+  max-width: 27em;
+  font-size: var(--t-kind);
   font-weight: 500;
-  line-height: 1.4;
-  color: var(--on-yellow-2);
+  letter-spacing: -0.012em;
+  line-height: 1.26;
+  text-wrap: pretty;
 }
 .fu-hero__foot {
   position: absolute;
   z-index: 3;
   left: var(--gutter);
-  bottom: clamp(40px, 9vh, 104px);
+  bottom: clamp(36px, 8vh, 96px);
   display: grid;
-  gap: clamp(20px, 3.4vh, 36px);
-  max-width: min(52rem, 56vw);
+  gap: clamp(12px, 2.2vh, 22px);
+  max-width: min(44rem, 50vw);
 }
 .fu-mega {
-  font-size: clamp(3rem, min(6.2vw, 11.5vh), 8rem);
-  font-weight: 800;
-  letter-spacing: -0.055em;
-  line-height: 0.9;
+  font-size: var(--t-line);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
 }
 .fu-hero .word__in {
   animation: word-in 0.8s var(--ease-out) both;
   animation-delay: calc(0.35s + var(--w, 0) * 90ms);
 }
-/* the other two systems: a quiet line of underlined names */
-.fu-hero__also {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 22px;
-  font-size: var(--t-small);
-  font-weight: 600;
-  animation: rise 0.8s var(--ease-out) 1.1s both;
-}
-.fu-hero__also span {
-  color: var(--on-yellow-2);
-  font-weight: 500;
-}
-.fu-hero__also a {
-  color: var(--black);
-  text-decoration: underline;
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 0.24em;
-}
-.fu-hero__also a:hover {
-  text-decoration-thickness: 2.5px;
-}
-.fu-hero__also a:focus-visible {
-  outline: 2px solid var(--black);
-  outline-offset: 4px;
-}
 
-/* ---- boxes that open out of a corner (six layers, four problems) ----------------------------- */
+/* ---- boxes that open out of a corner (six layers) ------------------------------------------- */
 
 .fu-box {
   --k: 1;
@@ -494,22 +471,22 @@
   width: min(100%, 1180px);
 }
 
-/* ---- four problems, on black: the existing technology on an open stage -------------------------- */
+/* ---- problems, on black, on one screen: all of them at a glance, the 3D playing each in turn --------- */
 
 .fu-flaws {
   position: relative;
-  height: calc(var(--run, 3) * 100svh);
+  height: 100svh;
+  min-height: 600px;
   background: var(--black);
   color: var(--yellow);
 }
 .fu-flaws__pin {
-  --top: calc(var(--nav-h) + clamp(20px, 4vh, 44px));
-  --foot: clamp(28px, 6vh, 64px);
-  --soft: rgb(242 240 233 / 0.62);
-  --hair: rgb(242 240 233 / 0.14);
-  position: sticky;
-  top: 0;
-  height: 100svh;
+  --top: calc(var(--nav-h) + clamp(14px, 3vh, 36px));
+  --foot: clamp(24px, 5vh, 56px);
+  --soft: rgb(242 240 233 / 0.66);
+  --hair: rgb(242 240 233 / 0.16);
+  position: relative;
+  height: 100%;
   overflow: hidden;
 }
 /* the panel stands in the open on the right, under a soft light from above */
@@ -531,183 +508,103 @@
 .fu-flaws__stage:active {
   cursor: grabbing;
 }
-/* the title, the cards and their meter, in the left column */
+/* a scene that fits itself to the room right of the words (the flooring pages): its canvas fills the screen */
+.fu-flaws__stage--full {
+  left: 0;
+  background: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+  cursor: default;
+}
 .fu-flaws__copy {
   position: absolute;
   z-index: 2;
   left: var(--gutter);
   top: var(--top);
-  bottom: calc(var(--foot) + 56px);
+  bottom: var(--foot);
   display: flex;
   flex-direction: column;
-  gap: clamp(20px, 3.6vh, 40px);
-  width: min(32rem, 34vw);
+  gap: clamp(14px, 2.8vh, 30px);
+  width: min(42rem, 38vw);
 }
 .fu-flaws__title {
-  font-size: clamp(2.2rem, min(3.8vw, 6.6vh), 4.2rem);
+  font-size: clamp(1.9rem, min(3.4vw, 6vh), 3.8rem);
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 0.98;
 }
-/* the problems' cards: graphite under a soft sheen, warm white words, the current one marked at its corner */
-.fu-deck--flaws {
-  --n: 4;
-  --tab: clamp(60px, 7.8vh, 76px);
-  --shrink: 0.045;
-  --card: #1c1c1b;
-  --card-ink: var(--white);
-  --card-2: #9a978f;
-  --card-edge: rgb(242 240 233 / 0.12);
-  --lift: 0 -14px 30px -14px rgb(0 0 0 / 0.95);
-  --ground: var(--black);
-  --recede: 14%;
+/* the list: every problem in view; the one the 3D is showing lit */
+.fu-flaw-list {
   flex: 1 1 auto;
   min-height: 0;
+  display: grid;
+  grid-auto-rows: minmax(0, 1fr);
+  border-bottom: 1px solid var(--hair);
+}
+.fu-flaw {
+  border-top: 1px solid var(--hair);
+}
+.fu-flaw__btn {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  align-content: center;
+  gap: 2px 0;
   width: 100%;
+  height: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-.fu-deck--flaws .fu-card {
-  background-image: linear-gradient(160deg, rgb(242 240 233 / 0.05), transparent 46%);
-}
-.fu-deck--flaws .fu-card[data-current]::after {
-  content: '';
-  position: absolute;
-  inset: calc(var(--edge) * -1);
-  border-top: 1px solid var(--yellow);
-  border-left: 1px solid var(--yellow);
-  -webkit-mask-image: linear-gradient(135deg, #000 0, #000 14%, transparent 42%);
-  mask-image: linear-gradient(135deg, #000 0, #000 14%, transparent 42%);
-  pointer-events: none;
-}
-.fu-deck--flaws .fu-card__head {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 4px;
-}
-.fu-card__count {
+.fu-flaw__num {
   font-size: var(--t-micro);
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--card-2);
-}
-.fu-card__count b {
-  font-weight: 700;
-  color: var(--yellow);
-}
-.fu-deck--flaws .fu-card__name {
   font-weight: 600;
-  color: color-mix(in srgb, var(--card-2) calc(var(--cover) * 100%), var(--card-ink));
+  line-height: 1.7;
+  color: var(--soft);
+  transition: color var(--d-fast) var(--ease-out);
 }
-.fu-deck--flaws .fu-card__body {
-  padding-left: var(--pad-x);
-  color: var(--card-2);
+.fu-flaw__name {
+  font-size: clamp(1.02rem, min(1.55vw, 2.9vh), 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--white);
+  transition: color var(--d-fast) var(--ease-out);
 }
-.fu-card__strike {
-  position: absolute;
-  left: -3px;
-  right: -3px;
-  top: 54%;
-  height: 1.5px;
-  background: currentColor;
-  transform: scaleX(var(--cover, 0));
-  transform-origin: left;
-}
-/* how far through the four: a mark per problem, filling yellow as it comes in, and the count */
-.fu-meter {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.fu-meter__mark {
-  position: relative;
-  width: clamp(36px, 3.6vw, 60px);
-  height: 2px;
-  background: var(--hair);
-}
-.fu-meter__mark::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--yellow);
-  transform: scaleX(var(--f, 0));
-  transform-origin: left;
-}
-.fu-meter__count {
-  margin-left: 10px;
+.fu-flaw__line {
+  grid-column: 2;
   font-size: var(--t-small);
   font-weight: 500;
+  line-height: 1.3;
   color: var(--soft);
 }
-.fu-meter__count b {
-  font-weight: 700;
+.fu-flaw[data-now] .fu-flaw__num,
+.fu-flaw[data-now] .fu-flaw__name {
   color: var(--yellow);
 }
-/* with the last problem: a quiet way on to the answers, at the foot of the left column */
-.fu-flaws__next {
-  position: absolute;
-  z-index: 2;
-  left: var(--gutter);
-  bottom: var(--foot);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 24px;
-  font-size: var(--t-small);
-  font-weight: 600;
-  color: var(--on-dark-2);
-  opacity: 0;
+.fu-flaw__btn:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
 }
-.fu-flaws__next::before {
-  content: '';
-  width: 1.5px;
-  height: 22px;
-  background: var(--yellow);
-  transform-origin: top;
-  animation: cue 2.2s var(--ease-in-out) infinite both;
-}
-/* what is shown, under the panel: rows on hairlines, a short rule between the key and its value */
-.fu-block {
+/* the one thing to do here, as a nudge beside the panel */
+.fu-nudge {
   position: absolute;
   z-index: 2;
   right: var(--gutter);
   bottom: var(--foot);
-  width: min(46vw, 700px);
-  margin: 0;
-  border-bottom: 1px solid var(--hair);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: var(--t-micro);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.fu-block__row {
-  display: flex;
-  align-items: center;
-  min-height: clamp(38px, 5vh, 48px);
-  border-top: 1px solid var(--hair);
-}
-.fu-block dt {
-  flex: none;
-  width: 15em;
-  font-weight: 500;
   color: var(--soft);
+  transition: opacity var(--d-slow) var(--ease-out);
 }
-.fu-block dd {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  margin: 0;
-  color: var(--white);
-}
-.fu-block dd::before {
-  content: '';
-  width: 22px;
-  height: 1px;
-  background: var(--soft);
-}
-.fu-block__row--now dd {
-  font-weight: 700;
-  color: var(--yellow);
+.fu-nudge.is-gone {
+  opacity: 0;
 }
 
 /* ---- the answers, on yellow: one pinned stage (EnduroSat's satellite) ------------------------- */
@@ -804,6 +701,7 @@
   margin-left: 0.06em;
   font-size: 0.34em;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 .fu-ans__figure .fu-ans__upto {
   align-self: flex-start;
@@ -922,21 +820,26 @@
 .fu-bar__face {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
   height: 100%;
-  padding: 0 13px;
+  padding: 0 11px;
   font-size: var(--t-micro);
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1.14;
 }
 .fu-bar__face .num {
   flex: none;
   font-weight: 600;
   opacity: 0.72;
 }
+/* a long name takes two lines rather than being cut; it fades as its cell closes */
 .fu-bar__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-wrap: balance;
   opacity: calc(1 - var(--c) * 1.8);
 }
 .fu-bar__face--fill {
@@ -947,13 +850,18 @@
   clip-path: inset(0 calc((1 - var(--f)) * 100%) 0 0);
 }
 .fu-bar__btn:focus-visible,
-.fu-bar__back:focus-visible {
+.fu-bar__skip:focus-visible {
   outline: 2px solid var(--black);
   outline-offset: 3px;
 }
-.fu-bar__back {
+/* the way past the section: as plain as the bar it ends, its arrow pointing on down the page */
+.fu-bar__skip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   min-height: var(--bar-h);
-  padding: 0;
+  padding: 0 2px;
   border: 0;
   background: none;
   color: var(--black);
@@ -961,13 +869,16 @@
   font-size: var(--t-small);
   font-weight: 700;
   white-space: nowrap;
-  text-decoration: underline;
-  text-underline-offset: 0.22em;
-  text-decoration-thickness: 1.5px;
   cursor: pointer;
 }
+.fu-bar__skip svg {
+  transition: transform var(--d-fast) var(--ease-out);
+}
+.fu-bar__skip:hover svg {
+  transform: translateY(3px);
+}
 
-/* ---- made face down --------------------------------------------------------------------------- */
+/* ---- inverted casting ------------------------------------------------------------------------- */
 
 /* less below: the next section is the two more ways, whose models take that room under its line */
 .fu-made {
@@ -1120,13 +1031,20 @@
   .fu-hero__head {
     top: calc(var(--nav-h) + 20px);
   }
+  .fu-hero__head {
+    max-width: none;
+    right: var(--gutter);
+  }
+  .fu-hero__name {
+    font-size: clamp(2.3rem, 10.4vw, 3.6rem);
+  }
   .fu-hero__foot {
     max-width: none;
     right: var(--gutter);
     bottom: 36px;
   }
   .fu-mega {
-    font-size: clamp(2.4rem, 11vw, 4rem);
+    font-size: clamp(1.5rem, 6.6vw, 2.4rem);
   }
 
   .fu-layers__pin {
@@ -1139,17 +1057,24 @@
   .fu-layers__copy {
     order: 2;
   }
-  .fu-layers__title,
-  .fu-flaws__title {
+  .fu-layers__title {
     display: none;
   }
   .fu-sheet__box {
     height: 42svh;
   }
-  /* problems on a phone: the panel at the top, what it shows under it, then the cards */
+  /* problems on a phone: the 3D at the top, the list under it */
+  .fu-flaws {
+    height: auto;
+    min-height: 100svh;
+  }
   .fu-flaws__pin {
-    --stage-h: 38svh;
-    --foot: 18px;
+    --stage-h: 34svh;
+    --foot: 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+    padding: calc(var(--nav-h) + var(--stage-h)) var(--gutter) var(--foot);
   }
   .fu-flaws__stage {
     left: 0;
@@ -1157,38 +1082,25 @@
     bottom: auto;
     height: var(--stage-h);
   }
-  .fu-block {
-    left: var(--gutter);
-    right: var(--gutter);
-    top: calc(var(--nav-h) + var(--stage-h));
-    bottom: auto;
-    width: auto;
-  }
-  .fu-block__row {
-    min-height: 30px;
-  }
-  .fu-block dt {
-    width: 11em;
-  }
-  .fu-block dd {
-    gap: 12px;
-  }
-  .fu-block dd::before {
-    width: 12px;
-  }
-  .fu-block__hint,
-  .fu-flaws__next {
-    display: none;
+  .fu-flaws__stage--full {
+    top: 0;
+    height: 100%;
   }
   .fu-flaws__copy {
-    top: calc(var(--nav-h) + var(--stage-h) + 76px);
-    right: var(--gutter);
-    bottom: var(--foot);
+    position: relative;
+    inset: auto;
     width: auto;
-    gap: 14px;
+    flex: 1;
+    gap: 12px;
   }
-  .fu-deck--flaws {
-    --tab: 54px;
+  .fu-flaw-list {
+    grid-auto-rows: auto;
+  }
+  .fu-flaw__btn {
+    padding: 9px 0;
+  }
+  .fu-nudge {
+    display: none;
   }
   .fu-box__x,
   .fu-box__y,
@@ -1277,9 +1189,6 @@
   }
   .fu-bar__list {
     gap: 4px;
-  }
-  .fu-bar__back {
-    display: none;
   }
 
   .fu-made__steps {

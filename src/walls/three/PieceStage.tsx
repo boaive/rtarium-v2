@@ -10,17 +10,17 @@ import { PW } from './piece'
 import { between, fit, type Box, type Room } from './fit'
 
 /**
- * The panels (Wall Panels), on the pinned yellow screen: the whole panel of the client's 30 mm plan, 600 × 3600 mm (its GRP
+ * The panels (Wall Panels), in their black studio box: the whole panel of the client's 30 mm plan, 600 × 3600 mm (its GRP
  * grid, its four ferrules and four tie holes exactly as drawn: owner, 3 Nov 2026), in the middle of the room, the same
- * panel throughout. It stands on end, leaning a little and turned so its face is seen at an angle, and its layers burst
- * sideways, side by side, each a tall strip seen whole (the owner's sketch). The scroll is the clock, and the visitor can
- * stop anywhere:
+ * panel throughout. It stands on end, leaning a little and turned so its face is seen at an angle, and its layers stand
+ * apart sideways, side by side, each a tall strip seen whole (the owner's sketch). The page's scroll takes `t` through its
+ * sequence, resting at each panel opened (`STILL30`, `STILL100`):
  *
- *   the 30 mm panel, whole  →  it bursts: all its layers stand apart through its thickness at once  →  marked  →  it
- *   closes  →  it divides, the core goes in, it joins: the 100 mm panel  →  it bursts the same way  →  marked  →  it
- *   closes
+ *   the 30 mm panel, whole  →  it opens  →  rest  →  it closes  →  it divides, the core goes in, it joins: the 100 mm
+ *   panel  →  it opens  →  rest
  *
- * Every stretch of the scroll moves something; the camera keeps the piece, at every moment, inside its room.
+ * The part chosen in the table (`focus`) stays whole while the rest fades back; the camera keeps the piece, at every
+ * moment, inside its room.
  */
 
 export const PIECE_LEN = 3.6
@@ -39,6 +39,10 @@ export const RUN_AT = {
   marks100: [0.8, 0.95],
   close100: [0.955, 0.995],
 } as const
+
+/** where each panel rests, opened, its parts ready to be chosen */
+export const STILL30 = 0.145
+export const STILL100 = 0.795
 
 /** the parts each panel's list marks, in its order (the list's rows and the model's anchors) */
 export const ORDER30 = ['pp-cover', 'pp-tie', 'pp-ferrule', 'pp-zone', 'pp-grp', 'pp-back']
@@ -118,23 +122,49 @@ const VIEW = {
   open100: { box: turnedBox(2.3), azim: 0, elev: 16, fill: 0.97 },
 }
 
-export function PieceStage({ t, bus, room }: { t: Progress; bus: LabelBus; room: { current: Room } }) {
+/** the floor, under the foot of the layer that reaches lowest */
+const FLOOR_Y = -0.34
+
+export function PieceStage({ t, bus, room, focus, live }: { t: Progress; bus: LabelBus; room: { current: Room }; focus: { current: string | null }; live: { current: boolean } }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
   const reduced = useMemo(() => prefersReducedMotion(), [])
   const pose = useRef<PiecePose>({ stage: 0, burst: 0, open: 0, lit: {}, marking: 0 })
   const cur = useRef<Record<string, number> | null>(null)
+  /** how lit each part is, and how far the rest have faded back: eased towards the part chosen */
+  const held = useRef<{ lit: Record<string, number>; marking: number }>({ lit: {}, marking: 0 })
 
   useEffect(() => {
     const on = () => invalidate()
     t.listeners.add(on)
     return () => void t.listeners.delete(on)
   }, [t, invalidate])
+  // a part chosen asks for a frame from outside the canvas: look for it each time the box is drawn
+  const asked = useRef<string | null>(null)
+  useFrame(() => {
+    if (asked.current !== focus.current) {
+      asked.current = focus.current
+      invalidate()
+    }
+  })
 
   useFrame((_, delta) => {
     const p = Math.max(0, Math.min(1, t.value))
     piecePoseAt(p, pose.current)
+    // the part chosen stays whole, the rest fade back
+    const on = focus.current
+    const ease = reduced ? 1 : 1 - Math.exp(-9 * Math.min(delta, 1 / 20))
+    let fading = false
+    const toward = (v: number, to: number) => {
+      const next = Math.abs(to - v) < 1e-3 ? to : v + (to - v) * ease
+      if (next !== to) fading = true
+      return next
+    }
+    const h = held.current
+    for (const id of [...ORDER30, ...ORDER100]) pose.current.lit[id] = h.lit[id] = toward(h.lit[id] ?? 0, id === on ? 1 : 0)
+    pose.current.marking = h.marking = toward(h.marking, on ? 1 : 0)
+    if (fading && live.current) invalidate()
     const A = RUN_AT
     // the camera: whole → opened → whole → the change → whole → opened → whole, eased between
     const aspect = size.width / Math.max(1, size.height)
@@ -165,10 +195,16 @@ export function PieceStage({ t, bus, room }: { t: Progress; bus: LabelBus; room:
 
   return (
     <group>
-      <MovingKeyLight focus={CENTRE} reach={2.6} offset={[-3, 6, 6]} />
+      <MovingKeyLight focus={CENTRE} reach={3.4} offset={[-3, 6, 6]} />
+      {/* the studio floor, as the six layers' box has it: a fine grid that goes into the dark, and the shadows on it */}
+      <gridHelper args={[18, 36, '#2e2e2e', '#232323']} position={[CENTRE[0], FLOOR_Y - 0.002, CENTRE[2]]} />
+      <mesh position={[CENTRE[0], FLOOR_Y, CENTRE[2]]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[18, 18]} />
+        <shadowMaterial color="#000000" opacity={0.42} transparent depthWrite={false} />
+      </mesh>
       <group quaternion={TURN}>
         <group scale={[1, 1, THICK]}>
-          <PanelPiece len={L} pose={pose} bus={bus} wide={ACROSS} />
+          <PanelPiece len={L} pose={pose} bus={bus} wide={ACROSS} dark />
         </group>
       </group>
     </group>

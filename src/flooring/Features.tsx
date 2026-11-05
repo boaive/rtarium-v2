@@ -25,12 +25,12 @@ interface Feature {
 }
 
 const FEATURES: Feature[] = [
-  { id: 'web', name: '3D basalt web', head: ['3D basalt', 'web'], line: 'One continuous mineral grid. Beyond flat mesh and steel fibre.', labels: ['web'] },
-  { id: 'crack', name: 'Total crack suppression', head: ['Total crack', 'suppression'], line: 'The slab deflects. The screed goes with it, uncracked.', labels: ['load', 'joint'] },
-  { id: 'joint', name: 'Jointless floors', head: ['Jointless', 'floors'], line: 'No saw-cut joints. Larger open plates.', labels: ['plate'] },
+  { id: 'web', name: 'A 3D basalt mesh', head: ['A 3D basalt', 'mesh'], line: 'One continuous mineral grid. Beyond flat mesh and steel fibre.', labels: ['web'] },
+  { id: 'crack', name: 'Crack Resistant', head: ['Crack', 'Resistant'], line: 'When the slab deflects, the mesh holds the screed together.', labels: ['load', 'joint'] },
+  { id: 'joint', name: 'Jointless floors', head: ['Jointless', 'floors'], line: 'Larger, uninterrupted slabs, and smoother runs for wheels and robots.', labels: ['plate'] },
   { id: 'still', name: 'Vibration dampening', head: ['Vibration', 'dampening'], line: 'Micro-vibrations absorbed, for robots and cleanrooms.', labels: ['robot'] },
-  { id: 'rust', name: 'Zero rust', head: ['Zero rust', 'vulnerability'], line: 'Mineral through and through. No corrosion, no dusting.', labels: ['steel', 'mesh'] },
-  { id: 'carbon', name: 'Low-carbon', head: ['Low-carbon', 'infrastructure'], line: 'Far less embodied carbon in the build.', labels: ['carbon'] },
+  { id: 'rust', name: 'Non-corrosive', head: ['Non-corrosive', '\u00a0'], line: 'Mineral through and through. No corrosion, no dusting.', labels: ['steel', 'mesh'] },
+  { id: 'carbon', name: 'Low-carbon', head: ['Low-carbon', 'infrastructure'], line: 'Less concrete usage means less embodied carbon in the build.', labels: ['carbon'] },
 ]
 
 const LABELS: LabelSpec[] = [
@@ -203,18 +203,6 @@ export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
           step={step}
           onGo={goToFeature}
           cellRef={(k, el) => void (cells.current[k] = el)}
-          after={
-            <button
-              type="button"
-              className="fu-bar__back"
-              onClick={() => {
-                const el = document.getElementById('layer')
-                if (el) scrollToY(el.getBoundingClientRect().top + window.scrollY)
-              }}
-            >
-              Back to the layer
-            </button>
-          }
         />
       </div>
     </section>

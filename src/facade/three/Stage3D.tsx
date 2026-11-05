@@ -362,9 +362,10 @@ const gone = new WeakMap<HTMLElement, number>()
 /**
  * Writes each shown label's screen position after every frame the canvas draws. A label pushed in
  * from an edge keeps its leader on it; `bottom` keeps labels clear of what owns the foot of the
- * screen (a step bar). One going out keeps to its point while it fades.
+ * screen (a step bar), `top` of what owns its head (the header, unless the stage is a box of its
+ * own). One going out keeps to its point while it fades.
  */
-export function LabelProjector({ bus, bottom = EDGE }: { bus: LabelBus; bottom?: number }) {
+export function LabelProjector({ bus, bottom = EDGE, top: head }: { bus: LabelBus; bottom?: number; top?: number }) {
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
   useFrame(() => {
@@ -399,7 +400,7 @@ export function LabelProjector({ bus, bottom = EDGE }: { bus: LabelBus; bottom?:
       const x0 = x + t.dx - (left ? t.w : 0)
       const sx = x0 < EDGE ? EDGE - x0 : x0 + t.w > size.width - EDGE ? size.width - EDGE - (x0 + t.w) : 0
       const y0 = y + t.dy - t.h / 2
-      const top = Math.min(TOP, size.height * 0.2)
+      const top = head ?? Math.min(TOP, size.height * 0.2)
       const sy = y0 < top ? top - y0 : y0 + t.h > size.height - bottom ? size.height - bottom - (y0 + t.h) : 0
       el.style.setProperty('--sx', `${sx.toFixed(1)}px`)
       el.style.setProperty('--sy', `${sy.toFixed(1)}px`)

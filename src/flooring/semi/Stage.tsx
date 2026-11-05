@@ -8,7 +8,6 @@ import { StepBar } from '../../facade/unitized/StepBar'
 import { useLive } from '../../facade/unitized/live'
 import { Wake } from '../../facade/three/rain/lines'
 import type { BuildRoom } from '../data/three/BuildScene'
-import { cutFade } from './three/camera'
 
 /**
  * A pinned 3D stage in the Data & AI Centres build's form (the Unitized answers' stage): the words
@@ -17,9 +16,7 @@ import { cutFade } from './three/camera'
  * scene play it out; the camera moves only in the gap between steps, every shot fitted to the room,
  * so the 3D never leaves it. The scroll is the clock; nothing is held.
  *
- * The semiconductor page has two: the problem, on black with a red bar; the floor RTARIUM makes, on
- * yellow with the black bar. Where a step's scale is too far from the next one's (`cuts`), the 3D
- * dissolves out and back in rather than travel across the screen.
+ * The semiconductor page's floor, as RTARIUM makes it, on yellow with the black bar.
  */
 
 export interface Step {
@@ -32,8 +29,6 @@ export interface Step {
 }
 
 /** the stage's scene: its run as steps, the label bus, whether on a phone, the room it keeps to, whether on screen */
-const NO_CUTS: number[] = []
-
 export type SceneOf = (t: Progress, bus: LabelBus, compact: boolean, room: { current: BuildRoom }, live: { current: boolean }) => ReactNode
 
 export function Stage({
@@ -42,12 +37,9 @@ export function Stage({
   steps,
   stretch,
   labels,
-  tone,
   barLabel,
-  after,
   fallback,
   scene,
-  cuts = NO_CUTS,
 }: {
   id: string
   title: string
@@ -55,13 +47,9 @@ export function Stage({
   /** screens of scroll for each step */
   stretch: number[]
   labels: LabelSpec[]
-  tone: 'yellow' | 'black'
   barLabel: string
-  after?: ReactNode
   fallback: ReactNode
   scene: SceneOf
-  /** the steps k whose move on to k + 1 is a cut */
-  cuts?: number[]
 }) {
   const N = steps.length
   const { RUN, START } = useMemo(() => ({ RUN: stretch.reduce((a, b) => a + b, 0), START: stretch.map((_, k) => stretch.slice(0, k).reduce((a, b) => a + b, 0)) }), [stretch])
@@ -73,7 +61,6 @@ export function Stage({
   const videos = useRef<(HTMLVideoElement | null)[]>([])
   const cells = useRef<(HTMLLIElement | null)[]>([])
   const pin = useRef<HTMLDivElement>(null)
-  const stage = useRef<HTMLDivElement>(null)
   const room = useRef<HTMLDivElement>(null)
   const t = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
   const bus = useMemo(createBus, [])
@@ -121,8 +108,6 @@ export function Stage({
     let last = performance.now()
     let p = -1
     const place = () => {
-      const st = stage.current
-      if (st) st.style.opacity = reduced ? '' : cutFade(p, cuts).toFixed(3)
       steps.forEach((s, k) => {
         const f = p - k
         const w = words.current[k]
@@ -192,7 +177,7 @@ export function Stage({
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
     }
-  }, [t, steps, stretch, START, N, cuts])
+  }, [t, steps, stretch, START, N])
 
   /** scrolls to where step k has played out, its words still in place */
   const goToStep = (k: number) => {
@@ -203,19 +188,18 @@ export function Stage({
   }
 
   const shown = steps.find((s) => s.id === lit)?.labels ?? []
-  const dark = tone === 'black'
 
   return (
     <section
       ref={section}
       id={id}
-      className={`fu-ans fdc-build ${dark ? 'on-black fsc-dark' : 'on-yellow'}`}
-      data-ground={dark ? 'black' : 'yellow'}
+      className="fu-ans fdc-build fsc-build on-yellow"
+      data-ground="yellow"
       aria-labelledby={`${id}-title`}
       style={{ '--run': RUN } as CSSProperties}
     >
       <div ref={pin} className="fu-ans__pin">
-        <div ref={stage} className="fu-ans__stage" aria-hidden="true">
+        <div className="fu-ans__stage" aria-hidden="true">
           <Stage3D shadows fallback={fallback}>
             <Wake live={live} />
             {scene(t, bus, compact, space, live)}
@@ -249,7 +233,7 @@ export function Stage({
           ))}
         </div>
 
-        <StepBar label={barLabel} names={steps.map((s) => s.name)} step={step} onGo={goToStep} cellRef={(k, el) => void (cells.current[k] = el)} after={after} />
+        <StepBar label={barLabel} names={steps.map((s) => s.name)} step={step} onGo={goToStep} cellRef={(k, el) => void (cells.current[k] = el)} />
       </div>
     </section>
   )

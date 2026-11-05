@@ -38,22 +38,22 @@ const BANDS: Band[] = [
   {
     id: 'owner',
     role: 'Developer & Owner',
-    head: 'Zero structural maintenance.',
-    line: 'Zero out-dusting, and seamless vibration dampening to maximise server performance and facility uptime.',
+    head: 'Less to repair. Less downtime risk.',
+    line: 'A non-dusting surface and damped vibration help protect server performance and uptime.',
     media: { kind: 'photo', src: '/img/flooring/dc-aisle.webp', alt: 'A cold aisle between two rows of server racks in a data centre', credit: 'Photo: Robert Harker, CC BY-SA 3.0', pos: '50% 45%' },
   },
   {
     id: 'contractor',
     role: 'General Contractor',
-    head: 'Unmatched installation velocity.',
-    line: 'An 800 mm slump-flow pumpable mix that flows continuously around an easy-to-lay independent 3D mesh, slicing days off the project schedule.',
+    head: 'Quicker on site.',
+    line: 'A pumpable 800 mm slump-flow mix flows around an easy-to-lay 3D mesh, which can shorten the programme.',
     media: { kind: 'photo', src: '/img/flooring/dc-site-pump.webp', alt: 'RTARIUM on site: the mixer-pump, its hose across the slab and a crew levelling a strip of the floor', pos: '50% 50%' },
   },
   {
     id: 'carbon',
     role: 'Sustainability',
-    head: 'The global sustainability win.',
-    line: 'A GGBS and fly-ash green binder matrix paired with a low-embodied-carbon mineral mesh, helping the world’s tech giants hit their strict Scope 3 net-zero targets.',
+    head: 'A more sustainable approach to construction.',
+    line: 'Built around a GGBS and fly-ash binder matrix and a low-embodied-carbon mineral mesh, reducing the environmental impact of the flooring system.',
   },
 ]
 

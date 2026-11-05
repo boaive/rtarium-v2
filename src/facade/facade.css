@@ -172,7 +172,7 @@
 /* the words of a step rise once it is reached; played steps keep their end state */
 .fc-step .word__in,
 .fc-reveal .word__in {
-  transform: translateY(110%);
+  transform: translateY(136%);
 }
 .fc-step.is-active .word__in,
 .fc-reveal.is-in .word__in {

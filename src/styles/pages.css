@@ -10,7 +10,6 @@
   padding: calc(var(--nav-h) + var(--s-4)) var(--gutter) var(--s-6);
   background: var(--white);
   color: var(--black);
-  scroll-snap-align: start;
 }
 .apps__head {
   display: grid;

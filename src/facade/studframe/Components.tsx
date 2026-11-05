@@ -12,8 +12,8 @@ import { useLive } from '../unitized/live'
 /**
  * The design stage: how the skin is held and how it moves through the day, three listings in the
  * rainscreen barrier's grammar and its styles
- * (`rainscreen.css`, `fr-bw`): on yellow, each listing's black 3D box and white box open diagonally out
- * of the bottom right corner as it comes up, the words standing on what is left of the yellow; the
+ * (`rainscreen.css`, `fr-bw`): on yellow, each listing's black 3D box opens out of the right edge as it
+ * comes up, the words standing on the yellow beside it; the
  * listing holds for a long, slow stretch of scroll while its 3D makes one move (see `ComponentScenes`),
  * then its boxes fold back into the corner as the next one's open. Each is drawn into a row under the
  * header as it is passed (never struck, a way back); the last as its own listing arrives, so its slot is never left empty. The rows leave
@@ -24,7 +24,6 @@ interface Listing {
   id: string
   row: [string, string]
   head: ReactNode
-  out: [string, string]
   Scene: ComponentType<{ t: Progress; bus: LabelBus; live: { current: boolean }; compact: boolean }>
 }
 
@@ -42,7 +41,6 @@ const LISTINGS: Listing[] = [
         <ReviewNote>{REVIEW.skin}</ReviewNote>
       </>
     ),
-    out: ['Fixed over', 'Flex anchors.'],
     Scene: AnchorScene,
   },
   {
@@ -50,14 +48,14 @@ const LISTINGS: Listing[] = [
     row: ['Steel stud frame', 'Flex-anchored'],
     head: (
       <>
-        <p className="fr-fig num">
-          Expands in the heat
-        </p>
+        <h3 className="fr-name">
+          Expands <br />
+          in the heat
+        </h3>
         <p className="fr-say">The façade expands in the heat. Flexible L-plates accommodate the shift.</p>
         <ReviewNote>{REVIEW.heat}</ReviewNote>
       </>
     ),
-    out: ['By day, it', 'Expands freely.'],
     Scene: DayScene,
   },
   {
@@ -69,10 +67,9 @@ const LISTINGS: Listing[] = [
           Cools <br />
           at night
         </h3>
-        <p className="fr-say">As temperatures fall, the skin contracts and the flexible plates move with it, maintaining a stable, even façade.</p>
+        <p className="fr-say">As temperatures fall, the facade contracts and the flexible plates move with it, maintaining a stable, even surface.</p>
       </>
     ),
-    out: ['By night, it shrinks', 'Without warping.'],
     Scene: NightScene,
   },
 ]
@@ -93,20 +90,17 @@ type Rect = [number, number, number, number]
 interface Layout {
   words: Rect
   view: Rect
-  out: Rect
-  fold: { view: Rect; out: Rect }
+  fold: Rect
 }
 const WIDE: Layout = {
-  words: [0, 0, 0.4, 0.56],
+  words: [0, 0, 0.4, 1],
   view: [0.4, 0, 0.6, 1],
-  out: [0, 0.56, 0.4, 0.44],
-  fold: { view: [1, 0, 0, 1], out: [0, 1, 1, 0] },
+  fold: [1, 0, 0, 1],
 }
 const NARROW: Layout = {
-  words: [0, 0, 1, 0.3],
-  view: [0, 0.3, 1, 0.5],
-  out: [0, 0.8, 1, 0.2],
-  fold: { view: [0, 1, 1, 0], out: [0, 1, 1, 0] },
+  words: [0, 0, 1, 0.36],
+  view: [0, 0.36, 1, 0.64],
+  fold: [0, 1, 1, 0],
 }
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
@@ -118,8 +112,6 @@ interface Refs {
   stage: (HTMLDivElement | null)[]
   view: (HTMLDivElement | null)[]
   viewIn: (HTMLDivElement | null)[]
-  out: (HTMLDivElement | null)[]
-  outIn: (HTMLDivElement | null)[]
   rx: (HTMLSpanElement | null)[]
   ry: (HTMLSpanElement | null)[]
   t: Progress[]
@@ -174,14 +166,6 @@ function ListingView({ item, k, L, compact, refs }: { item: Listing; k: number; 
           </i>
         </div>
 
-        <div ref={(el) => void (refs.out[k] = el)} className="fr-bw__box fr-bw__box--out" style={{ visibility: 'hidden' }}>
-          <div ref={(el) => void (refs.outIn[k] = el)} className="fr-bw__in">
-            <div className="fr-bw__outcome">
-              <p className="fr-label">{item.out[0]}</p>
-              <p className="fr-out">{item.out[1]}</p>
-            </div>
-          </div>
-        </div>
       </div>
     </article>
   )
@@ -193,7 +177,7 @@ export function Components() {
   const section = useRef<HTMLElement>(null)
   const rowsLayer = useRef<HTMLElement>(null)
   const rows = useRef<(HTMLButtonElement | null)[]>([])
-  const refs = useMemo<Refs>(() => ({ block: [], stage: [], view: [], viewIn: [], out: [], outIn: [], rx: [], ry: [], t: LISTINGS.map(() => ({ value: 0, listeners: new Set() })) }), [])
+  const refs = useMemo<Refs>(() => ({ block: [], stage: [], view: [], viewIn: [], rx: [], ry: [], t: LISTINGS.map(() => ({ value: 0, listeners: new Set() })) }), [])
 
   useEffect(() => {
     const reduced = prefersReducedMotion()
@@ -244,8 +228,7 @@ export function Components() {
             inner.style.transform = `translate3d(${((open[0] - x) * SW).toFixed(1)}px, ${((open[1] - y) * SH).toFixed(1)}px, 0)`
             return [w * SW, h * SH]
           }
-          const [vw, vhh] = box(refs.view[k], refs.viewIn[k], L.view, L.fold.view)
-          box(refs.out[k], refs.outIn[k], L.out, L.fold.out)
+          const [vw, vhh] = box(refs.view[k], refs.viewIn[k], L.view, L.fold)
           const rx = refs.rx[k]
           const ry = refs.ry[k]
           if (rx) rx.textContent = `X: ${Math.round(vw)}`

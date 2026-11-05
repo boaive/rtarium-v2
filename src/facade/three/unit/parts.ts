@@ -572,7 +572,7 @@ export function unitMaterials(): UnitMaterials {
     gasket: std({ color: '#121212', roughness: 0.62 }),
     vapour,
     insulation: std({ color: '#c9b98b', map: grainTexture('#c9b98b', 9000, [120, 205], 3), roughness: 1 }),
-    firestop: std({ color: '#a2472f', map: grainTexture('#a2472f', 6000, [90, 160], 3), roughness: 0.95 }),
+    firestop: std({ color: '#57524a', map: grainTexture('#57524a', 6000, [90, 160], 3), roughness: 0.95 }),
     slab: std({ color: '#9b968d', map: grainTexture('#9b968d', 6000, [120, 190], 2), roughness: 0.95 }),
   }
 }

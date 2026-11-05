@@ -1,8 +1,6 @@
 import { useMemo, useRef, type RefObject } from 'react'
 import { useIsCompact } from '../../lib/motion'
-import { Link } from '../../lib/router'
 import { Words } from '../Story'
-import { SYSTEMS } from '../content'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
 import { createBus, type Shot } from '../three/kit'
 import { ScrubRig, mixShot } from '../three/ScrubRig'
@@ -11,10 +9,10 @@ import { HERO_FOCUS, HERO_TARGET, HeroWall } from '../three/rain/HeroWall'
 import { useLive } from '../unitized/live'
 
 /**
- * The opening, on yellow, in the Unitized page's own arrangement: the page's name, small, top left;
- * the line that says what a rainscreen is for, large, bottom left, and under it a quiet way to the
- * other two systems; a piece of the façade low on the right, turned towards the words, its near end
- * cut through to the rainscreen and one panel opened to RTARIUM, the one thing labelled.
+ * The opening, on yellow, in the Unitized page's own arrangement: the page's name and what it is,
+ * large, top left; the line that says what a rainscreen is for, a step down, bottom left; a piece of
+ * the façade low on the right, turned towards the words, its near end cut through to the rainscreen
+ * and one panel opened to RTARIUM, the one thing labelled.
  */
 
 const LABELS: LabelSpec[] = [{ id: 'h-mesh', anchor: 'hr-mesh', text: 'RTARIUM', dx: 74, dy: -96, delay: 2300 }]
@@ -22,7 +20,7 @@ const LABELS: LabelSpec[] = [{ id: 'h-mesh', anchor: 'hr-mesh', text: 'RTARIUM',
 function shots(compact: boolean): [Shot, Shot] {
   return compact
     ? [
-        { target: HERO_TARGET, dist: 34, azim: 36, elev: 7, frame: [0.5, 0.42] },
+        { target: HERO_TARGET, dist: 34, azim: 36, elev: 7, frame: [0.5, 0.51] },
         { target: HERO_TARGET, dist: 30, azim: 48, elev: 12, frame: [0.5, 0.34] },
       ]
     : [
@@ -48,7 +46,6 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
     [s0, s1],
   )
   const live = useLive(sectionRef)
-  const others = SYSTEMS.filter((s) => s.id !== 'rainscreen')
 
   return (
     <section ref={sectionRef} className="fu-hero on-yellow" aria-labelledby="fr-title">
@@ -67,19 +64,11 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
         <h1 id="fr-title" className="fu-hero__name">
           Rainscreen Cladding
         </h1>
-        <p className="fu-hero__kind">A ventilated weather-resistance barrier</p>
+        <p className="fu-hero__kind">A ventilated system for weather protection.</p>
       </header>
 
       <div className="fu-hero__foot">
-        <Words as="p" className="fu-mega" lines={['Weather out.', 'Dry within.']} />
-        <p className="fu-hero__also">
-          <span>Also</span>
-          {others.map((s) => (
-            <Link key={s.id} to={s.path}>
-              {s.title}
-            </Link>
-          ))}
-        </p>
+        <Words as="p" className="fu-mega" lines={['Designed for Lasting', 'Weather Protection.']} />
       </div>
     </section>
   )

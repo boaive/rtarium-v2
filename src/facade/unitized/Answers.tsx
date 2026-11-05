@@ -170,7 +170,8 @@ export function Answers() {
       })
       // the last answer counts the panel's height as it grows
       if (count.current) {
-        const txt = tallAt(Math.max(0, p - (N - 1))).h.toFixed(1)
+        const h = tallAt(Math.max(0, p - (N - 1))).h
+        const txt = h > 5.95 ? '6' : h.toFixed(1)
         if (count.current.textContent !== txt) count.current.textContent = txt
       }
     }
@@ -270,18 +271,6 @@ export function Answers() {
           step={step}
           onGo={goToAnswer}
           cellRef={(k, el) => void (cells.current[k] = el)}
-          after={
-            <button
-              type="button"
-              className="fu-bar__back"
-              onClick={() => {
-                const el = document.getElementById('problems')
-                if (el) scrollToY(el.getBoundingClientRect().top + window.scrollY)
-              }}
-            >
-              Back to the problems
-            </button>
-          }
         />
       </div>
     </section>

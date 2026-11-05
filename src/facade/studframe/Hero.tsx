@@ -1,8 +1,6 @@
 import { useMemo, useRef, type RefObject } from 'react'
 import { useIsCompact } from '../../lib/motion'
-import { Link } from '../../lib/router'
 import { Words } from '../Story'
-import { SYSTEMS } from '../content'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../three/Stage3D'
 import { createBus, type Shot } from '../three/kit'
 import { ScrubRig, mixShot } from '../three/ScrubRig'
@@ -11,10 +9,10 @@ import { HERO_FOCUS, HERO_TARGET, HeroCornice } from '../three/stud/HeroCornice'
 import { useLive } from '../unitized/live'
 
 /**
- * The opening, on yellow, in the other system pages' arrangement: the page's name, small, top left; the
- * line, large, bottom left, and under it a quiet way to the other two systems; one cornice element low
- * on the right in a hard midday sun, a window cut back to RTARIUM, the one thing labelled. The view
- * leans in on the window for a moment as the page opens, and lets it go.
+ * The opening, on yellow, in the other system pages' arrangement: the page's name and what it is,
+ * large, top left; the line, a step down, bottom left; one cornice element low on the right in a hard
+ * midday sun, a window cut back to RTARIUM, the one thing labelled. The view leans in on the window
+ * for a moment as the page opens, and lets it go.
  */
 
 const LABELS: LabelSpec[] = [{ id: 'hs-mesh', text: 'RTARIUM', dx: 74, dy: -104, delay: 2600 }]
@@ -48,7 +46,6 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
     [s0, s1],
   )
   const live = useLive(sectionRef)
-  const others = SYSTEMS.filter((s) => s.id !== 'stud')
 
   return (
     <section ref={sectionRef} className="fu-hero fs-hero on-yellow" aria-labelledby="fs-title">
@@ -70,15 +67,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
       </header>
 
       <div className="fu-hero__foot">
-        <Words as="p" className="fu-mega" lines={['Moves with the heat.', 'Stays anchored in the wind.']} />
-        <p className="fu-hero__also">
-          <span>Also</span>
-          {others.map((s) => (
-            <Link key={s.id} to={s.path}>
-              {s.title}
-            </Link>
-          ))}
-        </p>
+        <Words as="p" className="fu-mega" lines={['Designed for', 'Thermal Movement.']} />
       </div>
     </section>
   )

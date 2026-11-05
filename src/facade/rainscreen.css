@@ -266,250 +266,6 @@
   line-height: 0.94;
 }
 
-/* ---- the trade-offs: warm white, the black rising over it, the materials as cards in depth ------ */
-
-.fr-trade {
-  position: relative;
-  height: calc(var(--run, 5) * 100svh);
-  background: var(--white);
-  color: var(--black);
-}
-.fr-trade__pin {
-  --top: calc(var(--nav-h) + clamp(28px, 6vh, 72px));
-  --foot: clamp(24px, 5vh, 52px);
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  overflow: hidden;
-}
-/* the black comes up from the foot of the screen, edge to edge (Enerblock's next ground) */
-.fr-trade__night {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: var(--black);
-  clip-path: inset(calc((1 - var(--n, 0)) * 100%) 0 0 0);
-}
-.fr-trade__copy {
-  position: absolute;
-  z-index: 0;
-  left: var(--gutter);
-  top: var(--top);
-  bottom: var(--foot);
-  width: min(46rem, 48vw);
-  pointer-events: none;
-}
-.fr-trade__copy--front {
-  z-index: 3;
-}
-.fr-trade__first,
-.fr-trade__title {
-  font-size: clamp(2.2rem, min(4.1vw, 7.4vh), 4.8rem);
-  font-weight: 800;
-  letter-spacing: -0.05em;
-  line-height: 0.96;
-  text-wrap: balance;
-}
-.fr-trade__first.is-night {
-  color: var(--yellow);
-}
-.fr-trade__head {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  pointer-events: auto;
-}
-.fr-trade__title {
-  color: var(--yellow);
-}
-/* the materials, by name, at the foot of the column: where you are, and the way back */
-.fr-trade__nav {
-  display: grid;
-  gap: 2px;
-  margin-top: auto;
-}
-.fr-trade__go {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  padding: 6px 0;
-  border: 0;
-  background: none;
-  color: rgb(242 240 233 / 0.5);
-  font: inherit;
-  font-size: clamp(1.2rem, 1.6vw, 1.6rem);
-  font-weight: 750;
-  letter-spacing: -0.03em;
-  cursor: pointer;
-  transition: color var(--d-fast) var(--ease-out);
-}
-.fr-trade__go .num {
-  font-size: var(--t-micro);
-  font-weight: 600;
-  letter-spacing: 0;
-}
-.fr-trade__go:hover,
-.fr-trade__go[aria-current] {
-  color: var(--white);
-}
-.fr-trade__go[aria-current] .num {
-  color: var(--yellow);
-}
-.fr-trade__go:focus-visible {
-  outline: 2px solid var(--yellow);
-  outline-offset: 4px;
-}
-
-/* the deck: right of the words; each card comes in from the right edge, one tab below the last */
-.fr-trade__deck {
-  --tab: clamp(48px, 7.4vh, 60px);
-  position: absolute;
-  z-index: 4;
-  left: max(44%, calc(var(--gutter) + 34vw + 32px));
-  right: var(--gutter);
-  top: calc(var(--nav-h) + 16px);
-  bottom: var(--foot);
-}
-.fr-card {
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: calc(100% - (var(--n, 5) - 1) * var(--tab));
-  background: #121212;
-  border: 1px solid rgb(242 240 233 / 0.12);
-  color: var(--white);
-  transform-origin: 50% 0;
-  cursor: pointer;
-  will-change: transform;
-  box-shadow: 0 -18px 40px rgb(0 0 0 / 0.5);
-}
-/* the tab: number, name, and the two figures in columns that line up from card to card */
-.fr-card__tab {
-  display: grid;
-  grid-template-columns: 2.2rem minmax(0, 1fr) 7.6rem 7.6rem;
-  align-items: center;
-  gap: 12px;
-  height: var(--tab);
-  flex: none;
-  padding: 0 clamp(16px, 1.6vw, 24px);
-  border-bottom: 1px solid rgb(242 240 233 / 0.1);
-}
-.fr-card__num {
-  font-size: var(--t-micro);
-  font-weight: 600;
-  color: var(--on-dark-2);
-}
-.fr-card__name {
-  font-size: clamp(1.15rem, min(1.7vw, 3.2vh), 1.7rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.fr-card__figs {
-  display: contents;
-}
-.fr-card__figs div {
-  display: grid;
-  gap: 2px;
-  justify-items: end;
-  text-align: right;
-}
-.fr-card__figs dt {
-  font-size: 0.66rem;
-  font-weight: 600;
-  color: rgb(242 240 233 / 0.5);
-}
-.fr-card__figs dd {
-  font-size: clamp(0.9rem, 1.05vw, 1.05rem);
-  font-weight: 700;
-  color: var(--white);
-  white-space: nowrap;
-}
-.fr-card__body {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  gap: clamp(16px, 1.8vw, 28px);
-  flex: 1;
-  min-height: 0;
-  padding: clamp(14px, 2vh, 22px) clamp(16px, 1.6vw, 24px) clamp(16px, 2.4vh, 24px);
-}
-.fr-card__media {
-  position: relative;
-  min-height: 0;
-  overflow: hidden;
-  background: #000;
-}
-.fr-card__media img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: grayscale(0.3) brightness(0.5) contrast(1.05);
-}
-.fr-card__sample {
-  position: absolute;
-  inset: 0;
-}
-.fr-card__credit {
-  position: absolute;
-  left: 8px;
-  bottom: 6px;
-  font-size: 0.62rem;
-  color: rgb(242 240 233 / 0.62);
-}
-.fr-card__words {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.fr-card__full {
-  font-size: var(--t-small);
-  font-weight: 600;
-  color: rgb(242 240 233 / 0.6);
-}
-.fr-card__trade {
-  display: grid;
-  gap: clamp(10px, 1.6vh, 16px);
-  margin-top: auto;
-}
-.fr-card__trade dt {
-  font-size: var(--t-micro);
-  font-weight: 700;
-  color: var(--on-dark-2);
-}
-.fr-card__trade dd {
-  margin-top: 4px;
-  font-size: var(--t-small);
-  font-weight: 600;
-  color: rgb(242 240 233 / 0.82);
-}
-.fr-card__cost dd {
-  font-size: clamp(1.2rem, min(1.7vw, 3.2vh), 1.75rem);
-  font-weight: 750;
-  letter-spacing: -0.03em;
-  line-height: 1.08;
-  color: var(--yellow);
-  text-wrap: balance;
-}
-/* pushed back into the depth: darker the deeper it lies, its tab still read */
-.fr-card__shade {
-  position: absolute;
-  inset: var(--tab) 0 0;
-  background: #000;
-  opacity: calc(var(--depth, 0) * 0.55);
-  pointer-events: none;
-}
-.fr-card:hover .fr-card__shade {
-  opacity: calc(var(--depth, 0) * 0.35);
-}
-
 /* ---- narrow screens ----------------------------------------------------------------------------- */
 
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
@@ -529,53 +285,175 @@
   .fr-name {
     font-size: clamp(1.7rem, 7.4vw, 2.4rem);
   }
-  /* the trade-offs: the words across the top, the deck under them */
-  .fr-trade__copy {
-    right: var(--gutter);
-    bottom: auto;
+}
+
+/* ---- a comparison at a glance, on black (Compare.tsx): RTARIUM's column stands out on yellow --------- */
+
+.cmp {
+  position: relative;
+  background: var(--black);
+  color: var(--yellow);
+}
+.cmp__in {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: clamp(14px, 2.6vh, 26px);
+  min-height: 100svh;
+  padding: calc(var(--nav-h) + clamp(10px, 2.6vh, 28px)) var(--gutter) clamp(20px, 4vh, 44px);
+}
+.cmp__title {
+  font-size: clamp(1.7rem, min(3.2vw, 5.8vh), 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+.cmp__title b {
+  font-weight: 700;
+  color: var(--white);
+}
+.cmp__table {
+  width: 100%;
+  height: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.cmp__table thead th {
+  padding: 0 var(--s-5) clamp(8px, 1.4vh, 12px) 0;
+  font-size: var(--t-micro);
+  font-weight: 700;
+  text-align: left;
+  color: var(--on-dark-2);
+}
+.cmp__table thead td {
+  width: 27%;
+}
+.cmp__table tbody th,
+.cmp__table tbody td {
+  padding: clamp(8px, 1.7vh, 16px) var(--s-5) clamp(8px, 1.7vh, 16px) 0;
+  border-top: 1px solid rgb(242 240 233 / 0.2);
+  text-align: left;
+  vertical-align: middle;
+}
+.cmp__table tbody th {
+  font-size: clamp(1.05rem, min(1.7vw, 3.1vh), 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--white);
+}
+.cmp__table tbody th .num {
+  display: block;
+  margin-bottom: 3px;
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--on-dark-2);
+}
+.cmp__table tbody td {
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.34;
+  color: rgb(242 240 233 / 0.78);
+}
+.cmp__table tbody td .num {
+  font-size: clamp(0.98rem, min(1.35vw, 2.5vh), 1.25rem);
+  font-weight: 600;
+  color: var(--white);
+}
+/* RTARIUM's column, on yellow from its head to its foot */
+.cmp__table .cmp__ours {
+  padding-inline: clamp(14px, 1.6vw, 24px);
+  background: var(--yellow);
+  color: var(--black);
+}
+.cmp__table thead th.cmp__ours {
+  padding-top: clamp(8px, 1.4vh, 12px);
+  font-size: var(--t-small);
+  color: var(--black);
+}
+.cmp__table tbody td.cmp__ours {
+  border-top-color: rgb(8 8 8 / 0.22);
+  color: var(--black);
+}
+.cmp__head {
+  display: block;
+  margin-bottom: 3px;
+  font-size: clamp(1.02rem, min(1.55vw, 2.9vh), 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+.cmp__short {
+  font-size: clamp(1rem, min(1.4vw, 2.6vh), 1.3rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--yellow);
+}
+.cmp__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.7em;
+  font-size: clamp(1.1rem, min(1.9vw, 3.4vh), 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.cmp__title,
+.cmp__table thead,
+.cmp__table tbody tr,
+.cmp__foot {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.8s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+.cmp__foot {
+  transition-delay: 380ms;
+}
+.cmp__in.is-in .cmp__title,
+.cmp__in.is-in .cmp__table thead,
+.cmp__in.is-in .cmp__table tbody tr,
+.cmp__in.is-in .cmp__foot {
+  opacity: 1;
+  transform: none;
+}
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .cmp__table thead {
+    display: none;
+  }
+  .cmp__table,
+  .cmp__table tbody,
+  .cmp__table tr,
+  .cmp__table tbody th,
+  .cmp__table tbody td {
+    display: block;
     width: auto;
-  }
-  .fr-trade__first,
-  .fr-trade__title {
-    font-size: clamp(1.9rem, 8.4vw, 2.7rem);
-  }
-  .fr-trade__head {
     height: auto;
   }
-  .fr-trade__nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 16px;
-    margin-top: 12px;
+  .cmp__table tr {
+    padding: 10px 0 12px;
+    border-top: 1px solid rgb(242 240 233 / 0.2);
   }
-  .fr-trade__go {
-    gap: 8px;
+  .cmp__table tbody th,
+  .cmp__table tbody td {
     padding: 3px 0;
-    font-size: 0.98rem;
-    white-space: nowrap;
+    border: 0;
   }
-  .fr-trade__deck {
-    --tab: 44px;
-    left: var(--gutter);
-    right: var(--gutter);
-    top: calc(var(--nav-h) + clamp(170px, 26svh, 220px));
-    bottom: 20px;
+  .cmp__table .cmp__ours {
+    margin-top: 6px;
+    padding: 10px 12px;
   }
-  .fr-card__tab {
-    grid-template-columns: 1.6rem minmax(0, 1fr) auto auto;
-    gap: 10px;
-  }
-  .fr-card__figs dt {
-    display: none;
-  }
-  .fr-card__body {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
-  .fr-card__full {
-    display: none;
-  }
-  .fr-card__trade dd {
-    font-size: var(--t-micro);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmp__title,
+  .cmp__table thead,
+  .cmp__table tbody tr,
+  .cmp__foot {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

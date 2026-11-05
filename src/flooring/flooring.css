@@ -1,44 +1,5 @@
 /*
- * Advanced Flooring: what the Façade overview's styles do not already give. The overview borrows the
- * Façade overview's opening, story and systems (overview.css) and the Unitized answers' stage
- * (unitized.css); only the statement is its own.
+ * Advanced Flooring: the overview borrows the Façade overview's opening, story and systems
+ * (overview.css), the Unitized answers' stage (unitized.css) and the site's statement (`Say`), so
+ * nothing here is its own.
  */
-
-/* ---- the statement: one sentence, alone on the yellow, centred ---------------------------------- */
-
-.ffo-say {
-  display: grid;
-  place-items: center;
-  min-height: 100svh;
-  padding: calc(var(--nav-h) + var(--s-6)) var(--gutter) var(--s-7);
-  background: var(--yellow);
-}
-.ffo-say__in {
-  text-align: center;
-}
-.ffo-say__text {
-  font-size: var(--t-statement);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-  max-width: 24em;
-  text-wrap: balance;
-}
-/* the lines run on as one sentence, wrapped by the measure */
-.ffo-say__text .fc-words__line {
-  display: inline;
-}
-
-/* the layer's rows: the tags in one column, their squares starting on one line (as the stud frame's) */
-#layer .fs-row__tag {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 10px;
-  width: 10rem;
-}
-#layer .fs-row__tag i {
-  width: 9px;
-  height: 9px;
-  background: currentColor;
-}

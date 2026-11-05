@@ -45,6 +45,74 @@ export function useScrollProgress(ref: RefObject<HTMLElement | null>, steps = 1,
   return [progress, step] as const
 }
 
+/**
+ * A section that plays on one scroll: once it is well on screen, `value` runs from 0 to 1 over `seconds`,
+ * on its own clock, and holds there; the page itself is never held. `seek` takes it to a point at a
+ * quicker pace and leaves it there (a step chosen by the visitor). Under reduced motion it is simply at
+ * its end. The same `Progress` as a scrolled run, so a scene does not know the difference.
+ */
+export function usePlay(ref: RefObject<HTMLElement | null>, seconds: number, share = 0.55) {
+  const progress = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
+  const run = useRef({ goal: 0, rate: 1 / seconds, raf: 0, last: 0 })
+  const tick = useRef<(now: number) => void>(() => {})
+  tick.current = (now: number) => {
+    const r = run.current
+    r.raf = 0
+    const dt = Math.min(0.1, Math.max(0, (now - r.last) / 1000))
+    r.last = now
+    const v = progress.value
+    const step = r.rate * dt
+    const next = Math.abs(r.goal - v) <= step ? r.goal : v + Math.sign(r.goal - v) * step
+    if (next !== v) {
+      progress.value = next
+      progress.listeners.forEach((f) => f())
+    }
+    if (next !== r.goal) r.raf = requestAnimationFrame((t) => tick.current(t))
+  }
+  const go = (goal: number, rate: number) => {
+    const r = run.current
+    r.goal = goal
+    r.rate = rate
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      progress.value = goal
+      progress.listeners.forEach((f) => f())
+      return
+    }
+    if (!r.raf) {
+      r.last = performance.now()
+      r.raf = requestAnimationFrame((t) => tick.current(t))
+    }
+  }
+  const started = useRef(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting || started.current) return
+        started.current = true
+        go(1, 1 / seconds)
+      },
+      { threshold: share },
+    )
+    io.observe(el)
+    const r = run.current
+    return () => {
+      io.disconnect()
+      cancelAnimationFrame(r.raf)
+      r.raf = 0
+    }
+    // (`go` only reaches refs)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref, seconds, share])
+  /** to a point of the play, there and no further */
+  const seek = (v: number) => {
+    started.current = true
+    go(v, 1 / Math.max(0.9, seconds * 0.16))
+  }
+  return [progress, seek] as const
+}
+
 /** asks its canvas for a frame whenever the section it follows has scrolled */
 export function FollowScroll({ progress }: { progress: Progress }) {
   const invalidate = useThree((s) => s.invalidate)

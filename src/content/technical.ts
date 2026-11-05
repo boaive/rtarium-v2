@@ -9,6 +9,9 @@
  * `?review` shows beside the figure.
  */
 
+/** the data sheet the homepage offers: every figure below on two pages (to replace it, keep this name) */
+export const DATA_SHEET = '/rtarium-data-sheet.pdf'
+
 export const THICKNESS_OPTIONS = [3, 6, 10, 15] as const
 export type Thickness = (typeof THICKNESS_OPTIONS)[number]
 
@@ -33,7 +36,7 @@ export const MESH_SPECS: SpecGroup[] = [
   {
     label: 'Geometry',
     rows: [
-      { label: 'Structure', value: '3D woven spacer', note: 'Two faces held apart by connecting fibres', view: 'faces' },
+      { label: 'Structure', value: '3D woven spacer', note: 'Two faces connected by vertical fibres', view: 'faces' },
       { label: 'Thickness options', value: '3 / 6 / 10 / 15', unit: 'mm', view: 'thickness' },
       {
         label: 'Sheet length',

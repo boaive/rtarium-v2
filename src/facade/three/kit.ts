@@ -105,7 +105,7 @@ export interface FacadeMaterials {
 
 /**
  * One set of materials for a scene. Colours are the materials' own (grey concrete, galvanized
- * steel, anodized aluminium, mineral wool, red-oxide firestop), muted so the basalt bronze of the
+ * steel, anodized aluminium, mineral wool, graphite firestop), muted so the basalt bronze of the
  * mesh stays the warmest thing in the picture. Every material is transparent from the start so
  * fading a component never recompiles a shader.
  */
@@ -130,7 +130,7 @@ export function createMaterials(): FacadeMaterials {
     gasket: std({ color: '#141414', roughness: 0.7 }),
     insulation: std({ color: '#c4bba6', map: wool, roughness: 1 }),
     membrane,
-    firestop: std({ color: '#9a4430', roughness: 0.92 }),
+    firestop: std({ color: '#57524a', roughness: 0.92 }),
     sealant: std({ color: '#2b2b2b', roughness: 0.55 }),
     ink: new THREE.MeshBasicMaterial({ color: '#080808', transparent: true, toneMapped: false }),
   }

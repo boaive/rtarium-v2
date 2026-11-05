@@ -40,6 +40,7 @@
 .ground__layer--next {
   clip-path: inset(100% 0 0 0);
 }
+
 /* the opening tour runs on into white light: warm white washes over the ground under the 3D,
    over the incoming screen's colour too (--wash is set by the tour and is 0 outside it) */
 .ground__wash {
@@ -179,8 +180,9 @@
 .pin--column .pin__words {
   margin: 0;
   padding: 7px 12px 7px 11px;
-  background: var(--black);
-  color: var(--white);
+  background: var(--yellow);
+  color: var(--black);
+  box-shadow: 0 0 0 1px var(--black);
   font-size: 0.72rem;
   letter-spacing: 0.14em;
 }
@@ -813,7 +815,6 @@ html[data-ground='black'] .pin__text {
 }
 .footer--screen {
   min-height: 100svh;
-  scroll-snap-align: start;
 }
 .footer__body {
   display: grid;
@@ -855,11 +856,11 @@ html[data-ground='black'] .pin__text {
   gap: var(--s-6);
 }
 .footer__line {
-  max-width: 13em;
-  font-size: clamp(2.2rem, 4.4vw, 4.6rem);
+  max-width: 20em;
+  font-size: clamp(1.75rem, min(3.2vw, 6vh), 3.4rem);
   font-weight: 700;
   letter-spacing: -0.04em;
-  line-height: 0.98;
+  line-height: 1.02;
   text-wrap: balance;
 }
 .footer__map {

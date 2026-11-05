@@ -43,7 +43,7 @@ const steps: Step[] = [
         <Lines lines={['Woven from', 'volcanic rock.']} />
         <div className="copy__aside">
           <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
-            Made from natural basalt, transformed into continuous filaments and woven into a reinforcing mesh.
+            Made from natural basalt, transformed into continuous filaments and woven into a mesh.
           </p>
           <ol className="chain" aria-label="How the mesh is made">
             {MAKING.map((m, i) => (
@@ -78,10 +78,7 @@ const steps: Step[] = [
           <figcaption className="caption">Footage from the RTARIUM production shoot.</figcaption>
         </figure>
         <div className="copy copy--pour">
-          <Lines lines={['Concrete flows in.', 'And locks it.']} />
-          <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
-            Mortar fills the open cavity between the faces, locking mesh and matrix together in three dimensions.
-          </p>
+          <Lines lines={['Concrete flows in.', 'The mesh is locked.']} />
         </div>
       </>
     ),

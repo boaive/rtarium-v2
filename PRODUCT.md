@@ -129,8 +129,7 @@ Confirmed figures (client technical PDF; the margin notes are treated as correct
     little left of the middle with short leaders. The footer's piece is the real mesh: it bends and stretches
     while it moves and lies flat at rest.
   - Eighth review (owner, 25 October 2026): the "In concrete" notes stand on the left, on the copy's line, clear
-    of the copy and the footage. Scrolling holds: each screen and step is a holding point the page settles onto
-    in the direction of travel, smoothly, never pulling back.
+    of the copy and the footage. (Scrolling held at each screen here; since the V3 revisions it does not: see below.)
   - Ninth review (owner, 26 October 2026; supersedes the above where they differ):
     - Footer: no mesh at all, only the black liquid. It comes only while the cursor moves and drains away once it
       rests; it is never a plain circle (it leans into its way, swells on one side, its edge is uneven).
@@ -191,3 +190,11 @@ floors in data centres, warehouses or fabs, contact email, phone, address, form 
 
 WCAG 2.2 AA contrast for text, full keyboard access, reduced-motion support, and a usable still-image fallback when
 WebGL is unavailable.
+
+## V3 revisions (November 2026)
+
+The client marketing team's PDF (`V.3 RTARIUM REVISIONS.pdf`) is the current word on copy and layout; where it
+differs from the reviews above, it wins, within the owner's instructions: only the told changes, no image changed,
+the home page's flight through the mesh and the woven timeline kept. Scrolling is free everywhere: slower than the
+browser's, gliding, no snap, no hold, no hijacking. Red is not part of the language. Problems with conventional
+products take one screen. The full record is at the end of `docs/V2-IMPLEMENTATION-REPORT.md`.

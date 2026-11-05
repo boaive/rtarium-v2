@@ -8,7 +8,7 @@ import type { BuildRoom } from '../data/three/BuildScene'
 import { FRAME, FrameScene } from './three/FrameScene'
 
 /**
- * Frame to floor, after the build, as on the Data & AI Centres page: one scene on the warm white page,
+ * From floor to facility, after the build, as on the Data & AI Centres page: one scene on the warm white page,
  * pinned for its run, the title over it and the bar along its foot. The floor the build ended on is
  * the first thing seen; a tool is drawn on it, it grows into the cleanroom, the waffle slab and the
  * subfab are drawn under it and the fab round it. The camera keeps the scene to the room between the
@@ -89,7 +89,7 @@ export function FloorFrame() {
     <section ref={section} id="frame" className="fu-hang on-light" aria-labelledby="fsc-frame-title" style={{ '--run': RUN } as CSSProperties}>
       <div ref={pin} className="fu-hang__pin">
         <h2 id="fsc-frame-title" className="fu-hang__title">
-          Frame to floor.
+          From floor to facility.
         </h2>
         <div className="fu-hang__stage" aria-hidden="true">
           <Stage3D fallback={<img className="fu-still" src="/img/flooring/dc-site-gloss.webp" alt="" />}>

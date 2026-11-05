@@ -26,6 +26,11 @@
   /* display sizes follow the shorter side too, so a short window never pushes copy into the header */
   --t-display: clamp(2.1rem, min(3.9vw, 7.2vh), 4.4rem);
   --t-statement: clamp(1.9rem, 3.7vw, 4rem);
+  /* an opening: the page's name is its largest type, what it is reads at a glance, the line under them follows */
+  --t-title: clamp(2.5rem, min(5.3vw, 10vh), 6rem);
+  --t-kind: clamp(1.08rem, min(1.72vw, 3.1vh), 1.6rem);
+  --t-line: clamp(1.5rem, min(2.9vw, 5.4vh), 3.1rem);
+  --t-section: clamp(1.7rem, min(3vw, 5.4vh), 3.2rem);
   --t-figure: clamp(3.4rem, min(7.4vw, 13vh), 7.6rem);
   --t-readout: clamp(1.45rem, min(2.2vw, 4vh), 2.3rem);
   --t-lead: clamp(1.05rem, 1.25vw, 1.3rem);

@@ -13,7 +13,7 @@ import { circle, cradleLines, craneLines, POD, podLines, rackRun, RACK, type Map
  * machines are cut by the piece's two ends as they run in and out of it.
  *
  * On a worn floor (`tick`'s `clean` false) the AGVs misbehave: they pitch at every joint, wander off
- * their lane, and now and then one faults, stopping skewed and in red, the one behind it stuck in the
+ * their lane, and now and then one faults, stopping skewed in its alert colour, the one behind it stuck in the
  * queue. On RTARIUM (`clean`) they run true.
  */
 

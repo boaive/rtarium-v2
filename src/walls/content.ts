@@ -66,7 +66,7 @@ export const PAIRED = {
   ],
 } as const
 
-/** Built for the envelope: the client's points in six slides (weld-free and rust-proof in one, owner 2 Nov 2026), the name and the line each */
+/** A smarter approach to wall systems: the client's points in six slides (weld-free and rust-proof in one, owner 2 Nov 2026), the name and the line each */
 export interface Answer {
   id: string
   /** the name as it is set, in two lines (each short enough for the words' column) */
@@ -76,17 +76,12 @@ export interface Answer {
   line: string
 }
 export const ANSWERS: Answer[] = [
-  { id: 'span', head: ['Massive', 'spanning'], bar: 'Spanning', line: 'Hyper-slender 30 mm solid panels cross 5.8 m column bays with absolute deflection control.' },
-  {
-    id: 'weld',
-    head: ['Nothing', 'to rust.'],
-    bar: 'Rust-proof',
-    line: 'Inert basalt, with ferrule inserts cast in at the factory.',
-  },
-  { id: 'bolt', head: ['Bolt-down', 'assembly'], bar: 'Bolt-down', line: 'Lifted by its tie holes, clamped and bolted to the frame: no welding, immediate assembly.' },
-  { id: 'joint', head: ['Interlocking', 'geometry'], bar: 'Interlocking', line: 'A four-sided tongue and groove aligns every panel and spreads horizontal wind shear.' },
-  { id: 'zoned', head: ['Zoned capex', 'optimisation'], bar: 'Zoned capex', line: 'Insulated panels for the climate-controlled zone below, thin solid panels for the clear height above.' },
-  { id: 'space', head: ['Maximised', 'internal space'], bar: 'Internal space', line: 'Slender walls give the floor back to automated racking and routing tracks.' },
+  { id: 'span', head: ['Span further with', 'thinner panels.'], bar: 'Span further', line: '30 mm solid panels span 5.8 m column bays while maintaining deflection control.' },
+  { id: 'weld', head: ['Prevent corrosion', 'with basalt.'], bar: 'Prevent corrosion', line: 'Made with inert basalt, with ferrule inserts cast in at the factory.' },
+  { id: 'bolt', head: ['Assemble', 'without welding.'], bar: 'Assemble', line: 'Lift the panels using their tie holes, clamp them and bolt them to the frame. No welding required.' },
+  { id: 'joint', head: ['Align panels with', 'interlocking joints.'], bar: 'Align panels', line: 'A four-sided tongue-and-groove system aligns each panel and distributes horizontal wind shear.' },
+  { id: 'zoned', head: ['Match materials', 'to each zone.'], bar: 'Match materials', line: 'Use insulated panels in climate-controlled zones below and thin solid panels above to maintain clear height.' },
+  { id: 'space', head: ['Create more', 'usable floor space.'], bar: 'Floor space', line: 'Slender walls free up floor space for automated racking and routing tracks.' },
 ]
 
 /** the streams: each one's building, drawn as the panels go onto it; its card shows a still of that build, finished (owner: our own renders, no stock photographs) */

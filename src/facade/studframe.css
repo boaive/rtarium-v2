@@ -1,10 +1,6 @@
 /*
- * Stud Frame Cladding: the page is built from the Unitized and Rainscreen pages' own styles. What is
- * its own: the opening's line, longer here, set 13 % smaller than `.fu-mega`.
+ * Stud Frame Cladding: the page is built from the Unitized and Rainscreen pages' own styles.
  */
-.fs-hero .fu-mega {
-  font-size: clamp(2.6rem, min(5.4vw, 10vh), 7rem);
-}
 
 /* the design stage's rows: the tags in one column, their squares starting on one line */
 #components .fr-row__tag {

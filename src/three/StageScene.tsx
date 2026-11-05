@@ -18,7 +18,7 @@ import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
  *
  * The opening is a scrolled sequence: the piece lies beside the name, and as the visitor scrolls
  * the mesh is built out past the edges of the screen, the camera slips between its two faces and on
- * into white light, and out of the white comes a tile half cast in concrete (`stage.tour`, damped).
+ * into white light, and out of the white comes the mesh, close, on the way into About (`stage.tour`, damped).
  * Chapters that run sideways are scrubbed the same way: their one view travels continuously from
  * one step's pose to the next (`Region.blend`). Time introduces the piece: it is woven out from its
  * middle to its edges while it settles onto its shadow. Wherever a view's sheet grows, its new cells

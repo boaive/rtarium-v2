@@ -17,10 +17,9 @@ import { More } from '../unitized/More'
  *   the barrier    yellow, pinned: a black 3D box and a white one open out of the bottom corners;
  *                  the 3D plays rain, the ventilated cavity and the wind as the scroll goes on, each
  *                  outcome docking a row at the top
- *   wall to skin   warm white, pinned: the rainscreen put up on an X-ray building, the crane
+ *   structure to façade  warm white, pinned: the rainscreen put up on an X-ray building, the crane
  *                  bringing the panels
- *   the trade-offs warm white rising to black: precast, stone, GRC, UHPC and metal as cards that
- *                  stack into a comparison (their tabs: thickness and weight)
+ *   the trade-offs black, one screen: precast, stone, GRC, UHPC and metal in one table
  *   the bridge     yellow, pinned: how RTARIUM closes the gap, a bar along the foot
  *   more ways      warm white: the other two systems
  *
@@ -29,7 +28,7 @@ import { More } from '../unitized/More'
 export default function Rainscreen() {
   usePageMeta(
     'Rainscreen Cladding',
-    'RTARIUM rainscreen cladding: a ventilated weather-resistance barrier of thin concrete panels reinforced with a 3D basalt textile. The best of ACP and GRC: a real concrete face, 12 mm thin, under 30 kg/m², anchors cast in, nothing to age or rust, panels up to 6 m.',
+    'RTARIUM rainscreen cladding: a ventilated system for weather protection, of thin concrete panels reinforced with a 3D basalt textile. A solid concrete face, a lightweight 12 mm panel, under 30 kg/m², integrated fixing points, non-corrosive, panels up to 6 m tall.',
   )
   const hero = useRef<HTMLElement>(null)
 
@@ -73,7 +72,7 @@ export default function Rainscreen() {
       <div className="fu" data-ground="light">
         <Install />
       </div>
-      <div className="fu">
+      <div className="fu" data-ground="black">
         <Trade />
       </div>
       <div className="fu" data-ground="yellow">

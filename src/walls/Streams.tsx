@@ -220,7 +220,7 @@ function Build({ id }: { id: StreamId }) {
         <div className="wp-built__words">
           <p className="wp-built__kicker">Illustrative case study</p>
           <h2 id="wp-built-title" className="wp-built__title">
-            {study.title}, built.
+            {study.title.includes(',') ? `${study.title}.` : `${study.title}, built.`}
           </h2>
           <p className="wp-built__lede">{study.brief}</p>
         </div>
@@ -281,9 +281,8 @@ export function Streams() {
       <section id="streams" className="wp-streams on-light" aria-labelledby="wp-streams-title">
         <header className="wp-streams__head">
           <h2 id="wp-streams-title" className="wp-streams__title">
-            Choose your stream.
+            Explore a system.
           </h2>
-          <p className="wp-streams__line">Each one is built in 3D, step by step, with its case study.</p>
         </header>
         <ol className="wp-streams__cols">
           {STREAMS.map((s, i) => (

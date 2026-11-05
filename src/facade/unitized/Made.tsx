@@ -3,7 +3,7 @@ import { prefersReducedMotion } from '../../lib/motion'
 import { smooth } from '../progress'
 
 /**
- * Made face down: the production shoot, four steps. As the section comes up the frames open from
+ * Inverted casting: the production shoot, four steps. As the section comes up the frames open from
  * their corners one after another, their size read out at the corner, and a line runs through the
  * step numbers; all of it follows the scroll. Pointing at a card lifts the whole card a little,
  * leaning from the point under the cursor (a tap does the same on touch).
@@ -75,7 +75,7 @@ export function Made() {
     <section ref={section} className="fu-made on-light" aria-labelledby="fu-made-title">
       <header className="fu-made__head">
         <h2 id="fu-made-title" className="fu-made__title">
-          Made face down.
+          Inverted casting
         </h2>
         <p className="fu-made__lede">The finished face goes down first. The surface is set before the structure is added.</p>
       </header>

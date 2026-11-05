@@ -1,5 +1,5 @@
 /**
- * Sticky stacking cards (six layers, four problems), in a box of their own. Every card is as tall as
+ * Sticky stacking cards (six layers), in a box of their own. Every card is as tall as
  * the box less the headings of the cards before it; as its item arrives it comes up from under the
  * box's foot and settles one heading lower than the card before, over that card's content, so the
  * headings stay in view as a stack of tabs and only the newest card is read whole. A covered card

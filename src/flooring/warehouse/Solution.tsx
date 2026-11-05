@@ -27,20 +27,20 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { id: 'prep', name: 'Preparation', head: ['Back to', 'the base'], line: 'Shot-blasted to ICRI CSP-5, primed, anchors set at one height.', labels: [['csp', 0.3, 0.6], ['button', 0.84, 0.97]] },
-  { id: 'mesh', name: 'RTARIUM mesh', head: ['10 mm', 'RTARIUM mesh'], line: 'A flat sheet, snapped in: 5 mm of cover below, 5 mm above.', labels: [['c2', 0.58, 0.8], ['m', 0.58, 0.8], ['c1', 0.58, 0.8]] },
+  { id: 'prep', name: 'Prepare the base', head: ['Prepare', 'the base'], line: 'Shot-blast the surface to ICRI CSP-5, apply the primer and set the anchors at a consistent height.', labels: [['csp', 0.3, 0.6], ['button', 0.84, 0.97]] },
+  { id: 'mesh', name: 'Install the RTARIUM mesh', head: ['Install the', 'RTARIUM mesh'], line: 'Snap the mesh onto the anchors, leaving 5 mm of cover below and 5 mm above.', labels: [['c2', 0.58, 0.8], ['m', 0.58, 0.8], ['c1', 0.58, 0.8]] },
   {
     id: 'pour',
-    name: 'The pour',
-    head: ['High-velocity', 'delivery'],
-    line: 'Self-levelling, from the H1-561. No air pockets, no cold joints.',
+    name: 'Pump the screed',
+    head: ['Pump', 'the screed'],
+    line: 'Pump self-levelling concrete over the mesh using the H1-561 mixer-pump.',
     labels: [['pump', 0.3, 0.76], ['flow', 0.55, 0.76]],
     clip: { src: '/video/aw-pour.mp4', poster: '/video/aw-pour.jpg', label: 'On site: self-levelling concrete pumped through a hose onto the mesh' },
   },
-  { id: 'bays', name: 'Monolithic bays', head: ['Monolithic', 'bays'], line: 'Significantly fewer expansion joints than a standard floor.', labels: [['bay', 0.66, 0.8], ['joint', 0.66, 0.8]] },
-  { id: 'trowel', name: 'Power trowelled', head: ['Hyper-', 'polished'], line: 'A ride-on power trowel leaves it glass-smooth.', labels: [['trowel', 0.3, 0.8]] },
-  { id: 'wear', name: 'Wear layer', head: ['Chemical', 'armour'], line: 'Polyurethane or polyaspartic, over the ultra-flat floor.', labels: [['coat', 0.66, 0.87], ['mesh', 0.66, 0.87], ['slab', 0.66, 0.87]] },
-  { id: 'loop', name: 'Running flawlessly', head: ['Running', 'flawlessly'], line: '24/7, at maximum speed.', labels: [] },
+  { id: 'bays', name: 'Enable larger monolithic bays', head: ['Enable larger', 'monolithic bays'], line: 'Significantly fewer expansion joints than a standard floor.', labels: [['bay', 0.66, 0.8], ['joint', 0.66, 0.8]] },
+  { id: 'trowel', name: 'Finish with a power trowel', head: ['Finish with a', 'power trowel'], line: 'Use a ride-on power trowel to bring the surface to a glass-smooth finish.', labels: [['trowel', 0.3, 0.8]] },
+  { id: 'wear', name: 'Apply the surface coating', head: ['Apply the', 'surface coating'], line: 'Apply a polyurethane or polyaspartic coating over the ultra-flat floor.', labels: [['coat', 0.66, 0.87], ['mesh', 0.66, 0.87], ['slab', 0.66, 0.87]] },
+  { id: 'loop', name: 'Run at full capacity', head: ['Run at', 'full capacity'], line: 'Support continuous 24/7 operations at maximum speed.', labels: [] },
 ]
 
 const LABELS: LabelSpec[] = [

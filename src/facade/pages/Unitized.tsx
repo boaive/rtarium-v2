@@ -17,10 +17,9 @@ import { More } from '../unitized/More'
  *   six layers     yellow, pinned: the layers as stacking cards beside the unit, put together layer
  *                  by layer in a black studio box (which layer, a step back or on, the six along its foot)
  *   slab to slab   warm white, pinned: how a unit hangs, then the façade going up on the building
- *   pain points    black, pinned: four stacking cards, struck as they are covered, and one panel on an
- *                  open stage showing each
+ *   pain points    black, one screen: the four at a glance, and one panel on an open stage playing each
  *   the answers    yellow, pinned: five answers over one scene of the textile, a bar along the foot
- *   made face down warm white: the production shoot
+ *   inverted casting warm white: the production shoot
  *   more ways      warm white: the other two systems
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.

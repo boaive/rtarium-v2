@@ -6,17 +6,18 @@ import { FACT_SIZE, FactScene, type Fact } from './three/FactScenes'
 
 /**
  * What RTARIUM wall panels do best, told as the Façade & Cladding overview tells its story: three full screens of
- * four boxes each (its name, what it gives, and two things it does, each shown in its own small 3D that plays on a
- * loop while it is on screen), opening diagonally, held while read, closing into the far corner; each passed block
- * leaves a plain, numbered row under the header, which takes you back to it. The page is never held: the scroll only
- * brings a block in and takes it out. Black and warm white take turns; the yellow stays.
+ * four boxes each (its name, what it gives, and two things it does, each shown in its own small 3D, standing still at
+ * the moment that says it), opening diagonally, held while read, closing into the far corner; each passed block
+ * leaves a plain, numbered row under the header, which takes you back to it. The boxes' open and close is the one
+ * movement here: the page is never held, and nothing plays or changes on top of it. Black and warm white take turns;
+ * the yellow stays.
  *
  *   01 concrete muscle   the real panel under load (one of RTARIUM's own photographs, in the photograph's frame that
  *                        opens out of its corner), and strong (hung by its ferrules, 125 kg a point)
  *   02 mineral mesh      non-magnetic (a magnet takes the steel nut, not the panel); and fire-rated for 4 hours, which
  *                        is the SIP insulated panel's rating, not the mesh's (owner): its face takes the heat, the clock
- *                        runs to 4 hours (no flames: owner)
- *   03 to the millimetre millimetric (a caliper on its edge, 30.0 mm) and lower carbon (a square metre of it gives up
+ *                        at 4 hours (no flames: owner)
+ *   03 factory precision millimetric (a caliper on its edge, 30.0 mm) and lower carbon (a square metre of it gives up
  *                        what it is made of: a small cube of concrete and a sheet of basalt, no steel)
  *
  * (Zoning and interlocking are left to the envelope's slides below, so nothing is said twice.)
@@ -51,11 +52,11 @@ const BLOCKS: Block[] = [
   {
     id: 'mesh',
     name: 'Mineral mesh',
-    full: 'An independent, three-dimensional basalt reinforcement',
+    full: 'An independent, three-dimensional basalt mesh for reinforcement',
     // (the mesh is non-magnetic; the fire rating is the insulated panel's: owner, 2 Nov 2026)
     label: 'Basalt mesh, insulated panel',
-    replaced: 'Non-magnetic. Fire-rated, 4 hours.',
-    tag: 'Non-magnetic · 4 h fire-rated',
+    replaced: 'Non-magnetic. Thermal resistant.',
+    tag: 'Non-magnetic · Thermal resistant',
     material: '',
     thick: 15,
     facts: ['magnet', 'fire'],
@@ -63,7 +64,7 @@ const BLOCKS: Block[] = [
   },
   {
     id: 'made',
-    name: 'To the millimetre',
+    name: 'Factory precision',
     full: 'Made in the factory, bolted on site',
     label: 'Precise, and lean',
     replaced: 'Millimetric accuracy. Lower carbon.',
@@ -81,8 +82,6 @@ const WORDS: LineageWords = {
   used: '',
   replaced: '',
   claim: '',
-  replaces: '',
-  tag: '',
 }
 
 /** each scene seen from a front diagonal, a little from above, swaying only a touch (it moves on its own) */
@@ -94,7 +93,7 @@ const SHOTS: Record<Fact, CellShot> = {
   carbon: { target: [0.04, -0.02, 0], azim: -16, elev: 10, zoom: 1, sway: 2 },
 }
 
-/** one fact, in its own canvas: its name at the top of its box, what it reads at the foot, the scene playing while on screen */
+/** one fact, in its own canvas: its name at the top of its box, what it reads at the foot, the scene standing still */
 function FactCell({ fact, name, compact, dark }: { fact: Fact; name: string; compact: boolean; dark: boolean }) {
   const shot = useMemo(() => () => SHOTS[fact], [fact])
   const host = useRef<HTMLDivElement>(null)
@@ -113,7 +112,7 @@ function FactCell({ fact, name, compact, dark }: { fact: Fact; name: string; com
       <Stage3D shadows keyLight={false}>
         <CellRig shotAt={shot} size={compact ? [sw * 0.98, sh * 0.98] : [sw * 1.08, sh * 1.08]} live={live} />
         <MovingKeyLight focus={[0, 0, 0]} reach={1.4} offset={[-4, 10, 7.5]} />
-        <FactScene fact={fact} live={live} readout={readout} dark={dark} />
+        <FactScene fact={fact} readout={readout} dark={dark} />
       </Stage3D>
       <p className="wp-fact__name">{name}</p>
       <p ref={readout} className="wp-fact__read num" aria-live="off" />

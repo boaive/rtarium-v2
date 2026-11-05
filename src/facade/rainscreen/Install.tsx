@@ -11,7 +11,7 @@ import { useLive } from '../unitized/live'
 import { StepBar } from '../unitized/StepBar'
 
 /**
- * Wall to skin: the rainscreen put up, in the order the installation films show. One scene on the
+ * From structure to facade: the rainscreen put up, in the order the installation films show. One scene on the
  * warm white page, edge to edge (the title and the bar stand over it), pinned for its run: a bay of
  * the wall given its brackets, its wool and its rails, then the tower crane bringing the panel that
  * hooks on, then the block and the rest of the façade going up by itself. Slab to slab's bar along
@@ -69,7 +69,7 @@ export function Install() {
     <section ref={section} id="install" className="fu-hang on-light" aria-labelledby="fr-install-title" style={{ '--run': RUN } as CSSProperties}>
       <div className="fu-hang__pin">
         <h2 id="fr-install-title" className="fu-hang__title">
-          Wall to skin.
+          From structure to facade.
           <ReviewNote>{REVIEW.subframe}</ReviewNote>
         </h2>
         <div ref={stage} className="fu-hang__stage" aria-hidden="true">

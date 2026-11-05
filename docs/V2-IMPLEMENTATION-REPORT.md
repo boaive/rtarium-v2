@@ -400,3 +400,54 @@ Round 2 replaced most of the first build; round 3 set the envelope's motion. Wha
 - **The full-screen photograph**: a 3D stage that failed (a lost WebGL context, an error) switched for good to its
   fallback photograph, which on these stages covers the whole screen. `Stage3D` now makes a failed or lost canvas
   again (up to three times), hides its labels if it gives up, and the Wall Panels stages have no photograph fallback.
+
+## V3 revisions (November 2026): the client marketing team's PDF
+
+Source: `V.3 RTARIUM REVISIONS.pdf` (57 pages: twelve site-wide comments G1 to G12, then every copy and layout change by
+navbar section). The owner's instructions on top of it: use the team's wording, do only the told changes, change no
+images, keep the home page's flight through the mesh and the timeline of how the mesh is woven.
+
+**Scroll, everywhere.** No snap and no hold on the home page (`src/lib/scroll.ts`): Lenis at `lerp 0.07`,
+`wheelMultiplier 0.7`, so the wheel moves less and glides longer, and nothing is ever taken from the visitor.
+
+**Site-wide comments, as built:**
+
+| Comment | Here |
+|---|---|
+| G1 one anatomy format | The Six layers format (black studio box, numbered balloons on the layers' top edges, read-out top left, arrows top right, track along the foot) on Wall Panels too |
+| G2 skip | `StepBar` has a Skip button that goes to the end of its section; its steps stay clickable |
+| G3, G4 problems in one scroll, no red | Unitized `Flaws` and the warehouse and semiconductor `FailStage`: one screen, a list that plays through by itself (`usePlay`) and can be clicked; the failure scenes alert in yellow or warm white, no red anywhere |
+| G5 cut text | `.word` masks have room for descenders and overhang, rising from 136 % so no glyph top peeks in |
+| G6 title weight | `--t-title`, `--t-kind`, `--t-line`: the page's name leads each hero, its line a step down |
+| G7 no sibling links | Heroes of the sub-pages carry no links to their sisters (they stay at the page's end) |
+| G8 instructor voice | Process steps take the team's imperative copy |
+| G9 no way back | Every "Back to the ..." link is gone |
+| G10 view all details | Home's Tech Space is a summary, a data sheet to download (`public/rtarium-data-sheet.pdf`, printed from `content/technical.ts`) and a "View all details" sheet; Wall Panels' tables keep theirs |
+| G11 left to right | `Lineage`, `Layer` and the statements on the left read left to right |
+| G12 uniform statements | Flooring's and Wall Panels' statements use the home page's (`Say`, on black) |
+
+**Structure changes:** Home's "Concrete, better than ever." is gone (its screen stays empty, for the mesh's move); "What
+it replaces" is a table at a glance (`.ledger`); the Façade story's rows are an index, nothing struck; Rainscreen's,
+Data & AI Centres' and Semiconductor's comparisons are one table (`facade/Compare.tsx`); Stud Frame loses its white
+boxes and "Made in the factory"; Flooring's landing loses its links in the hero; the warehouse's Frame to floor plays
+from one scroll (`usePlay`), the only one of the three that was told to.
+
+**Wall Panels:** the story's 3D stands still at the moment that says it, with fixed words (`FactScenes`: `useClock` holds);
+the magnet's band and the fire's heat are yellow and amber, no red; "Fire-rated: 4 hours" is said once. The hero says
+100 mm, not the PDF's 80 mm (owner: the panel's layers add up to 100). The panels (`Panels.tsx`) keep the Six layers
+format, table on the left, studio box on the right, but the PDF's single static screen hid the second panel, so on the
+owner's word they are two bursts, one after the other, on a short pinned run (3.4 screens): the solid panel stands
+whole, opens and rests; it closes, divides, takes its core, joins and opens as the SIP panel, which rests. At each rest
+a row shows its part on the model. A bar under both names the two panels from the start and takes the page to either.
+
+**No red, in the 3D too:** the Unitized firestop band is graphite; the warehouse's failure scenes alert in yellow, the
+semiconductor's in warm white; the magnet's band and the wall's heat are yellow and amber.
+
+**Kept against the letter of the PDF, on the owner's word:** the timeline (p. 10 said remove), the steel fibre image
+(p. 17 said replace), 100 mm in the Wall Panels hero (p. 49 said 80), and a short run for the two panels (pp. 54 and 55
+said static).
+
+**Checked:** every page's flow at 1270 × 713 against the PDF, the key screens at 1440 × 900 and 1920 × 1080, reduced
+motion, no console errors on any of the ten routes, `tsc` and the production build. The phone layout was left out of this
+round on the owner's word: a first look found the larger titles touching the 3D on the Unitized, Rainscreen, Data & AI
+Centres and Wall Panels heroes, the models were moved down on phones for that, and the result has not been seen.

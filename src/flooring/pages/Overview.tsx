@@ -5,6 +5,7 @@ import '../flooring.css'
 import { Link } from '../../lib/router'
 import { useIsCompact } from '../../lib/motion'
 import { setShared, type Ground } from '../../three/stageStore'
+import { Say } from '../../components/Say'
 import { Arrow, FacadePage, usePageMeta } from '../../facade/Shell'
 import { Words, useInView } from '../../facade/Story'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../../facade/three/Stage3D'
@@ -21,15 +22,16 @@ import { Features } from '../Features'
  * Advanced Flooring, the overview, in the Façade overview's grammar. One continuous scroll, yellow the
  * ground that stays:
  *
- *   the opening    one sentence, over a sample of the floor: the screed poured across RTARIUM on its slab
- *   the statement  what RTARIUM is in flooring, alone on the screen
+ *   the opening    the section's name, what it is, one line, over a sample of the floor: the screed poured
+ *                  across RTARIUM on its slab
+ *   the statement  what RTARIUM is in flooring, alone on black, as the homepage's challenge stands
  *   the layer      what it does between the slab and the screed, in the overview story's boxes
  *   the features   six, each played out on one floor (the Rainscreen bridge's stage)
  *   the ways       the three applications side by side, their floors rising in turn
  */
 
 const HERO_LABELS: LabelSpec[] = [
-  { id: 'h-mesh', anchor: 'fl-mesh', text: 'RTARIUM 3D basalt mesh', dx: -60, dy: -110, delay: 2300 },
+  { id: 'h-mesh', anchor: 'fl-mesh', text: 'RTARIUM 3D basalt mesh', dx: -60, dy: -58, delay: 2300 },
   { id: 'h-screed', anchor: 'fl-screed', text: 'High-strength screed', dx: 70, dy: -100, delay: 2600, wide: true },
   { id: 'h-slab', anchor: 'fl-slab', text: 'Structural slab', dx: 60, dy: 120, delay: 2900 },
 ]
@@ -44,10 +46,7 @@ function heroShots(compact: boolean): [Shot, Shot] {
   ]
 }
 
-const STATEMENT = [
-  'RTARIUM is disrupting the industrial flooring sector as the world’s first independent, three-dimensional mineral',
-  'reinforcement mesh for high-performance concrete overlays.',
-]
+const STATEMENT = 'RTARIUM is the first independent three-dimensional mineral reinforcement mesh for high-performance concrete overlays, built for floors that cannot stop.'
 
 export default function Overview() {
   usePageMeta(
@@ -64,7 +63,6 @@ export default function Overview() {
   const heroBus = useMemo(createBus, [])
   const [hs0, hs1] = useMemo(() => heroShots(compact), [compact])
   const heroShot = useMemo(() => (p: number) => mixShot(hs0, hs1, p), [hs0, hs1])
-  const [sayRef, sayIn] = useInView<HTMLDivElement>('0px 0px -30% 0px')
   const [waysRef, waysIn] = useInView<HTMLDivElement>('0px 0px -25% 0px')
   const [hover, setHover] = useState<number | null>(null)
 
@@ -88,7 +86,7 @@ export default function Overview() {
     const footer = document.querySelector<HTMLElement>('.footer')
     const sections: [HTMLElement, Ground][] = [
       [hero.current!, 'yellow'],
-      [say.current!, 'yellow'],
+      [say.current!, 'black'],
       [layer.current!, 'yellow'],
       [features.current!, 'yellow'],
       [ways.current!, 'light'],
@@ -135,19 +133,13 @@ export default function Overview() {
         </div>
         {/* what the page is, top left, as the Facade overview names itself */}
         <header className="fco-head">
-          <p className="fco-head__name">{FLOORING.title}</p>
+          <h1 id="ffo-title" className="fco-head__name">
+            {FLOORING.title}
+          </h1>
           <p className="fco-head__kind">High-performance concrete overlays, reinforced with RTARIUM’s 3D basalt mesh.</p>
         </header>
         <div className="fco-hero__copy">
-          <Words as="h1" id="ffo-title" className="fco-mega" lines={['Floors that', 'never crack.']} />
-          <p className="fco-also">
-            <span>Explore</span>
-            {FLOORING_APPS.map((a) => (
-              <Link key={a.id} to={a.path}>
-                {a.title}
-              </Link>
-            ))}
-          </p>
+          <Words as="p" className="fco-mega" lines={['Flooring,', 'built to last.']} />
         </div>
         <span className="fco-cue" aria-hidden="true">
           Scroll
@@ -155,11 +147,7 @@ export default function Overview() {
       </section>
 
       {/* ---- the statement, alone on the screen ---- */}
-      <section ref={say} className="ffo-say on-yellow" aria-label="RTARIUM in industrial flooring">
-        <div ref={sayRef} className={`ffo-say__in fc-reveal ${sayIn ? 'is-in' : ''}`}>
-          <Words as="p" className="ffo-say__text" lines={STATEMENT} />
-        </div>
-      </section>
+      <Say sectionRef={say} label="RTARIUM in industrial flooring" text={STATEMENT} />
 
       {/* ---- the layer between the slab and the screed ---- */}
       <Layer sectionRef={layer} />

@@ -10,7 +10,7 @@ import type { Room } from './three/fit'
 import { ANSWERS } from './content'
 
 /**
- * Built for the envelope, on yellow, as the Unitized page runs RTARIUM's answers: one pinned screen, the words
+ * A smarter approach to wall systems, on yellow, as the Unitized page runs RTARIUM's answers: one pinned screen, the words
  * always in one place on the left (every name two lines, starting on one line), the 3D in the room right of them, a
  * bar along the foot. One wall is put up in front of you: the panel grows to 5.8 m and is laid down; it is X-rayed
  * and looked at close; it is lifted by its tie holes and lowered between two steel channel posts, its ends in them,
@@ -232,7 +232,7 @@ export function Answers() {
         </div>
 
         <h2 id="wp-answers-title" className="fu-ans__title">
-          Built for the envelope.
+          A smarter approach to wall systems.
         </h2>
 
         <div ref={roomEl} className="fu-ans__words">
@@ -257,7 +257,7 @@ export function Answers() {
           })}
         </div>
 
-        <StepBar label="Built for the envelope" names={ANSWERS.map((a) => a.bar)} step={step} onGo={goTo} cellRef={(k, el) => void (cells.current[k] = el)} />
+        <StepBar label="A smarter approach to wall systems" names={ANSWERS.map((a) => a.bar)} step={step} onGo={goTo} cellRef={(k, el) => void (cells.current[k] = el)} />
       </div>
     </section>
   )

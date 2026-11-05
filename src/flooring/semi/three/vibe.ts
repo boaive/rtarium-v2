@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { MOD, WAF } from './fab'
 
 /**
- * Micro-vibration, drawn on a cut face of the waffle slab: red wave fronts running up through the
+ * Micro-vibration, drawn on a cut face of the waffle slab: wave fronts running up through the
  * concrete, kept to the section's outline (the deck and what lies on it, the ribs under it). Where a
  * damping layer is (`uDampY0`..`uDampY1`, scaled by `uDamp` 0..1) the fronts die out, and nothing
  * passes above it. A plane over the face carries it; `axis` 'z' for a face of constant z (the ribs
@@ -11,7 +11,8 @@ import { MOD, WAF } from './fab'
  * so the fronts stay on the section however the piece is moved or turned.
  */
 
-export const RED = '#f43a2b'
+/** a threat's colour: warm white, standing out from the fab's yellow lines (red is not part of the language) */
+export const THREAT = '#f2f0e9'
 
 export interface Vibe {
   material: THREE.ShaderMaterial
@@ -31,7 +32,7 @@ export function vibeMaterial(
   {
     speed = 0.16,
     wave = 0.07,
-    color = RED,
+    color = THREAT,
     plain = false,
     thick = 0.07,
     fade = [0, 0, 0, 0] as [number, number, number, number],

@@ -25,10 +25,9 @@ OWN-WORLD: the V2 world unchanged: yellow / black / warm-white grounds that own 
 galvanized steel, numbered leaders on clear ground, no decoration around the 3D.
 STORY: mesh, then panel, then system; the visitor learns what each component is and where it sits, then moves
 to the next system or back to the overview.
-FIRST VIEWPORT: overview: the name of the section and the positioning line top left, a thin façade panel poured as
-the page opens lower right, three short leaders (textile, thin concrete, 20 mm); Unitized: the page's name small top
-left, "Thin skin. Anchored from within." large bottom left, one unit low right on its shadow, its skin cut back to
-RTARIUM (the one label); system pages: the finished assembly isolated on the ground with the system name and one
+FIRST VIEWPORT (V3 revisions, November 2026): the page's name leads, large, top left, what it is under it, the line a
+step down at the bottom left (Unitized: "Built for Lightweight Strength."), the panel or unit on the right; no links to
+the sister pages; system pages: the finished assembly isolated on the ground with the system name and one
 line in the clear corner opposite.
 FORM (owner, 26–27 October 2026; supersedes the step grammar): one continuous scroll where everything follows the
 scroll and only the 3D has motion of its own. Enerblock boxes that open out of a corner with an X/Y read-out; sticky

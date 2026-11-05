@@ -1,19 +1,17 @@
 import { useMemo, type RefObject } from 'react'
 import { useIsCompact } from '../../lib/motion'
-import { Link } from '../../lib/router'
 import { Words } from '../../facade/Story'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../../facade/three/Stage3D'
 import { createBus, type Shot } from '../../facade/three/kit'
 import { ScrubRig, mixShot } from '../../facade/three/ScrubRig'
 import { FollowScroll, useScrollProgress } from '../../facade/progress'
 import { useLive } from '../../facade/unitized/live'
-import { FLOORING_APPS } from '../content'
 import { HERO_TARGET, HeroFloor } from './three/HeroFloor'
 
 /**
- * The opening, on yellow, as the Data & AI Centres page opens: the page's name, small, top left; the
- * line, large, bottom left, and under it the other two applications; one piece of a cleanroom's floor
- * low on the right, a process tool drawn on it, RTARIUM labelled where its corner is stepped back.
+ * The opening, on yellow, as the Data & AI Centres page opens: the page's name and what it is, large,
+ * top left; the line, a step down, bottom left; one piece of a cleanroom's floor low on the right, a
+ * process tool drawn on it, RTARIUM labelled where its corner is stepped back.
  */
 
 const LABELS: LabelSpec[] = [{ id: 'h-mesh', anchor: 'sh-mesh', text: 'RTARIUM', dx: -70, dy: -96, delay: 2600 }]
@@ -37,7 +35,6 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
   const [s0, s1] = useMemo(() => shots(compact), [compact])
   const shotAt = useMemo(() => (p: number) => mixShot(s0, s1, p), [s0, s1])
   const live = useLive(sectionRef)
-  const others = FLOORING_APPS.filter((a) => a.id !== 'semiconductor')
 
   return (
     <section ref={sectionRef} className="fu-hero on-yellow" aria-labelledby="fsc-title">
@@ -60,15 +57,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
       </header>
 
       <div className="fu-hero__foot">
-        <Words as="p" className="fu-mega" lines={['Still. Sealed.', 'Flat.']} />
-        <p className="fu-hero__also">
-          <span>Also</span>
-          {others.map((a) => (
-            <Link key={a.id} to={a.path}>
-              {a.title}
-            </Link>
-          ))}
-        </p>
+        <Words as="p" className="fu-mega" lines={['Designed for', 'Absolute Precision.']} />
       </div>
     </section>
   )

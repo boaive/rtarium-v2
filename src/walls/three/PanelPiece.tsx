@@ -91,6 +91,8 @@ const HOOK_R = 0.012
 /** the GRP's own pale colour, and the deeper one it takes while marked, so it reads on the yellow */
 const GRP_BASE = new THREE.Color('#e6d6a4')
 const GRP_LIT = new THREE.Color('#7d5c22')
+/** on black what is marked turns the brand's yellow */
+const MARK = new THREE.Color('#fdd001')
 /** the clips' galvanised steel, and the darker one they take while marked, so they read against the EPS */
 const GALV = new THREE.Color('#b4b9bd')
 const GALV_LIT = new THREE.Color('#3f464d')
@@ -126,6 +128,7 @@ export function PanelPiece({
   bus,
   meshes = true,
   wide = 1,
+  dark = false,
 }: {
   len: number
   pose: { current: PiecePose }
@@ -133,10 +136,12 @@ export function PanelPiece({
   meshes?: boolean
   /** drawn this many times its 600 mm width (owner: wider in the burst, as the reference); every position across it scales with it */
   wide?: number
+  /** on a black box: the natural grey panel, and what is marked turns yellow rather than dark */
+  dark?: boolean
 }) {
   const tex = useWallTextures()
   const m = useMemo(() => {
-    const k = wallKit(tex)
+    const k = wallKit(tex, dark ? 'natural' : 'pink')
     // each part its own materials, so the one being marked can stand out while the others fade back
     const set = (): Trio => [k.concrete.clone(), k.edge.clone(), k.outer.clone()]
     return {
@@ -153,7 +158,7 @@ export function PanelPiece({
       sleeve: new THREE.MeshStandardMaterial({ color: '#2c2c2b', roughness: 0.6, transparent: true }),
       boreF: k.bore.clone(),
     }
-  }, [tex])
+  }, [tex, dark])
   const w = PW * wide
   const along = useMemo(() => GRP_ALONG.map((x) => x * wide), [wide])
   const rodLines = useMemo(() => ROD_LINES.map((x) => x * wide), [wide])
@@ -240,7 +245,7 @@ export function PanelPiece({
 
   // the tie-clips' lines: from each clip's lug hole to the rod it hooks on the mesh, a unit long, stretched at run time; fine
   // and dashed, as an exploded drawing's (solid black ones read as bars across the gap)
-  const tieInk = useMemo(() => new LineMaterial({ color: 0x1b1b1a, linewidth: 1, transparent: true, opacity: 0.6, depthWrite: false, dashed: true, dashSize: 0.028, gapSize: 0.022 }), [])
+  const tieInk = useMemo(() => new LineMaterial({ color: dark ? 0xf2f0e9 : 0x1b1b1a, linewidth: 1, transparent: true, opacity: 0.6, depthWrite: false, dashed: true, dashSize: 0.028, gapSize: 0.022 }), [dark])
   useInkResolution(useMemo(() => [tieInk], [tieInk]))
   const lines = useMemo(() => {
     const ties = new Lines()
@@ -298,12 +303,12 @@ export function PanelPiece({
     fade(m.bore, dim(lit('pp-tie')))
     const fer = lit('pp-ferrule', 'pp-ferrule100')
     fade(m.zinc, dim(fer))
-    m.zinc.color.lerpColors(ZINC, ZINC_LIT, fer)
+    m.zinc.color.lerpColors(ZINC, dark ? MARK : ZINC_LIT, fer)
     fade(m.grp, dim(Math.max(grp, 0.55 * clip)))
-    m.grp.color.lerpColors(GRP_BASE, GRP_LIT, grp)
+    m.grp.color.lerpColors(GRP_BASE, dark ? MARK : GRP_LIT, grp)
     fade(m.core, dim(lit('pp-core', 'pp-recess'), FLOOR - (FLOOR - DEEP) * clip))
     fade(m.galv, dim(clip))
-    m.galv.color.lerpColors(GALV, GALV_LIT, clip)
+    m.galv.color.lerpColors(GALV, dark ? MARK : GALV_LIT, clip)
     // the clips widen while they are marked, so they read (their length through the core stays true)
     const cl = clipMesh.current
     if (cl && Math.abs(cl.userData.k - clip) > 1e-3) {
@@ -426,7 +431,7 @@ export function PanelPiece({
           <instancedMesh args={[g.sleeve30c, m.sleeve, holes.length]} ref={place(holes, h + T30.cover / 2)} />
           {bus && (
             <>
-              <group position={[w * 0.72, L * 0.86, c1]}>{id('pp-cover')}</group>
+              <group position={[w * 0.3, L, c1]}>{id('pp-cover')}</group>
               <group position={[holes[0]?.[0] ?? 0.15, holes[0]?.[1] ?? 0.2, c1]}>{id('pp-tie')}</group>
             </>
           )}
@@ -451,7 +456,7 @@ export function PanelPiece({
           <instancedMesh args={[g.sleeve30z, m.sleeve, holes.length]} ref={place(holes, 0)} />
           {bus && (
             <>
-              <group position={[w * 0.5, L * 0.42, h]}>{id('pp-zone')}</group>
+              <group position={[w * 0.5, L, h]}>{id('pp-zone')}</group>
               <group position={[along[3], L * 0.3, 0]}>{id('pp-grp')}</group>
               <group position={[w + J, L * 0.62, 0]}>{id('pp-tongue')}</group>
             </>
@@ -460,7 +465,7 @@ export function PanelPiece({
         <group ref={r.back30}>
           <mesh geometry={g.cover30} material={m.b} position={[0, 0, -(h + c1)]} castShadow receiveShadow />
           <instancedMesh args={[g.sleeve30c, m.sleeve, holes.length]} ref={place(holes, -(h + T30.cover / 2))} />
-          {bus && <group position={[w, L * 0.2, -c1]}>{id('pp-back')}</group>}
+          {bus && <group position={[w * 0.75, L, -c1]}>{id('pp-back')}</group>}
         </group>
       </group>
 
@@ -587,11 +592,11 @@ export function PanelPiece({
                     <instancedMesh args={[g.mouthT, m.bore, holes.length]} ref={place(holes, k3 + 0.25 * MM)} />
                   </>
                 )}
-                {bus && l.key === 'o7' && <group position={[w, L * 0.25, k3]}>{id('pp-outer')}</group>}
+                {bus && l.key === 'o7' && <group position={[w * 0.75, L, k3]}>{id('pp-outer')}</group>}
                 {bus && l.key === 'i6' && <group position={[rodLines[1], L * 0.18, ROD_LINE]}>{id('pp-rod')}</group>}
-                {bus && l.key === 'i7' && <group position={[w * 0.7, L * 0.82, k3]}>{id('pp-inner7')}</group>}
-                {bus && l.key === 'i6' && <group position={[w * 0.82, L * 0.55, zm]}>{id('pp-mesh6i')}</group>}
-                {bus && l.key === 'i2' && <group position={[w, L * 0.7, (k0 + k1) / 2]}>{id('pp-cover2')}</group>}
+                {bus && l.key === 'i7' && <group position={[w * 0.3, L, k3]}>{id('pp-inner7')}</group>}
+                {bus && l.key === 'i6' && <group position={[w * 0.5, L, zm]}>{id('pp-mesh6i')}</group>}
+                {bus && l.key === 'i2' && <group position={[w * 0.5, L, (k0 + k1) / 2]}>{id('pp-cover2')}</group>}
               </group>
             )}
           </group>

@@ -59,10 +59,10 @@ const LISTINGS: Listing[] = [
     head: (
       <>
         <h3 className="fr-name">
-          Ventilated <br />
-          cavity
+          Keeps the wall <br />
+          ventilated
         </h3>
-        <p className="fr-say">Air rises behind the panels. The wall stays dry; the insulation, unbroken.</p>
+        <p className="fr-say">Air rises behind the panels, keeping the wall dry and insulation continuous.</p>
       </>
     ),
     out: ['Eliminates', 'Thermal bridging.'],
@@ -78,10 +78,10 @@ const LISTINGS: Listing[] = [
     head: (
       <>
         <h3 className="fr-name">
-          Built to <br />
-          move
+          Adapts to <br />
+          wind loads
         </h3>
-        <p className="fr-say">The panels give a little in the wind and the brackets let them. The structure behind stays still.</p>
+        <p className="fr-say">The panels and brackets accommodate wind movement while the main structure remains stable.</p>
       </>
     ),
     out: ['Protects', 'The structure.'],
@@ -158,14 +158,13 @@ function ListingView({ item, k, L, compact, refs }: { item: Listing; k: number; 
         {/* the words, on the yellow: they stand still; the boxes' edges pass them */}
         <div className="fr-bw__words" style={{ '--x': L.words[0], '--y': L.words[1], '--w': L.words[2], '--h': L.words[3] } as CSSProperties}>
           <div className="fr-bw__top">
+            {/* said once, on the first listing */}
             {k === 0 ? (
               <h2 id="fr-bw-title" className="fr-kicker">
                 A perfect weather-resistance barrier
               </h2>
             ) : (
-              <p className="fr-kicker" aria-hidden="true">
-                A perfect weather-resistance barrier
-              </p>
+              <span aria-hidden="true" />
             )}
             <p className="fr-count num" aria-hidden="true">
               0{k + 1} <span>/ 0{N}</span>

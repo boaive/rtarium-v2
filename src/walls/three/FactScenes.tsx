@@ -1,8 +1,7 @@
 import { createContext, Suspense, useContext, useEffect, useMemo, useRef, type RefObject } from 'react'
 import * as THREE from 'three'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { smooth } from '../../facade/progress'
-import { prefersReducedMotion } from '../../lib/motion'
 import { Lines } from '../../flooring/data/three/dc'
 import { ink, useDrawing, useInkResolution } from '../../flooring/data/three/draw'
 import { disposeWallKit, MM, slab, slabs, useWallTextures, wallKit, type WallKit } from './kit'
@@ -10,17 +9,17 @@ import { eyeBoltGeometry } from './piece'
 import { Rtarium } from './Panel'
 
 /**
- * The story's facts (Wall Panels), two to a block, each a small 3D scene that plays in time, on a loop, while it is on
- * screen (the page itself is never held: the scroll only brings the block in and takes it out):
+ * The story's facts (Wall Panels), two to a block, each a small 3D scene standing still at the moment that says it. The
+ * block's boxes already open and close with the scroll, so nothing plays or changes on top of that; only the view
+ * sways a touch:
  *
- *   strength  a piece of the 30 mm panel hung by two eye bolts in its ferrules; weights go on until each point carries
- *             125 kg; they come off
- *   magnet    a lifting magnet comes down on a piece lying flat, a steel nut on it: the nut goes up, the panel stays
- *   fire      a piece of the 100 mm SIP insulated panel (the fire-rated one; owner): its face takes the heat, dark red
- *             to amber, the heat falling away through its section, while a clock beside it runs to 4:00 hours (no flames)
- *   caliper   a caliper closes on the panel's edge: 30.0 mm, and again further along
- *   carbon    a square metre of the panel gives up what it is made of: its concrete gathers into a cube of 0.03 m³ and
- *             moves off, the basalt mesh stays; less concrete, no steel (RTARIUM alone, nothing compared: owner)
+ *   strength  a piece of the 30 mm panel hung by two eye bolts in its ferrules, weights on it: 125 kg at each point
+ *   magnet    a lifting magnet over a piece lying flat: it has taken the steel nut up, the panel stays
+ *   fire      a piece of the 100 mm SIP insulated panel (the fire-rated one; owner): its face takes the heat, amber to
+ *             yellow, the heat falling away through its section, a clock beside it at 4:00 hours (no flames)
+ *   caliper   a caliper closed on the panel's edge: 30.0 mm
+ *   carbon    a square metre of the panel, given up: its concrete gathered into a cube of 0.03 m³, the basalt mesh
+ *             stays; less concrete, no steel (RTARIUM alone, nothing compared: owner)
  *
  * Each scene is centred on the origin, its floor at its own foot; `FACT_SIZE` is what the camera fits.
  */
@@ -34,9 +33,7 @@ export const FACT_SIZE: Record<Fact, [number, number]> = {
   caliper: [0.44, 0.3],
   carbon: [2.0, 1.62],
 }
-/** how long each one's loop runs (s) */
-const PERIOD: Record<Fact, number> = { strength: 9, magnet: 7, fire: 9, caliper: 8, carbon: 10 }
-/** under reduced motion: the moment each one is held at */
+/** the moment of each one's sequence that it stands at */
 const STILL: Record<Fact, number> = { strength: 5.5, magnet: 2.9, fire: 6.4, caliper: 2.6, carbon: 6.4 }
 
 type Trio = [THREE.MeshStandardMaterial, THREE.MeshStandardMaterial, THREE.MeshStandardMaterial]
@@ -57,25 +54,9 @@ function useKit() {
 }
 const trio = (m: WallKit): Trio => [m.concrete, m.edge, m.outer]
 
-/**
- * The scene's clock: it runs only while the box is on screen (and asks for frames while it does), loops, and under
- * reduced motion stands still at the scene's telling moment.
- */
-function useClock(fact: Fact, live: { current: boolean }) {
-  const invalidate = useThree((s) => s.invalidate)
-  const reduced = useMemo(() => prefersReducedMotion(), [])
-  const t = useRef(STILL[fact])
-  // a shared start, so a scene seen again comes back where it was
-  useFrame((_, dt) => {
-    if (reduced) {
-      t.current = STILL[fact]
-      return
-    }
-    if (!live.current) return
-    t.current = (t.current + Math.min(dt, 1 / 20)) % PERIOD[fact]
-    invalidate()
-  }, -3)
-  return t
+/** where a scene stands in its sequence: at its telling moment, and there it stays */
+function useClock(fact: Fact) {
+  return useRef(STILL[fact])
 }
 
 /** the site's own typeface, for the numbers drawn on a display */
@@ -166,9 +147,9 @@ function nutGeometry(s: number, h: number) {
 const HANG = { y: 0.62, w: 1.2, d: 0.6, beam: 1.5 }
 const WEIGHTS = [-0.21, -0.07, 0.07, 0.21]
 
-function Strength({ live, readout }: { live: { current: boolean }; readout: RefObject<HTMLElement | null> }) {
+function Strength({ readout }: { readout: RefObject<HTMLElement | null> }) {
   const m = useKit()
-  const t = useClock('strength', live)
+  const t = useClock('strength')
   const g = useMemo(() => {
     const link = new THREE.TorusGeometry(9 * MM, 2.6 * MM, 6, 14)
     return {
@@ -256,9 +237,9 @@ function Strength({ live, readout }: { live: { current: boolean }; readout: RefO
 
 /* ---- non-magnetic: the nut goes, the panel stays -------------------------------------------------------------- */
 
-function Magnet({ live, readout }: { live: { current: boolean }; readout: RefObject<HTMLElement | null> }) {
+function Magnet({ readout }: { readout: RefObject<HTMLElement | null> }) {
   const m = useKit()
-  const t = useClock('magnet', live)
+  const t = useClock('magnet')
   const g = useMemo(
     () => ({
       piece: flatPiece(0.6, 0.6),
@@ -273,7 +254,7 @@ function Magnet({ live, readout }: { live: { current: boolean }; readout: RefObj
   const mats = useMemo(
     () => ({
       body: new THREE.MeshStandardMaterial({ color: '#26292c', metalness: 0.5, roughness: 0.45 }),
-      band: new THREE.MeshStandardMaterial({ color: '#c8361f', metalness: 0.2, roughness: 0.5 }),
+      band: new THREE.MeshStandardMaterial({ color: '#fdd001', metalness: 0.2, roughness: 0.5 }),
       face: new THREE.MeshStandardMaterial({ color: '#8e959b', metalness: 0.8, roughness: 0.3 }),
       nut: new THREE.MeshStandardMaterial({ color: '#b8bdc2', metalness: 0.85, roughness: 0.3 }),
       cable: ink(1.4, '#080808', 0.85),
@@ -352,7 +333,7 @@ void main() {
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`
 /**
- * Heat on a face: dark red, to orange, to amber as it builds, hottest at the foot, a slow shimmer rising through it.
+ * Heat on a face: deep amber, to the brand's yellow, to pale as it builds, hottest at the foot, a slow shimmer rising through it.
  * `uDepth` > 0 turns it into the section's: the heat falls away through the thickness (u: 0 the cool face, 1 the hot one).
  */
 const HEAT_FS = /* glsl */ `
@@ -370,18 +351,18 @@ void main() {
   float n = noise(vec2(vUv.x * 5.0, vUv.y * 4.0 - uTime * 0.35)) * 0.6 + noise(vec2(vUv.x * 11.0 + 3.0, vUv.y * 9.0 - uTime * 0.6)) * 0.4;
   float h = uHeat * (0.74 + 0.26 * (1.0 - vUv.y)) + (n - 0.5) * 0.12 * uHeat;
   if (uDepth > 0.0) h *= exp(-(1.0 - vUv.x) * uDepth);
-  vec3 c = mix(vec3(0.42, 0.04, 0.02), vec3(0.9, 0.2, 0.03), smoothstep(0.05, 0.45, h));
-  c = mix(c, vec3(1.0, 0.5, 0.08), smoothstep(0.4, 0.8, h));
-  c = mix(c, vec3(1.0, 0.76, 0.3), smoothstep(0.8, 1.05, h));
+  vec3 c = mix(vec3(0.36, 0.24, 0.02), vec3(0.78, 0.55, 0.03), smoothstep(0.05, 0.45, h));
+  c = mix(c, vec3(0.99, 0.76, 0.05), smoothstep(0.4, 0.8, h));
+  c = mix(c, vec3(1.0, 0.86, 0.42), smoothstep(0.8, 1.05, h));
   gl_FragColor = vec4(c, smoothstep(0.02, 0.3, h) * 0.92);
 }`
 
 /** the clock: 0:00 to 4:00 hours over the heat's run */
 const BURN: [number, number] = [0.6, 5.4]
 
-function Fire({ live, readout }: { live: { current: boolean }; readout: RefObject<HTMLElement | null> }) {
+function Fire({ readout }: { readout: RefObject<HTMLElement | null> }) {
   const m = useKit()
-  const t = useClock('fire', live)
+  const t = useClock('fire')
   const screen = useDisplay()
   const g = useMemo(() => {
     // a piece of the 100 mm SIP upright, 600 × 1000: its two 15 mm leaves (the outer one to the heat, towards the
@@ -438,7 +419,7 @@ function Fire({ live, readout }: { live: { current: boolean }; readout: RefObjec
     // the clock: hours and minutes, held at 4:00, back to 0:00 once the heat has gone
     const mins = s > 8.4 ? 0 : Math.round(run * 240)
     screen.write(`${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, 'h')
-    if (readout.current) readout.current.textContent = run >= 1 && s < 8.4 ? 'Fire-rated: 4 hours' : 'Heat on one face'
+    if (readout.current) readout.current.textContent = 'Heat on one face'
   }, -2)
   return (
     <group position={[-0.14, -0.55, 0]}>
@@ -453,7 +434,7 @@ function Fire({ live, readout }: { live: { current: boolean }; readout: RefObjec
         <mesh geometry={g.box} material={mats.steel} castShadow receiveShadow />
         <mesh geometry={g.dial} material={screen.material} position={[0, 0.08, 0.0305]} />
       </group>
-      <pointLight ref={light} position={[0, 0.3, 0.45]} color="#ff7a1f" intensity={0} distance={1.5} decay={2} />
+      <pointLight ref={light} position={[0, 0.3, 0.45]} color="#fdc000" intensity={0} distance={1.5} decay={2} />
       <Ground />
     </group>
   )
@@ -461,9 +442,9 @@ function Fire({ live, readout }: { live: { current: boolean }; readout: RefObjec
 
 /* ---- millimetric: the caliper on its edge ---------------------------------------------------------------------- */
 
-function Caliper({ live, readout }: { live: { current: boolean }; readout: RefObject<HTMLElement | null> }) {
+function Caliper({ readout }: { readout: RefObject<HTMLElement | null> }) {
   const m = useKit()
-  const t = useClock('caliper', live)
+  const t = useClock('caliper')
   const screen = useDisplay()
   const g = useMemo(
     () => ({
@@ -543,9 +524,9 @@ function Caliper({ live, readout }: { live: { current: boolean }; readout: RefOb
 const SQ_X = -0.25
 const CUBE_X = 0.62
 
-function Carbon({ live, readout, dark }: { live: { current: boolean }; readout: RefObject<HTMLElement | null>; dark: boolean }) {
+function Carbon({ readout, dark }: { readout: RefObject<HTMLElement | null>; dark: boolean }) {
   const m = useKit()
-  const t = useClock('carbon', live)
+  const t = useClock('carbon')
   const mats = useMemo(() => ({ outline: ink(1.2, dark ? '#fdd001' : '#080808', 0.9) }), [dark])
   useInkResolution(useMemo(() => [mats.outline], [mats]))
   const lines = useMemo(() => {
@@ -616,21 +597,21 @@ function Carbon({ live, readout, dark }: { live: { current: boolean }; readout: 
   )
 }
 
-export function FactScene({ fact, live, readout, dark }: { fact: Fact; live: { current: boolean }; readout: RefObject<HTMLElement | null>; dark: boolean }) {
-  return <Finish.Provider value={dark ? 'natural' : 'pink'}>{scene(fact, live, readout, dark)}</Finish.Provider>
+export function FactScene({ fact, readout, dark }: { fact: Fact; readout: RefObject<HTMLElement | null>; dark: boolean }) {
+  return <Finish.Provider value={dark ? 'natural' : 'pink'}>{scene(fact, readout, dark)}</Finish.Provider>
 }
 
-function scene(fact: Fact, live: { current: boolean }, readout: RefObject<HTMLElement | null>, dark: boolean) {
+function scene(fact: Fact, readout: RefObject<HTMLElement | null>, dark: boolean) {
   switch (fact) {
     case 'strength':
-      return <Strength live={live} readout={readout} />
+      return <Strength readout={readout} />
     case 'magnet':
-      return <Magnet live={live} readout={readout} />
+      return <Magnet readout={readout} />
     case 'fire':
-      return <Fire live={live} readout={readout} />
+      return <Fire readout={readout} />
     case 'caliper':
-      return <Caliper live={live} readout={readout} />
+      return <Caliper readout={readout} />
     case 'carbon':
-      return <Carbon live={live} readout={readout} dark={dark} />
+      return <Carbon readout={readout} dark={dark} />
   }
 }

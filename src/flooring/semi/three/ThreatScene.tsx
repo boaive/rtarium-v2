@@ -10,18 +10,18 @@ import { Lines, sortFrom, split } from '../../data/three/dc'
 import { ink, useDrawing, useInkResolution } from '../../data/three/draw'
 import { aim, CUT_AT, PHONE_ROOM, shotAt, type View } from './camera'
 import { airHandler, chiller, circle, disposeKit, fabKit, OLD_TOP, OPTICS_FOOT, oht, oldTopping, PX, PZ, rail, scanner, sectionAtX, SEAM, SLAB, vacuumPump, WAFER, WAFER_R, waffle, WAF } from './fab'
-import { RED, vibeMaterial } from './vibe'
+import { THREAT, vibeMaterial } from './vibe'
 
 /**
  * The problem (Semiconductor Plant), on black, in the build's stage: the client's first two scenes in
  * five steps. The floor is the old one: the waffle slab under a 50 mm brittle topping with its
  * saw-cut joint, the one thing in its own materials; the cleanroom and its tools are drawn in amber,
- * the threats in red.
+ * the threats in warm white.
  *
  *   0  the standard     a lithography scanner on the floor, the AMHS rail over the aisle, a vehicle
  *                       running along it
  *   1  the line         down past the machine to a wafer on its chuck: the beam prints a circuit line
- *   2  the shockwave    seen from the side, red fronts rise from the floor up to the wafer; it shakes,
+ *   2  the shockwave    seen from the side, fronts rise from the floor up to the wafer; it shakes,
  *                       the beam blurs, the rest of the line is printed broken, and the die is lost
  *   3  under the floor  down through the floor: the coffered slab from below, the subfab's pumps,
  *                       chiller and air handler shaking it, the fronts running up column, slab and
@@ -180,7 +180,7 @@ export function ThreatScene({ t, bus, compact, room, live }: { t: Progress; bus:
       wafer: new THREE.MeshStandardMaterial({ map: waferTexture(), metalness: 0.55, roughness: 0.2, envMapIntensity: 1.3, transparent: true }),
       waferEdge: new THREE.MeshStandardMaterial({ color: '#3a404c', metalness: 0.5, roughness: 0.35, transparent: true }),
       beam: beamMaterial('#fff1a8', 0.5),
-      ghost: beamMaterial(RED, 0.35),
+      ghost: beamMaterial(THREAT, 0.35),
       spot: new THREE.MeshBasicMaterial({ color: '#fff6c8', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }),
       vapour: new THREE.MeshBasicMaterial({ color: '#bfe0ff', transparent: true, opacity: 0.9, toneMapped: false, depthWrite: false }),
       dust: new THREE.MeshBasicMaterial({ color: '#d8d2c6', transparent: true, opacity: 0.85, toneMapped: false, depthWrite: false }),
@@ -246,18 +246,18 @@ export function ThreatScene({ t, bus, compact, room, live }: { t: Progress; bus:
     [g, m, front, side, rise],
   )
 
-  // the drawings: the room in amber, the threats in red
+  // the drawings: the room in yellow, the threats in warm white
   const mats = useMemo(() => {
     return {
       room: ink(1.05, AMBER, 0.8),
       near: ink(1.3, AMBER, 0.9),
       vehicle: ink(1.05, AMBER, 0.85),
       good: ink(2.4, AMBER, 1),
-      bad: ink(2.4, RED, 1),
-      mark: ink(1.6, RED, 1),
+      bad: ink(2.4, THREAT, 1),
+      mark: ink(1.6, THREAT, 1),
       plant: ink(1.1, AMBER, 0.85),
-      hum: [0, 1, 2, 3, 4, 5].map(() => ink(1.3, RED, 1)),
-      pulse: ink(1.6, RED, 1),
+      hum: [0, 1, 2, 3, 4, 5].map(() => ink(1.3, THREAT, 1)),
+      pulse: ink(1.6, THREAT, 1),
       pores: ink(1, '#f2f0e9', 0.4),
     }
   }, [])
@@ -512,7 +512,7 @@ export function ThreatScene({ t, bus, compact, room, live }: { t: Progress; bus:
       spot.current.position.set(head.x, W[1] + 0.0006, head.z)
       spot.current.scale.setScalar(1 + shake * 1.6)
     }
-    m.spot.color.set(shake > 0.3 ? RED : '#fff6c8')
+    m.spot.color.set(shake > 0.3 ? THREAT : '#fff6c8')
 
     // the fronts, rising from the floor below up to the wafer and through it
     const rising = smooth(2.1, 2.26, v) * (1 - smooth(2.74, 2.84, v)) * nearOn

@@ -27,26 +27,26 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { id: 'slab', name: 'The bare slab', head: ['The bare', 'slab'], line: 'Prestressed hollow-core planks: butt joints and mild undulations.', labels: ['joint', 'wave'] },
-  { id: 'anchor', name: 'Primer and anchors', head: ['Primer and', 'anchors'], line: 'A bonding primer, then 10 mm discs with T-stems to hold the mesh.', labels: ['primer', 'button'] },
-  { id: 'mesh', name: 'RTARIUM mesh', head: ['10 mm', 'RTARIUM mesh'], line: 'Clipped onto the stems: 5 mm of cover below, 5 mm above.', labels: ['mesh', 'gap'] },
+  { id: 'slab', name: 'Start with the slab', head: ['Start with', 'the slab'], line: 'Prestressed hollow-core planks, with butt joints between planks and slight undulations.', labels: ['joint', 'wave'] },
+  { id: 'anchor', name: 'Prime and anchor', head: ['Prime and', 'anchor'], line: 'Apply a bonding primer, then fix the 10 mm T-stem discs that will carry the mesh.', labels: ['primer', 'button'] },
+  { id: 'mesh', name: 'Lay the mesh', head: ['Lay the', 'mesh'], line: 'Clip the mesh onto the stems, leaving 5 mm of cover below and 5 mm above.', labels: ['mesh', 'gap'] },
   {
     id: 'pour',
-    name: 'The pour',
-    head: ['Pumped', 'over the mesh'],
-    line: 'Free-flow concrete from the H1-561 mixer-pump.',
+    name: 'Pour the screed',
+    head: ['Pour the', 'screed'],
+    line: 'Pump free-flow concrete over the mesh, using the H1-561 mixer-pump.',
     labels: ['pump', 'flow'],
     clip: { src: '/video/dc-pour.mp4', poster: '/video/dc-pour.jpg', label: 'On site: concrete pumped onto the floor through the hose' },
   },
   {
     id: 'trowel',
-    name: 'Power trowelled',
-    head: ['Power', 'trowelled'],
-    line: 'Brought to a polished concrete finish.',
+    name: 'Power trowel',
+    head: ['Power', 'trowel'],
+    line: 'Bring the surface to a polished concrete finish.',
     labels: ['trowel'],
     clip: { src: '/video/dc-trowel.mp4', poster: '/video/dc-trowel.jpg', label: 'On site: a power trowel finishing a strip of the floor' },
   },
-  { id: 'esd', name: 'ESD coating', head: ['ESD', 'coating'], line: 'A conductive primer, then self-levelling epoxy: a continuous path to ground.', labels: ['cond', 'epoxy'] },
+  { id: 'esd', name: 'Apply the ESD coating', head: ['Apply the', 'ESD coating'], line: 'Apply a conductive primer, then a self-levelling epoxy, for a continuous path to ground.', labels: ['cond', 'epoxy'] },
 ]
 
 const LABELS: LabelSpec[] = [
@@ -260,18 +260,6 @@ export function Build() {
           step={step}
           onGo={goToStep}
           cellRef={(k, el) => void (cells.current[k] = el)}
-          after={
-            <button
-              type="button"
-              className="fu-bar__back"
-              onClick={() => {
-                const el = document.getElementById('problems')
-                if (el) scrollToY(el.getBoundingClientRect().top + window.scrollY)
-              }}
-            >
-              Back to the problems
-            </button>
-          }
         />
       </div>
     </section>

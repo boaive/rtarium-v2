@@ -41,17 +41,6 @@ export interface Application {
 
 export const APPLICATIONS: Application[] = [
   {
-    id: 'flooring',
-    path: '/advanced-flooring',
-    title: 'Advanced Flooring',
-    points: ['High peak loads', 'Crack resistance', 'Non-conductive', 'Improved flexural behaviour'],
-    intro:
-      'An intermediate reinforcement layer for thin, high-performance concrete overlays on structural slabs. Rust-proof, non-magnetic and chemically inert.',
-    pages: ['Hyperscale data and AI centres', 'Automated warehouses', 'Semiconductor plants'],
-    image: { src: '/img/site-strip.webp', small: '/img/site-strip.webp', alt: 'A long strip of RTARIUM mesh laid out on a site trial ground', position: '50% 70%' },
-    caption: 'RTARIUM laid out on a site trial.',
-  },
-  {
     id: 'facade',
     path: '/facade-cladding',
     title: 'Façade & Cladding',
@@ -66,6 +55,17 @@ export const APPLICATIONS: Application[] = [
       position: '42% 50%',
     },
     caption: 'RTARIUM pressed into the mould of a thin panel, production shoot.',
+  },
+  {
+    id: 'flooring',
+    path: '/advanced-flooring',
+    title: 'Advanced Flooring',
+    points: ['High peak loads', 'Crack resistance', 'Non-conductive', 'Improved flexural behaviour'],
+    intro:
+      'An intermediate reinforcement layer for thin, high-performance concrete overlays on structural slabs. Rust-proof, non-magnetic and chemically inert.',
+    pages: ['Hyperscale data and AI centres', 'Automated warehouses', 'Semiconductor plants'],
+    image: { src: '/img/site-strip.webp', small: '/img/site-strip.webp', alt: 'A long strip of RTARIUM mesh laid out on a site trial ground', position: '50% 70%' },
+    caption: 'RTARIUM laid out on a site trial.',
   },
   {
     id: 'walls',

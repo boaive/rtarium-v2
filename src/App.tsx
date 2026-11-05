@@ -28,10 +28,8 @@ function Home() {
   usePointerTracking()
   useEffect(() => {
     document.title = 'RTARIUM by HEMISPHERE ONE · Three-dimensional basalt reinforcement mesh'
-    document.documentElement.classList.add('is-home')
     // arriving on /#chapter: land on it once the page has laid out
     if (window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
-    return () => document.documentElement.classList.remove('is-home')
   }, [])
   return (
     <>

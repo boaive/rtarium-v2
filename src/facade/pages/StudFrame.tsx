@@ -8,7 +8,6 @@ import { Hero } from '../studframe/Hero'
 import { Components } from '../studframe/Components'
 import { Cast } from '../studframe/Cast'
 import { Site } from '../studframe/Site'
-import { Made } from '../studframe/Made'
 import { More } from '../unitized/More'
 
 /**
@@ -25,7 +24,6 @@ import { More } from '../unitized/More'
  *                    them, the bar along the foot; concrete in the mould, RTARIUM cut and stitched
  *   on site          warm white, pinned: the Rainscreen page's wall to skin, on a stadium-plan tower
  *                    (L frames, lifted on, locked, sealed, the bands going up); the bar along the foot
- *   made             warm white: the factory's steps in photographs (the Unitized page's strip)
  *   more ways        warm white: the other two systems
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
@@ -79,9 +77,6 @@ export default function StudFrame() {
       </div>
       <div className="fu" data-ground="light">
         <Site />
-      </div>
-      <div className="fu" data-ground="light">
-        <Made />
       </div>
       <div className="fu" data-ground="light">
         <More current="stud" />

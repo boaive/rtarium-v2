@@ -1,8 +1,6 @@
 import { useMemo, type RefObject } from 'react'
 import { useIsCompact } from '../../lib/motion'
-import { Link } from '../../lib/router'
 import { Words } from '../Story'
-import { SYSTEMS } from '../content'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
 import { createBus, type Shot } from '../three/kit'
 import { ScrubRig, mixShot } from '../three/ScrubRig'
@@ -11,9 +9,9 @@ import { HERO_TARGET, HeroUnit } from '../three/unit/HeroUnit'
 import { useLive } from './live'
 
 /**
- * The opening, on yellow, kept to a few things: the page's name, small, top left; the line that says
- * why RTARIUM, large, bottom left, and under it a quiet way to the other two systems; one unit low on
- * the right, turned towards the words, its skin cut back to the textile, the one thing labelled.
+ * The opening, on yellow, kept to a few things: the page's name and what it is, large, top left; the
+ * line that says why RTARIUM, a step down, bottom left; one unit low on the right, turned towards the
+ * words, its skin cut back to the textile, the one thing labelled.
  */
 
 const LABELS: LabelSpec[] = [{ id: 'h-mesh', anchor: 'hu-mesh', text: 'RTARIUM', dx: 74, dy: -104, delay: 2200 }]
@@ -21,7 +19,7 @@ const LABELS: LabelSpec[] = [{ id: 'h-mesh', anchor: 'hu-mesh', text: 'RTARIUM',
 function shots(compact: boolean): [Shot, Shot] {
   return compact
     ? [
-        { target: HERO_TARGET, dist: 17, azim: 34, elev: 7, frame: [0.5, 0.42] },
+        { target: HERO_TARGET, dist: 17, azim: 34, elev: 7, frame: [0.5, 0.5] },
         { target: HERO_TARGET, dist: 15, azim: 46, elev: 13, frame: [0.5, 0.34] },
       ]
     : [
@@ -37,7 +35,6 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
   const [s0, s1] = useMemo(() => shots(compact), [compact])
   const shotAt = useMemo(() => (p: number) => mixShot(s0, s1, p), [s0, s1])
   const live = useLive(sectionRef)
-  const others = SYSTEMS.filter((s) => s.id !== 'unitized')
 
   return (
     <section ref={sectionRef} className="fu-hero on-yellow" aria-labelledby="fu-title">
@@ -60,15 +57,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
       </header>
 
       <div className="fu-hero__foot">
-        <Words as="p" className="fu-mega" lines={['Thin concrete skin.', 'Reinforced from within.']} />
-        <p className="fu-hero__also">
-          <span>Also</span>
-          {others.map((s) => (
-            <Link key={s.id} to={s.path}>
-              {s.title}
-            </Link>
-          ))}
-        </p>
+        <Words as="p" className="fu-mega" lines={['Built for', 'Lightweight Strength.']} />
       </div>
     </section>
   )

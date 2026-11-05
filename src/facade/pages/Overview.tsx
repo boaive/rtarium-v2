@@ -17,7 +17,7 @@ import { FollowScroll, useScrollProgress } from '../progress'
 /**
  * Façade & Cladding, the overview. One continuous scroll, yellow the ground that stays:
  *
- *   the opening   RTARIUM's place in the market, over a thin façade panel poured as the page opens
+ *   the opening   the section's name and its line, over a thin façade panel poured as the page opens
  *   the story     one façade reinforced four ways (steel bar, GFRC / GRC, UHPC, RTARIUM): the façade
  *                 in 3D beside cards that stack as they are read (see Lineage)
  *   the systems   all three façade systems side by side, their models rising in turn
@@ -27,8 +27,9 @@ import { FollowScroll, useScrollProgress } from '../progress'
 
 /* ---- the opening ---------------------------------------------------------------------------- */
 
-const HERO_LABELS: LabelSpec[] = [
-  { id: 'h-mesh', anchor: 'hp-mesh', text: 'RTARIUM 3D basalt textile', dx: -60, dy: -110, delay: 2300 },
+/** (the mesh's label beside it, clear of the title; on a phone, where there is no beside, over it) */
+const heroLabels = (compact: boolean): LabelSpec[] => [
+  { id: 'h-mesh', anchor: 'hp-mesh', text: 'RTARIUM 3D basalt mesh', dx: compact ? -60 : -56, dy: compact ? -110 : 34, delay: 2300 },
   { id: 'h-cast', anchor: 'hp-cast', text: 'Thin concrete', dx: 70, dy: -100, delay: 2600, wide: true },
   { id: 'h-edge', anchor: 'hp-edge', text: '20 mm', dx: 80, dy: 46, delay: 2900 },
 ]
@@ -48,9 +49,10 @@ function heroShots(compact: boolean): [Shot, Shot] {
 export default function Overview() {
   usePageMeta(
     'Façade & Cladding',
-    'RTARIUM in façades and cladding: textile reinforced concrete (TRC), the upgrade to GFRC/GRC and UHPC. One 3D basalt textile replaces steel bar, AR-glass fibre and steel fibre in thin façade panels: unitized thin concrete façades, rainscreen cladding and stud frame cladding.',
+    'RTARIUM in façades and cladding: concrete façades, re-engineered. One 3D basalt mesh replaces steel bar, AR-glass fibre and steel fibre in thin façade panels: unitized thin concrete façades, rainscreen cladding and stud frame cladding.',
   )
   const compact = useIsCompact()
+  const labels = useMemo(() => heroLabels(compact), [compact])
   const hero = useRef<HTMLElement>(null)
   const story = useRef<HTMLElement>(null)
   const systems = useRef<HTMLElement>(null)
@@ -126,15 +128,16 @@ export default function Overview() {
             <FollowScroll progress={heroP} />
             <LabelProjector bus={heroBus} bottom={compact ? 220 : 24} />
           </Stage3D>
-          <Labels bus={heroBus} labels={HERO_LABELS} shown={HERO_LABELS.map((l) => l.id)} />
+          <Labels bus={heroBus} labels={labels} shown={labels.map((l) => l.id)} />
         </div>
         {/* what the page is, top left, as the system pages name themselves */}
         <header className="fco-head">
-          <p className="fco-head__name">Façade & Cladding</p>
-          <p className="fco-head__kind">Thin concrete façade panels, reinforced with RTARIUM’s 3D basalt textile.</p>
+          <h1 id="fco-title" className="fco-head__name">
+            Façade & Cladding
+          </h1>
         </header>
         <div className="fco-hero__copy">
-          <Words as="h1" id="fco-title" className="fco-mega" lines={['Beyond GRC', 'and UHPC.']} />
+          <Words as="p" className="fco-mega" lines={['Concrete façades,', 're-engineered.']} />
           {/* the three systems, straight from the opening (the system pages' own "Also" row) */}
           <p className="fco-also">
             <span>Explore</span>

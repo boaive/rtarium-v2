@@ -18,22 +18,21 @@ import { smooth } from './progress'
  *   - as a block comes up, its panel's box fills it, then the crossing slides out of the corner and the
  *     other boxes open; they are open, and still, well before the block reaches the top;
  *   - while it is read nothing moves but the page;
- *   - as it goes, its photograph is crossed out and greys, its row is drawn in under the header with
- *     its name struck through, and its boxes close diagonally into the far corner while it is still on
- *     screen: the panel's box shrinks to its edge as the yellow one grows, the photograph's frame
- *     shrinks back into its corner;
- *   - black and white change places from block to block, the panel changes sides; the yellow stays.
+ *   - as it goes, its row is drawn in under the header (an index: it takes you back to the block), and
+ *     its boxes close diagonally into the far corner while it is still on screen: the panel's box
+ *     shrinks to its edge as the yellow one grows, the photograph's frame shrinks back into its corner;
+ *   - black and white change places from block to block, the panel changes sides, the yellow stays; the
+ *     words always read left to right: the name in the top left box, what it comes to beside it.
  *
- * RTARIUM then takes the whole screen in a layout of its own, and the struck rows come down into it.
+ * RTARIUM then takes the whole screen in a layout of its own, the rows going up as it comes.
  * Only the 3D has motion of its own: a slow sway, in time.
  */
 
-type Role = 'name' | 'limit' | 'claim' | 'replaces' | 'photo' | 'panel'
+type Role = 'name' | 'limit' | 'claim' | 'photo' | 'panel'
 type Rect = [number, number, number, number]
 type Cut = [number, number]
-type Align = 'start' | 'end'
 /** the order of the boxes in the document: what they say, read in order */
-const ORDER: Role[] = ['name', 'limit', 'claim', 'replaces', 'photo', 'panel']
+const ORDER: Role[] = ['name', 'limit', 'claim', 'photo', 'panel']
 
 interface Layout {
   /** where the cuts cross while the block is read, as it comes up, and as it goes */
@@ -42,8 +41,6 @@ interface Layout {
   exit: Cut
   at: Partial<Record<Role, (c: Cut) => Rect>>
   ground: Partial<Record<Role, Ground>>
-  /** which way the words in a box sit */
-  align: Partial<Record<Role, Align>>
 }
 
 const tl = (c: Cut): Rect => [0, 0, c[0], c[1]]
@@ -51,30 +48,31 @@ const tr = (c: Cut): Rect => [c[0], 0, 1 - c[0], c[1]]
 const bl = (c: Cut): Rect => [0, c[1], c[0], 1 - c[1]]
 const br = (c: Cut): Rect => [c[0], c[1], 1 - c[0], 1 - c[1]]
 
-/** wide screens: the panel's box (the largest) at the bottom right on black, or at the bottom left on warm white */
+/**
+ * Wide screens. The words always read left to right: the name top left, what it comes to beside it. The
+ * blocks take turns at the foot: the panel's box (the largest) at the bottom right on black, or at the
+ * bottom left on warm white.
+ */
 const WIDE_RIGHT: Layout = {
   rest: [0.42, 0.4],
   entry: [0, 0],
   exit: [1, 1],
   at: { name: tl, limit: tr, photo: bl, panel: br },
   ground: { name: 'yellow', limit: 'light', photo: 'light', panel: 'black' },
-  align: { name: 'start', limit: 'end' },
 }
 const WIDE_LEFT: Layout = {
   rest: [0.58, 0.4],
   entry: [1, 0],
   exit: [0, 1],
-  at: { limit: tl, name: tr, panel: bl, photo: br },
+  at: { name: tl, limit: tr, panel: bl, photo: br },
   ground: { name: 'yellow', limit: 'black', photo: 'black', panel: 'light' },
-  align: { name: 'end', limit: 'start' },
 }
 /**
- * RTARIUM, a layout of its own: its name and the panel, large, in the wide column; what it replaces
- * (the struck rows come down into it) and its photograph, full-bleed, in the narrow one; why it
- * replaces them along the foot. c[0] parts the columns, c[1] is where the foot begins.
+ * RTARIUM, a layout of its own: its name and the panel, large, in the wide column; its photograph,
+ * full-bleed, in the narrow one; why it replaces them along the foot. c[0] parts the columns, c[1] is
+ * where the foot begins.
  */
 const BAND = 0.3
-const SIDE = 0.36
 const WIDE_LAST: Layout = {
   rest: [0.62, 0.86],
   entry: [1, 1],
@@ -82,16 +80,14 @@ const WIDE_LAST: Layout = {
   at: {
     name: (c) => [0, 0, c[0], BAND],
     panel: (c) => [0, BAND, c[0], c[1] - BAND],
-    replaces: (c) => [c[0], 0, 1 - c[0], SIDE],
-    photo: (c) => [c[0], SIDE, 1 - c[0], c[1] - SIDE],
+    photo: (c) => [c[0], 0, 1 - c[0], c[1]],
     claim: (c) => [0, c[1], 1, 1 - c[1]],
   },
-  ground: { name: 'yellow', replaces: 'yellow', panel: 'yellow', photo: 'yellow', claim: 'yellow' },
-  align: { name: 'start' },
+  ground: { name: 'yellow', panel: 'yellow', photo: 'yellow', claim: 'yellow' },
 }
 
 /** narrow screens: name, why it is replaced, the panel, the photograph, top to bottom (c: where the panel begins and ends) */
-function narrow(ground: Layout['ground'], align: Layout['align']): Layout {
+function narrow(ground: Layout['ground']): Layout {
   return {
     rest: [0.38, 0.72],
     entry: [0, 1],
@@ -103,7 +99,6 @@ function narrow(ground: Layout['ground'], align: Layout['align']): Layout {
       photo: (c) => [0, c[1], 1, 1 - c[1]],
     },
     ground,
-    align,
   }
 }
 const NARROW_LAST: Layout = {
@@ -112,16 +107,14 @@ const NARROW_LAST: Layout = {
   exit: [0.66, 0.84],
   at: {
     name: () => [0, 0, 1, 0.16],
-    replaces: () => [0, 0.16, 1, 0.2],
-    panel: (c) => [0, 0.36, 1, c[0] - 0.36],
+    panel: (c) => [0, 0.16, 1, c[0] - 0.16],
     photo: (c) => [0, c[0], 1, c[1] - c[0]],
     claim: (c) => [0, c[1], 1, 1 - c[1]],
   },
   ground: WIDE_LAST.ground,
-  align: { name: 'start' },
 }
 const WIDE: Layout[] = [WIDE_RIGHT, WIDE_LEFT, WIDE_RIGHT, WIDE_LAST]
-const NARROW: Layout[] = [narrow(WIDE_RIGHT.ground, WIDE_RIGHT.align), narrow(WIDE_LEFT.ground, WIDE_LEFT.align), narrow(WIDE_RIGHT.ground, WIDE_RIGHT.align), NARROW_LAST]
+const NARROW: Layout[] = [narrow(WIDE_RIGHT.ground), narrow(WIDE_LEFT.ground), narrow(WIDE_RIGHT.ground), NARROW_LAST]
 
 export interface Version {
   id: string
@@ -135,7 +128,7 @@ export interface Version {
   facts?: string[]
   /** the label over its second box, when it is not the story's own (`words.replaced`) */
   label?: string
-  /** what its row says at its end, when it is not the story's own (`words.tag`) */
+  /** what its row says at its end, if anything */
   tag?: string
   /** what the marker on the panel calls it */
   material: string
@@ -151,17 +144,13 @@ export interface LineageWords {
   used: string
   replaced: string
   claim: string
-  replaces: string
-  tag: string
 }
 const FACADE_WORDS: LineageWords = {
   title: 'What RTARIUM replaces in a façade panel',
-  rows: 'Replaced materials',
+  rows: 'What RTARIUM replaces',
   used: 'Why it was used',
   replaced: 'Why it is replaced',
   claim: 'Why it replaces them',
-  replaces: 'Replaces',
-  tag: 'Replaced',
 }
 
 const VERSIONS: Version[] = [
@@ -204,8 +193,8 @@ const VERSIONS: Version[] = [
     id: 'trc',
     name: 'RTARIUM',
     full: '3-d mesh reinforcement',
-    claim: 'Thin at 20 mm. Reinforced in three dimensions. Nothing to rust.',
-    material: 'RTARIUM 3D basalt textile',
+    claim: 'Thin at 20 mm. Reinforced in three dimensions. Non-corrosive.',
+    material: 'RTARIUM 3D basalt mesh',
     thick: 20,
     photo: { src: '/img/shoot/mesh-profile.webp', alt: 'An RTARIUM sheet seen edge-on: two basalt mesh faces with fibres looping between them' },
   },
@@ -294,9 +283,8 @@ export function Lineage({
   words?: LineageWords
   id?: string
   /**
-   * Whether the last version closes the story in a layout of its own, the rows of the others struck and dropping
-   * into it (the façade's RTARIUM). Without it every version is a block like the others, its photograph never
-   * struck, and the rows are a plain index that leaves with the section.
+   * Whether the last version closes the story in a layout of its own, the rows of the others going up as it comes
+   * (the façade's RTARIUM). Without it every version is a block like the others, and the rows leave with the section.
    */
   finale?: boolean
 }) {
@@ -312,10 +300,8 @@ export function Lineage({
   const inners = useRef<Partial<Record<Role, HTMLDivElement | null>>[]>([])
   const photos = useRef<(HTMLElement | null)[]>([])
   const reads = useRef<(HTMLSpanElement | null)[][]>([])
-  /** the rows of what has been passed: struck, and the way back */
+  /** the rows of what has been passed: an index, the way back */
   const bars = useRef<(HTMLButtonElement | null)[]>([])
-  /** where the rows come to rest inside RTARIUM */
-  const docks = useRef<(HTMLLIElement | null)[]>([])
 
   useEffect(() => {
     const reduced = prefersReducedMotion()
@@ -367,13 +353,11 @@ export function Lineage({
           }
         }
         // the photograph grows out of its corner as the block comes up and shrinks back into it as the
-        // block goes, its size read out at the corner; on the way out it is crossed out and greys
+        // block goes, its size read out at the corner
         const ph = photos.current[k]
         if (ph) {
           const g = reduced ? 1 : Math.max(0.04, p >= 0 ? 1 - smooth(OPENED, 0.85, p) : 1 - smooth(CLOSING, CLOSED + 0.05, p))
-          const gone = finale && k < LAST ? (reduced ? Number(p < -0.2) : smooth(-0.02, -0.16, p)) : 0
           ph.style.setProperty('--g', g.toFixed(4))
-          ph.style.setProperty('--x', gone.toFixed(4))
           let size = sizes.get(ph)
           if (!size) sizes.set(ph, (size = [ph.offsetWidth, ph.offsetHeight]))
           const [rx, ry] = reads.current[k] ?? []
@@ -382,29 +366,19 @@ export function Lineage({
         }
       })
 
-      // the rows. As a material's block goes, its row is drawn in under the header with its name struck;
-      // the block's words pass up behind it. When RTARIUM arrives the rows come down into the box beside
-      // its name: first drawn in to its narrow column, then dropped into place
-      const across = !finale ? 0 : reduced ? Number(q[LAST] < 0.15) : smooth(0.45, 0.25, q[LAST])
-      const down = !finale ? 0 : reduced ? Number(q[LAST] < 0.15) : smooth(0.35, 0.1, q[LAST])
+      // the rows. As a block goes, its row is drawn in under the header, the block's words passing up behind
+      // it. They leave as what follows comes up to them: RTARIUM's layout, or the section's foot
       REPLACED.forEach((_, k) => {
         const bar = bars.current[k]
         if (!bar) return
         const rise = reduced ? Number(q[k] < -0.1) : smooth(-0.02, -0.3, q[k])
-        // (an index without a finale leaves with the last block: as its foot comes up past the rows, they go up with it)
-        const lastFoot = blocks.current[blocks.current.length - 1]?.getBoundingClientRect().bottom ?? Infinity
-        const leave = finale ? 0 : Math.min(0, lastFoot - (navH + REPLACED.length * rowH))
-        const slot: Rect = [0, navH + k * rowH - layerTop + leave, W, rowH]
-        const d = docks.current[k]?.getBoundingClientRect()
-        const dock: Rect = d ? [d.left, d.top - layerTop, d.width, d.height] : slot
-        const x = lerp(slot[0], dock[0], ease(across))
-        const y = lerp(slot[1], dock[1], ease(down))
-        bar.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`
-        bar.style.width = `${lerp(slot[2], dock[2], ease(across)).toFixed(1)}px`
+        const edge = finale ? blocks.current[LAST]?.getBoundingClientRect().top : blocks.current[blocks.current.length - 1]?.getBoundingClientRect().bottom
+        const leave = Math.min(0, (edge ?? Infinity) - (navH + REPLACED.length * rowH))
+        bar.style.transform = `translate(0px, ${(navH + k * rowH - layerTop + leave).toFixed(1)}px)`
+        bar.style.width = `${W}px`
         // drawn in from the left, solid, so the block's words pass behind it
         bar.style.opacity = rise > 0 ? '1' : '0'
         bar.style.clipPath = `inset(0 ${((1 - ease(smooth(0, 0.3, rise))) * 100).toFixed(2)}% 0 0)`
-        bar.style.setProperty('--s', finale ? smooth(0.55, 1, rise).toFixed(3) : '0')
         const docked = rise > 0.5
         bar.tabIndex = docked ? 0 : -1
         bar.toggleAttribute('data-docked', docked)
@@ -466,7 +440,7 @@ export function Lineage({
       case 'limit':
         return (
           <>
-            <p className="fs-label">{v.label ?? words.replaced}</p>
+            {(v.label ?? words.replaced) && <p className="fs-label">{v.label ?? words.replaced}</p>}
             <p className="fs-limit">{v.replaced}</p>
           </>
         )
@@ -488,19 +462,6 @@ export function Lineage({
             )}
           </>
         )
-      case 'replaces':
-        return (
-          <>
-            <p className="fs-label">{words.replaces}</p>
-            <ol className="fs-docks">
-              {REPLACED.map((o, j) => (
-                <li key={o.id} ref={(el) => void (docks.current[j] = el)} className="fs-dock">
-                  <span className="visually-hidden">{o.name}</span>
-                </li>
-              ))}
-            </ol>
-          </>
-        )
       case 'photo':
         if (seconds[i]) return seconds[i]
         if (!v.photo) return null
@@ -509,7 +470,6 @@ export function Lineage({
             <figure ref={(el) => void (photos.current[i] = el)} className="fs-photo" style={v.photo.ratio ? ({ '--ar': v.photo.ratio } as CSSProperties) : undefined}>
               <span className="fs-photo__frame">
                 <img src={v.photo.src} alt={v.photo.alt} loading="lazy" width={640} height={480} style={v.photo.pos ? { objectPosition: v.photo.pos } : undefined} />
-                {finale && i < LAST && <i className="fs-photo__cross" aria-hidden="true" />}
               </span>
               <i className="fs-photo__dot" aria-hidden="true">
                 <span ref={(el) => void ((reads.current[i] ??= [])[0] = el)} className="fs-photo__x num" />
@@ -526,15 +486,15 @@ export function Lineage({
 
   return (
     <section ref={sectionRef} id={id} className="fs on-yellow" aria-labelledby="fs-title">
-      {/* the rows of what has been passed, over the blocks: struck, and the way back */}
+      {/* the rows of what has been passed, over the blocks: an index, the way back */}
       <nav ref={layer} className="fs-rows" aria-label={words.rows}>
         <ol>
           {REPLACED.map((v, i) => (
             <li key={v.id}>
-              <button ref={(el) => void (bars.current[i] = el)} type="button" className="fs-row" tabIndex={-1} onClick={() => go(i)} aria-label={`${v.name}, replaced. Back to it`}>
+              <button ref={(el) => void (bars.current[i] = el)} type="button" className="fs-row" tabIndex={-1} onClick={() => go(i)} aria-label={`${v.name}. Back to it`}>
                 <span className="fs-row__num num">0{i + 1} /</span>
                 <span className="fs-row__name">{v.name}</span>
-                <span className="fs-row__tag">{v.tag ?? words.tag}</span>
+                {v.tag && <span className="fs-row__tag">{v.tag}</span>}
               </button>
             </li>
           ))}
@@ -563,7 +523,7 @@ export function Lineage({
                 <div
                   key={role}
                   ref={(el) => void ((cells.current[i] ??= {})[role] = el)}
-                  className={`fs-cell fs-cell--${role} on-${L.ground[role]} ${L.align[role] === 'end' ? 'is-end' : ''} ${role === 'photo' && seconds[i] ? 'is-3d' : ''}`}
+                  className={`fs-cell fs-cell--${role} on-${L.ground[role]} ${role === 'photo' && seconds[i] ? 'is-3d' : ''}`}
                 >
                   <div
                     ref={(el) => void ((inners.current[i] ??= {})[role] = el)}

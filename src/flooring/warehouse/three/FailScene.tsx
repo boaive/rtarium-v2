@@ -15,25 +15,26 @@ import { crackPaths, GROOVE, jointSeam, jointSurface, screedBody } from './joint
 import { applyCam, camOf, circle, mixView, POD, podLines, type View, wheelLines } from './parts'
 
 /**
- * The failure, on black: the page's one use of red. One scene, five beats, each a piece fitted to the
+ * The failure, on black. One scene, five beats, each a piece fitted to the
  * room right of the words (never out to the screen's edges), the camera moving in the gap between them.
  *
  *   0  at full speed   a length of the aisle: AGVs and a picking crane, wandering, jolting at the joints,
  *                      faulting and queueing behind one another
  *   1  into the slab   the racks drawn away, the camera down to the floor's edge: a block of the slab as a
- *                      wireframe grid, the stress paths running down from every wheel, in red
+ *                      wireframe grid, the stress paths running down from every wheel, in yellow
  *   2  the joint       one small piece of the floor: a traditional screed on the structural base, a
  *                      saw-cut joint across it, the drive wheel rolling over it
  *   3  spall and crack a smaller piece about the cut: its edges spall, the floor beside it pits, micro-cracks
- *                      run out (the surface's own morph target, the chips, and the cracks in red)
+ *                      run out (the surface's own morph target, the chips, and the cracks in yellow)
  *   4  system stop     the piece opens out for the whole AGV: its wheel caught in the broken joint, the body
- *                      tipped, the laser scanner thrown off the guide line; it turns red, and it stops
+ *                      tipped, the laser scanner thrown off the guide line; it turns yellow, and it stops
  *
  * `t` is the run as beats (beat k over k..k+1), eased by the section.
  */
 
 export const N_BEATS = 5
-const RED = '#ff3b2f'
+/** what fails, in the brand's own accent: red is not part of the language */
+const ALERT = '#fdd001'
 const INK = '#f2f0e9'
 const X: [number, number] = [-1.2, 1.2]
 const Z: [number, number] = [-0.9, 0.9]
@@ -155,10 +156,10 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
     [g, m, specimen],
   )
 
-  const aisle = useAisle(INK, { alertColor: RED })
+  const aisle = useAisle(INK, { alertColor: ALERT })
   const mats = useMemo(() => {
     const planes = [cut.x1, cut.x0, cut.z1, cut.z0]
-    const crack = ink(1.25, RED, 1)
+    const crack = ink(1.25, ALERT, 1)
     crack.clippingPlanes = planes
     const guide = ink(1.4, INK, 0.7)
     guide.clippingPlanes = planes
@@ -170,8 +171,8 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
       podBody: ink(1.25, INK, 1),
       fan: ink(1, INK, 0.75),
       guide,
-      beacon: ink(2.2, RED, 1),
-      contact: ink(1.6, RED, 1),
+      beacon: ink(2.2, ALERT, 1),
+      contact: ink(1.6, ALERT, 1),
     }
   }, [cut])
   useInkResolution(useMemo(() => Object.values(mats), [mats]))
@@ -394,9 +395,9 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
     const off = smooth(4.42, 4.66, v)
     const blink = on ? 0.5 + 0.5 * Math.sign(Math.sin(performance.now() / 150)) : 1
     fanD.show(body)
-    mats.fan.color.set(off > 0.5 ? RED : INK)
-    mats.podBody.color.set(off > 0.5 ? RED : INK)
-    mats.wheel.color.set(off > 0.5 ? RED : INK)
+    mats.fan.color.set(off > 0.5 ? ALERT : INK)
+    mats.podBody.color.set(off > 0.5 ? ALERT : INK)
+    mats.wheel.color.set(off > 0.5 ? ALERT : INK)
     mats.fan.opacity = off > 0.5 ? 0.42 + 0.5 * blink : 0.72
     if (fan.current) fan.current.rotation.set((-9 * off * Math.PI) / 180, (15 * off * Math.PI) / 180, (6 * off * Math.PI) / 180)
     if (beacon.current) beacon.current.visible = off > 0.5

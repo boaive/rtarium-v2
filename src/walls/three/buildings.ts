@@ -428,7 +428,7 @@ export function housing(): Building {
       [W + 0.4, H + 0.3, D + 0.4],
     ],
     origin: [2.7, 0, D],
-    steps: ['One panel, its frame', 'The front wall', 'The walls round it', 'Partition, doors, windows'],
+    steps: ['Slab and frame', 'Front wall', 'Side and rear walls', 'Roof and partitions'],
     marks: [
       { id: 'sip', text: '100 mm SIP, vertical, in a U-track', at: [0.3, 1.0, D], dx: -40, dy: 70, show: [1.55, 2.02] },
       { id: 'lintel', text: 'Over each opening: a steel lintel, then panels laid horizontal', at: [door.u1 + 0.06, 2.4, D + 0.01], dx: 40, dy: -78, show: [1.6, 2.02] },
@@ -546,7 +546,7 @@ export function hub(): Building {
       [B + 1.0, E + 0.3, D + 1.0],
     ],
     origin: [B / 2, 0, zf],
-    steps: ['One panel, the steel frame', 'One bay', 'The loading face', 'Closed in'],
+    steps: ['Steel frame', 'Single bay', 'Loading face', 'Full enclosure'],
     marks: [
       { id: 'frame', text: 'Steel columns at 5.8 m centres', at: [2 * B, 5.6, D + 0.22], dx: 50, dy: -60, show: [0.62, 1.0] },
       { id: 'sip', text: '100 mm SIP to 3.6 m, in a U-track', at: [B * 0.72, 1.6, zf], dx: 60, dy: 46, show: [1.55, 2.02] },
@@ -626,7 +626,7 @@ export function rc(): Building {
       [2 * B + 0.8, S + 0.4, D + 0.8],
     ],
     origin: [1.5 * B, 0, zf],
-    steps: ['One panel, the RC frame', 'One infill', 'Floor by floor', 'Closed in, windows set'],
+    steps: ['RC frame', 'Single infill', 'Floor by floor', 'Full enclosure'],
     marks: [
       { id: 'within', text: 'The RC frame: 5.8 m bays, 3.45 m storeys', at: [2 * B, 2 * S - 0.3, zf], dx: 60, dy: -50, show: [0.62, 1.0] },
       { id: 'infill', text: 'Vertical SIP within the frame, slab to beam', at: [B + c + 0.6, 1.6, zf], dx: -40, dy: 60, show: [1.55, 2.02] },
@@ -722,7 +722,7 @@ export function peb(): Building {
       [B + 1.0, E + 0.4, D + out + 1.0],
     ],
     origin: [B / 2, 0, zf],
-    steps: ['One panel, the steel portal', 'One bay', 'The side wall', 'Closed in'],
+    steps: ['Steel portal', 'Single bay', 'Side wall', 'Full enclosure'],
     marks: [
       { id: 'taper', text: 'Tapered steel portal, braced: 5.8 m bays', at: [B, E, D - 0.3], dx: 60, dy: -50, show: [0.62, 1.0] },
       { id: 'outside', text: 'Outside the frame: SIP to 3.6 m, solid above', at: [B * 0.5, 5.2, zf], dx: 60, dy: -60, show: [1.55, 2.02] },

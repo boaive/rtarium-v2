@@ -36,26 +36,26 @@ interface Answer {
  * heavy; GRC and UHPC are costly to engineer and their fibres age or corrode; stone comes small.
  */
 const ANSWERS: Answer[] = [
-  { id: 'face', name: 'A real concrete face', head: ['A real', 'concrete face'], line: 'Cast concrete, where ACP is only a sheet.', labels: ['face'] },
-  { id: 'thin', name: '12 mm, light to hang', head: ['12 mm,', 'light to hang'], line: 'A 12 mm skin, plus the depth of any design cast on its face.', labels: ['edge', 'relief'] },
+  { id: 'face', name: 'A solid concrete face', head: ['A solid', 'concrete face'], line: 'A cast concrete face, where ACP is only a sheet.', labels: ['face'] },
+  { id: 'thin', name: 'A lightweight 12 mm panel', head: ['A lightweight', '12 mm panel'], line: 'A 12 mm facade, with additional depth for any design cast into its surface.', labels: ['edge', 'relief'] },
   {
     id: 'weight',
     name: 'Under 30 kg/m²',
     figure: { pre: 'Under', value: '30', unit: 'kg/m²' },
-    line: 'A third of the weight of stone. Under a tenth of precast.',
+    line: 'Around a third of the weight of stone and less than a tenth of precast.',
     labels: ['sq'],
     review: REVIEW.weight,
   },
   {
     id: 'anchors',
-    name: 'Anchors cast in',
-    head: ['Anchors', 'cast in'],
-    line: 'Less to engineer: the fixings are set in the textile, and the panel hooks straight onto its rails.',
+    name: 'Integrated fixing points',
+    head: ['Integrated', 'fixing points'],
+    line: 'Fixings are set into the reinforcement textile, allowing the panel to hook directly onto its rails.',
     labels: ['anchor'],
     review: REVIEW.ferrules,
   },
-  { id: 'durable', name: 'Nothing to age or rust', head: ['Nothing to', 'age or rust'], line: 'Basalt is naturally alkali-resistant and cannot corrode.', labels: [] },
-  { id: 'tall', name: 'Up to 6 m', figure: { pre: 'Up to', value: '3.0', unit: 'm', count: true }, line: 'Tall panels in one piece. Fewer joints.', labels: ['textile', 'side'], review: REVIEW.panelSizes },
+  { id: 'durable', name: 'Non-corrosive', head: ['Non-corrosive', '\u00a0'], line: 'Basalt is naturally resistant to alkalis and does not corrode.', labels: [] },
+  { id: 'tall', name: 'Panels up to 6 m tall', figure: { pre: 'Panels up to', value: '3.0', unit: 'm tall', count: true }, line: 'Cast in one piece, reducing the number of joints across the facade.', labels: ['textile', 'side'], review: REVIEW.panelSizes },
 ]
 
 const LABELS: LabelSpec[] = [
@@ -160,7 +160,8 @@ export function Bridge() {
       })
       // the last answer counts the panel's height as it grows
       if (count.current) {
-        const txt = heightAt(Math.max(0, p - (N - 1))).toFixed(1)
+        const h = heightAt(Math.max(0, p - (N - 1)))
+        const txt = h > 5.95 ? '6' : h.toFixed(1)
         if (count.current.textContent !== txt) count.current.textContent = txt
       }
     }
@@ -252,18 +253,6 @@ export function Bridge() {
           step={step}
           onGo={goToAnswer}
           cellRef={(k, el) => void (cells.current[k] = el)}
-          after={
-            <button
-              type="button"
-              className="fu-bar__back"
-              onClick={() => {
-                const el = document.getElementById('tradeoffs')
-                if (el) scrollToY(el.getBoundingClientRect().top + window.scrollY)
-              }}
-            >
-              Back to the trade-offs
-            </button>
-          }
         />
       </div>
     </section>

@@ -8,7 +8,7 @@ import { FacadePage, usePageMeta } from '../facade/Shell'
 import { Hero } from './Hero'
 import { Story } from './Story'
 import { Answers } from './Answers'
-import { Statement } from './Statement'
+import { Say } from '../components/Say'
 import { Panels } from './Panels'
 import { Streams } from './Streams'
 import { SOLID } from './content'
@@ -20,8 +20,9 @@ import { SOLID } from './content'
  *   two walls      the Façade overview's story: the precast concrete wall and the insulated metal
  *                  panel, each struck as it goes, then RTARIUM's own layout (concrete muscle, cladding speed)
  *   the answers    yellow, pinned: the client's six points over one scene of panels between two columns
- *   solid panel    black: the name, then its promise word by word, the whole screen
- *   the panels     yellow, pinned: the 30 mm panel, opened; split into the 100 mm SIP panel, opened
+ *   solid panel    black: its promise, the site's statement
+ *   the panels     yellow, pinned: two bursts, one after the other, in a studio box: the solid panel, then the same
+ *                  panel taking its core and opening as the SIP panel; each one's parts in a table to click
  *   streams        warm white: choose a stream; its building drawn as the panels go on; its case study
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
@@ -75,7 +76,7 @@ export default function WallPanels() {
         <Answers />
       </div>
       <div className="fu" data-ground="black">
-        <Statement name={SOLID.name} text={SOLID.usp} />
+        <Say kicker={SOLID.name} label={SOLID.name} text={SOLID.usp} />
       </div>
       <div className="fu" data-ground="yellow">
         <Panels />

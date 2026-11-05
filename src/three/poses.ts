@@ -126,10 +126,6 @@ export const ANCHORS: Record<string, [number, number, number]> = {
   dimension: [h + 0.006, 0, -h],
   'dim-width': [0, 0, h + 0.008],
   strain: [h, 0.004, -h * 0.3],
-  // the opening's callouts on the piece (its far end, its near side, its near corner)
-  'hero-structure': [-0.07, 0.0052, -0.05],
-  'hero-yarn': [0.102, 0.0052, -0.044],
-  'hero-thickness': [0.08, -0.0052, 0.06],
   // inside the cavity on the opening tour, close in front of the camera (it stands at z 0.04, between
   // the faces) so the three read apart: the upper face's weft running overhead (x 0), a connecting
   // fibre where it crosses mid-depth (x 9, z 9 of its cell), the lower face's warp running across
@@ -154,8 +150,6 @@ export function anchorAt(p: readonly [number, number, number], thickness: number
   out[2] = p[2]
   return out
 }
-
-export const HERO_LABELS = ['hero-structure', 'hero-yarn', 'hero-thickness']
 
 /** the notes on the cast panel at the close of "In concrete" */
 export const POUR_LABELS = ['pour-cavity', 'pour-mesh', 'pour-matrix']
@@ -183,7 +177,6 @@ export const POSES: Record<PoseId, Pose> = {
     lift: 0.03,
     tilt: [0, 11],
     key: [-0.5, 0.82, 0.42],
-    labels: ['hero-structure', 'hero-yarn', 'hero-thickness'],
     labelZone: [0.4, 0.14, 0.99, 0.97],
   },
   // edge-on at a corner, upper left: copy sits bottom right
@@ -386,26 +379,14 @@ export const POUR_OUT: Pose = {
 
 type TourKey = Pick<Pose, 'tgt' | 'elev' | 'azim' | 'dist' | 'fov' | 'frame' | 'frameCompact' | 'fog' | 'win'> & { at: number; distCompact: number }
 
-/** the close of the tour: a tile of the mesh half cast in concrete, on the warm-white ground */
-const CAST = {
-  tgt: [0, -0.006, 0] as [number, number, number],
-  elev: 27,
-  azim: 33,
-  dist: 0.5,
-  distCompact: 0.86,
-  fov: 30,
-  frame: [0.67, 0.53] as [number, number],
-  frameCompact: [0.5, 0.32] as [number, number],
-  win: [15, 15] as [number, number],
-}
 /** a fog that has swallowed everything: the screen is all ground colour (white, by then) */
 const WHITE_FOG: [number, number] = [0, 0.002]
 
 /**
  * The opening, as the visitor scrolls: 0 the piece lies beside the headline; 1 the mesh has been
  * built out past the edges of the screen; 2 the camera has gone down between the two faces; then
- * on along the cavity into white light (the ground washes to warm white), and out of the white a
- * tile of the mesh, which concrete rises around (3).
+ * on along the cavity into white light (the ground washes to warm white), and out of the white the
+ * mesh, close (3), which the camera draws back from as About's first view (4).
  */
 function tourKeys(): TourKey[] {
   const h0 = POSES.hero
@@ -415,17 +396,16 @@ function tourKeys(): TourKey[] {
     { at: 1, tgt: [0, 0, 0], elev: 50, azim: 18, dist: 0.3, distCompact: 0.42, fov: 34, frame: [0.5, 0.5], frameCompact: [0.5, 0.45], fog: [1, 2], win: [FIELD, FIELD] },
     { at: 2, tgt: [0, 0, -0.07], elev: 0, azim: 0, dist: 0.11, distCompact: 0.11, fov: 66, frame: [0.5, 0.5], frameCompact: [0.5, 0.5], fog: [0.12, 0.45], win: [FIELD, FIELD] },
     { at: 2.5, tgt: [0, 0, -0.2], elev: 0, azim: 0, dist: 0.11, distCompact: 0.11, fov: 70, frame: [0.5, 0.5], frameCompact: [0.5, 0.5], fog: WHITE_FOG, win: [FIELD, FIELD] },
-    { at: 2.66, ...CAST, fog: WHITE_FOG },
-    { at: 3, ...CAST, fog: [3, 6] },
-    // leaving the cast, the camera goes in close to the mesh and comes out as About's first view
-    { at: 3.5, tgt: s.tgt, elev: 34, azim: 30, dist: 0.075, distCompact: 0.1, fov: 30, frame: [0.5, 0.5], frameCompact: [0.5, 0.4], fog: [0.3, 0.9], win: [TILE, TILE] },
+    // in the white the camera is brought to the mesh, unseen; the white clears, close on the yarns
+    { at: 2.62, tgt: s.tgt, elev: 34, azim: 30, dist: 0.075, distCompact: 0.1, fov: 30, frame: [0.5, 0.5], frameCompact: [0.5, 0.4], fog: WHITE_FOG, win: [TILE, TILE] },
+    { at: 3, tgt: s.tgt, elev: 34, azim: 30, dist: 0.075, distCompact: 0.1, fov: 30, frame: [0.5, 0.5], frameCompact: [0.5, 0.4], fog: [0.3, 0.9], win: [TILE, TILE] },
     { at: 4, tgt: s.tgt, elev: s.elev, azim: s.azim, dist: s.dist, distCompact: s.distCompact ?? s.dist, fov: s.fov, frame: s.frame, frameCompact: s.frameCompact, fog: s.fog, win: s.win },
   ]
 }
 
 export const TOUR_LABELS = ['tour-face-a', 'tour-fibres', 'tour-face-b', 'tour-gap']
 /** how far into white light the tour has gone (0..1): the ground washes to warm white with it, and back to yellow on the way into About */
-export const tourWash = (p: number) => smoothstep(2.08, 2.5, p) * (1 - smoothstep(3.12, 3.55, p))
+export const tourWash = (p: number) => smoothstep(2.08, 2.5, p) * (1 - smoothstep(2.66, 3, p))
 
 /** the keys are fixed: built once, not every frame */
 let keyCache: TourKey[] | null = null
@@ -451,10 +431,8 @@ export function tourPose(p: number, out: Pose): Pose {
   // the build runs ahead of the camera: the sheet is complete before the camera reaches it
   const tb = i === 0 ? smoothstep(0, 0.75, p) : t
   out.win = [lerp(a.win[0], b.win[0], tb), lerp(a.win[1], b.win[1], tb)]
-  // the sway, the press, the shadow and the callouts belong to the piece beside the headline;
-  // the cast at the close has its own shadow and a slow sway
-  const cast = smoothstep(2.6, 2.7, p)
-  out.sway = p > 3.5 ? lerp(0, POSES.structure.sway, smoothstep(3.5, 4, p)) : POSES.hero.sway * Math.max(1 - smoothstep(0, 0.5, p), cast * (1 - smoothstep(3, 3.3, p)))
+  // the sway, the press and the shadow belong to the piece beside the headline, and to About's first view
+  out.sway = p > 3.5 ? lerp(0, POSES.structure.sway, smoothstep(3.5, 4, p)) : POSES.hero.sway * (1 - smoothstep(0, 0.5, p))
   // the cursor presses the piece, and the built mesh: a hollow where it rests, springing back as it moves on
   out.press = p < 0.6 || (p > 0.65 && p < 1.4)
   out.shadow = Math.max(1 - smoothstep(0.45, 0.95, p), smoothstep(2.7, 2.95, p))
@@ -463,8 +441,7 @@ export function tourPose(p: number, out: Pose): Pose {
   const level = 1 - smoothstep(0, 0.7, p)
   out.lift = (POSES.hero.lift ?? 0) * level
   out.tilt = [(POSES.hero.tilt?.[0] ?? 0) * level, (POSES.hero.tilt?.[1] ?? 0) * level]
-  out.slabs = p > 2.62 && p < 3.22 ? { gap: 0, opacity: 1, bottom: true } : undefined
-  out.labels = p < 0.18 ? HERO_LABELS : p > 1.8 && p < 2.2 ? TOUR_LABELS : p > 3.9 ? POSES.structure.labels : []
+  out.labels = p > 1.8 && p < 2.2 ? TOUR_LABELS : p > 3.9 ? POSES.structure.labels : []
   out.labelZone = p < 0.5 ? POSES.hero.labelZone : p > 3.5 ? POSES.structure.labelZone : [0.02, 0.12, 0.98, 0.86]
   // phones: inside the cavity the labels may come down to where the copy begins
   out.labelZoneCompact = p > 1.5 && p < 2.5 ? [0.02, 0.1, 0.98, 0.74] : p > 3.5 ? POSES.structure.labelZoneCompact : POSES.hero.labelZoneCompact

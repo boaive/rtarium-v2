@@ -13,10 +13,11 @@ import { FloorSample, type SampleKind } from './three/FloorSample'
  * timings. Three blocks, each a full screen that scrolls past in four boxes about one crossing: its
  * name and what it is; one line; its photograph; and the floor sample, its own 3D. As a block comes
  * up its boxes open diagonally out of the corner; while it is read nothing moves but the page; as it
- * goes they close into the far corner and its row is drawn in under the header (the way back). Black
- * and white change places from block to block, the 3D changes sides; the yellow stays.
+ * goes they close into the far corner and its row is drawn in under the header (an index, the way
+ * back). Black and white change places from block to block, the 3D changes sides; the yellow stays. The
+ * words always read left to right: the name top left, what it comes to beside it.
  *
- *   the headache   screed over a moving slab: no RTARIUM, the slab drops at its joint, the screed cracks
+ *   the problem    screed over a moving slab: no RTARIUM, the slab drops at its joint, the screed cracks
  *   the layer      RTARIUM between the slab and the screed, a window cut to show it
  *   any premix     the screed poured over it: rust-proof, non-magnetic, inert
  */
@@ -24,7 +25,6 @@ import { FloorSample, type SampleKind } from './three/FloorSample'
 type Role = 'name' | 'limit' | 'photo' | 'panel'
 type Rect = [number, number, number, number]
 type Cut = [number, number]
-type Align = 'start' | 'end'
 const ORDER: Role[] = ['name', 'limit', 'photo', 'panel']
 
 interface Layout {
@@ -33,7 +33,6 @@ interface Layout {
   exit: Cut
   at: Record<Role, (c: Cut) => Rect>
   ground: Record<Role, Ground>
-  align: Partial<Record<Role, Align>>
 }
 
 const tl = (c: Cut): Rect => [0, 0, c[0], c[1]]
@@ -48,15 +47,13 @@ const WIDE_RIGHT: Layout = {
   exit: [1, 1],
   at: { name: tl, limit: tr, photo: bl, panel: br },
   ground: { name: 'yellow', limit: 'light', photo: 'light', panel: 'black' },
-  align: { name: 'start', limit: 'end' },
 }
 const WIDE_LEFT: Layout = {
   rest: [0.58, 0.4],
   entry: [1, 0],
   exit: [0, 1],
-  at: { limit: tl, name: tr, panel: bl, photo: br },
+  at: { name: tl, limit: tr, panel: bl, photo: br },
   ground: { name: 'yellow', limit: 'black', photo: 'black', panel: 'light' },
-  align: { name: 'end', limit: 'start' },
 }
 /** narrow screens: name, line, the 3D, the photograph, top to bottom */
 function narrow(L: Layout): Layout {
@@ -71,7 +68,6 @@ function narrow(L: Layout): Layout {
       photo: (c) => [0, c[1], 1, 1 - c[1]],
     },
     ground: L.ground,
-    align: L.align,
   }
 }
 const WIDE: Layout[] = [WIDE_RIGHT, WIDE_LEFT, WIDE_RIGHT]
@@ -83,8 +79,6 @@ interface Block {
   full: string
   label: string
   line: string
-  /** what its row says once it has been read */
-  tag: string
   kind: SampleKind
   marks: (compact: boolean) => LabelSpec[]
   /** a stand-in photograph until the site's own are chosen */
@@ -94,11 +88,10 @@ interface Block {
 const BLOCKS: Block[] = [
   {
     id: 'headache',
-    name: 'The oldest headache',
-    full: 'Ultra-fluid, high-strength screeds',
+    name: 'The oldest problem in flooring.',
+    full: 'Ultra-fluid, high-strength screeds are strong, but strength doesn’t stop movement.',
     label: 'What goes wrong',
     line: 'The slab moves. The screed cracks.',
-    tag: 'Cracking',
     kind: 'cracked',
     marks: (c) => [
       { id: 'c', anchor: 'fl-crack', text: 'Reflective crack', dx: 30, dy: c ? -44 : -96 },
@@ -108,11 +101,10 @@ const BLOCKS: Block[] = [
   },
   {
     id: 'layer',
-    name: 'The layer between',
-    full: 'RTARIUM, a 3D basalt mesh',
+    name: 'A 3D basalt mesh, inside the screed.',
+    full: 'RTARIUM reinforces thin, jointless screeds through their full depth.',
     label: 'What it does',
-    line: 'It holds the screed together as the slab moves.',
-    tag: 'Intermediate layer',
+    line: 'RTARIUM holds the screed together while the slab moves.',
     kind: 'cut',
     marks: (c) => [
       { id: 'm', anchor: 'fl-mesh', text: 'RTARIUM', dx: 30, dy: c ? -44 : -96 },
@@ -123,11 +115,10 @@ const BLOCKS: Block[] = [
   },
   {
     id: 'premix',
-    name: 'Any premix',
-    full: 'Rust-proof · Non-magnetic · Inert',
-    label: 'Works with',
-    line: 'Every premium industrial premix on the market.',
-    tag: 'Inert',
+    name: 'Use the premix you already specify.',
+    full: 'Non-corrosive · Non-magnetic · No steel',
+    label: '',
+    line: 'RTARIUM works with leading industrial premixes, with no change to the mix.',
     kind: 'pour',
     marks: (c) => [
       { id: 'm', anchor: 'fl-mesh', text: 'Basalt: nothing to rust', dx: -30, dy: c ? -44 : -96 },
@@ -250,7 +241,6 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
         if (ph) {
           const g = reduced ? 1 : Math.max(0.04, p >= 0 ? 1 - smooth(OPENED, 0.85, p) : 1 - smooth(CLOSING, CLOSED + 0.05, p))
           ph.style.setProperty('--g', g.toFixed(4))
-          ph.style.setProperty('--x', '0')
           let size = sizes.get(ph)
           if (!size) sizes.set(ph, (size = [ph.offsetWidth, ph.offsetHeight]))
           const [rx, ry] = reads.current[k] ?? []
@@ -271,7 +261,6 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
         bar.style.width = `${W}px`
         bar.style.opacity = rise > 0 ? '1' : '0'
         bar.style.clipPath = `inset(${((1 - e) * 100).toFixed(2)}% 0 0 0)`
-        bar.style.setProperty('--s', '0')
         const docked = rise > 0.5
         bar.tabIndex = docked ? 0 : -1
         bar.toggleAttribute('data-docked', docked)
@@ -317,7 +306,7 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
       case 'limit':
         return (
           <>
-            <p className="fs-label">{v.label}</p>
+            {v.label && <p className="fs-label">{v.label}</p>}
             <p className="fs-limit">{v.line}</p>
           </>
         )
@@ -347,10 +336,6 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
               <button ref={(el) => void (bars.current[i] = el)} type="button" className="fs-row" tabIndex={-1} onClick={() => go(i)} aria-label={`${v.name}. Back to it`}>
                 <span className="fs-row__num num">0{i + 1} /</span>
                 <span className="fs-row__name">{v.name}</span>
-                <span className="fs-row__tag">
-                  <i aria-hidden="true" />
-                  {v.tag}
-                </span>
               </button>
             </li>
           ))}
@@ -369,7 +354,7 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
             {ORDER.map((role) => {
               const [, , rw, rh] = L.at[role](L.rest)
               return (
-                <div key={role} ref={(el) => void ((cells.current[i] ??= {})[role] = el)} className={`fs-cell fs-cell--${role} on-${L.ground[role]} ${L.align[role] === 'end' ? 'is-end' : ''}`}>
+                <div key={role} ref={(el) => void ((cells.current[i] ??= {})[role] = el)} className={`fs-cell fs-cell--${role} on-${L.ground[role]}`}>
                   <div
                     ref={(el) => void ((inners.current[i] ??= {})[role] = el)}
                     className="fs-cell__in"
