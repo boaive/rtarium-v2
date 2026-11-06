@@ -49,18 +49,19 @@ const STEPS: Step[] = [
   { id: 'esd', name: 'Apply the ESD coating', head: ['Apply the', 'ESD coating'], line: 'Apply a conductive primer, then a self-levelling epoxy, for a continuous path to ground.', labels: ['cond', 'epoxy'] },
 ]
 
+/** where the words sit, for a 1366 x 650 screen (`labelsAt` scales them with the model): out in the clear, round its edge */
 const LABELS: LabelSpec[] = [
-  { id: 'joint', anchor: 'bd-joint', text: 'Butt joint', dx: 50, dy: 96 },
-  { id: 'wave', anchor: 'bd-wave', text: 'Mild undulations', dx: 50, dy: -96 },
-  { id: 'primer', anchor: 'bd-primer', text: 'Bonding primer', dx: 60, dy: -100 },
-  { id: 'button', anchor: 'bd-button', text: 'Anchor button', dx: 56, dy: 100 },
-  { id: 'mesh', anchor: 'bd-mesh', text: 'RTARIUM, 10 mm', dx: 60, dy: -104 },
-  { id: 'gap', anchor: 'bd-gap', text: '5 mm off the slab', dx: 60, dy: 96 },
+  { id: 'joint', anchor: 'bd-joint', text: 'Butt joint', dx: 10, dy: 130 },
+  { id: 'wave', anchor: 'bd-wave', text: 'Mild undulations', dx: 190, dy: -125 },
+  { id: 'primer', anchor: 'bd-primer', text: 'Bonding primer', dx: 100, dy: -115 },
+  { id: 'button', anchor: 'bd-button', text: 'Anchor button', dx: 70, dy: 170 },
+  { id: 'mesh', anchor: 'bd-mesh', text: 'RTARIUM, 10 mm', dx: 60, dy: -115 },
+  { id: 'gap', anchor: 'bd-gap', text: '5 mm off the slab', dx: 60, dy: 155 },
   { id: 'pump', anchor: 'bd-pump', text: 'H1-561 mixer-pump', dx: -56, dy: -60 },
   { id: 'flow', anchor: 'bd-flow', text: 'Free-flow concrete', dx: 60, dy: 90 },
   { id: 'trowel', anchor: 'bd-trowel', text: 'Power trowel', dx: 50, dy: -70 },
-  { id: 'cond', anchor: 'bd-cond', text: 'Conductive primer', dx: 60, dy: 90 },
-  { id: 'epoxy', anchor: 'bd-epoxy', text: 'Self-levelling ESD epoxy', dx: 60, dy: -90 },
+  { id: 'cond', anchor: 'bd-cond', text: 'Conductive primer', dx: 60, dy: 150 },
+  { id: 'epoxy', anchor: 'bd-epoxy', text: 'Self-levelling ESD epoxy', dx: 60, dy: -130 },
 ]
 
 /** screens of scroll for each step: the pour and the trowel have their passes to make */
@@ -95,6 +96,14 @@ function goToStep(k: number) {
 
 export function Build() {
   const compact = useIsCompact()
+  const [fit, setFit] = useState(1)
+  useEffect(() => {
+    const on = () => setFit(compact ? 0.6 : Math.max(0.85, Math.min(window.innerWidth / 1366, window.innerHeight / 650)))
+    on()
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
+  }, [compact])
+  const labels = useMemo(() => LABELS.map((l) => ({ ...l, dx: l.dx * fit, dy: l.dy * fit })), [fit])
   const section = useRef<HTMLElement>(null)
   const words = useRef<(HTMLDivElement | null)[]>([])
   const clips = useRef<(HTMLElement | null)[]>([])
@@ -216,7 +225,7 @@ export function Build() {
             <BuildScene t={t} bus={bus} compact={compact} room={space} />
             <LabelProjector bus={bus} bottom={compact ? 300 : 110} />
           </Stage3D>
-          <Labels bus={bus} labels={LABELS} shown={shown} />
+          <Labels bus={bus} labels={labels} shown={shown} />
         </div>
 
         <h2 id="fdc-build-title" className="fu-ans__title">

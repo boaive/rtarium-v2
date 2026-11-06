@@ -73,32 +73,6 @@
   text-wrap: pretty;
 }
 /* the three systems, under the title: the system pages' "Also" row */
-.fco-also {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 22px;
-  font-size: var(--t-small);
-  font-weight: 600;
-  animation: rise 0.8s var(--ease-out) 1.1s both;
-}
-.fco-also span {
-  color: var(--on-yellow-2);
-  font-weight: 500;
-}
-.fco-also a {
-  color: var(--black);
-  text-decoration: underline;
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 0.24em;
-}
-.fco-also a:hover {
-  text-decoration-thickness: 2.5px;
-}
-.fco-also a:focus-visible {
-  outline: 2px solid var(--black);
-  outline-offset: 4px;
-}
 /* "Scroll", with a line that keeps running down beside it */
 .fco-cue {
   position: absolute;
@@ -170,6 +144,12 @@
   --rule: rgb(8 8 8 / 0.88);
   position: relative;
   background: var(--yellow);
+}
+
+/* a story that follows another ground: it starts a header higher, so its first boxes meet that ground with no band of yellow */
+.fs--flush {
+  margin-top: calc(-1 * var(--nav-h));
+  background: none;
 }
 
 /* the rows: a layer the size of the screen, over the blocks */
@@ -344,7 +324,8 @@
 .fs-photo {
   /* its frame's width over its height: 4 : 3 unless the photograph says otherwise */
   --ar: 1.333;
-  --pw: min(100cqw - 2 * var(--pad) - 64px, (100cqh - 2 * var(--pad) - 44px) * var(--ar), 42rem);
+  /* the box's cq units already stand inside its padding: only the read-outs need room */
+  --pw: min(100cqw - 64px, (100cqh - 44px) * var(--ar), 42rem);
   position: relative;
   width: var(--pw);
   aspect-ratio: var(--ar);
@@ -409,23 +390,7 @@
   color: var(--fg-2);
 }
 
-/* RTARIUM's photograph fills its box (it still opens out of its corner as the block comes up) */
-.fs-block--last .fs-cell--photo .fs-cell__in {
-  padding: 0;
-}
-.fs-block--last .fs-photo {
-  width: 100cqw;
-  height: 100cqh;
-  aspect-ratio: auto;
-}
-.fs-block--last .fs-photo__dot {
-  display: none;
-}
-
-/* RTARIUM: its name, very large; what it is under it */
-.fs-block--last .fs-cell--name .fs-cell__in {
-  justify-content: space-between;
-}
+/* RTARIUM: its name in its own letters, what it is under it */
 .fs-word {
   font-family: var(--font-name);
   font-size: clamp(3rem, min(46cqh, 14cqw), 13rem);
@@ -434,27 +399,15 @@
   letter-spacing: -0.01em;
   line-height: 0.86;
 }
-.fs-block--last .fs-full {
-  margin-top: 0;
-  font-size: var(--t-lead);
-  color: var(--black);
-}
 
-/* why it replaces them, along the foot: the label, then the words, left to right */
-.fs-block--last .fs-cell--claim .fs-cell__in {
-  flex-direction: row;
-  align-items: center;
-  gap: var(--s-6);
-  padding-block: 0;
-}
-.fs-block--last .fs-cell--claim .fs-label {
-  flex: none;
-}
+/* why it replaces them: the one large line of its box, as why the others are replaced */
 .fs-claim {
-  font-size: clamp(1.15rem, min(30cqh, 2.2cqw), 2.1rem);
+  max-width: 18ch;
+  margin-top: auto;
+  font-size: clamp(1.6rem, min(15cqh, 6cqw), 3.6rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
   text-wrap: balance;
 }
 
@@ -561,6 +514,42 @@
 /* ---- narrow screens ---------------------------------------------------------------------------- */
 
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  /* RTARIUM on a phone: its photograph fills its box, why it replaces them runs along the foot */
+  .fs-block--last .fs-cell--photo .fs-cell__in {
+    padding: 0;
+  }
+  .fs-block--last .fs-photo {
+    width: 100cqw;
+    height: 100cqh;
+    aspect-ratio: auto;
+  }
+  .fs-block--last .fs-photo__dot {
+    display: none;
+  }
+  .fs-block--last .fs-cell--name .fs-cell__in {
+    justify-content: space-between;
+  }
+  .fs-block--last .fs-full {
+    margin-top: 0;
+    font-size: var(--t-lead);
+    color: var(--black);
+  }
+  .fs-block--last .fs-cell--claim .fs-cell__in {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--s-6);
+    padding-block: 0;
+  }
+  .fs-block--last .fs-cell--claim .fs-label {
+    flex: none;
+  }
+  .fs-claim {
+    max-width: none;
+    margin-top: 0;
+    font-size: clamp(1.15rem, min(30cqh, 2.2cqw), 2.1rem);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
   .fco-head {
     top: calc(var(--nav-h) + 20px);
     right: var(--gutter);
@@ -647,7 +636,6 @@
   .fco-hero .word__in,
   .fco-lede,
   .fco-head,
-  .fco-also,
   .fco-cue::after {
     animation: none;
   }

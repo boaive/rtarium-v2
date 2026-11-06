@@ -10,7 +10,7 @@ import { prefersReducedMotion } from '../../../lib/motion'
 import { type BuildRoom, fit } from '../../data/three/BuildScene'
 import { disposeFloorKit, floorKit, Lines, sortFrom, split, uvBox } from '../../data/three/dc'
 import { ink, useDrawing, useInkResolution } from '../../data/three/draw'
-import { AISLE, AISLE_VIEW, useAisle } from './aisle'
+import { AISLE, AISLE_VIEW, podBody, useAisle } from './aisle'
 import { crackPaths, GROOVE, jointSeam, jointSurface, screedBody } from './joint'
 import { applyCam, camOf, circle, mixView, POD, podLines, type View, wheelLines } from './parts'
 
@@ -24,10 +24,10 @@ import { applyCam, camOf, circle, mixView, POD, podLines, type View, wheelLines 
  *                      wireframe grid, the stress paths running down from every wheel, in yellow
  *   2  the joint       one small piece of the floor: a traditional screed on the structural base, a
  *                      saw-cut joint across it, the drive wheel rolling over it
- *   3  spall and crack a smaller piece about the cut: its edges spall, the floor beside it pits, micro-cracks
- *                      run out (the surface's own morph target, the chips, and the cracks in yellow)
- *   4  system stop     the piece opens out for the whole AGV: its wheel caught in the broken joint, the body
- *                      tipped, the laser scanner thrown off the guide line; it turns yellow, and it stops
+ *   3  spall and crack a smaller piece about the cut, whole at first: its edges spall, the floor beside it pits,
+ *                      micro-cracks run out (the surface's own morph target, the chips, and the cracks in yellow)
+ *   4  system stop     the piece opens out for the whole AGV: it drives up to the broken joint, its wheel catches,
+ *                      the body tips, the laser scanner is thrown off the guide line; it turns yellow, and it stops
  *
  * `t` is the run as beats (beat k over k..k+1), eased by the section.
  */
@@ -44,6 +44,8 @@ const AGV = 0.7
 /** where the drive wheel runs, and where it catches, just short of the cut */
 const WX = POD.wheelX
 const CAUGHT = -0.018
+/** where the AGV drives in from, in the last beat */
+const APPROACH = -0.36
 const R = POD.wheelR
 /** the piece's half-width in the wheel's beat and in the close-up, and how deep each is cut */
 const NEAR = { wheel: 0.34, close: 0.23, foot: -T - 0.09 }
@@ -104,7 +106,9 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
   )
   const m = useMemo(() => {
     const k = floorKit()
-    k.screed.color.set('#a9a69e')
+    // a dark floor: the drawn lines, white and yellow, stand off it at card size
+    k.screed.color.set('#3f3e3a')
+    k.plank.color.set('#55534e')
     const planes = [cut.x1, cut.x0, cut.z1, cut.z0, cut.y]
     k.screed.clippingPlanes = planes
     k.plank.clippingPlanes = planes
@@ -115,8 +119,9 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
       cut: new THREE.MeshBasicMaterial({ color: '#0a0a0a', transparent: true, toneMapped: false, clippingPlanes: planes }),
       contact: new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, toneMapped: false, depthWrite: false }),
       tyre: new THREE.MeshStandardMaterial({ color: '#141414', roughness: 0.7, transparent: true }),
-      capScreed: new THREE.MeshStandardMaterial({ color: '#a9a69e', roughness: 0.82, transparent: true, side: THREE.DoubleSide }),
-      capBase: new THREE.MeshStandardMaterial({ color: '#8d8a83', roughness: 0.9, transparent: true, side: THREE.DoubleSide }),
+      shell: new THREE.MeshBasicMaterial({ color: '#0b0b0a', transparent: true, toneMapped: false }),
+      capScreed: new THREE.MeshStandardMaterial({ color: '#3f3e3a', roughness: 0.82, transparent: true, side: THREE.DoubleSide }),
+      capBase: new THREE.MeshStandardMaterial({ color: '#2c2b28', roughness: 0.9, transparent: true, side: THREE.DoubleSide }),
     }
   }, [cut])
   const specimen = useMemo(() => {
@@ -134,6 +139,8 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
       floor: new THREE.BoxGeometry(2 * AISLE.width, 0.14, AISLE.near - AISLE.far).translate(0, -0.07, (AISLE.near + AISLE.far) / 2),
       joints: floorJoints(),
       tyre: new THREE.CylinderGeometry(R, R, POD.wheelW, 32).rotateZ(Math.PI / 2),
+      podBody: podBody(),
+      podTyre: new THREE.CylinderGeometry(R, R, 0.05, 20).rotateZ(Math.PI / 2),
       chip: new THREE.TetrahedronGeometry(0.009),
       contact: new THREE.CircleGeometry(1, 28).rotateX(-Math.PI / 2),
       // the caps: unit planes, moved and sized to the box's near faces every frame
@@ -150,7 +157,7 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
       specimen.body.dispose()
       specimen.base.dispose()
       specimen.seam.dispose()
-      for (const x of [m.worn, m.seam, m.cut, m.contact, m.tyre, m.capScreed, m.capBase]) x.dispose()
+      for (const x of [m.worn, m.seam, m.cut, m.contact, m.tyre, m.shell, m.capScreed, m.capBase]) x.dispose()
       disposeFloorKit(m)
     },
     [g, m, specimen],
@@ -159,17 +166,17 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
   const aisle = useAisle(INK, { alertColor: ALERT })
   const mats = useMemo(() => {
     const planes = [cut.x1, cut.x0, cut.z1, cut.z0]
-    const crack = ink(1.25, ALERT, 1)
+    const crack = ink(1.8, ALERT, 1)
     crack.clippingPlanes = planes
     const guide = ink(1.4, INK, 0.7)
     guide.clippingPlanes = planes
     return {
       gridStrong: ink(1.1, INK, 0.7),
       gridFine: ink(0.7, INK, 0.2),
-      wheel: ink(1.2, INK, 1),
+      wheel: ink(1.7, INK, 1),
       crack,
-      podBody: ink(1.25, INK, 1),
-      fan: ink(1, INK, 0.75),
+      podBody: ink(1.2, INK, 1),
+      fan: ink(0.9, INK, 0.7),
       guide,
       beacon: ink(2.2, ALERT, 1),
       contact: ink(1.6, ALERT, 1),
@@ -191,7 +198,7 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
     podLines(Pd)
     // the fan of the laser scanner, out over the floor ahead of it, and the sweep it draws there
     const F = new Lines()
-    const n = 17
+    const n = 11
     const reach = 0.86
     const drop = POD.lidar[1] + 0.05
     let last: number[] | null = null
@@ -301,7 +308,7 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
     if (piece.current) piece.current.visible = here > 0.002
     for (const x of [m.plank, m.screed, m.tyre, m.cut, m.capScreed, m.capBase]) x.opacity = here
     const closer = smooth(2.78, 3, v)
-    const open = smooth(3.82, 4.14, v)
+    const open = smooth(3.8, 4.0, v)
     const half = NEAR.wheel + (NEAR.close - NEAR.wheel) * closer
     const xa = WX - half + (X[0] - (WX - half)) * open
     const xb = WX + half + (X[1] - (WX + half)) * open
@@ -329,7 +336,7 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
     }
 
     // the surface breaks up as the wheels go on crossing it
-    const damage = smooth(2.32, 3.72, v)
+    const damage = 0.1 * smooth(2.32, 2.72, v) + 0.9 * smooth(3.04, 3.7, v)
     if (top.current) {
       if (!top.current.morphTargetInfluences) top.current.updateMorphTargets()
       if (top.current.morphTargetInfluences) top.current.morphTargetInfluences[0] = damage
@@ -350,19 +357,20 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
       chip.visible = damage > 0.001
     }
 
-    // the wheel: over the cut and over it again, until it catches and holds
+    // the wheel: over the cut and over it again; then, under the AGV, up to the broken joint, where it catches and holds
     const wheelOn = v >= 1.94
-    const caught = smooth(3.82, 4.14, v)
+    const caught = smooth(3.8, 4.0, v)
     if (on && caught < 0.5) roll.current += dt * 0.42
     const cycle = reduced ? 0.42 : roll.current % 1
     const free = (cycle * 2 - 1) * half * 0.74
-    const wz = free + (CAUGHT - free) * caught
+    const wz = free + (APPROACH + (CAUGHT - APPROACH) * smooth(4.06, 4.36, v) - free) * caught
     const near = Math.abs(wz)
     const drop = 0.008 * (1 + damage) * (1 - smooth(0, 0.035, near))
     const hop = (1 - caught) * 0.007 * Math.max(0, 1 - Math.abs(wz - 0.05) / 0.05)
     const scale = 1 + (AGV - 1) * caught
     if (wheel.current) {
-      wheel.current.visible = wheelOn
+      // once the AGV stands over it, its own wheels take over
+      wheel.current.visible = wheelOn && caught < 0.9
       wheel.current.position.set(WX, R * scale - drop + hop, wz)
       wheel.current.scale.setScalar(scale)
     }
@@ -382,23 +390,24 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
       jolt.current.scale.setScalar(0.7 + damage * 0.6)
     }
 
-    // the AGV drawn on over its wheel; tipped forward over the broken edge
-    const body = smooth(4.1, 4.42, v)
-    const tip = smooth(4.3, 4.6, v)
+    // the AGV over its wheel, driving; tipped forward as it catches on the broken edge
+    const body = smooth(3.86, 4.0, v)
+    const tip = smooth(4.34, 4.52, v)
     podD.show(body)
+    m.shell.opacity = body
     if (pod.current) {
       pod.current.visible = body > 0.002
-      pod.current.position.set(WX - POD.wheelX * AGV, 0.01 * tip, CAUGHT - POD.wheelZ * AGV)
+      pod.current.position.set(WX - POD.wheelX * AGV, 0.01 * tip, wz - POD.wheelZ * AGV)
       pod.current.rotation.x = (2.6 * tip * Math.PI) / 180
     }
     guideD.show(body)
-    const off = smooth(4.42, 4.66, v)
+    const off = smooth(4.46, 4.66, v)
     const blink = on ? 0.5 + 0.5 * Math.sign(Math.sin(performance.now() / 150)) : 1
     fanD.show(body)
     mats.fan.color.set(off > 0.5 ? ALERT : INK)
     mats.podBody.color.set(off > 0.5 ? ALERT : INK)
     mats.wheel.color.set(off > 0.5 ? ALERT : INK)
-    mats.fan.opacity = off > 0.5 ? 0.42 + 0.5 * blink : 0.72
+    mats.fan.opacity = off > 0.5 ? 0.55 + 0.35 * blink : 0.7
     if (fan.current) fan.current.rotation.set((-9 * off * Math.PI) / 180, (15 * off * Math.PI) / 180, (6 * off * Math.PI) / 180)
     if (beacon.current) beacon.current.visible = off > 0.5
     mats.beacon.opacity = 0.35 + 0.65 * blink
@@ -445,6 +454,8 @@ export function FailScene({ t, bus, compact, room, live }: { t: Progress; bus: L
         <primitive object={forkD.obj} />
       </group>
       <group ref={pod} scale={AGV} visible={false}>
+        <mesh geometry={g.podBody} material={m.shell} renderOrder={5} />
+        {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <mesh key={`${sx}${sz}`} geometry={g.podTyre} material={m.shell} position={[sx * (POD.w / 2 + 0.004), R, sz * POD.wheelZ]} renderOrder={5} />))}
         <primitive object={podD.obj} />
         <group position={POD.lidar}>
           <group ref={fan}>

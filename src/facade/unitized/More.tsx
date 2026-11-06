@@ -55,7 +55,7 @@ export function More({ current = 'unitized' }: { current?: SystemId }) {
                   onBlur={() => setHover((h) => (h === i ? null : h))}
                 >
                   <div className="fct-col__text">
-                    <span className="fct-col__num num">0{n + 1}</span>
+                    <span className="fct-col__num num">0{i + 1}</span>
                     <h3 className="fct-col__name">{s.title}</h3>
                     <p className="fct-col__line">{s.short}</p>
                     <Link to={s.path} className="fc-go fct-col__go">

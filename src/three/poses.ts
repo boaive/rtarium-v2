@@ -407,6 +407,9 @@ export const TOUR_LABELS = ['tour-face-a', 'tour-fibres', 'tour-face-b', 'tour-g
 /** how far into white light the tour has gone (0..1): the ground washes to warm white with it, and back to yellow on the way into About */
 export const tourWash = (p: number) => smoothstep(2.08, 2.5, p) * (1 - smoothstep(2.66, 3, p))
 
+/** where, in the white, the camera has been brought to the mesh */
+const CLOSE_AT = 2.62
+
 /** the keys are fixed: built once, not every frame */
 let keyCache: TourKey[] | null = null
 
@@ -431,6 +434,22 @@ export function tourPose(p: number, out: Pose): Pose {
   // the build runs ahead of the camera: the sheet is complete before the camera reaches it
   const tb = i === 0 ? smoothstep(0, 0.75, p) : t
   out.win = [lerp(a.win[0], b.win[0], tb), lerp(a.win[1], b.win[1], tb)]
+  // out of the white the camera never pauses: the page runs through the close-up without stopping, so one move
+  // carries it from the mesh to About's first view, and only the fog keeps its own key at 3
+  if (p > CLOSE_AT) {
+    const c = keys[keys.length - 3]
+    const d = keys[keys.length - 1]
+    const m = smoothstep(0, 1, (p - CLOSE_AT) / (d.at - CLOSE_AT))
+    out.tgt = [lerp(c.tgt[0], d.tgt[0], m), lerp(c.tgt[1], d.tgt[1], m), lerp(c.tgt[2], d.tgt[2], m)]
+    out.elev = lerp(c.elev, d.elev, m)
+    out.azim = lerp(c.azim, d.azim, m)
+    out.dist = lerp(c.dist, d.dist, m)
+    out.distCompact = lerp(c.distCompact, d.distCompact, m)
+    out.fov = lerp(c.fov, d.fov, m)
+    out.frame = [lerp(c.frame[0], d.frame[0], m), lerp(c.frame[1], d.frame[1], m)]
+    out.frameCompact = [lerp(c.frameCompact[0], d.frameCompact[0], m), lerp(c.frameCompact[1], d.frameCompact[1], m)]
+    out.win = [lerp(c.win[0], d.win[0], m), lerp(c.win[1], d.win[1], m)]
+  }
   // the sway, the press and the shadow belong to the piece beside the headline, and to About's first view
   out.sway = p > 3.5 ? lerp(0, POSES.structure.sway, smoothstep(3.5, 4, p)) : POSES.hero.sway * (1 - smoothstep(0, 0.5, p))
   // the cursor presses the piece, and the built mesh: a hollow where it rests, springing back as it moves on

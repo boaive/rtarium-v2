@@ -26,7 +26,7 @@ const STILLS: Partial<Record<PoseId, string>> = {
  * (see Ground). Each step's copy lags the scroll a little (`--o`, -1 below .. 0 in place .. 1
  * above), so screens slide rather than cut. Reaching a step (it holds the middle of the screen)
  * plays its sequence in time: words rise one by one, figures count, the mesh glides to its pose.
- * The wheel is never captured and nothing snaps: the page stops where the visitor stops.
+ * Home moves a screen at a time (`stepScreens`), so each step comes to rest whole.
  */
 
 export interface Step {

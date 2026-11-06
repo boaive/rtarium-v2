@@ -13,6 +13,7 @@ import { Applications } from './sections/Applications'
 import { ApplicationPage, ContactPage, NotFound } from './pages/Planned'
 import { APPLICATIONS } from './content/site'
 import { setShared } from './three/stageStore'
+import { stepScreens } from './lib/scroll'
 
 /** Façade & Cladding (overview and its three systems): its own chunk, loaded only on those pages */
 const FacadeRoutes = lazy(() => import('./facade/FacadeRoutes'))
@@ -30,6 +31,7 @@ function Home() {
     document.title = 'RTARIUM by HEMISPHERE ONE · Three-dimensional basalt reinforcement mesh'
     // arriving on /#chapter: land on it once the page has laid out
     if (window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
+    return stepScreens()
   }, [])
   return (
     <>

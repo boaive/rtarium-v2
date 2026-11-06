@@ -12,6 +12,7 @@ import { ReviewNote } from '../../components/Media'
 import { Arrow } from '../Shell'
 import { useCornerBox, useLive } from './live'
 import { paintCards } from './stack'
+import { Skip } from './StepBar'
 
 /**
  * Six layers, one unit, on yellow. Pinned for its run: on the left the layers as sticky stacking
@@ -207,6 +208,7 @@ export function Layers() {
 
               {/* a layer back or on: the page scrolls there */}
               <div className="fu-sheet__steps">
+                <Skip label="The six layers" className="fu-sheet__skip" />
                 <button ref={back} type="button" className="fu-sheet__go fu-sheet__go--back" aria-label="Previous layer" onClick={() => step(-1)}>
                   <Arrow />
                 </button>

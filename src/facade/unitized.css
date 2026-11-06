@@ -446,7 +446,13 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
   padding: calc(var(--nav-h) + clamp(16px, 3vh, 32px)) var(--gutter) clamp(20px, 4vh, 44px);
 }
+/* on a plate of the section's own ground: the drawing runs behind it, never through the words */
 .fu-hang__title {
+  justify-self: start;
+  width: fit-content;
+  margin: -0.3em 0 0 -0.5em;
+  padding: 0.3em 0.5em 0.34em;
+  background: var(--white);
   font-size: clamp(1.6rem, min(2.5vw, 4.6vh), 2.6rem);
   font-weight: 700;
   letter-spacing: -0.035em;
@@ -533,6 +539,275 @@
   letter-spacing: -0.04em;
   line-height: 0.98;
 }
+/* the four problems as cards, in the columns of the systems block at the foot of the page */
+.fu-probs {
+  --hair: rgb(242 240 233 / 0.16);
+  --soft: rgb(242 240 233 / 0.66);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: 100%;
+  padding-top: calc(var(--nav-h) + clamp(10px, 2.4vh, 28px));
+}
+.fu-probs__title {
+  padding: 0 var(--gutter) clamp(14px, 3vh, 30px);
+}
+/* each word rises out of its own line */
+.fu-probs__word {
+  display: inline-block;
+  overflow: hidden;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  vertical-align: top;
+}
+.fu-probs__word i {
+  display: inline-block;
+  font-style: normal;
+  will-change: transform;
+}
+/* the line that runs along the top of the cards with the scroll, as Inverted casting's */
+.fu-probs__rail {
+  position: relative;
+  height: 1.5px;
+  background: var(--hair);
+}
+.fu-probs__rail::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--yellow);
+  transform: scaleX(var(--run, 0));
+  transform-origin: left;
+}
+.fu-probs__cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: 0;
+}
+.fu-probs__cols--five {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.fu-probs__cols--open {
+  transition: grid-template-columns 0.55s var(--ease-out);
+}
+.fu-probs__cols--open .fu-prob {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+/* the whole card opens it; the plus says so */
+.fu-prob__open {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: flex-end;
+  padding: clamp(10px, 1.6vh, 16px) clamp(12px, 1.2vw, 20px);
+  border: 0;
+  background: none;
+  color: var(--yellow);
+  font: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.fu-prob__open:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: -3px;
+}
+/* one opened across the panel, read left to right: its words, the way on under them, then its scene, large */
+.fu-prob.is-closed {
+  border-right: 0;
+  visibility: hidden;
+}
+.fu-prob.is-open {
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: clamp(280px, 30vw, 460px) minmax(0, 1fr);
+  border-right: 0;
+}
+.fu-prob.is-open .fu-prob__text {
+  order: -1;
+  align-content: center;
+  gap: clamp(6px, 1.4vh, 14px);
+  padding-left: var(--gutter);
+  border-right: 1px solid var(--hair);
+}
+.fu-prob.is-open .fu-prob__name {
+  min-height: 0;
+  font-size: clamp(1.7rem, min(3vw, 6vh), 3.2rem);
+}
+.fu-prob.is-open .fu-prob__line {
+  min-height: 0;
+  font-size: var(--t-body);
+}
+/* the words come first, then the scene */
+.fu-prob.is-open .fu-prob__stage {
+  animation: prob-scene 0.6s var(--ease-out) 0.75s both;
+}
+.fu-prob.is-open .fu-prob__text > * {
+  animation: prob-words 0.5s var(--ease-out) 0.12s both;
+}
+.fu-prob.is-open .fu-prob__text > :nth-child(3) {
+  animation-delay: 0.22s;
+}
+.fu-prob.is-open .fu-prob__text > :nth-child(4) {
+  animation-delay: 0.32s;
+}
+@keyframes prob-scene {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes prob-words {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fu-prob.is-open .fu-prob__stage,
+  .fu-prob.is-open .fu-prob__text > * {
+    animation: none;
+  }
+}
+/* back to the five, from the corner of the panel */
+.fu-prob__close {
+  position: absolute;
+  z-index: 4;
+  top: clamp(10px, 1.8vh, 18px);
+  right: var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--hair);
+  background: var(--black);
+  color: var(--white);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.25s var(--ease-out), color 0.25s var(--ease-out);
+}
+.fu-prob__close span {
+  font-size: 1.25em;
+  line-height: 1;
+}
+.fu-prob__close:hover {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+.fu-prob__close:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
+}
+.fu-prob__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: clamp(10px, 2.4vh, 24px);
+}
+.fu-prob__nav button {
+  padding: 9px 13px;
+  border: 1px solid var(--hair);
+  background: none;
+  color: var(--white);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.25s var(--ease-out), color 0.25s var(--ease-out);
+}
+.fu-prob__nav button:hover {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+.fu-prob__nav button:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
+}
+/* two lines kept for every name, so the numbers stand level across the five */
+.fu-probs__cols--five .fu-prob__name {
+  min-height: 2.1em;
+  align-content: end;
+}
+.fu-prob {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  border-right: 1px solid var(--hair);
+}
+.fu-prob:last-child {
+  border-right: 0;
+}
+.fu-prob__stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--yellow);
+}
+/* a simple pop up with the scroll: it comes up a little and settles to its size */
+.fu-prob__frame {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 50% at 50% 42%, rgb(242 240 233 / 0.07), transparent 72%);
+  opacity: var(--g, 1);
+  transform: translateY(calc((1 - var(--g, 1)) * 30px)) scale(calc(0.9 + 0.1 * var(--g, 1)));
+  will-change: transform, opacity;
+}
+.fu-prob__text {
+  display: grid;
+  justify-items: start;
+  gap: clamp(4px, 1vh, 10px);
+  padding: clamp(12px, 2.4vh, 26px) clamp(16px, 1.8vw, 32px) clamp(16px, 3vh, 34px);
+  position: relative;
+  color: var(--white);
+}
+.fu-prob__text .fct-col__num {
+  color: var(--yellow);
+}
+.fu-prob__name {
+  min-height: 0;
+  font-size: clamp(1.15rem, min(1.75vw, 3.3vh), 1.9rem);
+  line-height: 1.05;
+  transition: color 0.3s var(--ease-out);
+}
+.fu-prob__line {
+  min-height: 4.05em;
+  font-size: var(--t-small);
+  line-height: 1.35;
+  color: var(--soft);
+  transition: color 0.3s var(--ease-out);
+}
+/* pointed at: a yellow line draws across the top of its words, its name takes the yellow, its line brightens */
+.fu-prob__text::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 2px;
+  background: var(--yellow);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.5s var(--ease-out);
+}
+.fu-prob.is-hover .fu-prob__text::before {
+  transform: scaleX(1);
+}
+.fu-prob.is-hover .fu-prob__name {
+  color: var(--yellow);
+}
+.fu-prob.is-hover .fu-prob__line {
+  color: var(--white);
+}
+
 /* the list: every problem in view; the one the 3D is showing lit */
 .fu-flaw-list {
   flex: 1 1 auto;
@@ -871,6 +1146,15 @@
   white-space: nowrap;
   cursor: pointer;
 }
+/* in the studio box, beside the arrows: there is no bar along the six layers' foot to end */
+.fu-sheet__skip {
+  min-height: 0;
+  margin-right: 6px;
+  color: var(--yellow);
+}
+.fu-sheet__skip:focus-visible {
+  outline-color: var(--yellow);
+}
 .fu-bar__skip svg {
   transition: transform var(--d-fast) var(--ease-out);
 }
@@ -1068,6 +1352,36 @@
     height: auto;
     min-height: 100svh;
   }
+  .fu-probs {
+    height: auto;
+  }
+  .fu-probs__cols,
+  .fu-probs__cols--five {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fu-prob.is-closed {
+    display: none;
+  }
+  .fu-prob.is-open {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 46svh auto;
+  }
+  .fu-prob.is-open .fu-prob__text {
+    order: 0;
+    border-right: 0;
+  }
+  .fu-prob {
+    grid-template-rows: none;
+    grid-template-columns: 42% minmax(0, 1fr);
+    border-right: 0;
+    border-bottom: 1px solid var(--hair);
+  }
+  .fu-prob__stage {
+    min-height: 150px;
+  }
+  .fu-prob__line {
+    min-height: 0;
+  }
   .fu-flaws__pin {
     --stage-h: 34svh;
     --foot: 20px;
@@ -1154,6 +1468,7 @@
     --bar-h: 40px;
   }
   .fu-ans__title {
+    right: var(--gutter);
     font-size: 1.25rem;
   }
   .fu-ans__words {
@@ -1183,12 +1498,24 @@
   .fu-made__dot {
     display: none;
   }
-  /* on a phone only the current cell is open; the others are squares */
+  /* on a phone only the current cell is open; the others are small squares, so its name has the room to be read */
   .fu-bar__cell:not([data-state='now']) {
     --c: 1 !important;
+    min-width: 28px;
+  }
+  .fu-bar__cell:not([data-state='now']) .fu-bar__face {
+    justify-content: center;
+    padding: 0;
+  }
+  .fu-bar__cell:not([data-state='now']) .fu-bar__name,
+  .fu-bar__cell[data-state='now'] .num {
+    display: none;
   }
   .fu-bar__list {
     gap: 4px;
+  }
+  .fu-bar__skip {
+    font-size: var(--t-micro);
   }
 
   .fu-made__steps {

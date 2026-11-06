@@ -24,7 +24,7 @@ import { smooth } from './progress'
  *   - black and white change places from block to block, the panel changes sides, the yellow stays; the
  *     words always read left to right: the name in the top left box, what it comes to beside it.
  *
- * RTARIUM then takes the whole screen in a layout of its own, the rows going up as it comes.
+ * RTARIUM closes it in the same four boxes, its panel at the bottom right, the rows going up as it comes.
  * Only the 3D has motion of its own: a slow sway, in time.
  */
 
@@ -68,22 +68,16 @@ const WIDE_LEFT: Layout = {
   ground: { name: 'yellow', limit: 'black', photo: 'black', panel: 'light' },
 }
 /**
- * RTARIUM, a layout of its own: its name and the panel, large, in the wide column; its photograph,
- * full-bleed, in the narrow one; why it replaces them along the foot. c[0] parts the columns, c[1] is
- * where the foot begins.
+ * RTARIUM, in the boxes of the blocks before it: its name top left, why it replaces them beside it, its
+ * photograph at the foot and its panel at the bottom right. It opens and closes as they do, diagonally,
+ * into the far corner as it goes. Black and white change places from the block before.
  */
-const BAND = 0.3
 const WIDE_LAST: Layout = {
-  rest: [0.62, 0.86],
-  entry: [1, 1],
-  exit: [0.62, 0.86],
-  at: {
-    name: (c) => [0, 0, c[0], BAND],
-    panel: (c) => [0, BAND, c[0], c[1] - BAND],
-    photo: (c) => [c[0], 0, 1 - c[0], c[1]],
-    claim: (c) => [0, c[1], 1, 1 - c[1]],
-  },
-  ground: { name: 'yellow', panel: 'yellow', photo: 'yellow', claim: 'yellow' },
+  rest: WIDE_RIGHT.rest,
+  entry: WIDE_RIGHT.entry,
+  exit: WIDE_RIGHT.exit,
+  at: { name: tl, claim: tr, photo: bl, panel: br },
+  ground: { name: 'yellow', claim: 'black', photo: 'black', panel: 'light' },
 }
 
 /** narrow screens: name, why it is replaced, the panel, the photograph, top to bottom (c: where the panel begins and ends) */
@@ -111,7 +105,7 @@ const NARROW_LAST: Layout = {
     photo: (c) => [0, c[0], 1, c[1] - c[0]],
     claim: (c) => [0, c[1], 1, 1 - c[1]],
   },
-  ground: WIDE_LAST.ground,
+  ground: { name: 'yellow', panel: 'yellow', photo: 'yellow', claim: 'yellow' },
 }
 const WIDE: Layout[] = [WIDE_RIGHT, WIDE_LEFT, WIDE_RIGHT, WIDE_LAST]
 const NARROW: Layout[] = [narrow(WIDE_RIGHT.ground), narrow(WIDE_LEFT.ground), narrow(WIDE_RIGHT.ground), NARROW_LAST]
@@ -168,7 +162,7 @@ const VERSIONS: Version[] = [
     id: 'grc',
     name: 'GFRC / GRC',
     full: 'Glass fibre reinforced concrete',
-    used: 'Light enough to hang on any facade.',
+    used: 'Light enough to hang on any façade.',
     replaced: 'Over time, alkali attacks the fibre. Strength and toughness go with it.',
     material: 'AR-glass fibre',
     thick: 20,
@@ -183,10 +177,9 @@ const VERSIONS: Version[] = [
     material: 'Steel micro-fibre',
     thick: 20,
     photo: {
-      src: '/img/facade/uhpc-fibres.webp',
-      alt: 'A broken sample of ultra-high performance concrete with steel fibres standing out of the break',
-      // CC BY-SA 4.0: the licence asks for this credit
-      credit: 'Photo: B. P. Maffezzoli, CC BY-SA 4.0',
+      src: '/img/facade/steel-fibres.webp',
+      // supplied by the team: its source and licence are still to be confirmed
+      alt: 'A break through fibre reinforced concrete, steel fibres standing out of both faces',
     },
   },
   {
@@ -373,7 +366,10 @@ export function Lineage({
         if (!bar) return
         const rise = reduced ? Number(q[k] < -0.1) : smooth(-0.02, -0.3, q[k])
         const edge = finale ? blocks.current[LAST]?.getBoundingClientRect().top : blocks.current[blocks.current.length - 1]?.getBoundingClientRect().bottom
-        const leave = Math.min(0, (edge ?? Infinity) - (navH + REPLACED.length * rowH))
+        const stack = REPLACED.length * rowH
+        const under = Math.min(0, (edge ?? Infinity) - (navH + stack))
+        // RTARIUM's rows are clear of the header by the time it reaches it: nothing shows behind the logo
+        const leave = finale ? (under * (navH + stack)) / Math.max(1, stack) : under
         bar.style.transform = `translate(0px, ${(navH + k * rowH - layerTop + leave).toFixed(1)}px)`
         bar.style.width = `${W}px`
         // drawn in from the left, solid, so the block's words pass behind it
@@ -399,7 +395,7 @@ export function Lineage({
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', resize)
     }
-  }, [layouts, LAST, REPLACED])
+  }, [layouts, LAST, REPLACED, finale])
 
   /** a row takes you back to its material: the scroll where its block is read */
   const go = (i: number) => {

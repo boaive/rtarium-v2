@@ -17,12 +17,8 @@ export function Problems() {
   return (
     <Table
       problems={PROBLEMS}
-      close={['Zero interference.', 'Zero curling.', '24/7 precision.']}
-      title={
-        <>
-          Traditional screeds were not built for this. <b>RTARIUM was built for this.</b>
-        </>
-      }
+      title="Traditional screeds were not built for this."
+      answer="RTARIUM was."
     />
   )
 }

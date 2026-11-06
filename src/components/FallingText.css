@@ -1,0 +1,39 @@
+/* FallingText (React Bits): the words take their type from where they stand */
+.falling-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.falling-text__text {
+  max-width: 16.5em;
+  text-align: center;
+  text-wrap: balance;
+}
+.falling-text__piece {
+  display: inline-block;
+  white-space: pre;
+}
+.falling-text[data-phase] .falling-text__piece {
+  will-change: transform;
+}
+.falling-text[data-phase='falling'] .falling-text__piece {
+  touch-action: none;
+}
+.falling-text[data-phase='falling']:not([data-dragging]) .falling-text__piece {
+  cursor: grab;
+}
+.falling-text[data-dragging],
+.falling-text[data-dragging] .falling-text__piece {
+  cursor: grabbing;
+}
+/* with reduced motion nothing falls: the sentence simply gives way */
+@media (prefers-reduced-motion: reduce) {
+  .falling-text.is-fallen .falling-text__text {
+    opacity: 0;
+  }
+}

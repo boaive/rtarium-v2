@@ -138,15 +138,6 @@ export default function Overview() {
         </header>
         <div className="fco-hero__copy">
           <Words as="p" className="fco-mega" lines={['Concrete façades,', 're-engineered.']} />
-          {/* the three systems, straight from the opening (the system pages' own "Also" row) */}
-          <p className="fco-also">
-            <span>Explore</span>
-            {SYSTEMS.map((s) => (
-              <Link key={s.id} to={s.path}>
-                {s.title}
-              </Link>
-            ))}
-          </p>
         </div>
         <span className="fco-cue" aria-hidden="true">
           Scroll

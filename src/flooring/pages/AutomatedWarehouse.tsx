@@ -8,7 +8,7 @@ import { FacadePage, usePageMeta } from '../../facade/Shell'
 import { More } from '../data/More'
 import { Hero } from '../warehouse/Hero'
 import { Problems } from '../warehouse/Problems'
-import { FailStage, type FailSceneOf, type Reason } from '../FailStage'
+import { FailCards, type FailSceneOf, type Reason } from '../FailCards'
 import type { LabelSpec } from '../../facade/three/Stage3D'
 import { FailScene } from '../warehouse/three/FailScene'
 import { Solution } from '../warehouse/Solution'
@@ -23,11 +23,19 @@ const REASONS: Reason[] = [
   { id: 'spall', name: 'Spalled, pitted, cracked', line: 'The edges break up. Micro-cracks run out.', labels: ['crack'] },
   { id: 'stop', name: 'System stop', line: 'A wheel catches. The laser loses alignment.', labels: ['laser'] },
 ]
+/** the stretch of the scene each card plays: each ends on its own shot, before the camera leaves for the next */
+const BEATS: [number, number][] = [
+  [0, 0.55],
+  [1.02, 1.5],
+  [2.02, 2.72],
+  [3.02, 3.74],
+  [4.02, 4.8],
+]
 const FAIL_LABELS: LabelSpec[] = [
   { id: 'stress', anchor: 'fl-stress', text: 'Stress paths', dx: 70, dy: 80 },
   { id: 'joint', anchor: 'fl-joint', text: 'Saw-cut joint', dx: 70, dy: 90 },
   { id: 'crack', anchor: 'fl-crack', text: 'Micro-cracks', dx: 70, dy: 90 },
-  { id: 'laser', anchor: 'fl-laser', text: 'Laser sensor', dx: 60, dy: -90 },
+  { id: 'laser', anchor: 'fl-laser', text: 'Laser sensor', dx: -44, dy: -84 },
 ]
 const failScene: FailSceneOf = (t, bus, compact, room, live) => <FailScene t={t} bus={bus} compact={compact} room={room} live={live} />
 
@@ -36,8 +44,8 @@ const failScene: FailSceneOf = (t, bus, compact, room, live) => <FailScene t={t}
  * speed, wear and precision. One continuous scroll, the grounds taking turns:
  *
  *   the opening    yellow: a piece of the hall's floor, a laser-guided truck drawn on it, RTARIUM in its corner
- *   four failures  black, one screen: conventional screed against RTARIUM, in one table
- *   the failure    black, one screen: the five reasons in one list, the scene playing them through
+ *   four failures  black: the line alone on a screen, then conventional screed against RTARIUM, row by row
+ *   the failure    black, one screen: a card to each of the five reasons, each with its own piece of the scene
  *   the solution   yellow and black, pinned: the floor made again from its base, ending on the fast floor
  *   frame to floor warm white, pinned: that floor takes its racks, grows into a hall, the building drawn round it
  *   sign-offs      warm white: what it means for the consultant, the owner and the contractor, then
@@ -91,7 +99,7 @@ export default function AutomatedWarehouse() {
         <Problems />
       </div>
       <div className="fu" data-ground="black">
-        <FailStage id="failure" title="Where the screed fails" label="Why a traditional floor fails" reasons={REASONS} labels={FAIL_LABELS} scene={failScene} fallback={<img className="fu-still" src="/img/flooring/aw-agv-aisle.webp" alt="" />} />
+        <FailCards id="failure" title="Where the screed fails" label="Why a traditional floor fails" reasons={REASONS} beats={BEATS} labels={FAIL_LABELS} scene={failScene} fallback={<img className="fu-still" src="/img/flooring/aw-agv-aisle.webp" alt="" />} />
       </div>
       <div className="fu" data-ground="yellow">
         <Solution />

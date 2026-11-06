@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import type { MouseEvent } from 'react'
 import { scrollToY } from '../../lib/scroll'
 
 /**
@@ -8,6 +8,23 @@ import { scrollToY } from '../../lib/scroll'
  * can be seen again without scrolling back through the rest. Skip goes straight past the section. The
  * section writes `--f` and `--c` to the cells as it scrolls.
  */
+
+/** the way past the section it stands in: to its foot, the next section at the top of the screen */
+export function Skip({ label, className = '' }: { label: string; className?: string }) {
+  const past = (e: MouseEvent<HTMLButtonElement>) => {
+    const section = e.currentTarget.closest('section')
+    if (section) scrollToY(section.getBoundingClientRect().bottom + window.scrollY)
+  }
+  return (
+    <button type="button" className={`fu-bar__skip ${className}`} onClick={past} aria-label={`Skip: go past ${label.toLowerCase()}`}>
+      Skip
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <path d="M8 2.5v10M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      </svg>
+    </button>
+  )
+}
+
 export function StepBar({
   label,
   names,
@@ -24,14 +41,8 @@ export function StepBar({
   /** whether the bar offers the way past its section (a section with no run to skip goes without) */
   skip?: boolean
 }) {
-  const bar = useRef<HTMLElement>(null)
-  /** to the foot of the bar's section: the next section, at the top of the screen */
-  const past = () => {
-    const section = bar.current?.closest('section')
-    if (section) scrollToY(section.getBoundingClientRect().bottom + window.scrollY)
-  }
   return (
-    <nav ref={bar} className="fu-bar" aria-label={label}>
+    <nav className="fu-bar" aria-label={label}>
       <ol className="fu-bar__list">
         {names.map((name, k) => (
           <li key={name} ref={(el) => cellRef(k, el)} className="fu-bar__cell" data-state={k < step ? 'past' : k === step ? 'now' : 'next'}>
@@ -46,14 +57,7 @@ export function StepBar({
           </li>
         ))}
       </ol>
-      {skip && (
-        <button type="button" className="fu-bar__skip" onClick={past} aria-label={`Skip: go past ${label.toLowerCase()}`}>
-          Skip
-          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-            <path d="M8 2.5v10M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
-          </svg>
-        </button>
-      )}
+      {skip && <Skip label={label} />}
     </nav>
   )
 }

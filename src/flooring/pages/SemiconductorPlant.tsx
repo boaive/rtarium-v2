@@ -13,9 +13,9 @@ import { CARBON_BAND, Voices, type Band } from '../data/Voices'
 import { More } from '../data/More'
 import { Hero } from '../semi/Hero'
 import { Stage, type SceneOf, type Step } from '../semi/Stage'
-import { FailStage, type FailSceneOf, type Reason } from '../FailStage'
+import { FailCards, type FailSceneOf, type Reason } from '../FailCards'
 import { FloorFrame } from '../semi/FloorFrame'
-import { THREAT_CUTS, ThreatScene } from '../semi/three/ThreatScene'
+import { ThreatScene } from '../semi/three/ThreatScene'
 import { BuildScene } from '../semi/three/BuildScene'
 import { BuildUp } from '../semi/three/BuildUp'
 
@@ -24,10 +24,10 @@ import { BuildUp } from '../semi/three/BuildUp'
  * taking turns:
  *
  *   the opening    yellow: a piece of a cleanroom's floor on its waffle slab, a process tool drawn on it
- *   three failures black, one screen: conventional screed against RTARIUM on micro-vibration, cleanroom
+ *   three failures black: the line alone on a screen, then conventional screed against RTARIUM on micro-vibration, cleanroom
  *                  dust, chemicals and ESD, in one table
- *   the problem    black, one screen: the nanometre a fab prints to, the tremor from the floor that loses
- *                  a die, the plant under the slab, the vapour and dust a screed lets through, in one list
+ *   the problem    black, one screen: a card to each of the five reasons, the nanometre a fab prints to, the
+ *                  tremor that loses a die, the plant under the slab, the vapour and dust a screed lets through
  *   yield kept     yellow, pinned: how RTARIUM's floor answers each threat, in seven steps from the slab
  *   frame to floor warm white, pinned: the floor grows into the cleanroom, the fab drawn round it
  *   sign-offs      warm white: what it means for the consultant, the owner and the contractor, then
@@ -66,7 +66,6 @@ const PROBLEMS: Problem[] = [
     line: 'A chemical-resistant sub-base: no cracking, no bubbling, a continuous path to ground.',
   },
 ]
-const CLOSE = ['Micro-vibration arrested.', 'Zero dust.', 'Continuous ESD.']
 
 /* The client's scenes 1 and 2, as five reasons. */
 const THREAT: Reason[] = [
@@ -75,6 +74,14 @@ const THREAT: Reason[] = [
   { id: 'shock', name: 'A tremor from the floor', line: 'A micro-vibration reaches the stage. The line blurs; the die is lost.', labels: ['wave', 'defect'] },
   { id: 'under', name: 'Pumps, chillers, slab creep', line: 'Plant shakes the slab, and a brittle topping passes all of it up.', labels: ['plant', 'topping'] },
   { id: 'dust', name: 'Vapour in, dust out', line: 'Moisture rises through the concrete; the screed sheds cement dust at its joints.', labels: ['vapour', 'dust'] },
+]
+/** the stretch of the scene each card plays: each ends on its own shot, before the scene cuts or moves to the next */
+const THREAT_BEATS: [number, number][] = [
+  [0, 0.72],
+  [1.05, 1.76],
+  [2.05, 2.77],
+  [3.05, 3.76],
+  [4.1, 4.85],
 ]
 const THREAT_LABELS: LabelSpec[] = [
   { id: 'scanner', anchor: 'tt-scanner', text: 'EUV scanner', dx: 70, dy: -60 },
@@ -221,23 +228,19 @@ export default function SemiconductorPlant() {
       <div className="fu" data-ground="black">
         <Problems
           problems={PROBLEMS}
-          close={CLOSE}
-          title={
-            <>
-              Traditional screeds were not built for this. <b>RTARIUM was built for this.</b>
-            </>
-          }
+          title="Traditional screeds were not built for this."
+          answer="RTARIUM was."
         />
       </div>
       <div className="fu" data-ground="black">
-        <FailStage
+        <FailCards
           id="threat"
           title="Where yield is lost"
           label="How a fab floor fails"
           reasons={THREAT}
+          beats={THREAT_BEATS}
           labels={THREAT_LABELS}
           scene={threatScene}
-          cuts={THREAT_CUTS}
           fallback={<img className="fu-still" src="/img/flooring/sc-cleanroom.webp" alt="" />}
         />
       </div>

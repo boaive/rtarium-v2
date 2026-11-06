@@ -8,6 +8,7 @@ import { smooth, type Progress } from '../progress'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { useLive } from '../unitized/live'
+import { Skip } from '../unitized/StepBar'
 
 /**
  * The design stage: how the skin is held and how it moves through the day, three listings in the
@@ -37,7 +38,7 @@ const LISTINGS: Listing[] = [
           Fixed on <br />
           flex anchors
         </h3>
-        <p className="fr-say">A 16–20 mm concrete skin, held to the steel stud frame by flexible L plates.</p>
+        <p className="fr-say">A 16–20 mm concrete skin, held to the steel stud frame by flexible L&#8288;-&#8288;plates.</p>
         <ReviewNote>{REVIEW.skin}</ReviewNote>
       </>
     ),
@@ -52,7 +53,7 @@ const LISTINGS: Listing[] = [
           Expands <br />
           in the heat
         </h3>
-        <p className="fr-say">The façade expands in the heat. Flexible L-plates accommodate the shift.</p>
+        <p className="fr-say">The façade expands in the heat. Flexible L&#8288;-&#8288;plates accommodate the shift.</p>
         <ReviewNote>{REVIEW.heat}</ReviewNote>
       </>
     ),
@@ -67,7 +68,7 @@ const LISTINGS: Listing[] = [
           Cools <br />
           at night
         </h3>
-        <p className="fr-say">As temperatures fall, the facade contracts and the flexible plates move with it, maintaining a stable, even surface.</p>
+        <p className="fr-say">As temperatures fall, the façade contracts and the flexible plates move with it, maintaining a stable, even surface.</p>
       </>
     ),
     Scene: NightScene,
@@ -127,14 +128,13 @@ function ListingView({ item, k, L, compact, refs }: { item: Listing; k: number; 
       <div ref={(el) => void (refs.stage[k] = el)} className="fr-bw__stage">
         <div className="fr-bw__words" style={{ '--x': L.words[0], '--y': L.words[1], '--w': L.words[2], '--h': L.words[3] } as CSSProperties}>
           <div className="fr-bw__top">
+            {/* said once, on the first listing */}
             {k === 0 ? (
               <h2 id="fs-bw-title" className="fr-kicker">
                 Built to breathe with the heat
               </h2>
             ) : (
-              <p className="fr-kicker" aria-hidden="true">
-                Built to breathe with the heat
-              </p>
+              <span aria-hidden="true" />
             )}
             <p className="fr-count num" aria-hidden="true">
               0{k + 1} <span>/ 0{N}</span>
@@ -290,6 +290,7 @@ export function Components() {
             </li>
           ))}
         </ol>
+        <Skip label="How the skin moves with the heat" className="fr-skip" />
       </nav>
       <div className="fr-bw__cap" aria-hidden="true" />
       {LISTINGS.map((it, k) => (

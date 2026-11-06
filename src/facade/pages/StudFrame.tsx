@@ -31,7 +31,7 @@ import { More } from '../unitized/More'
 export default function StudFrame() {
   usePageMeta(
     'Stud Frame Cladding',
-    'RTARIUM stud frame cladding: architectural concrete skins of 16 to 20 mm on galvanized steel stud frames, joined by flexible L plates that let the skin move with the heat. Sprayed face down with RTARIUM cut and stitched inside, craned onto L frames on site, levelled and sealed.',
+    'RTARIUM stud frame cladding: architectural concrete skins of 16 to 20 mm on galvanized steel stud frames, joined by flexible L-plates that let the skin move with the heat. Sprayed face down with RTARIUM cut and stitched inside, craned onto L frames on site, levelled and sealed.',
   )
   const hero = useRef<HTMLElement>(null)
 

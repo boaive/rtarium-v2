@@ -69,7 +69,7 @@ export function Install() {
     <section ref={section} id="install" className="fu-hang on-light" aria-labelledby="fr-install-title" style={{ '--run': RUN } as CSSProperties}>
       <div className="fu-hang__pin">
         <h2 id="fr-install-title" className="fu-hang__title">
-          From structure to facade.
+          From structure to façade.
           <ReviewNote>{REVIEW.subframe}</ReviewNote>
         </h2>
         <div ref={stage} className="fu-hang__stage" aria-hidden="true">

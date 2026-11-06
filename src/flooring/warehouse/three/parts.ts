@@ -156,8 +156,14 @@ export function podLines(L: Lines, { wheels = true }: { wheels?: boolean } = {})
   if (!wheels) return
   for (const x of [-wheelX, wheelX]) {
     for (const z of [-wheelZ, wheelZ]) {
-      circle(L, [x + Math.sign(x) * POD.wheelW, wheelR, z], wheelR, 'x', 18)
-      circle(L, [x + Math.sign(x) * POD.wheelW, wheelR, z], wheelR * 0.45, 'x', 10)
+      // out on the body's side, where they can be seen: rim, hub and spokes, as the drive wheel is drawn
+      const wx = Math.sign(x) * (w / 2 + 0.03)
+      circle(L, [wx, wheelR, z], wheelR, 'x', 22)
+      circle(L, [wx, wheelR, z], wheelR * 0.5, 'x', 12)
+      for (let k = 0; k < 4; k++) {
+        const a3 = (k / 4) * Math.PI * 2 + 0.4
+        L.seg([wx, wheelR + wheelR * 0.5 * Math.sin(a3), z + wheelR * 0.5 * Math.cos(a3)], [wx, wheelR + wheelR * Math.sin(a3), z + wheelR * Math.cos(a3)])
+      }
     }
   }
 }

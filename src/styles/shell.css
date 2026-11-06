@@ -208,6 +208,7 @@
   margin: 0;
   padding: 0;
   background: none;
+  box-shadow: none;
   color: var(--black);
   font-size: inherit;
   letter-spacing: 0;
@@ -215,16 +216,22 @@
 }
 .pin--note .pin__tag {
   align-items: start;
-  transform: translate(18px, -11px);
+  transform: translate(18px, -50%);
 }
 .pin--note .pin__tag--left {
-  transform: translate(calc(-100% - 18px), -11px);
+  transform: translate(calc(-100% - 18px), -50%);
 }
 .note {
   display: grid;
   grid-template-columns: 2.2em minmax(0, 1fr);
   column-gap: 8px;
-  width: 14.5rem;
+  width: 16rem;
+  padding: 5px 12px 6px;
+  background: var(--white);
+  /* a card on two sheets, stepping away down the ground */
+  box-shadow:
+    4px 4px 0 rgb(8 8 8 / 0.22),
+    8px 8px 0 rgb(8 8 8 / 0.11);
   white-space: normal;
 }
 .note__num {

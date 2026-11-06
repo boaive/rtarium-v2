@@ -22,8 +22,9 @@ import { StudioFog } from './BurstUnit'
  *                           cone of concrete it holds on comes out with it
  *   3  length to weight     the panel grows longer, and has to grow thicker with it
  *
- * Pointing at a passed problem (`hover`) shows it played out, easing there and back in time; dragging
- * turns the panel. A visual model of each problem, not a test.
+ * Pointing at a passed problem (`hover`) shows it played out, easing there and back in time, and in a
+ * `card` (one problem to a panel, in a box of its own) stands the panel closer and turns it to the
+ * visitor. A visual model of each problem, not a test.
  */
 
 const W = 1.2
@@ -115,7 +116,7 @@ export interface FlawMix {
   act: number[]
 }
 
-export function FlawPanel({ mix, hover, drag, bus, live, compact = false }: { mix: { current: FlawMix }; hover: number | null; drag: { current: number }; bus: LabelBus; live: { current: boolean }; compact?: boolean }) {
+export function FlawPanel({ mix, hover, drag, bus, live, compact = false, card = false }: { mix: { current: FlawMix }; hover: number | null; drag?: { current: number }; bus: LabelBus; live: { current: boolean }; compact?: boolean; card?: boolean }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
@@ -228,11 +229,12 @@ export function FlawPanel({ mix, hover, drag, bus, live, compact = false }: { mi
     const gather = W[1] * smooth(0, 1, A[1])
     const grow = W[3] * smooth(0, 1, A[3])
     // the camera: in front for most, round the back for the anchor, further off as the panel grows
-    const az = 18 + W[2] * 134 + W[3] * 10 + drag.current
+    const az = 18 + W[2] * 134 + W[3] * 10 + (drag?.current ?? 0) - (card ? k.h * 12 : 0)
     const el = 12 + W[2] * 6 + W[3] * 4
     // (the grown panel and the arrow of its weight under it both kept in the box)
     // on the open stage the panel stands a little further off, so it and its arrows keep clear of the edges
-    const d = (3.1 - W[2] * 0.4 + W[3] * 0.45 + grow * 3.2) * (compact ? 1.15 : 1.22)
+    // a card can be taller than it is wide: there the panel stands off far enough to keep its width in the box
+    const d = (3.1 - W[2] * 0.4 + W[3] * 0.45 + grow * 3.2) * (card ? 1.2 * Math.max(1, 1.14 / (size.width / size.height)) : compact ? 1.15 : 1.22)
     const t = performance.now() / 1000
     const idle = !reduced && live.current
     const sway = idle ? 3 * Math.sin((t * Math.PI * 2) / 14) : 0

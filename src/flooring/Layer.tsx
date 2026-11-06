@@ -187,6 +187,8 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
   const reads = useRef<(HTMLSpanElement | null)[][]>([])
   const bars = useRef<(HTMLButtonElement | null)[]>([])
 
+  const cap = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     const reduced = prefersReducedMotion()
     const sizes = new Map<HTMLElement, [number, number]>()
@@ -198,6 +200,8 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
       const rowH = bars.current[0]?.offsetHeight ?? 0
       const W = layer.current?.offsetWidth ?? window.innerWidth
       const layerTop = layer.current?.getBoundingClientRect().top ?? 0
+      // the yellow under the header only once it is under the header: coming up, the boxes meet the screen above with no band between
+      if (cap.current) cap.current.style.opacity = (sectionRef.current?.getBoundingClientRect().top ?? 0) <= 0.5 ? '1' : '0'
       // the rows leave with the section, never riding on over the next one
       const leave = Math.min(0, (sectionRef.current?.getBoundingClientRect().bottom ?? vh) - vh)
       const q: number[] = []
@@ -328,7 +332,7 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
   }
 
   return (
-    <section ref={sectionRef} id="layer" className="fs on-yellow" aria-labelledby="ffl-title">
+    <section ref={sectionRef} id="layer" className="fs fs--flush on-yellow" aria-labelledby="ffl-title">
       <nav ref={layer} className="fs-rows" aria-label="The layer, read">
         <ol>
           {BLOCKS.map((v, i) => (
@@ -341,7 +345,7 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
           ))}
         </ol>
       </nav>
-      <div className="fs-cap" aria-hidden="true" />
+      <div ref={cap} className="fs-cap" aria-hidden="true" />
 
       <h2 id="ffl-title" className="visually-hidden">
         The layer between the slab and the screed

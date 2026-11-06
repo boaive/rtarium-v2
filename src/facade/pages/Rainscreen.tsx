@@ -14,7 +14,7 @@ import { More } from '../unitized/More'
  * Rainscreen Cladding. One continuous scroll in the Unitized page's grammar, the grounds taking turns:
  *
  *   the opening    yellow: a piece of the façade, cut through to the rainscreen and to RTARIUM
- *   the barrier    yellow, pinned: a black 3D box and a white one open out of the bottom corners;
+ *   the barrier    yellow, pinned: a black 3D box opens out of the right edge;
  *                  the 3D plays rain, the ventilated cavity and the wind as the scroll goes on, each
  *                  outcome docking a row at the top
  *   structure to façade  warm white, pinned: the rainscreen put up on an X-ray building, the crane

@@ -90,7 +90,7 @@ export function Hero() {
 
   return (
     <>
-      <section ref={section} className="hero" aria-labelledby="hero-title">
+      <section ref={section} className="hero" aria-labelledby="hero-title" data-pass-screen={SCREENS - 1}>
         <div ref={open} className={`hero__screen hero__screen--open scene ${state(0)}`} data-screen="yellow">
           {failed && <img className="hero__still" src="/img/render-structure.webp" alt="" />}
           <div className="hero__copy">

@@ -55,14 +55,6 @@ export function shotAt(views: View[], v: number, room: BuildRoom, aspect: number
   return between(of(k), of(k + 1), smooth(0.8, 1, f))
 }
 
-/** how far the 3D is in at `v` (0 at a cut, 1 otherwise) */
-export function cutFade(v: number, cuts: number[]) {
-  const k = Math.floor(v)
-  if (!cuts.includes(k)) return 1
-  const f = v - k
-  return f < CUT_AT ? 1 - smooth(0.78, CUT_AT - 0.02, f) : smooth(CUT_AT + 0.02, 1, f)
-}
-
 /** puts the camera on a shot, its near plane in proportion to the distance (the millimetre layers never fight) */
 export function aim(camera: THREE.PerspectiveCamera, size: { width: number; height: number }, shot: Shot) {
   const A = (shot.azim * Math.PI) / 180

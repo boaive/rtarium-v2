@@ -13,8 +13,8 @@ import { StepBar } from '../unitized/StepBar'
  * Cast in five steps, on yellow, in the stage of the rainscreen's "RTARIUM bridges the gap" (the
  * Unitized answers' stage, `fu-ans`): one pinned screen, the words always in one place on the left, the
  * casting in the room right of them and on their line, the bar along the foot. A step's words come in
- * where the last ones were (a fade and a short settle), and the scene plays the step out. In the
- * spray-up, a photograph from the shoot opens out of its corner under the words for a moment, and closes.
+ * where the last ones were (a fade and a short settle), and the scene plays the step out; in the spray-up
+ * a wireframe gun runs along the mould.
  */
 
 interface Step {
@@ -22,7 +22,6 @@ interface Step {
   name: string
   head: [string, string]
   line: string
-  photo?: { src: string; alt: string; pos: string }
   review?: string
 }
 const STEPS: Step[] = [
@@ -32,7 +31,6 @@ const STEPS: Step[] = [
     name: 'Spray-up',
     head: ['Sprayed,', 'stitched'],
     line: 'Concrete is sprayed into the mould. RTARIUM is cut, stitched and positioned within the layer.',
-    photo: { src: '/img/facade/stud-spray.webp', alt: 'A hopper gun spraying the face coat into a timber mould', pos: '50% 54%' },
     review: REVIEW.skin,
   },
   { id: 'frame', name: 'Stud frame', head: ['Stud', 'frame'], line: 'Galvanized steel tubes are drilled at intervals matching the ferrule positions.' },
@@ -75,7 +73,6 @@ export function Cast() {
   const room = useRef<HTMLDivElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const words = useRef<(HTMLDivElement | null)[]>([])
-  const shots = useRef<(HTMLElement | null)[]>([])
   const cells = useRef<(HTMLLIElement | null)[]>([])
   /** the run, 0..1 (a fifth for each step), told to the scene */
   const progress = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
@@ -125,13 +122,6 @@ export function Cast() {
             w.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0)`
             w.style.filter = vis > 0.995 ? '' : `blur(${((1 - vis) * 5).toFixed(2)}px)`
           }
-        }
-        // the photograph: open out of its corner for a moment as the concrete first goes in, and closed again
-        const ph = shots.current[k]
-        if (ph) {
-          const g = Math.max(0, smooth(0.06, 0.16, f) - smooth(0.36, 0.46, f))
-          ph.style.setProperty('--g', g.toFixed(4))
-          ph.style.visibility = g > 0.003 ? '' : 'hidden'
         }
         // the bar: the current cell fills as its step plays; a passed one closes to its number
         const c = cells.current[k]
@@ -196,13 +186,6 @@ export function Cast() {
                 {s.head[1]}
               </h3>
               <p className="fu-ans__line">{s.line}</p>
-              {s.photo && (
-                <figure ref={(el) => void (shots.current[k] = el)} className="fu-ans__shot" style={{ visibility: 'hidden' }}>
-                  <span className="fu-ans__frame">
-                    <img src={s.photo.src} alt={s.photo.alt} loading="lazy" decoding="async" width={267} height={479} style={{ objectPosition: s.photo.pos }} />
-                  </span>
-                </figure>
-              )}
               {s.review && <ReviewNote>{s.review}</ReviewNote>}
             </div>
           ))}

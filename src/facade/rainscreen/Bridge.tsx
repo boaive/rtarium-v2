@@ -37,7 +37,7 @@ interface Answer {
  */
 const ANSWERS: Answer[] = [
   { id: 'face', name: 'A solid concrete face', head: ['A solid', 'concrete face'], line: 'A cast concrete face, where ACP is only a sheet.', labels: ['face'] },
-  { id: 'thin', name: 'A lightweight 12 mm panel', head: ['A lightweight', '12 mm panel'], line: 'A 12 mm facade, with additional depth for any design cast into its surface.', labels: ['edge', 'relief'] },
+  { id: 'thin', name: 'A lightweight 12 mm panel', head: ['A lightweight', '12 mm panel'], line: 'A 12 mm façade, with additional depth for any design cast into its surface.', labels: ['edge', 'relief'] },
   {
     id: 'weight',
     name: 'Under 30 kg/m²',
@@ -55,7 +55,7 @@ const ANSWERS: Answer[] = [
     review: REVIEW.ferrules,
   },
   { id: 'durable', name: 'Non-corrosive', head: ['Non-corrosive', '\u00a0'], line: 'Basalt is naturally resistant to alkalis and does not corrode.', labels: [] },
-  { id: 'tall', name: 'Panels up to 6 m tall', figure: { pre: 'Panels up to', value: '3.0', unit: 'm tall', count: true }, line: 'Cast in one piece, reducing the number of joints across the facade.', labels: ['textile', 'side'], review: REVIEW.panelSizes },
+  { id: 'tall', name: 'Panels up to 6 m tall', figure: { pre: 'Panels up to', value: '3.0', unit: 'm tall', count: true }, line: 'Cast in one piece, reducing the number of joints across the façade.', labels: ['textile', 'side'], review: REVIEW.panelSizes },
 ]
 
 const LABELS: LabelSpec[] = [

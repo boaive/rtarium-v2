@@ -935,6 +935,54 @@
   animation: word-in 0.62s var(--ease-out) both;
   animation-delay: calc(0.2s + var(--w, 0) * 95ms);
 }
+/* a sentence with an answer: the screen held, the sentence whole, then fallen, the answer popping up in its place */
+.say--answer {
+  display: block;
+  align-content: start;
+  height: 190svh;
+  padding: 0;
+}
+.say__hold {
+  position: sticky;
+  top: 0;
+  display: grid;
+  place-items: center;
+  height: 100svh;
+  padding: var(--nav-h) var(--gutter);
+  font-size: clamp(2.2rem, 5vw, 6rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  color: var(--white);
+}
+.say__found {
+  position: relative;
+  z-index: 2;
+  /* the fallen words stay within reach under it */
+  pointer-events: none;
+  color: var(--yellow);
+  font-size: 1.25em;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-100svh);
+  transition:
+    opacity 0.2s linear 0.2s,
+    transform 0.4s var(--ease-out);
+}
+/* it drops from above the screen, gathering speed, onto the sentence */
+.say__hold.is-found .say__found {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0s,
+    transform 0.34s cubic-bezier(0.55, 0, 0.95, 0.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .say__found,
+  .say__hold.is-found .say__found {
+    transition: none;
+  }
+}
 
 /* ---- what it replaces: slim stacked rows on warm white, one opening at a time (Enerblock) ------ */
 
@@ -1263,7 +1311,8 @@
   .lines {
     font-size: clamp(2rem, 9vw, 3.2rem);
   }
-  .statement {
+  .statement,
+  .say__hold {
     font-size: clamp(1.9rem, 8.4vw, 3rem);
   }
   .chain {

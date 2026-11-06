@@ -22,15 +22,17 @@ export const AISLE = { half: 1.9, near: 8, far: 8 - 6 * RACK.bay, levels: 4, wid
 export const AISLE_VIEW: View = { box: [[-AISLE.width, 0, AISLE.far], [AISLE.width, AISLE.levels * RACK.level, AISLE.near]], azim: 38, elev: 24, fill: 0.98 }
 
 const LANES: { x: number; way: number; speed: number; every: number }[] = [
-  { x: 0.62, way: 1, speed: 6.2, every: 3 },
-  { x: 0.62, way: 1, speed: 6.2, every: 0 },
-  { x: 0.62, way: 1, speed: 6.2, every: 5 },
-  { x: -0.34, way: -1, speed: 5, every: 4 },
-  { x: -0.34, way: -1, speed: 5, every: 0 },
+  { x: 0.66, way: 1, speed: 6.2, every: 3 },
+  { x: 0.66, way: 1, speed: 6.2, every: 0 },
+  { x: 0.66, way: 1, speed: 6.2, every: 5 },
+  { x: -0.42, way: -1, speed: 5, every: 4 },
+  { x: -0.42, way: -1, speed: 5, every: 0 },
 ]
 /** where the convoy holds while the camera is under the floor (null: that lane is gone) */
 const HOLD: (number | null)[] = [1.1, -1.9, null, null, null]
 const RUN = [AISLE.far - 1.4, AISLE.near + 1.4] as const
+/** the AGVs are drawn a little over size: at this distance their detail has to be seen */
+const POD_SCALE = 1.25
 const NEAR_O = 0.42
 const MID_O = 0.36
 const FAR_O = 0.3
@@ -84,6 +86,18 @@ function fanLines(depth: number) {
   return out
 }
 
+/** the AGV's solid body, just inside its lines, so that it reads as a machine and not a tangle of them */
+export function podBody() {
+  const { w, l, h } = POD
+  const W = w / 2 - 0.008
+  const Z = l / 2 - 0.008
+  const c = 0.07
+  const s = new THREE.Shape()
+  s.moveTo(-W + c, -Z)
+  for (const [x, z] of [[W - c, -Z], [W, -Z + c], [W, Z - c], [W - c, Z], [-W + c, Z], [-W, Z - c], [-W, -Z + c], [-W + c, -Z]]) s.lineTo(x, z)
+  return new THREE.ExtrudeGeometry(s, { depth: h - 0.056, bevelEnabled: false }).rotateX(Math.PI / 2).translate(0, h - 0.006, 0)
+}
+
 function segments(L: Lines, mat: LineSegments2['material'], order = 5) {
   const g = new LineSegmentsGeometry()
   g.setPositions(new Float32Array(L.pts))
@@ -100,20 +114,20 @@ export function useAisle(color: string, { alertColor, stressDepth = 0.85, dim = 
       near: ink(0.85, color, NEAR_O * dim),
       mid: ink(0.75, color, MID_O * dim),
       far: ink(0.7, color, FAR_O * dim),
-      machine: ink(1.5, color, dim),
+      machine: ink(alertColor ? 1.1 : 1.5, color, dim),
       crane: ink(1.1, color, 0.9 * dim),
-      alert: alertColor ? ink(1.7, alertColor, 1) : null,
+      alert: alertColor ? ink(1.25, alertColor, 1) : null,
       stress: alertColor ? ink(1.05, alertColor, 0.9) : null,
     }
     for (const m of [out.machine, out.crane, out.alert, out.stress]) if (m) m.clippingPlanes = ends
-    return out
+    return { lines: out, solid: new THREE.MeshBasicMaterial({ color: '#0b0b0a', transparent: true, toneMapped: false, clippingPlanes: ends }) }
   }, [color, alertColor, dim])
-  useInkResolution(useMemo(() => Object.values(mats).filter((m) => m !== null), [mats]))
+  useInkResolution(useMemo(() => Object.values(mats.lines).filter((m) => m !== null), [mats]))
 
   const world = useMemo(() => {
     const group = new THREE.Group()
     const [near, mid, far] = rows()
-    const bands = [segments(near, mats.near), segments(mid, mats.mid), segments(far, mats.far)]
+    const bands = [segments(near, mats.lines.near), segments(mid, mats.lines.mid), segments(far, mats.lines.far)]
     bands.forEach((b) => group.add(b))
     const bandTotals = [near, mid, far].map((l) => l.pts.length / 6)
 
@@ -121,25 +135,41 @@ export function useAisle(color: string, { alertColor, stressDepth = 0.85, dim = 
     podLines(P)
     const podGeo = new LineSegmentsGeometry()
     podGeo.setPositions(new Float32Array(P.pts))
-    const fans = alertColor ? fanLines(stressDepth) : null
+    const bodyGeo = podBody()
+    const tyreGeo = new THREE.CylinderGeometry(POD.wheelR, POD.wheelR, 0.05, 20).rotateZ(Math.PI / 2)
+    const fans = alertColor ? fanLines(stressDepth / POD_SCALE) : null
     const fanGeo = fans ? new LineSegmentsGeometry().setPositions(new Float32Array(fans.pts)) : null
     const span = RUN[1] - RUN[0]
     const pods = LANES.map((lane, i) => {
       const g = new THREE.Group()
-      const line = new LineSegments2(podGeo, mats.machine)
+      // on black they stand solid; the dark ink of the solution's shot stays a drawing
+      if (alertColor) {
+        g.scale.setScalar(POD_SCALE)
+        const body = new THREE.Mesh(bodyGeo, mats.solid)
+        body.renderOrder = 5
+        g.add(body)
+        for (const sx of [-1, 1])
+          for (const sz of [-1, 1]) {
+            const tyre = new THREE.Mesh(tyreGeo, mats.solid)
+            tyre.position.set(sx * (POD.w / 2 + 0.004), POD.wheelR, sz * POD.wheelZ)
+            tyre.renderOrder = 5
+            g.add(tyre)
+          }
+      }
+      const line = new LineSegments2(podGeo, mats.lines.machine)
       line.frustumCulled = false
       line.renderOrder = 6
       g.add(line)
       let alert: LineSegments2 | null = null
-      if (mats.alert) {
-        alert = new LineSegments2(podGeo, mats.alert)
+      if (mats.lines.alert) {
+        alert = new LineSegments2(podGeo, mats.lines.alert)
         alert.frustumCulled = false
         alert.renderOrder = 7
         alert.visible = false
         g.add(alert)
       }
-      if (fanGeo && mats.stress) {
-        const f = new LineSegments2(fanGeo as LineSegmentsGeometry, mats.stress)
+      if (fanGeo && mats.lines.stress) {
+        const f = new LineSegments2(fanGeo as LineSegmentsGeometry, mats.lines.stress)
         f.frustumCulled = false
         f.renderOrder = 7
         g.add(f)
@@ -153,18 +183,18 @@ export function useAisle(color: string, { alertColor, stressDepth = 0.85, dim = 
     const C = new Lines()
     craneLines(C, AISLE.levels * RACK.level + 0.3)
     const crane = new THREE.Group()
-    crane.add(segments(C, mats.crane))
+    crane.add(segments(C, mats.lines.crane))
     const Cr = new Lines()
     cradleLines(Cr)
     const cradle = new THREE.Group()
-    cradle.add(segments(Cr, mats.crane))
+    cradle.add(segments(Cr, mats.lines.crane))
     crane.add(cradle)
     crane.position.x = -1.3
     group.add(crane)
     const rail = new Lines()
     for (const dx of [-0.04, 0.04]) rail.seg([-1.3 + dx, 0.01, AISLE.far], [-1.3 + dx, 0.01, AISLE.near])
     for (let z = AISLE.far; z < AISLE.near; z += 6) circle(rail, [-1.3, 0.012, z], 0.015, 'y', 6)
-    const railLine = segments(rail, mats.far)
+    const railLine = segments(rail, mats.lines.far)
     group.add(railLine)
     let machinesOn = true
     let craneZ = wrap(AISLE.near - 6)
@@ -185,16 +215,17 @@ export function useAisle(color: string, { alertColor, stressDepth = 0.85, dim = 
       },
       /** the machines' opacity (their lines), and whether they are there at all */
       machines(o: number) {
-        mats.machine.opacity = Math.min(1, o * dim)
-        mats.crane.opacity = 0.9 * o * dim
+        mats.lines.machine.opacity = Math.min(1, o * dim)
+        mats.solid.opacity = Math.min(1, o * dim)
+        mats.lines.crane.opacity = 0.9 * o * dim
         crane.visible = o > 0.01
         machinesOn = o > 0.01
       },
       /** how far each bulb of stress has run down from its wheels, 0..1 */
       stress(share: number, o: number) {
-        if (!mats.stress || !fanGeo) return
-        mats.stress.opacity = o
-        mats.stress.visible = o > 0.01
+        if (!mats.lines.stress || !fanGeo) return
+        mats.lines.stress.opacity = o
+        mats.lines.stress.visible = o > 0.01
         ;(fanGeo as LineSegmentsGeometry).instanceCount = Math.round(Math.min(1, Math.max(0, share)) * (fans!.pts.length / 6))
       },
       /**
@@ -210,7 +241,7 @@ export function useAisle(color: string, { alertColor, stressDepth = 0.85, dim = 
             for (const o of pods) {
               if (o === p || o.lane.x !== lane.x) continue
               const gap = (o.z - p.z) * lane.way
-              if (gap > 0 && gap < POD.l + 0.5) blocked = true
+              if (gap > 0 && gap < POD.l * POD_SCALE + 0.5) blocked = true
             }
           }
           if (p.stopped > 0) p.stopped = Math.max(0, p.stopped - dt)
@@ -259,6 +290,9 @@ export function useAisle(color: string, { alertColor, stressDepth = 0.85, dim = 
       dispose() {
         bands.forEach((b) => b.geometry.dispose())
         podGeo.dispose()
+        bodyGeo.dispose()
+        tyreGeo.dispose()
+        mats.solid.dispose()
         ;(fanGeo as LineSegmentsGeometry | null)?.dispose()
         crane.traverse((o) => {
           if (o instanceof LineSegments2) o.geometry.dispose()

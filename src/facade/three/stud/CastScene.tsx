@@ -8,7 +8,8 @@ import { mixShot } from '../ScrubRig'
 import { Element, createElementApi } from './Element'
 import { Sun } from './Sun'
 import { FRAME, LEN } from './cornice'
-import { CAST, modelMaterials, mouldGeometry } from './models'
+import { CAST, RIM, modelMaterials, mouldGeometry } from './models'
+import { SprayGun, type GunState } from './SprayGun'
 
 /**
  * Cast in five steps, on yellow, in the room right of the words (the rainscreen's answers stage): the
@@ -17,8 +18,8 @@ import { CAST, modelMaterials, mouldGeometry } from './models'
  * is cut into flat strips, stitched together at the folds, and laid in.
  *
  *   1  the mould         the CNC-routed timber mould, the cornice's face as its cavity, set down
- *   2  spray-up          the face coat appears along the mould; RTARIUM's strips set out over it one after
- *                        another, stitched along every fold, the ferrules on it, laid in; the backing appears
+ *   2  spray-up          a wireframe gun runs along the mould and the face coat appears behind it; RTARIUM's strips set out over it one after
+ *                        another, stitched along every fold, the ferrules on it, laid in; the gun runs back with the backing
  *   3  stud frame        the frame made member by member behind the mould, drilled, its plates bolted on
  *   4  frame onto skin   the frame brought over (the crane's arc) and set on the ferrule inserts
  *   5  cured             the concrete cures from its wet grey to its white; the mould goes; the element
@@ -103,6 +104,7 @@ export function CastScene({ progress, live }: { progress: Progress; live: { curr
   )
 
   const mould = useRef<THREE.Group>(null)
+  const gun = useRef<GunState>({ x: 0, on: 0, spraying: 0 })
   const cured = useMemo(() => new THREE.Color(), [])
 
   useFrame(() => {
@@ -138,6 +140,13 @@ export function CastScene({ progress, live }: { progress: Progress; live: { curr
     // 2. the concrete: appearing along the mould, the face coat one way, the backing back the other; wet, then cured
     const face = lerp(-LEN / 2 - 0.05, LEN / 2 + 0.05, at(p, 'face'))
     const back = lerp(LEN / 2 + 0.05, -LEN / 2 - 0.05, at(p, 'back'))
+    // the gun: drawn in over the mould's end, along it with each coat, and away
+    const inFace = smooth(CASTING.face[0] - 0.02, CASTING.face[0], p) * (1 - smooth(CASTING.face[1], CASTING.face[1] + 0.012, p))
+    const inBack = smooth(CASTING.back[0] - 0.02, CASTING.back[0], p) * (1 - smooth(CASTING.back[1], CASTING.back[1] + 0.012, p))
+    gun.current.on = Math.max(inFace, inBack)
+    gun.current.x = inBack > inFace ? back : face
+    const during = (k: Mark) => (p >= CASTING[k][0] && p <= CASTING[k][1] ? 1 : 0)
+    gun.current.spraying = Math.max(during('face'), during('back'))
     e.planes.coat.constant = p < CASTING.face[0] ? -1e3 : p < CASTING.face[1] ? face : 1e3
     e.planes.back.constant = p < CASTING.back[0] ? -1e3 : p < CASTING.back[1] ? -back : 1e3
     cured.copy(WET).lerp(e.mats.cut.color, at(p, 'cure'))
@@ -169,6 +178,7 @@ export function CastScene({ progress, live }: { progress: Progress; live: { curr
         <mesh geometry={mouldGeo} material={m.mould} castShadow receiveShadow />
       </group>
       <Element api={api} />
+      <SprayGun gun={gun} y={RIM} height={0.62} />
     </>
   )
 }
