@@ -11,6 +11,10 @@ npm run preview
 
 - `src/three/` holds the single fixed 3D stage (`Stage.tsx`, `StageScene.tsx`), its poses (`poses.ts`) and the mesh
   model code ported from V1 (`mesh/`). Sections borrow the stage with `useStageRegion`.
+- `src/mobile/` is the homepage on phones (up to 767 px wide), loaded as its own chunk: `index.tsx` chooses it in place
+  of the desktop homepage, `MeshFilm.tsx` is the pinned 3D opening (its scene in `three/`, reusing the mesh model and
+  yarn shader), `sections/` holds the rest. Every rule in `mobile.css` is scoped to `.m-home` or `html.is-home-m`, so
+  the desktop homepage and the other pages are untouched.
 - Every technical figure is in `src/content/technical.ts`; site map, applications and contact settings in
   `src/content/site.ts`.
 - `src/facade/` holds the Façade & Cladding pages as one lazy chunk: the overview (`pages/Overview.tsx`,

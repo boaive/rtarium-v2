@@ -5,6 +5,7 @@ import { Footer } from './components/Footer'
 import { Progress } from './components/Progress'
 import { Ground, Stage, usePointerTracking } from './three/Stage'
 import { Hero } from './sections/Hero'
+import { HomeSwitch } from './mobile'
 import { About } from './sections/About'
 import { Why } from './sections/Why'
 import { Innovation } from './sections/Innovation'
@@ -61,7 +62,7 @@ function Page() {
     return (
       <>
         <Nav />
-        <Home />
+        <HomeSwitch desktop={<Home />} />
       </>
     )
   }
