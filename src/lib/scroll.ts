@@ -100,6 +100,19 @@ function footOf(el: HTMLElement, r = el.getBoundingClientRect()) {
 }
 
 /**
+ * a section marked `data-flow` holds the screen (it fills at least half of it, or runs on past its top): the page is
+ * never brought to a screen there, and the reading runs on continuously
+ */
+function inFlow() {
+  const vh = window.innerHeight
+  for (const el of document.querySelectorAll<HTMLElement>('[data-flow]')) {
+    const r = el.getBoundingClientRect()
+    if (r.top < vh * 0.5 && r.bottom > vh * 0.5) return true
+  }
+  return false
+}
+
+/**
  * The foot of the free run. A section marked `data-free-scroll` (the opening tour, whose scroll is the animation) is
  * scrolled through freely, from the top of the page to the end of its run (`footOf`): the wheel glides there as on
  * any page, and once it gets there the page plays on by itself to the next screen, where the steps begin. -Infinity
@@ -310,6 +323,9 @@ export function stepScreens(own?: () => number[], opts: { time?: number | ((scre
       // outside the steps the page rests wherever it is let go
       const { lo, hi } = zone()
       if (y < lo - 4 || y > hi + 4) return
+      // and so it does in a section that is read at its own pace (`data-flow`: on a phone, the table of what RTARIUM
+      // replaces, the applications and the long footer), once it holds the middle of the screen
+      if (inFlow()) return
       const stops = stopsOf()
       if (!stops.length) return
       const near = stops.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a))

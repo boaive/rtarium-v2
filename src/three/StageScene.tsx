@@ -481,7 +481,10 @@ export function StageScene({ compact, reduced }: Props) {
       // narrower landscape windows: stand back so the mesh keeps clear of the copy beside it;
       // stacked layout on a screen that is not tall: smaller, and up into the space above the copy
       const squat = compact ? clamp01((vw / vh - 0.6) / 0.45) : 0
-      const fit = compact ? 1 + squat * 0.85 : Math.max(1, 1.5 / (vw / vh))
+      // a phone that is short for its width (16:9, or its browser bars showing) has less height between the copy
+      // above and below the model: the model stands a little further back
+      const short = compact ? clamp01((vw / vh - 0.5) / 0.08) : 0
+      const fit = compact ? (1 + squat * 0.85) * (1 + short * 0.2) : Math.max(1, 1.5 / (vw / vh))
       const dist = (compact ? (pose.distCompact ?? pose.dist) : pose.dist) * fit * (1 + Math.abs(o) * PARALLAX.dist)
       dampVec(c.tgt, pose.tgt[0], pose.tgt[1], pose.tgt[2], k, dt)
       c.elev = damp(c.elev, pose.elev - o * PARALLAX.elev, k, dt)
@@ -548,8 +551,11 @@ export function StageScene({ compact, reduced }: Props) {
       f.xray = damp(f.xray, pose.xray, mk, dt)
       dampColor(v.face, LOOK[pose.look].face, mk, dt)
       dampColor(v.pile, LOOK[pose.look].pile, mk, dt)
-      v.fog[0] = damp(v.fog[0], pose.fog[0], k, dt)
-      v.fog[1] = damp(v.fog[1], pose.fog[1], k, dt)
+      // a phone stands further back than a wide screen (`distCompact`, and `fit` on a short phone): the fall-off into the
+      // ground moves back with the camera, so the mesh keeps the depth of colour it has on a wide screen rather than fading
+      const fogFit = compact ? fit * ((pose.distCompact ?? pose.dist) / pose.dist) : 1
+      v.fog[0] = damp(v.fog[0], pose.fog[0] * fogFit, k, dt)
+      v.fog[1] = damp(v.fog[1], pose.fog[1] * fogFit, k, dt)
 
       // sequences that play once the screen is reached: the axes grow, the slabs close in
       const ek = reduced ? 1e4 : 3.4
@@ -814,6 +820,11 @@ export function StageScene({ compact, reduced }: Props) {
           const side = clear(own) ? own : clear(-own) ? -own : 0
           if (!side) continue
           el.classList.toggle('pin--flip', side !== own)
+        } else if (compact) {
+          // on a phone the label goes to whichever side its words fit on, not by a desktop margin
+          // (its words are measured once: read every frame, the width would force a layout each time)
+          const w = Number((el.dataset.w ??= String((el.querySelector('.pin__text') as HTMLElement | null)?.offsetWidth ?? 0)))
+          el.classList.toggle('pin--swap', el.classList.contains('pin--left') ? x - 12 - w < 8 : x + 12 + w > vw - 8)
         } else el.classList.toggle('pin--swap', el.classList.contains('pin--left') ? x < 200 : x > vw - 200)
         placed.add(anchor)
         el.style.opacity = '1'

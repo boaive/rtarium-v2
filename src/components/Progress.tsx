@@ -3,6 +3,7 @@ import { CHAPTERS, goToStep } from './Chapter'
 import { useStageValue } from '../three/stageStore'
 import { StepBar } from '../facade/unitized/StepBar'
 import { scrollToY } from '../lib/scroll'
+import { useIsCompact } from '../lib/motion'
 
 /** how far the screen's own sequence has played (0..1): its timed reveals, word by word and piece by piece */
 function played(scene: Element | null) {
@@ -30,9 +31,11 @@ export function Progress() {
   const chapter = useStageValue('chapter')
   const step = useStageValue('step')
   const ground = useStageValue('ground')
-  // a chapter of one step has nowhere to go: no bar for it (its cells would be buttons that do nothing)
+  // a chapter of one step has nowhere to go: no bar for it (its cells would be buttons that do nothing); on a phone
+  // there is no bar at all: each chapter is a carousel with its own way on (Track)
+  const compact = useIsCompact()
   const found = CHAPTERS.get(chapter)
-  const meta = found && found.labels.length > 1 ? found : undefined
+  const meta = !compact && found && found.labels.length > 1 ? found : undefined
   const cells = useRef<(HTMLLIElement | null)[]>([])
 
   useEffect(() => {

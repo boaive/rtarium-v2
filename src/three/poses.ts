@@ -165,11 +165,11 @@ export const POSES: Record<PoseId, Pose> = {
     elev: 41,
     azim: 36,
     dist: 0.53,
-    distCompact: 1.08,
+    distCompact: 0.95,
     fov: 30,
     frame: [0.71, 0.7],
-    // phones: in the middle of the ground between the header and the copy below
-    frameCompact: [0.5, 0.37],
+    // phones: the middle of the screen, between the name under the header and the copy at the foot
+    frameCompact: [0.5, 0.5],
     sway: 4,
     press: true,
     win: [18, 12],
@@ -188,11 +188,13 @@ export const POSES: Record<PoseId, Pose> = {
     dist: 0.15,
     fov: 30,
     frame: [0.4, 0.3],
-    frameCompact: [0.5, 0.34],
+    // phones: under the copy at the top, above the carousel at the foot
+    frameCompact: [0.5, 0.64],
     fog: [0.2, 0.7],
     sway: 6,
     labels: ['upper-face', 'lower-face', 'fibres'],
     labelZone: [0.02, 0.1, 0.62, 0.62],
+    labelZoneCompact: [0.02, 0.38, 0.98, 0.86],
     shadow: 1,
   },
   // the rovings as a low panorama under the copy band at the top
@@ -205,7 +207,8 @@ export const POSES: Record<PoseId, Pose> = {
     distCompact: 0.2,
     fov: 34,
     frame: [0.5, 0.86],
-    frameCompact: [0.5, 0.5],
+    // phones, as on a wide screen: the copy across the top, the rovings running away under it
+    frameCompact: [0.5, 0.8],
     fog: [0.12, 0.42],
     sway: 6,
     press: true,
@@ -223,7 +226,8 @@ export const POSES: Record<PoseId, Pose> = {
     distCompact: 0.3,
     fov: 30,
     frame: [0.26, 0.58],
-    frameCompact: [0.5, 0.42],
+    // phones: under the copy and the footage
+    frameCompact: [0.5, 0.71],
     fog: [0.16, 0.5],
     sway: 3,
     win: [16, 16],
@@ -237,11 +241,12 @@ export const POSES: Record<PoseId, Pose> = {
     elev: 30,
     azim: 38,
     dist: 0.42,
-    distCompact: 0.56,
+    distCompact: 0.66,
     fov: 28,
     frame: [0.33, 0.54],
     win: [12, 12],
-    frameCompact: [0.5, 0.3],
+    // phones: the copy hangs top left, the sheet in the middle of what is left (the axes' corner a little right of centre)
+    frameCompact: [0.56, 0.59],
     fog: [0.4, 0.9],
     dim: [0.8, 0.8, 1.4],
     glow: [0, 0, 0.12],
@@ -250,6 +255,7 @@ export const POSES: Record<PoseId, Pose> = {
     shadow: 1,
     labels: ['axis-x', 'axis-y', 'axis-z'],
     labelZone: [0.02, 0.1, 0.6, 0.9],
+    labelZoneCompact: [0.02, 0.26, 0.98, 0.88],
   },
   // Innovation: the plane a flat mesh leaves for thin concrete to split along; copy bottom left
   shear: {
@@ -258,11 +264,12 @@ export const POSES: Record<PoseId, Pose> = {
     elev: 24,
     azim: 18,
     dist: 0.34,
-    distCompact: 0.36,
+    distCompact: 0.4,
     fov: 26,
     frame: [0.66, 0.4],
     win: [14, 14],
-    frameCompact: [0.5, 0.34],
+    // phones: under the copy and the comparison at the top
+    frameCompact: [0.5, 0.64],
     fog: [0.3, 0.8],
     dim: [1, 1, 1.4],
     glow: [0, 0, 0.08],
@@ -271,6 +278,7 @@ export const POSES: Record<PoseId, Pose> = {
     shadow: 1,
     labels: ['shear-plane'],
     labelZone: [0.4, 0.1, 0.98, 0.62],
+    labelZoneCompact: [0.02, 0.38, 0.98, 0.86],
   },
   // Innovation: the mineral fibre, close, under warm light, above the copy band
   mineral: {
@@ -281,7 +289,8 @@ export const POSES: Record<PoseId, Pose> = {
     dist: 0.09,
     fov: 30,
     frame: [0.62, 0.3],
-    frameCompact: [0.5, 0.3],
+    // phones: under the band of copy at the top
+    frameCompact: [0.5, 0.64],
     fog: [0.08, 0.3],
     look: 'night',
     sway: 6,
@@ -293,16 +302,17 @@ export const POSES: Record<PoseId, Pose> = {
     elev: 20,
     azim: 34,
     dist: 0.88,
-    // on a phone smaller and higher, clear of the column of copy and controls under it
-    distCompact: 1.45,
+    // on a phone between the title and its line at the top and the controls at the foot, clear of both
+    distCompact: 1.62,
     fov: 28,
     // right of centre, into the open space between the copy on the left and "One system." low on the right
     frame: [0.62, 0.46],
-    frameCompact: [0.5, 0.37],
+    frameCompact: [0.5, 0.52],
     look: 'night',
     sway: 10,
     slabs: { gap: 0.05, opacity: 1 },
     labels: ['slab-top', 'slab-mesh', 'slab-bottom', 'slab-yarn'],
+    labelZoneCompact: [0.02, 0.28, 0.98, 0.74],
   },
   // Tech Space, mesh: the sheet stands almost upright and turns, its thickness dimensioned
   spec: {
@@ -370,7 +380,7 @@ export const POUR_OUT: Pose = {
   dist: 0.72,
   distCompact: 0.7,
   frame: [0.46, 0.665],
-  frameCompact: [0.5, 0.42],
+  frameCompact: [0.5, 0.71],
   fog: [1, 2],
   sway: 2,
   labels: POUR_LABELS,

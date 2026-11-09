@@ -2,19 +2,34 @@ import { useRef, type CSSProperties } from 'react'
 import { APPLICATIONS } from '../content/site'
 import { Link } from '../lib/router'
 import { useScreen } from '../components/Chapter'
+import { useIsCompact } from '../lib/motion'
+import { useMarkIn } from '../lib/reveal'
 
 /** One warm-white screen: the three applications side by side, full height. */
 export function Applications() {
   const ref = useRef<HTMLElement>(null)
+  const list = useRef<HTMLUListElement>(null)
+  const compact = useIsCompact()
   useScreen(ref, 'applications', 'light')
+  // on a phone the three are cards in one continuous run; each rises in as it comes up from the foot of the screen (mobile.css)
+  useMarkIn(list, '.app', compact)
   return (
-    <section id="applications" ref={ref} className="apps" aria-labelledby="apps-title" data-screen="light">
+    <section
+      id="applications"
+      ref={ref}
+      className="apps"
+      aria-labelledby="apps-title"
+      data-screen="light"
+      // a phone reads the cards at its own pace: the page is not brought to a screen inside them (lib/scroll.ts)
+      data-flow={compact ? '' : undefined}
+      data-reveal={compact ? '' : undefined}
+    >
       <header className="apps__head">
         <h2 id="apps-title" className="apps__title">
           Built into three applications.
         </h2>
       </header>
-      <ul className="apps__row">
+      <ul ref={list} className="apps__row">
         {APPLICATIONS.map((a, i) => (
           <li key={a.id} className="app" style={{ '--i': i } as CSSProperties}>
             <Link to={a.path} className="app__link">

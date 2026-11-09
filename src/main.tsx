@@ -8,6 +8,7 @@ import './styles/shell.css'
 import './styles/stepbar.css'
 import './styles/story.css'
 import './styles/pages.css'
+import './styles/mobile.css'
 import { App } from './App'
 import { startSmoothScroll } from './lib/scroll'
 
