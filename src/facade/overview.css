@@ -233,6 +233,200 @@
 .fs-block--last {
   height: calc(100svh - var(--nav-h));
 }
+
+/*
+ * RTARIUM's closing card: two boxes, still. The photograph full-bleed on the left; on black on the right, the
+ * card's label at the top and, low in the box, the name, the claim a sentence a line, what it comes to, the way on.
+ */
+.fs-duo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  background: var(--black);
+}
+.fs-duo__media {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  background: var(--black);
+}
+.fs-duo__media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* three parts, spaced: the label at the top, the name in the upper third, the claim and the way on at the foot */
+.fs-duo__panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: 0;
+  padding: clamp(24px, 3vw, 44px) clamp(28px, 4vw, 72px) clamp(32px, 7cqh, 72px);
+  background: var(--black);
+  color: var(--yellow);
+}
+.fs-duo__head {
+  margin-top: clamp(28px, 9cqh, 96px);
+}
+.fs-duo__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+.fs-duo__mark {
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+}
+.fs-duo__body {
+  display: grid;
+  align-self: end;
+  justify-items: start;
+  max-width: 44rem;
+}
+.fs-duo__name {
+  font-family: var(--font-name);
+  font-size: clamp(2.2rem, min(10cqh, 4.2cqw), 4.4rem);
+  font-weight: 800;
+  font-stretch: 150%;
+  letter-spacing: -0.01em;
+  line-height: 0.86;
+  color: var(--yellow);
+}
+.fs-duo__full {
+  margin-top: clamp(10px, 1.6cqh, 16px);
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--on-dark-2);
+}
+/* the claim a sentence a line, a size under the name so the two do not compete */
+.fs-duo__claim {
+  font-size: clamp(1.5rem, min(5.6cqh, 2.4cqw), 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.14;
+  color: var(--white);
+}
+.fs-duo__claim > span {
+  white-space: nowrap;
+}
+
+/*
+ * The reveal, as Enerblock's headings: each line under a block of its own colour that runs in across it from the
+ * left, the words come up under it as it covers them, and it runs off to the right, clipped by the line. A line
+ * starts 0.12 s after the one before (--k); the rest of the card rises after (--d). Only once the card is armed
+ * (script, and motion allowed) is anything hidden; `is-in` plays it.
+ */
+.fs-mask {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+}
+.fs-mask::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.fs-mask__in {
+  display: block;
+}
+.is-armed .fs-mask__in {
+  opacity: 0;
+}
+.is-armed.is-in .fs-mask::after {
+  animation: fs-mask-run 1.15s calc(0.15s + var(--k) * 0.12s) both;
+}
+.is-armed.is-in .fs-mask__in {
+  animation: fs-mask-words 1.15s calc(0.15s + var(--k) * 0.12s) both;
+}
+@keyframes fs-mask-run {
+  0% {
+    transform: translateX(0) scaleX(0);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  48% {
+    transform: translateX(0) scaleX(1);
+  }
+  54% {
+    transform: translateX(0) scaleX(1);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  100% {
+    transform: translateX(102%) scaleX(1);
+  }
+}
+@keyframes fs-mask-words {
+  0%,
+  50% {
+    opacity: 0;
+  }
+  60%,
+  100% {
+    opacity: 1;
+  }
+}
+.is-armed .fs-rise {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.is-armed.is-in .fs-rise {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.6s var(--ease-out) var(--d, 0s),
+    transform 0.7s var(--ease-out) var(--d, 0s);
+}
+/* what it comes to, set off from the claim by a hairline */
+.fs-duo__line {
+  max-width: 30rem;
+  margin-top: clamp(20px, 4cqh, 36px);
+  padding-top: clamp(16px, 2.6cqh, 24px);
+  border-top: 1px solid rgb(253 208 1 / 0.28);
+  font-size: var(--t-body, 1rem);
+  line-height: 1.55;
+  color: var(--on-dark-2);
+}
+.fs-duo__more {
+  margin-top: clamp(22px, 4.4cqh, 40px);
+}
+/* a phone: the photograph a band across the top, the words under it */
+@media (max-width: 860px) {
+  .fs-duo {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 34% minmax(0, 1fr);
+  }
+  .fs-duo__panel {
+    padding: 20px var(--gutter) 24px;
+  }
+  .fs-duo__head {
+    margin-top: 20px;
+  }
+  .fs-duo__name {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+  .fs-duo__claim {
+    font-size: clamp(1.3rem, 6vw, 1.8rem);
+  }
+  .fs-duo__claim > span {
+    white-space: normal;
+  }
+  .fs-duo__line {
+    margin-top: 16px;
+    padding-top: 14px;
+    font-size: var(--t-small);
+  }
+  .fs-duo__more {
+    margin-top: 20px;
+  }
+}
 .fs-cell {
   position: absolute;
   overflow: hidden;

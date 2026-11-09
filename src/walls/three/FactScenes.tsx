@@ -7,6 +7,7 @@ import { ink, useDrawing, useInkResolution } from '../../flooring/data/three/dra
 import { disposeWallKit, MM, slab, slabs, useWallTextures, wallKit, type WallKit } from './kit'
 import { eyeBoltGeometry } from './piece'
 import { Rtarium } from './Panel'
+import { WIRE } from '../../three/wire'
 
 /**
  * The story's facts (Wall Panels), two to a block, each a small 3D scene standing still at the moment that says it. The
@@ -575,7 +576,7 @@ function Carbon({ readout, dark }: { readout: RefObject<HTMLElement | null>; dar
       sheet.current.position.x = x
     }
     if (frame.current) frame.current.position.x = x
-    mats.outline.opacity = 0.9 * smooth(0.6, 1.0, s) * (1 - smooth(9.2, 9.8, s))
+    mats.outline.opacity = (dark ? 0.9 : WIRE.opacity) * smooth(0.6, 1.0, s) * (1 - smooth(9.2, 9.8, s))
     if (readout.current)
       readout.current.textContent =
         s < 1.4 || s >= 7.6 ? '1 m² of wall, 30 mm thick' : s < 3.4 ? 'Its concrete: 0.03 m³' : s < 5.6 ? 'Its reinforcement: basalt, no steel' : 'Less concrete, no steel: lower carbon'

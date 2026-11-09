@@ -305,6 +305,13 @@
 
 /* ---- the trade-offs: a list of five rows: number, name and details, a square filled to scale ------- */
 
+/* the trade-offs' cards: a material's thickness and weight, small, between its name and what it falls short on */
+.fr-card__facts {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--yellow);
+}
 .fr-wts {
   display: grid;
   grid-auto-rows: minmax(0, 1fr);

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
-import { scrollToY } from '../lib/scroll'
+import { scrollToY, stepScreens } from '../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three/Stage3D'
 import { createBus } from '../facade/three/kit'
 import { smooth, type Progress } from '../facade/progress'
@@ -12,7 +12,8 @@ import { FeatureScene, N_FEATURES, type FeatureAxis } from './three/FeatureScene
  * pinned screen, the words always in one place on the left, the floor in the room right of them and on
  * their line, a bar along the foot. A feature's words come in where the last ones were (a fade and a
  * short settle), and only then does the floor play it out; the camera moves only between features.
- * The scroll is the clock; nothing is held.
+ * The scroll is the clock, and it moves a feature at a time: one scroll glides on to where the next has
+ * played out, so each plays by itself.
  */
 
 interface Feature {
@@ -66,13 +67,20 @@ function wordsAt(k: number, t: number) {
   return inn * (1 - out)
 }
 
-/** scrolls to where feature k has played out, its words still in place */
+/** where feature k has played out, its words still in place: the scroll it rests at */
+function playedAt(el: HTMLElement, k: number) {
+  const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.72)
+  return Math.round(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight)
+}
+
+/** scrolls to where feature k has played out */
 function goToFeature(k: number) {
   const el = document.getElementById('features')
-  if (!el) return
-  const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.72)
-  scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight)
+  if (el) scrollToY(playedAt(el, k))
 }
+
+/** seconds one scroll takes from a feature to the next: long enough to watch the next one play out */
+const FEATURE_TIME = 2.2
 
 export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
   const compact = useIsCompact()
@@ -99,6 +107,20 @@ export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
   }, [])
+
+  // one scroll, one feature: the page glides to where the next has played out, and the floor plays it on the way;
+  // above and below the section the page scrolls freely
+  useEffect(
+    () =>
+      stepScreens(
+        () => {
+          const el = sectionRef.current
+          return el ? FEATURES.map((_, k) => playedAt(el, k)) : []
+        },
+        { time: FEATURE_TIME },
+      ),
+    [sectionRef],
+  )
 
   useEffect(() => {
     const el = sectionRef.current

@@ -1042,73 +1042,97 @@
   left: 0;
   bottom: 0;
   display: grid;
-  gap: var(--s-4);
+  gap: var(--s-5);
   width: min(25rem, 31vw);
 }
 .system__more .lead {
   font-size: var(--t-small);
 }
-/* the summary: one figure for each element, on hairlines */
-.system__figs {
+/* the mesh's thickness, to choose: its label, and one bar of four the full width of the column, the one picked filled */
+.system__thick {
   display: grid;
-  border-top: 1px solid rgb(253 208 1 / 0.28);
+  gap: 10px;
 }
-.system__figs div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-4);
-  padding: 7px 0;
-  border-bottom: 1px solid rgb(253 208 1 / 0.28);
-}
-.system__figs dt {
+.system__thick-label {
   font-size: var(--t-micro);
-  font-weight: 500;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--on-dark-2);
 }
-.system__figs dd {
-  font-size: 1rem;
-  font-weight: 700;
-  white-space: nowrap;
-  color: var(--yellow);
+.system__seg {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  box-shadow: inset 0 0 0 1px rgb(253 208 1 / 0.5);
 }
-.system__figs small {
-  margin-left: 0.3em;
-  font-size: 0.72em;
-  font-weight: 600;
-}
-.system__cta {
+.system__seg-btn {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 20px;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid rgb(253 208 1 / 0.3);
+  border-radius: 0;
+  background: transparent;
+  color: var(--yellow);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 46px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+.system__seg-btn:first-child {
+  border-left: 0;
+}
+.system__seg-btn small {
+  font-size: 0.7em;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.system__seg-btn:hover {
+  background: rgb(253 208 1 / 0.1);
+}
+.system__seg-btn[aria-pressed='true'] {
+  background: var(--yellow);
+  color: var(--black);
+}
+.system__seg-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -5px;
+}
+/* the way on: two bars of one size, the full width of the column, the data sheet filled and all details in line */
+.system__cta {
+  display: grid;
+  gap: 8px;
 }
 .system__cta .explore {
+  width: 100%;
   height: 50px;
 }
 .system__cta .explore__label {
+  flex: 1;
   padding: 0 18px;
   font-size: 0.72rem;
 }
 .system__cta .explore__cell {
   width: 50px;
 }
-.system__all {
-  padding: 4px 0;
+.explore--line {
+  padding: 0;
   border: 0;
-  background: none;
-  color: var(--yellow);
+  border-radius: 0;
   font: inherit;
-  font-size: var(--t-small);
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 0.22em;
-  text-decoration-thickness: 1.5px;
+  text-align: left;
   cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgb(253 208 1 / 0.55);
 }
-.system__all:focus-visible {
-  outline: 2px solid var(--yellow);
-  outline-offset: 3px;
+.explore--line:focus-visible {
+  outline-color: var(--yellow);
 }
 
 @keyframes tick {
@@ -1156,12 +1180,114 @@
   animation: rise 0.5s var(--ease-out);
 }
 .sheet__inner {
-  max-width: 1280px;
+  max-width: 1120px;
   margin: 0 auto;
   padding: var(--s-7) var(--gutter);
 }
+/* a tab for each group of figures, along a hairline; the open one underlined in full black */
+.sheet__tabs {
+  display: flex;
+  gap: var(--s-2);
+  margin-bottom: var(--s-6);
+  overflow-x: auto;
+  border-bottom: 1px solid rgb(8 8 8 / 0.14);
+  scrollbar-width: none;
+}
+.sheet__tabs::-webkit-scrollbar {
+  display: none;
+}
+.sheet__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 14px 4px 12px;
+  margin-right: var(--s-3);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--on-light-2);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sheet__tab:hover {
+  color: var(--black);
+}
+.sheet__tab[aria-selected='true'] {
+  border-bottom-color: var(--black);
+  color: var(--black);
+}
+.sheet__tab:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: -2px;
+}
+.sheet__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: rgb(8 8 8 / 0.08);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.sheet__tab[aria-selected='true'] .sheet__count {
+  background: var(--black);
+  color: var(--white);
+}
+.sheet__panel {
+  animation: rise 0.35s var(--ease-out);
+}
+.sheet__group {
+  margin-bottom: var(--s-4);
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+/* the figures as tiles: what each is, small above; the value large; what it means under it */
+.spec {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 0 var(--s-6);
+}
+.spec__item {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: var(--s-4) 0 var(--s-5);
+  border-top: 1px solid rgb(8 8 8 / 0.14);
+}
+.spec__label {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-light-2);
+}
+.spec__value {
+  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.spec__value small {
+  margin-left: 0.3em;
+  font-size: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.spec__note {
+  max-width: 36ch;
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--on-light-2);
+}
 .sheet__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--s-4);
@@ -1173,6 +1299,7 @@
   gap: var(--s-2);
 }
 .sheet__head h2 {
+  white-space: nowrap;
   font-size: clamp(2rem, 4vw, 3.6rem);
   font-weight: 700;
   letter-spacing: -0.04em;

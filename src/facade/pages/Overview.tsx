@@ -7,7 +7,7 @@ import { Arrow, FacadePage, usePageMeta } from '../Shell'
 import { Words, useInView } from '../Story'
 import { Lineage } from '../Lineage'
 import { SYSTEMS } from '../content'
-import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
+import { Stage3D, MovingKeyLight } from '../three/Stage3D'
 import { createBus, type Shot } from '../three/kit'
 import { ScrubRig, mixShot } from '../three/ScrubRig'
 import { HeroPanel } from '../three/HeroPanel'
@@ -27,13 +27,6 @@ import { FollowScroll, useScrollProgress } from '../progress'
 
 /* ---- the opening ---------------------------------------------------------------------------- */
 
-/** (the mesh's label beside it, clear of the title; on a phone, where there is no beside, over it) */
-const heroLabels = (compact: boolean): LabelSpec[] => [
-  { id: 'h-mesh', anchor: 'hp-mesh', text: 'RTARIUM 3D basalt mesh', dx: compact ? -60 : -56, dy: compact ? -110 : 34, delay: 2300 },
-  { id: 'h-cast', anchor: 'hp-cast', text: 'Thin concrete', dx: 70, dy: -100, delay: 2600, wide: true },
-  { id: 'h-edge', anchor: 'hp-edge', text: '20 mm', dx: 80, dy: 46, delay: 2900 },
-]
-
 /** low on the right, turned well to the side, so its thin edge and the pour front both show */
 function heroShots(compact: boolean): [Shot, Shot] {
   const k = compact ? 1.7 : 1
@@ -52,7 +45,6 @@ export default function Overview() {
     'RTARIUM in façades and cladding: concrete façades, re-engineered. One 3D basalt mesh replaces steel bar, AR-glass fibre and steel fibre in thin façade panels: unitized thin concrete façades, rainscreen cladding and stud frame cladding.',
   )
   const compact = useIsCompact()
-  const labels = useMemo(() => heroLabels(compact), [compact])
   const hero = useRef<HTMLElement>(null)
   const story = useRef<HTMLElement>(null)
   const systems = useRef<HTMLElement>(null)
@@ -126,9 +118,7 @@ export default function Overview() {
             <MovingKeyLight focus={[0, 0, 0]} reach={0.9} />
             <HeroPanel bus={heroBus} play />
             <FollowScroll progress={heroP} />
-            <LabelProjector bus={heroBus} bottom={compact ? 220 : 24} />
           </Stage3D>
-          <Labels bus={heroBus} labels={labels} shown={labels.map((l) => l.id)} />
         </div>
         {/* what the page is, top left, as the system pages name themselves */}
         <header className="fco-head">

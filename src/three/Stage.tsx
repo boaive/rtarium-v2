@@ -30,6 +30,9 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
   }
 }
 
+/** the share of the screen within which a screen counts as arrived (or not yet come), for the ground */
+const EDGE = 0.03
+
 /** asks the ground to read the screens again (a track moved its slides without a scroll) */
 let groundRead: (() => void) | null = null
 export const refreshGround = () => groundRead?.()
@@ -53,19 +56,24 @@ export function Ground() {
     let raf = 0
     const read = () => {
       raf = 0
-      const vw = window.innerWidth
-      const vh = window.innerHeight
+      // the ground's own box: the window less its scrollbar, or the incoming colour stops short of the right edge
+      const vw = document.documentElement.clientWidth
+      const vh = document.documentElement.clientHeight
+      // a screen all but in place holds the ground, and one barely on screen does not yet show: the last and first
+      // few pixels of a move ease in slowly, and would leave a sliver of the other colour along the edge
+      const ex = vw * EDGE
+      const ey = vh * EDGE
       const screens = Array.from(document.querySelectorAll<HTMLElement>('[data-screen]'))
       const rects = screens.map((el) => el.getBoundingClientRect())
       let ci = -1
       rects.forEach((r, i) => {
-        if (r.width > 1 && r.top <= 0.5 && r.bottom > 0.5 && r.left <= 0.5 && r.right > 0.5) ci = i
+        if (r.width > 1 && r.top <= ey && r.bottom > ey && r.left <= ex && r.right > ex) ci = i
       })
       if (ci < 0) ci = 0
       let ni = -1
       for (let i = ci + 1; i < rects.length; i++) {
         const r = rects[i]
-        if (r.width > 1 && r.bottom > 0.5 && r.top < vh - 0.5 && r.right > 0.5 && r.left < vw - 0.5) {
+        if (r.width > 1 && r.bottom > ey && r.top < vh - ey && r.right > ex && r.left < vw - ex) {
           ni = i
           break
         }

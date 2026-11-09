@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { useThree } from '@react-three/fiber'
+import { stepScreens } from '../lib/scroll'
 
 /**
  * How far the page has scrolled through a section, 0 at its top reaching the top of the window
@@ -128,6 +129,31 @@ export function FollowScroll({ progress }: { progress: Progress }) {
 export function sectionY(el: HTMLElement, at: number) {
   const top = el.getBoundingClientRect().top + window.scrollY
   return top + Math.max(0, el.offsetHeight - window.innerHeight) * at
+}
+
+/** seconds a step takes to play out, by its length in screens: a short step about 2 s, a long one up to 3.6 s */
+export const playTime = (screens: number) => Math.min(3.6, Math.max(1.8, 1.4 + 0.55 * screens))
+
+/**
+ * One scroll, one step, for a pinned section that plays out in steps (the install and build sequences): a scroll
+ * glides the page on to where the next step has played out, and the scene plays it on the way; it waits there for
+ * the next scroll. `ends` are those points, as points of the section's run (0..1), in order. Above and below the
+ * section the page scrolls freely.
+ */
+export function usePlaySteps(section: RefObject<HTMLElement | null>, ends: readonly number[]) {
+  const at = useRef(ends)
+  at.current = ends
+  useEffect(
+    () =>
+      stepScreens(
+        () => {
+          const el = section.current
+          return el ? at.current.map((p) => Math.round(sectionY(el, p))) : []
+        },
+        { time: playTime },
+      ),
+    [section],
+  )
 }
 
 export const smooth = (a: number, b: number, v: number) => {

@@ -1,18 +1,90 @@
-import { useRef, type CSSProperties, type RefObject } from 'react'
+import { useId, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
 import { Chapter, Lines, type Step } from '../components/Chapter'
 import { ReviewNote } from '../components/Media'
 import { StageLabel } from '../three/Stage'
-import { CONCRETE_FIGURES, DATA_SHEET, MESH_SPECS, SFRC_SWAP, YARN } from '../content/technical'
+import { setShared, useStageValue } from '../three/stageStore'
+import { CONCRETE_FIGURES, DATA_SHEET, MESH_SPECS, SFRC_SWAP, THICKNESS_OPTIONS, YARN } from '../content/technical'
 
-/** the summary: one figure for each of the three elements; the rest is in the data sheet */
-const SUMMARY = [
-  { label: 'Mesh thickness options', value: '3 / 6 / 10 / 15', unit: 'mm' },
-  { label: 'Yarn tensile strength', value: YARN[0].figure, unit: YARN[0].unit },
-  { label: 'Flexural strength in UHPC', value: SFRC_SWAP[1].change, unit: '' },
+/**
+ * The mesh's thickness, chosen here: the four options as switches, and the system in 3D is rebuilt in the one
+ * picked (the stage's shared thickness).
+ */
+function ThicknessSwitch({ active }: { active: boolean }) {
+  const thickness = useStageValue('thickness')
+  const label = useId()
+  return (
+    <div className="system__thick rv" style={{ '--i': 4 } as CSSProperties}>
+      <span id={label} className="system__thick-label">
+        Mesh thickness options
+      </span>
+      <div className="system__seg" role="group" aria-labelledby={label}>
+        {THICKNESS_OPTIONS.map((t) => (
+          <button key={t} type="button" className="system__seg-btn" aria-pressed={thickness === t} tabIndex={active ? 0 : -1} onClick={() => setShared({ thickness: t })}>
+            <span className="num">{t}</span>
+            <small>mm</small>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** one figure on the sheet: what it is, the value large, and what it means under it */
+interface Figure {
+  label: string
+  value: string
+  unit?: string
+  note?: string
+  review?: string
+}
+
+/** the sheet's tabs, a group of figures each */
+const GROUPS: { id: string; label: string; title: string; figures: Figure[] }[] = [
+  ...MESH_SPECS.map((g) => ({
+    id: `mesh-${g.label.toLowerCase()}`,
+    label: `Mesh ${g.label.toLowerCase()}`,
+    title: `The mesh: ${g.label.toLowerCase()}`,
+    figures: g.rows.map((r) => ({ label: r.label, value: r.value, unit: r.unit, note: r.note, review: r.review })),
+  })),
+  {
+    id: 'yarn',
+    label: 'Basalt yarn',
+    title: 'The impregnated basalt yarn',
+    figures: YARN.map((y) => ({ label: y.title, value: y.figure, unit: y.unit, note: y.reading })),
+  },
+  {
+    id: 'concrete',
+    label: 'In concrete',
+    title: 'Concrete reinforced with RTARIUM',
+    figures: [
+      ...SFRC_SWAP.map((r) => ({
+        label: `${r.metric} in UHPC`,
+        value: r.change,
+        note: `${r.sfrc} → ${r.rtarium} ${r.unit}, with RTARIUM in place of steel fibre.`,
+      })),
+      ...CONCRETE_FIGURES.map((f) => ({ label: f.label, value: f.value, unit: f.unit, note: f.context })),
+    ],
+  },
 ]
 
-/** Every figure, on one warm-white sheet, for the visitor who wants the table. */
+/**
+ * Every figure, on one warm-white sheet, for the visitor who wants them all: a tab for each group, and the group's
+ * figures as tiles, each value large with what it means under it.
+ */
 function FiguresSheet({ dialog }: { dialog: RefObject<HTMLDialogElement | null> }) {
+  const [open, setOpen] = useState(0)
+  const tabs = useRef<(HTMLButtonElement | null)[]>([])
+  const base = useId()
+  // the arrow keys move along the tabs, Home and End to either end
+  const onKey = (e: KeyboardEvent) => {
+    const n = GROUPS.length
+    const to = e.key === 'ArrowRight' ? (open + 1) % n : e.key === 'ArrowLeft' ? (open - 1 + n) % n : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1
+    if (to < 0) return
+    e.preventDefault()
+    setOpen(to)
+    tabs.current[to]?.focus()
+  }
+  const group = GROUPS[open]
   return (
     <dialog ref={dialog} className="sheet" aria-labelledby="sheet-title" data-lenis-prevent onClick={(e) => e.target === e.currentTarget && dialog.current?.close()}>
       <div className="sheet__inner">
@@ -27,64 +99,45 @@ function FiguresSheet({ dialog }: { dialog: RefObject<HTMLDialogElement | null> 
             </button>
           </div>
         </header>
-        <div className="sheet__grid">
-          {MESH_SPECS.map((g) => (
-            <table key={g.label} className="table">
-              <caption>Mesh · {g.label}</caption>
-              <tbody>
-                {g.rows.map((r) => (
-                  <tr key={r.label}>
-                    <th scope="row">{r.label}</th>
-                    <td>
-                      <span className="num">{r.value}</span> {r.unit}
-                      {r.note && <span className="table__note">{r.note}</span>}
-                      {r.review && <ReviewNote>{r.review}</ReviewNote>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="sheet__tabs" role="tablist" aria-label="Groups of figures" onKeyDown={onKey}>
+          {GROUPS.map((g, i) => (
+            <button
+              key={g.id}
+              ref={(el) => void (tabs.current[i] = el)}
+              type="button"
+              role="tab"
+              id={`${base}-tab-${g.id}`}
+              className="sheet__tab"
+              aria-selected={i === open}
+              aria-controls={`${base}-panel`}
+              tabIndex={i === open ? 0 : -1}
+              onClick={() => setOpen(i)}
+            >
+              {g.label}
+              <span className="sheet__count num">{g.figures.length}</span>
+            </button>
           ))}
-          <table className="table">
-            <caption>Impregnated yarn</caption>
-            <tbody>
-              {YARN.map((c) => (
-                <tr key={c.id}>
-                  <th scope="row">{c.title}</th>
-                  <td>
-                    <span className="num">{c.figure}</span> {c.unit}
-                    <span className="table__note">{c.reading}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <table className="table">
-            <caption>Concrete reinforced with RTARIUM</caption>
-            <tbody>
-              {CONCRETE_FIGURES.map((f) => (
-                <tr key={f.id}>
-                  <th scope="row">{f.label}</th>
-                  <td>
-                    <span className="num">{f.value}</span> {f.unit}
-                    <span className="table__note">{f.context}</span>
-                  </td>
-                </tr>
-              ))}
-              {SFRC_SWAP.map((r) => (
-                <tr key={r.metric}>
-                  <th scope="row">{r.metric}, steel fibre → RTARIUM in UHPC</th>
-                  <td>
-                    <span className="num">
-                      {r.sfrc} → {r.rtarium}
-                    </span>{' '}
-                    {r.unit} ({r.change})
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
+        <section key={group.id} id={`${base}-panel`} className="sheet__panel" role="tabpanel" aria-labelledby={`${base}-tab-${group.id}`}>
+          <h3 className="sheet__group">{group.title}</h3>
+          <dl className="spec">
+            {group.figures.map((f) => (
+              <div key={f.label} className="spec__item">
+                <dt className="spec__label">{f.label}</dt>
+                <dd className="spec__value">
+                  <span className="num">{f.value}</span>
+                  {f.unit && <small>{f.unit}</small>}
+                </dd>
+                {f.note && <dd className="spec__note">{f.note}</dd>}
+                {f.review && (
+                  <dd>
+                    <ReviewNote>{f.review}</ReviewNote>
+                  </dd>
+                )}
+              </div>
+            ))}
+          </dl>
+        </section>
         <p className="sheet__fine">
           Figures describe the tested materials and configuration. Performance in a particular element depends on its mix,
           thickness and detailing.
@@ -95,9 +148,9 @@ function FiguresSheet({ dialog }: { dialog: RefObject<HTMLDialogElement | null> 
 }
 
 /**
- * Tech Space, one screen on black: the system pulled apart in 3D on a diagonal of words, a brief summary
- * (one figure for each element), and the way to the rest: the data sheet to download, or every figure on
- * a sheet over the page.
+ * Tech Space, one screen on black: the system pulled apart in 3D on a diagonal of words, the mesh's thickness to
+ * choose (the 3D follows), and the way to the rest: the data sheet to download, or every figure on a sheet over
+ * the page.
  */
 export function TechSpace() {
   const dialog = useRef<HTMLDialogElement>(null)
@@ -117,17 +170,7 @@ export function TechSpace() {
             <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
               The mesh, the basalt yarn it is woven from, and the concrete it reinforces.
             </p>
-            <dl className="system__figs rv" style={{ '--i': 4 } as CSSProperties}>
-              {SUMMARY.map((f) => (
-                <div key={f.label}>
-                  <dt>{f.label}</dt>
-                  <dd className="num">
-                    {f.value}
-                    {f.unit && <small>{f.unit}</small>}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            <ThicknessSwitch active={active} />
             <div className="system__cta rv" style={{ '--i': 5 } as CSSProperties}>
               <a className="explore explore--yellow" href={DATA_SHEET} download tabIndex={active ? 0 : -1}>
                 <span className="explore__label">Download the data sheet</span>
@@ -137,8 +180,13 @@ export function TechSpace() {
                   </svg>
                 </span>
               </a>
-              <button type="button" className="system__all" tabIndex={active ? 0 : -1} onClick={() => dialog.current?.showModal()}>
-                View all details
+              <button type="button" className="explore explore--line" tabIndex={active ? 0 : -1} onClick={() => dialog.current?.showModal()}>
+                <span className="explore__label">View all details</span>
+                <span className="explore__cell" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" width="20" height="20">
+                    <path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                  </svg>
+                </span>
               </button>
             </div>
           </div>

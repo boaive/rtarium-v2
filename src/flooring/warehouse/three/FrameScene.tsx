@@ -12,6 +12,7 @@ import { ink, useDrawing, useInkResolution } from '../../data/three/draw'
 import { aisleLines, EAVES, frameLines, plantLines, RIDGE, shellLines, X0, X1, Z0, Z1 } from './building'
 import { podLines, RACK, rackRun, upwards, type Map3 } from './parts'
 import { COAT, ducts, FLOOR_Y, PIECE } from './Piece'
+import { WIRE } from '../../../three/wire'
 
 /**
  * Frame to floor, the Data & AI Centres section's build-up in warehouse geometry: on the page's warm
@@ -175,8 +176,8 @@ export function FrameScene({ progress, bus, room }: { progress: Progress; bus: L
     shell.show(smooth(FRAME.shell[0], FRAME.shell[1], p))
     plant.show(smooth(FRAME.plant[0], FRAME.plant[1], p))
     const far = smooth(FRAME.frame[0], FRAME.shell[1], p)
-    mats.aisles.opacity = 0.5 - 0.2 * far
-    mats.racks.opacity = 1 - 0.4 * far
+    mats.aisles.opacity = WIRE.opacity * (1 - 0.4 * far)
+    mats.racks.opacity = WIRE.opacity * (1 - 0.4 * far)
     if (moving) invalidate()
   }, -1)
 

@@ -7,6 +7,7 @@ import { setOpacity, type LabelBus, type Shot } from '../kit'
 import { mixShot } from '../ScrubRig'
 import { prefersReducedMotion } from '../../../lib/motion'
 import { block, frameGeometry, glassGeometry, insulationGeometry, merge, panelGeometry, U, unitMaterials, disposeUnitMaterials, windowGeometry, Z } from './parts'
+import { WIRE } from '../../../three/wire'
 
 /**
  * Slab to slab, and onto the building (Unitized page). On the page's own warm white: no ground, no
@@ -59,8 +60,13 @@ for (let j = 0; j < FLOORS; j++)
     if (j < J0) DONE.push([i, j])
     else if (!(i === I0 && j === J0) && !at(SIDE, i, j) && !at(STACK, i, j) && !at(CRANED, i, j)) REST.push([i, j])
   }
-/** the units that move: the two neighbours, the one the crane brings, then the rest in the order they go up */
-const LIVE: [number, number][] = [SIDE, STACK, CRANED, ...REST]
+/**
+ * the units that move: the two neighbours, the one the crane brings, then the rest in the order they go up; and last,
+ * the unit followed, as one of the others, which takes over from the section's cut-away unit once the block is in
+ */
+const SELF: [number, number] = [I0, J0]
+const LIVE: [number, number][] = [SIDE, STACK, CRANED, ...REST, SELF]
+const SELF_N = LIVE.length - 1
 const slotX = (i: number) => i * U.w
 const slotY = (j: number) => PLINTH + j * U.h
 const levelY = (l: number) => PLINTH + l * U.h - 0.1
@@ -378,7 +384,7 @@ export function HangScene({ progress, bus, live, settle }: { progress: Progress;
   }, [gl, camera])
 
   const m = useMemo(unitMaterials, [])
-  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: '#080808', transparent: true, opacity: 0.5 }), [])
+  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: WIRE.color, transparent: true, opacity: WIRE.opacity }), [])
   const draw = useMemo(
     () => ({
       block: new THREE.LineBasicMaterial({ color: '#080808', transparent: true, opacity: 0, depthWrite: false }),
@@ -507,6 +513,7 @@ export function HangScene({ progress, bus, live, settle }: { progress: Progress;
   )
 
   const unitGroup = useRef<THREE.Group>(null)
+  const section = useRef<THREE.Group>(null)
   const scans = useRef<Partial<Record<Key, THREE.Group | null>>>({})
   const done = useRef<(THREE.InstancedMesh | null)[]>([])
   const moving = useRef<(THREE.InstancedMesh | null)[]>([])
@@ -564,10 +571,10 @@ export function HangScene({ progress, bus, live, settle }: { progress: Progress;
     // 2. the block comes in behind, faint and then clear, its clad floors with it; the section's own slab gives way to it
     const faint = smooth(HANG.block[0], HANG.block[0] + 0.05, p)
     const clear = smooth(HANG.block[0] + 0.05, HANG.block[1], p)
-    draw.block.opacity = faint * 0.06 + clear * 0.14
+    draw.block.opacity = WIRE.opacity * (faint * 0.3 + clear * 0.7)
     draw.block.visible = draw.block.opacity > 0.003
     setOpacity(doneMats, clear)
-    lineMats.slab.opacity = 0.5 * (1 - smooth(HANG.block[0], HANG.block[0] + 0.07, p))
+    lineMats.slab.opacity = WIRE.opacity * (1 - smooth(HANG.block[0], HANG.block[0] + 0.07, p))
     lineMats.slab.visible = lineMats.slab.opacity > 0.003
 
     // 4. started by the scroll, run in time: the rest of the façade goes up, then the crane goes
@@ -591,12 +598,19 @@ export function HangScene({ progress, bus, live, settle }: { progress: Progress;
     const side = smooth(HANG.side[0], HANG.side[1], p)
     const stack = smooth(HANG.stack[0], HANG.stack[1], p)
     const craneIn = smooth(HANG.crane[0], HANG.crane[1], p)
+    // once the block is in and the view stands back, the unit followed is one of the façade's like the rest: its
+    // cut-away (frame, insulation, hangers) and the bracket and barrier behind it go, so nothing of them can show
+    // through its joints or fight its neighbours for the same place
+    const swapped = p >= HANG.block[1]
+    if (section.current) section.current.visible = !swapped
     LIVE.forEach(([i, j], n) => {
       let x = slotX(i)
       let y = slotY(j)
       let z = 0
       let on = true
-      if (n === 0) {
+      if (n === SELF_N) {
+        on = swapped
+      } else if (n === 0) {
         on = side > 0.003
         x -= (1 - side) * 1.1
       } else if (n === 1) {
@@ -629,9 +643,9 @@ export function HangScene({ progress, bus, live, settle }: { progress: Progress;
 
     // the crane: drawn in, slewing and trolleying to wherever the hook has to be, then gone
     const cr = craneIn * (1 - craneOut)
-    draw.crane.opacity = 0.34 * cr
+    draw.crane.opacity = WIRE.opacity * cr
     draw.crane.visible = cr > 0.003
-    draw.rig.opacity = 0.6 * cr
+    draw.rig.opacity = WIRE.opacity * cr
     draw.rig.visible = cr > 0.003
     const hx = slotX(CRANED[0]) + U.w / 2
     const hz = uz + 0.12
@@ -693,7 +707,7 @@ export function HangScene({ progress, bus, live, settle }: { progress: Progress;
   return (
     <group>
       {/* the section: the unit followed, its bracket, barrier and slabs */}
-      <group position={[I0 * U.w, slotY(J0), 0]}>
+      <group ref={section} position={[I0 * U.w, slotY(J0), 0]}>
         {drawPart('slab')}
         {drawPart('barrier')}
         {drawPart('bracket')}

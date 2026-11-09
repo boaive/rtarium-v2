@@ -11,6 +11,7 @@ import { buttonGeometry, layer, Lines, PITCH, pourGeometry, SHOW, sortFrom, spli
 import { ink, useDrawing, useInkResolution } from '../../data/three/draw'
 import { aim, PHONE_ROOM, shotAt, type View } from './camera'
 import { circle, disposeKit, fabKit, grinder, grinderHeads, laserUnit, LAY, MESH_Y, mixerPump, oldTopping, OLD_TOP, PX, PZ, SLAB, TOP, waffle } from './fab'
+import { WIRE } from '../../../three/wire'
 
 /**
  * How yield is kept (Semiconductor Plant), on yellow, in the Data & AI Centres build's stage: the
@@ -461,7 +462,7 @@ export function BuildScene({ t, bus, compact, room }: { t: Progress; bus: LabelB
     const setOut = v > 1.32 && v < 2.1
     laserD.show(setOut ? laserIn : 0)
     gridD.show(setOut ? smooth(1.38, 1.56, v) : 0)
-    mats.grid.opacity = 0.55 * (1 - smooth(1.96, 2.1, v))
+    mats.grid.opacity = WIRE.opacity * (1 - smooth(1.96, 2.1, v))
     const onButtons = smooth(1.56, 1.8, v)
     const bm = buttons.current
     if (bm) {

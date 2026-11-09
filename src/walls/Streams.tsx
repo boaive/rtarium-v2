@@ -4,7 +4,10 @@ import { useIsCompact } from '../lib/motion'
 import { Arrow } from '../facade/Shell'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three/Stage3D'
 import { createBus } from '../facade/three/kit'
-import { FollowScroll, smooth, useScrollProgress } from '../facade/progress'
+import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../facade/progress'
+
+/** where each of a build's four steps has played out, as points of the section's run */
+const STREAM_ENDS = [0, 1, 2, 3].map((i) => Math.min(1, (i + 0.95) / 4))
 import { StepBar } from '../facade/unitized/StepBar'
 import { closerAt, StreamScene } from './three/StreamScene'
 import { buildingOf, quantities, type BuildId } from './three/buildings'
@@ -127,8 +130,10 @@ function Build({ id }: { id: StreamId }) {
   const go = (i: number) => {
     const el = section.current
     if (!el) return
-    scrollToY(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * Math.min(1, (i + 0.95) / 4))
+    scrollToY(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * STREAM_ENDS[i])
   }
+  // one scroll, one step: each played out on the way to where it holds
+  usePlaySteps(section, STREAM_ENDS)
 
   return (
     <>

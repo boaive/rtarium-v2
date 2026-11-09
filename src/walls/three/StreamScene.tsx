@@ -9,6 +9,7 @@ import { Lines, split } from '../../flooring/data/three/dc'
 import { ink, useDrawing, useInkResolution } from '../../flooring/data/three/draw'
 import { between, fit, type Box, type Room } from './fit'
 import type { Building, Mat, Part } from './buildings'
+import { WIRE } from '../../three/wire'
 
 /**
  * A stream's building, on the warm white page, pinned for its run, as the Unitized page's slab to slab: the scroll the
@@ -229,7 +230,7 @@ export function StreamScene({ progress, bus, room, building }: { progress: Progr
       else hi = mid
     }
     frame.show(lines.dist.length ? n / lines.dist.length : 0)
-    inks.frame.opacity = 0.85 - 0.25 * smooth(2.2, 3.4, t)
+    inks.frame.opacity = WIRE.opacity * (1 - 0.3 * smooth(2.2, 3.4, t))
     finish.show(smooth(3.62, 3.9, t))
 
     /** how far a part is in (0: not yet, 1: in place) */

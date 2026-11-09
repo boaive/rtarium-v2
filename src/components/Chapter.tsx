@@ -26,7 +26,8 @@ const STILLS: Partial<Record<PoseId, string>> = {
  * (see Ground). Each step's copy lags the scroll a little (`--o`, -1 below .. 0 in place .. 1
  * above), so screens slide rather than cut. Reaching a step (it holds the middle of the screen)
  * plays its sequence in time: words rise one by one, figures count, the mesh glides to its pose.
- * Home moves a screen at a time (`stepScreens`), so each step comes to rest whole.
+ * After the opening tour, which scrolls freely and then plays itself on into About, Home moves a screen at a time
+ * (`stepScreens`), so each step comes to rest whole.
  */
 
 export interface Step {
@@ -201,7 +202,8 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
         }
         slide.style.transform = x ? `translate3d(${(x * 100).toFixed(3)}%, 0, 0)` : ''
         slide.style.setProperty('--cover', `${(clip * 100).toFixed(3)}%`)
-        slide.style.setProperty('--edge', o > -0.995 && o < -0.005 ? '0.5' : '0')
+        // the hairline only while the edge is crossing the screen, not as it creeps the last few pixels in (see Ground)
+        slide.style.setProperty('--edge', o > -0.97 && o < -0.03 ? '0.5' : '0')
         slide.style.setProperty('--out', o > 0 && o < 1 ? o.toFixed(3) : '0')
         slide.style.visibility = shown ? '' : 'hidden'
       })

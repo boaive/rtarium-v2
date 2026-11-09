@@ -32,6 +32,7 @@ import {
   tongueHalfGeometry,
   zoneGeometry,
 } from './piece'
+import { WIRE } from '../../three/wire'
 
 /**
  * One piece of panel, upright (see piece.ts), that is the 30 mm solid panel, can open up, and divides into the
@@ -245,7 +246,7 @@ export function PanelPiece({
 
   // the tie-clips' lines: from each clip's lug hole to the rod it hooks on the mesh, a unit long, stretched at run time; fine
   // and dashed, as an exploded drawing's (solid black ones read as bars across the gap)
-  const tieInk = useMemo(() => new LineMaterial({ color: dark ? 0xf2f0e9 : 0x1b1b1a, linewidth: 1, transparent: true, opacity: 0.6, depthWrite: false, dashed: true, dashSize: 0.028, gapSize: 0.022 }), [dark])
+  const tieInk = useMemo(() => new LineMaterial({ color: dark ? 0xf2f0e9 : 0x080808, linewidth: WIRE.width, transparent: true, opacity: dark ? 0.6 : WIRE.opacity, depthWrite: false, dashed: true, dashSize: 0.028, gapSize: 0.022 }), [dark])
   useInkResolution(useMemo(() => [tieInk], [tieInk]))
   const lines = useMemo(() => {
     const ties = new Lines()

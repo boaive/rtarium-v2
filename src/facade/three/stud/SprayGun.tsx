@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { prefersReducedMotion } from '../../../lib/motion'
+import { WIRE } from '../../../three/wire'
 
 /**
  * The hopper gun of the spray-up, drawn as a wireframe over the mould: a hopper, its barrel and grip, and a fan
@@ -117,8 +118,8 @@ export function SprayGun({ gun, y, height }: { gun: { current: GunState }; y: nu
     r.position.x = g.x
     // it comes down onto the work as it is drawn in
     r.position.y = y + height + 0.25 * (1 - g.on)
-    mat.gun.opacity = g.on
-    mat.spray.opacity = g.spraying * 0.8
+    mat.gun.opacity = WIRE.opacity * g.on
+    mat.spray.opacity = WIRE.opacity * g.spraying
     if (fan.current) fan.current.visible = g.spraying > 0.01
     const t = reduced ? 0 : performance.now() / 1000
     rings.current.forEach((ring, i) => {

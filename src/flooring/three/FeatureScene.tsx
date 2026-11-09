@@ -10,6 +10,7 @@ import { merge } from '../../facade/three/unit/parts'
 import { Lines } from '../../facade/three/rain/building'
 import { FatLines, fatMaterial } from '../../facade/three/rain/lines'
 import { block, disposeFloorMaterials, floorMaterials } from './floor'
+import { WIRE } from '../../three/wire'
 
 /**
  * The core features, on yellow, in the Rainscreen bridge's stage: one floor (a structural slab in two
@@ -177,7 +178,7 @@ export function FeatureScene({ t, bus, compact, axis }: { t: Progress; bus: Labe
       cut: new THREE.MeshBasicMaterial({ color: '#080808', toneMapped: false }),
       carbon: new THREE.MeshStandardMaterial({ color: '#151515', roughness: 0.6, transparent: true, opacity: 0.32, depthWrite: false }),
       grid: new THREE.LineBasicMaterial({ color: '#2a2a2a', transparent: true }),
-      ghost: new THREE.LineBasicMaterial({ color: '#080808', transparent: true, opacity: 0.5 }),
+      ghost: new THREE.LineBasicMaterial({ color: WIRE.color, transparent: true, opacity: WIRE.opacity }),
       rings: Array.from({ length: RINGS }, () => new THREE.MeshBasicMaterial({ color: '#080808', transparent: true, opacity: 0, depthWrite: false, toneMapped: false })),
     }
   }, [])

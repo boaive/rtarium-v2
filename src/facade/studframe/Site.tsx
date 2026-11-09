@@ -3,7 +3,7 @@ import { useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D, MovingKeyLight } from '../three/Stage3D'
 import { ScrubRig } from '../three/ScrubRig'
-import { FollowScroll, smooth, useScrollProgress } from '../progress'
+import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../progress'
 import { INSTALL, INSTALL_FOCUS, INSTALL_REACH, InstallScene, installShot } from '../three/stud/InstallScene'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
@@ -66,6 +66,8 @@ export function Site() {
   }
   /** where each step of the bar takes you: the L frames solid, the element set, locked, sealed, the tower banded, finished */
   const holds = [INSTALL.seats[1], INSTALL.hook[1], INSTALL.look[0] + 0.05, INSTALL.bead[1], INSTALL.fill[1], INSTALL.finish[1]].map((p) => p + 0.012)
+  // one scroll, one step: each played out to its end on the way there
+  usePlaySteps(section, PHASES.map((ph) => Math.min(0.995, ph.to + 0.012)))
 
   return (
     <section ref={section} id="site" className="fu-hang on-light" aria-labelledby="fs-site-title" style={{ '--run': RUN } as CSSProperties}>

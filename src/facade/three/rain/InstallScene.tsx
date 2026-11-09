@@ -9,6 +9,7 @@ import { block, merge, planarUV } from '../unit/parts'
 import { buildingLines, craneLines, latticeLines, Lines } from './building'
 import { FatLines, fatMaterial } from './lines'
 import { bracketGeometry, colX, columnPanels, D, disposeRainMaterials, G, panelBoxes, railGeometry, rainMaterials, wallWidth, windowGeometry, woolGeometry, ZM } from './parts'
+import { WIRE } from '../../../three/wire'
 
 /**
  * Wall to skin (Rainscreen page): the rainscreen put up, on the page's own warm white, the way the
@@ -124,7 +125,7 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
   }, [gl, camera])
 
   const m = useMemo(rainMaterials, [])
-  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: '#080808', transparent: true, opacity: 0.5 }), [])
+  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: WIRE.color, transparent: true, opacity: WIRE.opacity }), [])
   const draw = useMemo(
     () => ({
       block: fatMaterial('#080808', 1.4, 0),
@@ -390,9 +391,9 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
     const faint = smooth(INSTALL.block[0], INSTALL.block[0] + 0.04, p)
     const clear = smooth(INSTALL.block[0] + 0.04, INSTALL.block[1], p)
     // (quieter while the camera is in close, so the bay reads; clear once the whole block is seen)
-    draw.block.opacity = faint * 0.06 + clear * 0.06 + smooth(INSTALL.wide[0], INSTALL.wide[1], p) * 0.1
+    draw.block.opacity = WIRE.opacity * Math.min(1, faint * 0.3 + clear * 0.3 + smooth(INSTALL.wide[0], INSTALL.wide[1], p) * 0.4)
     draw.block.visible = draw.block.opacity > 0.003
-    draw.context.opacity = 0.3 * (1 - faint)
+    draw.context.opacity = WIRE.opacity * (1 - faint)
     draw.context.visible = draw.context.opacity > 0.003
     setOpacity([doneMats.concrete, doneMats.alu, doneMats.glass], clear)
 
@@ -416,9 +417,9 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
 
     // the crane and its rig
     const cr = craneIn * (1 - craneOut)
-    draw.crane.opacity = 0.42 * cr
+    draw.crane.opacity = WIRE.opacity * cr
     draw.crane.visible = cr > 0.003
-    draw.rig.opacity = 0.6 * cr * (1 - hooked)
+    draw.rig.opacity = WIRE.opacity * cr * (1 - hooked)
     draw.rig.visible = draw.rig.opacity > 0.003
     const hx = BX + G.pw / 2
     const hz = uz + D.panel[0] + 0.01

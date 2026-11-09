@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { scrollToY } from '../lib/scroll'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import type { Ground } from '../three/stageStore'
@@ -24,8 +24,9 @@ import { smooth } from './progress'
  *   - black and white change places from block to block, the panel changes sides, the yellow stays; the
  *     words always read left to right: the name in the top left box, what it comes to beside it.
  *
- * RTARIUM closes it in the same four boxes, its panel at the bottom right, the rows going up as it comes.
- * Only the 3D has motion of its own: a slow sway, in time.
+ * RTARIUM closes it apart from them, still, in two boxes: its photograph full-bleed on one side, and on black on
+ * the other why it replaces them, large, with the way on; the rows go up as it comes. Only the materials' 3D has
+ * motion of its own: a slow sway, in time.
  */
 
 type Role = 'name' | 'limit' | 'claim' | 'photo' | 'panel'
@@ -120,6 +121,9 @@ export interface Version {
   claim?: string
   /** a few facts set small under the claim (RTARIUM only) */
   facts?: string[]
+  /** RTARIUM's closing card: a line under the claim, and where it leads (`#id` scrolls to that part of the page) */
+  line?: string
+  more?: { label: string; to: string }
   /** the label over its second box, when it is not the story's own (`words.replaced`) */
   label?: string
   /** what its row says at its end, if anything */
@@ -187,6 +191,8 @@ const VERSIONS: Version[] = [
     name: 'RTARIUM',
     full: '3-d mesh reinforcement',
     claim: 'Thin at 20 mm. Reinforced in three dimensions. Non-corrosive.',
+    line: 'One 3D basalt mesh in place of steel bar, AR-glass fibre and steel fibre in a thin façade panel.',
+    more: { label: 'See the three systems', to: '#systems' },
     material: 'RTARIUM 3D basalt mesh',
     thick: 20,
     photo: { src: '/img/shoot/mesh-profile.webp', alt: 'An RTARIUM sheet seen edge-on: two basalt mesh faces with fibres looping between them' },
@@ -250,6 +256,114 @@ function Panel({ k, compact }: { k: number; compact: boolean }) {
       </Stage3D>
       <Labels key={compact ? 'narrow' : 'wide'} bus={bus} labels={marks} shown={marks.map((l) => l.id)} />
     </div>
+  )
+}
+
+/** a line revealed by a block of its own colour: the block runs across it, the words come up under it, it runs off */
+function Masked({ k, children }: { k: number; children: ReactNode }) {
+  return (
+    <span className="fs-mask" style={{ '--k': k } as CSSProperties}>
+      <span className="fs-mask__in">{children}</span>
+    </span>
+  )
+}
+
+/**
+ * RTARIUM's closing card, in two boxes and still: its photograph full-bleed on the left; on black on the right, the
+ * label of the card top left, then its name, why it replaces the others (a sentence a line), what that comes to, and
+ * the way on. As it comes into view its name and claim are revealed line by line, each under a block of its own
+ * colour that runs across it and off (as Enerblock's headings are), and the rest rises after them; it plays again
+ * each time the card comes back into view.
+ */
+function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: LineageWords; blockRef: (el: HTMLElement | null) => void }) {
+  const lines = (v.claim ?? '').split(/(?<=\.)\s+/).filter(Boolean)
+  const card = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    const el = card.current
+    if (!el || prefersReducedMotion()) return
+    // hidden until it plays; without script, or under reduced motion, it is simply there
+    el.classList.add('is-armed')
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.intersectionRatio >= 0.45) el.classList.add('is-in')
+        else if (!e.isIntersecting) el.classList.remove('is-in')
+      },
+      { threshold: [0, 0.45] },
+    )
+    io.observe(el)
+    return () => {
+      io.disconnect()
+      el.classList.remove('is-armed', 'is-in')
+    }
+  }, [])
+  const go = (e: MouseEvent<HTMLAnchorElement>) => {
+    const to = v.more?.to
+    if (!to?.startsWith('#')) return
+    const el = document.querySelector<HTMLElement>(to)
+    if (!el) return
+    e.preventDefault()
+    const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
+    scrollToY(el.getBoundingClientRect().top + window.scrollY - navH)
+  }
+  return (
+    <article
+      ref={(el) => {
+        card.current = el
+        blockRef(el)
+      }}
+      className={`fs-block fs-block--${v.id} fs-block--last fs-duo`}
+      style={{ '--i': i } as CSSProperties}
+      aria-labelledby={`fs-${v.id}`}
+    >
+      <figure className="fs-duo__media">
+        {v.photo && <img src={v.photo.src} alt={v.photo.alt} loading="lazy" width={1280} height={960} style={v.photo.pos ? { objectPosition: v.photo.pos } : undefined} />}
+      </figure>
+      <div className="fs-duo__panel on-black">
+        <div className="fs-duo__top fs-rise" style={{ '--d': '0s' } as CSSProperties}>
+          <p className="fs-label">{words.claim}</p>
+          <span className="fs-duo__mark" aria-hidden="true" />
+        </div>
+        <div className="fs-duo__head">
+          <h3 id={`fs-${v.id}`} className="fs-duo__name">
+            <Masked k={0}>{v.name}</Masked>
+          </h3>
+          <p className="fs-duo__full fs-rise" style={{ '--d': '0.7s' } as CSSProperties}>
+            {v.full}
+          </p>
+        </div>
+        <div className="fs-duo__body">
+          <p className="fs-duo__claim">
+            {lines.map((l, j) => (
+              <Masked key={l} k={j + 2}>
+                {l}
+              </Masked>
+            ))}
+          </p>
+          {v.facts && (
+            <ul className="fs-facts">
+              {v.facts.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          )}
+          {v.line && (
+            <p className="fs-duo__line fs-rise" style={{ '--d': `${0.95 + lines.length * 0.12}s` } as CSSProperties}>
+              {v.line}
+            </p>
+          )}
+          {v.more && (
+            <a className="explore explore--yellow fs-duo__more fs-rise" style={{ '--d': `${1.1 + lines.length * 0.12}s` } as CSSProperties} href={v.more.to} onClick={go}>
+              <span className="explore__label">{v.more.label}</span>
+              <span className="explore__cell" aria-hidden="true">
+                <svg viewBox="0 0 20 20" width="20" height="20">
+                  <path d="M3 10h13M11 5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                </svg>
+              </span>
+            </a>
+          )}
+        </div>
+      </div>
+    </article>
   )
 }
 
@@ -323,6 +437,8 @@ export function Lineage({
         // where the block is: 1 arriving at the foot of the screen, 0 read, −1 gone above
         const p = (r.top - rest(k)) / Math.max(1, BH)
         q.push(p)
+        // RTARIUM's closing card holds still: nothing of it moves with the scroll
+        if (finale && k === LAST) return
         if (r.bottom < navH - 4 || r.top > vh + 4) return
         const c: Cut = reduced
           ? L.rest
@@ -505,6 +621,7 @@ export function Lineage({
 
       {versions.map((v, i) => {
         const L = layouts[i]
+        if (finale && i === LAST) return <Closing key={v.id} v={v} i={i} words={words} blockRef={(el) => void (blocks.current[i] = el)} />
         return (
           <article
             key={v.id}

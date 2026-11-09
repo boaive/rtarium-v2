@@ -4,7 +4,7 @@ import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
 import { createBus } from '../three/kit'
 import { ScrubRig } from '../three/ScrubRig'
-import { FollowScroll, smooth, useScrollProgress } from '../progress'
+import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../progress'
 import { HANG, HangScene, hangShot } from '../three/unit/HangScene'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
@@ -31,6 +31,8 @@ const LABELS: LabelSpec[] = [
   { id: 'j-stack', text: 'Stack joint', dx: 60, dy: -56 },
 ]
 const RUN = 8.4
+/** where each of the five steps has played out, as points of the section's run */
+const ENDS = [HANG.bracket[1], HANG.barrier[1], HANG.drop[1], HANG.stack[1], HANG.fill + 0.04].map((p) => p + 0.012)
 
 export function Hang() {
   const compact = useIsCompact()
@@ -64,13 +66,18 @@ export function Hang() {
     return () => void progress.listeners.delete(paint)
   }, [progress])
 
+  /** the scroll at progress p through the section's run */
+  const yAt = (el: HTMLElement, p: number) => Math.round(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * p)
   const go = (p: number) => {
     const el = section.current
-    if (!el) return
-    scrollToY(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * p)
+    if (el) scrollToY(yAt(el, p))
   }
   /** where each step of the bar takes you: each part made solid, the joints made, the block drawn, the unit set, the façade up */
   const holds = [HANG.bracket[1], HANG.barrier[1], HANG.drop[1], HANG.stack[1], HANG.crane[1], HANG.lift[1], HANG.fill + 0.04].map((p) => p + 0.012)
+
+  // one scroll, one step: the page glides on to where the next step has played out, and the scene plays it on the
+  // way, taking longer over a longer step (the last: the block, the crane, the lift, the façade going up)
+  usePlaySteps(section, ENDS)
 
   return (
     <section ref={section} id="hang" className="fu-hang on-light" aria-labelledby="fu-hang-title" style={{ '--run': RUN } as CSSProperties}>

@@ -293,10 +293,12 @@ export const POSES: Record<PoseId, Pose> = {
     elev: 20,
     azim: 34,
     dist: 0.88,
-    distCompact: 1.1,
+    // on a phone smaller and higher, clear of the column of copy and controls under it
+    distCompact: 1.45,
     fov: 28,
-    frame: [0.55, 0.48],
-    frameCompact: [0.5, 0.42],
+    // right of centre, into the open space between the copy on the left and "One system." low on the right
+    frame: [0.62, 0.46],
+    frameCompact: [0.5, 0.37],
     look: 'night',
     sway: 10,
     slabs: { gap: 0.05, opacity: 1 },
@@ -406,6 +408,8 @@ function tourKeys(): TourKey[] {
 export const TOUR_LABELS = ['tour-face-a', 'tour-fibres', 'tour-face-b', 'tour-gap']
 /** how far into white light the tour has gone (0..1): the ground washes to warm white with it, and back to yellow on the way into About */
 export const tourWash = (p: number) => smoothstep(2.08, 2.5, p) * (1 - smoothstep(2.66, 3, p))
+/** in the cavity, as it starts to wash into the white: the visitor scrolls the tour this far, and from here it plays itself on into About */
+export const TOUR_AUTO = 2.4
 
 /** where, in the white, the camera has been brought to the mesh */
 const CLOSE_AT = 2.62

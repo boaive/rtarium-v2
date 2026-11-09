@@ -10,6 +10,7 @@ import { disposeFloorKit, floorKit, hollowCore, layer, Lines, PLANK, rack, sortF
 import { ink, useDrawing, useInkResolution } from './draw'
 import { BX, BZ, CENTRES, EPOXY, fit, TOP, type BuildRoom } from './BuildScene'
 import { floorsLines, frameLines, hallLines, LEVELS, plantLines, RIDGE, shellLines, X0, X1, Z0, Z1 } from './building'
+import { WIRE } from '../../../three/wire'
 
 /**
  * Frame to floor (Data & AI Centres), after Slab to slab on the Unitized page: on the page's warm white,
@@ -185,8 +186,8 @@ export function FrameScene({ progress, bus, room }: { progress: Progress; bus: L
     shell.show(smooth(FRAME.shell[0], FRAME.shell[1], p))
     plant.show(smooth(FRAME.plant[0], FRAME.plant[1], p))
     const far = smooth(FRAME.frame[0], FRAME.shell[1], p)
-    mats.hall.opacity = 0.55 - 0.25 * far
-    mats.racks.opacity = 1 - 0.45 * far
+    mats.hall.opacity = WIRE.opacity * (1 - 0.45 * far)
+    mats.racks.opacity = WIRE.opacity * (1 - 0.45 * far)
     if (moving) invalidate()
   }, -1)
 

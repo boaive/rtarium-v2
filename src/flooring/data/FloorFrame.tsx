@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
 import { createBus } from '../../facade/three/kit'
-import { FollowScroll, smooth, useScrollProgress } from '../../facade/progress'
+import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../../facade/progress'
 import { StepBar } from '../../facade/unitized/StepBar'
 import type { BuildRoom } from './three/BuildScene'
 import { FRAME, FrameScene } from './three/FrameScene'
@@ -83,6 +83,8 @@ export function FloorFrame() {
   }
   /** where each step of the bar takes you: once its part has been made */
   const holds = [FRAME.racks[1] + 0.01, FRAME.hall[1] + 0.01, FRAME.floors[1] + 0.01, FRAME.plant[1] + 0.04]
+  // one scroll, one step: each played out to its end on the way there
+  usePlaySteps(section, PHASES.map((ph) => Math.min(0.995, ph.to + 0.012)))
 
   return (
     <section ref={section} id="frame" className="fu-hang on-light" aria-labelledby="fdc-frame-title" style={{ '--run': RUN } as CSSProperties}>

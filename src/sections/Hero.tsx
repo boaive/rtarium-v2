@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { StageLabel, useOrbitDrag, useStageRegion } from '../three/Stage'
 import { setShared, stage, useStageValue } from '../three/stageStore'
-import { tourWash } from '../three/poses'
+import { TOUR_AUTO, tourWash } from '../three/poses'
 import { Lines } from '../components/Chapter'
 import { Link } from '../lib/router'
 import { damp, prefersReducedMotion } from '../lib/motion'
@@ -90,7 +90,9 @@ export function Hero() {
 
   return (
     <>
-      <section ref={section} className="hero" aria-labelledby="hero-title" data-pass-screen={SCREENS - 1}>
+      {/* the tour scrolls freely (the scroll is the animation) down into the cavity; from there it plays itself on
+          through the white into About's first view, and the page goes a screen at a time after that */}
+      <section ref={section} className="hero" aria-labelledby="hero-title" data-pass-screen={SCREENS - 1} data-free-scroll={TOUR_AUTO}>
         <div ref={open} className={`hero__screen hero__screen--open scene ${state(0)}`} data-screen="yellow">
           {failed && <img className="hero__still" src="/img/render-structure.webp" alt="" />}
           <div className="hero__copy">

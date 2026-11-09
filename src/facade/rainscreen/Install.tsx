@@ -3,7 +3,7 @@ import { useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D, MovingKeyLight } from '../three/Stage3D'
 import { ScrubRig } from '../three/ScrubRig'
-import { FollowScroll, smooth, useScrollProgress } from '../progress'
+import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../progress'
 import { INSTALL, INSTALL_FOCUS, INSTALL_REACH, InstallScene, installShot } from '../three/rain/InstallScene'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
@@ -64,6 +64,8 @@ export function Install() {
   }
   /** where each step of the bar takes you: each part made solid, the panel hooked on, the façade up */
   const holds = [INSTALL.bracket[1], INSTALL.wool[1], INSTALL.hanger[1], INSTALL.hook[1] + 0.02, INSTALL.out[1]].map((p) => p + 0.012)
+  // one scroll, one step: each played out to its end on the way there
+  usePlaySteps(section, PHASES.map((ph) => Math.min(0.995, ph.to + 0.012)))
 
   return (
     <section ref={section} id="install" className="fu-hang on-light" aria-labelledby="fr-install-title" style={{ '--run': RUN } as CSSProperties}>

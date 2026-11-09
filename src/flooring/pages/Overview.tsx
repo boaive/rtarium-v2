@@ -8,7 +8,7 @@ import { setShared, type Ground } from '../../three/stageStore'
 import { Say } from '../../components/Say'
 import { Arrow, FacadePage, usePageMeta } from '../../facade/Shell'
 import { Words, useInView } from '../../facade/Story'
-import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../../facade/three/Stage3D'
+import { Stage3D, MovingKeyLight } from '../../facade/three/Stage3D'
 import { createBus, type Shot } from '../../facade/three/kit'
 import { ScrubRig, mixShot } from '../../facade/three/ScrubRig'
 import { FollowScroll, useScrollProgress } from '../../facade/progress'
@@ -29,12 +29,6 @@ import { Features } from '../Features'
  *   the features   six, each played out on one floor (the Rainscreen bridge's stage)
  *   the ways       the three applications side by side, their floors rising in turn
  */
-
-const HERO_LABELS: LabelSpec[] = [
-  { id: 'h-mesh', anchor: 'fl-mesh', text: 'RTARIUM 3D basalt mesh', dx: -60, dy: -58, delay: 2300 },
-  { id: 'h-screed', anchor: 'fl-screed', text: 'High-strength screed', dx: 70, dy: -100, delay: 2600, wide: true },
-  { id: 'h-slab', anchor: 'fl-slab', text: 'Structural slab', dx: 60, dy: 120, delay: 2900 },
-]
 
 /** low on the right, looking down onto the floor, as the Façade overview's panel stands */
 function heroShots(compact: boolean): [Shot, Shot] {
@@ -127,9 +121,7 @@ export default function Overview() {
             <MovingKeyLight focus={[0, 0, 0]} reach={0.9} />
             <FloorHero bus={heroBus} play />
             <FollowScroll progress={heroP} />
-            <LabelProjector bus={heroBus} bottom={compact ? 220 : 24} />
           </Stage3D>
-          <Labels bus={heroBus} labels={HERO_LABELS} shown={HERO_LABELS.map((l) => l.id)} />
         </div>
         {/* what the page is, top left, as the Facade overview names itself */}
         <header className="fco-head">

@@ -5,6 +5,7 @@ import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js'
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import type { Lines } from './dc'
+import { isWire, WIRE } from '../../../three/wire'
 
 /**
  * A drawing that can be drawn on and taken back: its segments, in their order, `pixels` wide, of
@@ -42,9 +43,13 @@ export function useDrawing(lines: Lines, material: LineMaterial): Drawing {
   return d
 }
 
-/** a drawn line's material: ink of `width` pixels, which the scene may fade */
+/**
+ * a drawn line's material: ink of `width` pixels, which the scene may fade. A black line is one of the site's wires
+ * (`WIRE`): its weight and strength are theirs, whatever is asked; a line of another colour keeps its own
+ */
 export function ink(width: number, color = '#080808', opacity = 1) {
-  return new LineMaterial({ color: new THREE.Color(color).getHex(), linewidth: width, transparent: true, opacity, depthWrite: false })
+  const wire = isWire(color)
+  return new LineMaterial({ color: new THREE.Color(color).getHex(), linewidth: wire ? WIRE.width : width, transparent: true, opacity: wire && opacity > 0 ? WIRE.opacity : opacity, depthWrite: false })
 }
 
 /** keeps the drawn lines' widths in pixels as the canvas changes size */

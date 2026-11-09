@@ -725,8 +725,16 @@ export function StageScene({ compact, reduced }: Props) {
       }
 
       // ---- draw this view inside its own panel ------------------------------------------------
+      // an edge inside the screen meets the next panel: it is pulled in to whole canvas pixels and one more, or the
+      // canvas, drawn at a density other than the screen's (fractional display scaling, or stepped down to keep up),
+      // is resampled and a row of this view's mesh bleeds past the edge onto the panel beside it
+      const pr = gl.getPixelRatio()
+      const ch = gl.domElement.height
+      const s0 = y0 > 0 ? Math.min(ch, Math.ceil(y0 * pr) + 1) : 0
+      const s1 = y1 < vh ? Math.max(0, Math.floor(y1 * pr) - 1) : ch
+      if (s1 <= s0) continue
       gl.setScissorTest(true)
-      gl.setScissor(0, vh - y1, vw, y1 - y0)
+      gl.setScissor(0, (ch - s1) / pr, vw, (s1 - s0) / pr)
       gl.clearDepth()
       gl.render(scene, camera)
 

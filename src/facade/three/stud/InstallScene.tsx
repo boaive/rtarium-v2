@@ -12,6 +12,7 @@ import { Element, createElementApi } from './Element'
 import { BACK, JOINT, LEN, PROFILE, SKIN, bandGeometry, block, merge, offsetPath, type P2 } from './cornice'
 import { PINK } from '../rain/parts'
 import { TOWER, TOWER_H, TOWER_W, bandY, bayLines, elementX, finishGeometry, ringGeometry, scanLines, towerLines } from './tower'
+import { WIRE } from '../../../three/wire'
 
 /**
  * On site (Stud Frame page): the Rainscreen page's wall to skin, the same choreography, on the page's
@@ -36,8 +37,7 @@ import { TOWER, TOWER_H, TOWER_W, bandY, bayLines, elementX, finishGeometry, rin
  * Everything follows the scroll. Sizes and details show the principle; they are not a product drawing.
  */
 
-/** every drawing: black; the cladding: light pink */
-const WIRE = '#080808'
+/** every drawing: the site's black wire (`WIRE`); the cladding: light pink */
 const CLAD = PINK
 
 /** the bay followed: the fifth element of the fourth floor's band */
@@ -177,14 +177,14 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
   useMemo(() => {
     for (const x of [m.slab, m.frame, m.glass]) x.clippingPlanes = [sweep.below]
   }, [m, sweep])
-  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: WIRE, transparent: true, opacity: 0.9 }), [])
+  const ink = useMemo(() => new THREE.LineBasicMaterial({ color: WIRE.color, transparent: true, opacity: WIRE.opacity }), [])
   const draw = useMemo(
     () => ({
-      block: fatMaterial(WIRE, 1.7, 0),
+      block: fatMaterial(WIRE.color, WIRE.width, 0),
       scan: fatMaterial('#fdd001', 3, 0),
-      context: fatMaterial(WIRE, 1.7, 0.3),
-      crane: fatMaterial(WIRE, 1.7, 0),
-      rig: new THREE.LineBasicMaterial({ color: WIRE, transparent: true, opacity: 0 }),
+      context: fatMaterial(WIRE.color, WIRE.width, 1),
+      crane: fatMaterial(WIRE.color, WIRE.width, 0),
+      rig: new THREE.LineBasicMaterial({ color: WIRE.color, transparent: true, opacity: 0 }),
     }),
     [],
   )
@@ -368,7 +368,7 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
       if (scan) scan.visible = reveal[k] > 0.001 && reveal[k] < 0.999
     }
     // the locks' drawing shows only once their turn comes
-    lineMats.locks.opacity = 0.9 * smooth(INSTALL.lock[0] - 0.03, INSTALL.lock[0], p)
+    lineMats.locks.opacity = WIRE.opacity * smooth(INSTALL.lock[0] - 0.03, INSTALL.lock[0], p)
 
     // 2. the crane: drawn in; the hook's path: hoisted off the ground, brought in, lowered, set on its L frames
     const craneIn = smooth(INSTALL.crane[0], INSTALL.crane[1], p)
@@ -392,9 +392,9 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
     // 3. the tower comes in behind, faint and then clear, its banded floors with it; the bay's own drawing gives way to it
     const faint = smooth(INSTALL.block[0], INSTALL.block[0] + 0.04, p)
     const clear = smooth(INSTALL.block[0] + 0.04, INSTALL.block[1], p)
-    draw.block.opacity = faint * 0.45 + clear * 0.5
+    draw.block.opacity = WIRE.opacity * Math.min(1, faint * 0.47 + clear * 0.53)
     draw.block.visible = draw.block.opacity > 0.003
-    draw.context.opacity = 0.9 * (1 - faint)
+    draw.context.opacity = WIRE.opacity * (1 - faint)
     draw.context.visible = draw.context.opacity > 0.003
     setOpacity([m.done], clear)
 
@@ -447,9 +447,9 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
     // the crane and its rig
     // the crane stays up: the building is not finished yet
     const cr = craneIn
-    draw.crane.opacity = 0.95 * cr
+    draw.crane.opacity = WIRE.opacity * cr
     draw.crane.visible = cr > 0.003
-    draw.rig.opacity = 0.9 * cr * (1 - hooked)
+    draw.rig.opacity = WIRE.opacity * cr * (1 - hooked)
     draw.rig.visible = draw.rig.opacity > 0.003
     e.root.updateWorldMatrix(true, false)
     const lp = e.root.localToWorld(new THREE.Vector3(0, 0.48, 0.055))

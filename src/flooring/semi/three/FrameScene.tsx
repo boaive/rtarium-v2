@@ -13,6 +13,7 @@ import { between, type Box } from './camera'
 import { disposeKit, fabKit, FLOOR, LAY, processTool, PX, PZ, SLAB, TOP, waffle, WAF } from './fab'
 import { bayLines, CEIL, CUB, fabLines, STACK, SUB, underLines, X0, X1, Z0, Z1 } from './fabBuilding'
 import { upwards } from './HeroFloor'
+import { WIRE } from '../../../three/wire'
 
 /**
  * Frame to floor (Semiconductor Plant), after the Data & AI Centres page's: on the page's warm white,
@@ -151,8 +152,8 @@ export function FrameScene({ progress, bus, room }: { progress: Progress; bus: L
     under.show(smooth(FRAME.under[0], FRAME.under[1], p))
     fab.show(smooth(FRAME.fab[0], FRAME.fab[1], p))
     const far = smooth(FRAME.under[0], FRAME.fab[1], p)
-    mats.bay.opacity = 0.5 - 0.22 * far
-    mats.tool.opacity = 1 - 0.45 * far
+    mats.bay.opacity = WIRE.opacity * (1 - 0.44 * far)
+    mats.tool.opacity = WIRE.opacity * (1 - 0.45 * far)
     if (moving) invalidate()
   }, -1)
 

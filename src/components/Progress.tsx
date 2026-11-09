@@ -4,13 +4,15 @@ import { useStageValue } from '../three/stageStore'
 /**
  * Where you are in the story: the current chapter's steps as segments along the bottom of the
  * screen. Passed steps are full, the current one fills in time while its sequence plays, and each
- * segment takes you to its step.
+ * segment takes you to its step. A chapter of a single step shows none.
  */
 export function Progress() {
   const chapter = useStageValue('chapter')
   const step = useStageValue('step')
   const ground = useStageValue('ground')
-  const meta = CHAPTERS.get(chapter)
+  // a chapter of one step has nowhere to go: no chips for it (they would be buttons that do nothing)
+  const found = CHAPTERS.get(chapter)
+  const meta = found && found.labels.length > 1 ? found : undefined
 
   return (
     <nav className={`progress on-${ground} ${meta ? 'is-on' : ''}`} aria-label={meta ? `${meta.title}, steps` : 'Steps'} aria-hidden={!meta}>
