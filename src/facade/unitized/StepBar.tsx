@@ -10,8 +10,9 @@ import { scrollToY } from '../../lib/scroll'
  */
 
 /** the way past the section it stands in: to its foot, the next section at the top of the screen */
-export function Skip({ label, className = '' }: { label: string; className?: string }) {
+export function Skip({ label, className = '', onSkip }: { label: string; className?: string; onSkip?: () => void }) {
   const past = (e: MouseEvent<HTMLButtonElement>) => {
+    if (onSkip) return onSkip()
     const section = e.currentTarget.closest('section')
     if (section) scrollToY(section.getBoundingClientRect().bottom + window.scrollY)
   }
@@ -32,6 +33,7 @@ export function StepBar({
   onGo,
   cellRef,
   skip = true,
+  onSkip,
 }: {
   label: string
   names: string[]
@@ -40,6 +42,8 @@ export function StepBar({
   cellRef: (k: number, el: HTMLLIElement | null) => void
   /** whether the bar offers the way past its section (a section with no run to skip goes without) */
   skip?: boolean
+  /** where Skip goes, for a bar that stands outside its section (Home's, fixed to the screen) */
+  onSkip?: () => void
 }) {
   return (
     <nav className="fu-bar" aria-label={label}>
@@ -57,7 +61,7 @@ export function StepBar({
           </li>
         ))}
       </ol>
-      {skip && <Skip label={label} />}
+      {skip && <Skip label={label} onSkip={onSkip} />}
     </nav>
   )
 }

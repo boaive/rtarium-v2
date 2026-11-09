@@ -656,149 +656,48 @@ html[data-ground='black'] .pin__text {
   }
 }
 
-/* ---- progress: the steps of the chapter on screen ------------------------------------------- */
+/* ---- progress: the steps of the chapter on screen, in the product pages' step bar (stepbar.css) ---- */
 
+/* a passed cell closes to its number; the current one fills with its screen (Progress writes --f) */
+@property --pc {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
 .progress {
   position: fixed;
-  left: 50%;
-  bottom: clamp(16px, 3.2vh, 32px);
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: clamp(14px, 2.6vh, 28px);
   z-index: 40;
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-  transform: translate(-50%, 16px);
+  transform: translateY(16px);
   opacity: 0;
   visibility: hidden;
   transition:
     opacity var(--d-mid) var(--ease-out),
     transform var(--d-mid) var(--ease-out),
-    visibility 0s linear var(--d-mid),
-    color var(--d-mid) var(--ease-out);
+    visibility 0s linear var(--d-mid);
 }
 .progress.is-on {
-  transform: translate(-50%, 0);
+  transform: none;
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;
 }
-.progress__title {
-  padding: 6px 10px;
-  border-radius: var(--radius);
-  background: var(--prog-bg, transparent);
-  font-size: var(--t-micro);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
+.progress .fu-bar__cell {
+  --c: var(--pc);
+  transition: --pc 0.5s var(--ease-out);
 }
-.progress__steps {
-  display: flex;
-  gap: 4px;
+.progress .fu-bar__cell[data-state='past'] {
+  --pc: 1;
 }
-/*
- * Each step is a slab of the inverse colour (black on the yellow screens, yellow on the black ones)
- * with its label always in full contrast; a rule along its foot fills while the step plays.
- */
-.progress.on-yellow,
-.progress.on-light {
-  --chip-bg: var(--black);
-  --chip-fg: var(--yellow);
+/* on the black screens the bar turns over: yellow ink on black */
+.progress.on-black .fu-bar {
+  --bar-ink: var(--yellow);
+  --bar-ground: var(--black);
 }
-.progress.on-black {
-  --chip-bg: var(--yellow);
-  --chip-fg: var(--black);
-}
-.progress__step {
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-width: clamp(92px, 8vw, 132px);
-  height: 36px;
-  padding: 0 14px;
-  overflow: hidden;
-  border: 0;
-  border-radius: 0;
-  background: var(--chip-bg);
-  color: var(--chip-fg);
-  font-size: var(--t-micro);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.progress__fill {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 3px;
-  background: var(--chip-fg);
-  transform: scaleX(0);
-  transform-origin: left;
-}
-.progress__label {
-  position: relative;
-  opacity: 0.72;
-}
-.progress__step.is-done .progress__label,
-.progress__step.is-active .progress__label {
-  opacity: 1;
-}
-.progress__step.is-done .progress__fill {
-  transform: scaleX(1);
-}
-.progress__step.is-active .progress__fill {
-  animation: fill 2.4s var(--ease-in-out) both;
-}
-@keyframes fill {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-.progress.on-black {
-  color: var(--yellow);
-  --prog-bg: var(--black);
-}
-.progress.on-yellow {
-  --prog-bg: var(--yellow);
-}
-.progress.on-light {
-  --prog-bg: var(--white);
-}
-.progress.on-yellow,
-.progress.on-light {
-  color: var(--black);
-}
-
-@media (max-width: 860px) {
-  .progress {
-    left: var(--gutter);
-    right: var(--gutter);
-    transform: translateY(16px);
-  }
-  .progress.is-on {
-    transform: none;
-  }
-  .progress__title {
-    display: none;
-  }
-  .progress__steps {
-    flex: 1;
-  }
-  .progress__steps li {
-    flex: 1;
-  }
-  .progress__step {
-    width: 100%;
-    height: 30px;
-    padding: 0 8px;
-    font-size: 10px;
-  }
+.progress.on-light .fu-bar {
+  --bar-ground: var(--white);
 }
 
 /* ---- footer: one yellow screen ------------------------------------------------------------ */

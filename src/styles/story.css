@@ -669,7 +669,7 @@
   font-size: clamp(2rem, min(3.6vw, 6.6vh), 3.6rem);
 }
 .scene.is-active .copy--pour {
-  animation: pour-copy 1.4s var(--ease-in-out) 3.3s both;
+  animation: pour-copy 1.1s var(--ease-in-out) 2.2s both;
 }
 .scene.is-seen .copy--pour {
   left: var(--gutter);
@@ -720,8 +720,8 @@
 }
 .scene.is-active .pourfilm {
   animation:
-    open-box 1s var(--ease-out) 0.6s both,
-    pour-film 1.4s var(--ease-in-out) 3.3s both;
+    open-box 0.8s var(--ease-out) 0.4s both,
+    pour-film 1.1s var(--ease-in-out) 2.2s both;
 }
 .scene.is-seen .pourfilm {
   opacity: 1;
@@ -1416,7 +1416,7 @@
     top: calc(var(--nav-h) + 8px);
   }
   .scene.is-active .pourfilm {
-    animation: open-box 1s var(--ease-out) 3s both;
+    animation: open-box 0.8s var(--ease-out) 2s both;
   }
   .scene.is-seen .pourfilm {
     top: calc(var(--nav-h) + 8px);

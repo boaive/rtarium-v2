@@ -80,6 +80,16 @@ const toLocal = new THREE.Matrix4()
 const tourScratch: Pose = { ...POSES.hero }
 const blendScratch: Pose = { ...POSES.hero }
 const pourScratch: Pose = { ...POSES.hero }
+/** seconds the "In concrete" copy's move has played, or null where it has none (a phone, no motion) */
+function pourClock(): number | null {
+  const copy = document.querySelector<HTMLElement>('.scene--flow.is-active .copy--pour')
+  const move = copy?.getAnimations().find((a) => (a as CSSAnimation).animationName === 'pour-copy')
+  const t = move?.currentTime
+  // once it has arrived, the stand-back plays on by itself to its end
+  return move && move.playState !== 'finished' && typeof t === 'number' ? t / 1000 : null
+}
+/** whether an element the notes stand in line with is still on its way: they wait for it to arrive */
+const moving = (el: Element | null) => !!el && el.getAnimations().some((a) => a.playState === 'running' && (a as CSSAnimation).animationName === 'pour-copy')
 const fogTarget = new THREE.Color()
 const anchorPt: [number, number, number] = [0, 0, 0]
 /** where each screen is this frame: read once, used by the choice of the active screen and by the views */
@@ -459,7 +469,10 @@ export function StageScene({ compact, reduced }: Props) {
 
       // "In concrete" plays in time once reached: the mortar runs in, then the camera stands back
       if (pose.pour) {
-        if (active) f.pour = reduced ? 1.6 : Math.min(1.6, f.pour + dt / 2.8)
+        // on the clock of the copy's own move to the left (it starts with the slide's `is-active`, and starts
+        // over with it), so the notes, on the copy's line, never come in while the copy still stands on the right
+        const played = active && !reduced ? pourClock() : null
+        if (active) f.pour = reduced ? 1.6 : played !== null ? Math.min(1.6, -0.25 + played / 1.85) : Math.min(1.6, f.pour + dt / 1.85)
         if (f.pour > 1.02) pose = blendPose(pose, POUR_OUT, smoothstep(1.02, 1.6, f.pour), pourScratch)
       } else f.pour = -0.25
 
@@ -759,7 +772,9 @@ export function StageScene({ compact, reduced }: Props) {
           // on a narrow screen the column moves in, so the labels keep inside it
           // the column is a fraction of the width, or the line of an element on the page: the words start on its
           // left edge, and the leader leaves them on the side the point is on
-          const at = el.dataset.colAt ? document.querySelector(el.dataset.colAt)?.getBoundingClientRect() : undefined
+          const line = el.dataset.colAt ? document.querySelector(el.dataset.colAt) : null
+          if (moving(line)) continue
+          const at = line?.getBoundingClientRect()
           const words = at ? (el.querySelector<HTMLElement>('.pin__tag')?.offsetWidth ?? 0) : 0
           const colX = at ? (x > at.left + words ? at.left + words + 18 : at.left - 18) : (compact ? Math.min(Number(el.dataset.col), 0.5) + 0.22 : Number(el.dataset.col)) * vw
           const dx = colX - x

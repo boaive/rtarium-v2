@@ -1,0 +1,151 @@
+/*
+ * The step bar (StepBar), shared by every page: the product pages' step-throughs and the Home chapters' bar
+ * along the foot of the screen (Progress). Colours come from --bar-ink and --bar-ground, so it can stand on black too.
+ */
+
+/*
+ * The bar along the foot (StepBar; slab to slab and the answers): a cell per step. The current one
+ * fills as its step runs (`--f`); a passed one closes to a square with its number (`--c`); the ones
+ * to come stand open, outlined.
+ */
+.fu-bar {
+  --bar-h: 44px;
+  --bar-ink: var(--black);
+  --bar-ground: var(--yellow);
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 1.6vw, 28px);
+}
+.fu-ans .fu-bar {
+  position: absolute;
+  z-index: 3;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: var(--bar-b);
+}
+.fu-bar__list {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.fu-bar__cell {
+  --f: 0;
+  --c: 0;
+  flex: calc(1 - var(--c)) 1 0px;
+  min-width: var(--bar-h);
+}
+.fu-bar__btn {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--bar-h);
+  padding: 0;
+  border: 1.5px solid var(--bar-ink);
+  background: var(--bar-ground);
+  color: var(--bar-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.fu-bar__cell[data-state='next'] .fu-bar__btn {
+  border-color: color-mix(in srgb, var(--bar-ink) 34%, transparent);
+}
+.fu-bar__btn:hover {
+  border-color: var(--bar-ink);
+}
+.fu-bar__face {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 100%;
+  padding: 0 11px;
+  font-size: var(--t-micro);
+  font-weight: 700;
+  line-height: 1.14;
+}
+.fu-bar__face .num {
+  flex: none;
+  font-weight: 600;
+  opacity: 0.72;
+}
+/* a long name takes two lines rather than being cut; it fades as its cell closes */
+.fu-bar__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  text-wrap: balance;
+  opacity: calc(1 - var(--c) * 1.8);
+}
+.fu-bar__face--fill {
+  position: absolute;
+  inset: 0;
+  background: var(--bar-ink);
+  color: var(--bar-ground);
+  clip-path: inset(0 calc((1 - var(--f)) * 100%) 0 0);
+}
+.fu-bar__btn:focus-visible,
+.fu-bar__skip:focus-visible {
+  outline: 2px solid var(--bar-ink);
+  outline-offset: 3px;
+}
+/* the way past the section: as plain as the bar it ends, its arrow pointing on down the page */
+.fu-bar__skip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: var(--bar-h);
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--bar-ink);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+/* in the studio box, beside the arrows: there is no bar along the six layers' foot to end */
+.fu-sheet__skip {
+  min-height: 0;
+  margin-right: 6px;
+  color: var(--yellow);
+}
+.fu-sheet__skip:focus-visible {
+  outline-color: var(--yellow);
+}
+.fu-bar__skip svg {
+  transition: transform var(--d-fast) var(--ease-out);
+}
+.fu-bar__skip:hover svg {
+  transform: translateY(3px);
+}
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fu-bar {
+    --bar-h: 40px;
+  }
+  /* on a phone only the current cell is open; the others are small squares, so its name has the room to be read */
+  .fu-bar__cell:not([data-state='now']) {
+    --c: 1 !important;
+    min-width: 28px;
+  }
+  .fu-bar__cell:not([data-state='now']) .fu-bar__face {
+    justify-content: center;
+    padding: 0;
+  }
+  .fu-bar__cell:not([data-state='now']) .fu-bar__name,
+  .fu-bar__cell[data-state='now'] .num {
+    display: none;
+  }
+  .fu-bar__list {
+    gap: 4px;
+  }
+  .fu-bar__skip {
+    font-size: var(--t-micro);
+  }
+}
