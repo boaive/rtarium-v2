@@ -1,6 +1,7 @@
 import { createContext, Suspense, useContext, useEffect, useMemo, useRef, type RefObject } from 'react'
 import * as THREE from 'three'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
+import { prefersReducedMotion } from '../../lib/motion'
 import { smooth } from '../../facade/progress'
 import { Lines } from '../../flooring/data/three/dc'
 import { ink, useDrawing, useInkResolution } from '../../flooring/data/three/draw'
@@ -10,9 +11,9 @@ import { Rtarium } from './Panel'
 import { WIRE } from '../../three/wire'
 
 /**
- * The story's facts (Wall Panels), two to a block, each a small 3D scene standing still at the moment that says it. The
- * block's boxes already open and close with the scroll, so nothing plays or changes on top of that; only the view
- * sways a touch:
+ * The story's facts (Wall Panels), two to a block, each a small 3D scene that plays its moment once each time its box
+ * comes into view (the magnet takes the nut up, the weights come down, the clock runs), then stands at the moment that
+ * says it; the view sways a touch:
  *
  *   strength  a piece of the 30 mm panel hung by two eye bolts in its ferrules, weights on it: 125 kg at each point
  *   magnet    a lifting magnet over a piece lying flat: it has taken the steel nut up, the panel stays
@@ -55,9 +56,32 @@ function useKit() {
 }
 const trio = (m: WallKit): Trio => [m.concrete, m.edge, m.outer]
 
-/** where a scene stands in its sequence: at its telling moment, and there it stays */
+/** whether a scene's box is on screen (its cell says): it plays each time it comes into view */
+const Live = createContext<{ current: boolean }>({ current: true })
+
+/**
+ * where a scene stands in its sequence: it plays from the start, in seconds, each time its box comes into view, up to its
+ * telling moment, and there it stays (under reduced motion it is simply there)
+ */
 function useClock(fact: Fact) {
-  return useRef(STILL[fact])
+  const live = useContext(Live)
+  const invalidate = useThree((st) => st.invalidate)
+  const reduced = useMemo(() => prefersReducedMotion(), [])
+  const t = useRef(reduced ? STILL[fact] : 0)
+  const was = useRef(false)
+  useFrame((_, delta) => {
+    if (reduced) return
+    const on = live.current
+    if (on && !was.current) t.current = 0
+    was.current = on
+    if (on && t.current < STILL[fact]) {
+      t.current = Math.min(STILL[fact], t.current + Math.min(delta, 1 / 20))
+      invalidate()
+    }
+  }, -3)
+  // (asked for a first frame, so a box that is already open starts playing)
+  useEffect(() => invalidate(), [invalidate])
+  return t
 }
 
 /** the site's own typeface, for the numbers drawn on a display */
@@ -598,8 +622,13 @@ function Carbon({ readout, dark }: { readout: RefObject<HTMLElement | null>; dar
   )
 }
 
-export function FactScene({ fact, readout, dark }: { fact: Fact; readout: RefObject<HTMLElement | null>; dark: boolean }) {
-  return <Finish.Provider value={dark ? 'natural' : 'pink'}>{scene(fact, readout, dark)}</Finish.Provider>
+export function FactScene({ fact, readout, dark, live }: { fact: Fact; readout: RefObject<HTMLElement | null>; dark: boolean; live?: { current: boolean } }) {
+  const always = useMemo(() => ({ current: true }), [])
+  return (
+    <Live.Provider value={live ?? always}>
+      <Finish.Provider value={dark ? 'natural' : 'pink'}>{scene(fact, readout, dark)}</Finish.Provider>
+    </Live.Provider>
+  )
 }
 
 function scene(fact: Fact, readout: RefObject<HTMLElement | null>, dark: boolean) {

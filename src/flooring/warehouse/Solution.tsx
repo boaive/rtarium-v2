@@ -196,15 +196,16 @@ export function Solution() {
     // of its own, as the slab to slab's bar plays to its step; `move`: the page goes straight there first
     let seeking = false
     let seekRaf = 0
-    const seek = (to: number) => {
+    const seek = (to: number, at?: number) => {
       cancelAnimationFrame(seekRaf)
-      const from = p < 0 ? to : p
+      // (a step of the bar plays in full, from its own start: `at`)
+      const from = at ?? (p < 0 ? to : p)
       if (reduced || Math.abs(to - from) < 1e-4) {
         p = to
         apply()
         return
       }
-      const time = Math.min(1.6, 0.55 + 0.28 * Math.abs(to - from)) * 1000
+      const time = Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from)) * 1000
       const start = performance.now()
       seeking = true
       const frame = (at: number) => {
@@ -223,7 +224,7 @@ export function Solution() {
       const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
       const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.8 : 0.8)
       if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
-      seek(stepAt(s))
+      seek(stepAt(s), k)
     }
     const kick = () => {
       if (!raf) {

@@ -95,7 +95,7 @@ export function FloorFrame() {
           </Stage3D>
           <Labels bus={bus} labels={LABELS} shown={shown} />
         </div>
-        <StepBar label="From the floor to the building" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => seek(holds[i])} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
+        <StepBar label="From the floor to the building" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => seek(holds[i], i ? holds[i - 1] : 0)} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
       </div>
     </section>
   )

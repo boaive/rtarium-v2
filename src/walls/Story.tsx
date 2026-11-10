@@ -112,7 +112,7 @@ function FactCell({ fact, name, compact, dark }: { fact: Fact; name: string; com
       <Stage3D shadows keyLight={false}>
         <CellRig shotAt={shot} size={compact ? [sw * 0.98, sh * 0.98] : [sw * 1.08, sh * 1.08]} live={live} />
         <MovingKeyLight focus={[0, 0, 0]} reach={1.4} offset={[-4, 10, 7.5]} />
-        <FactScene fact={fact} readout={readout} dark={dark} />
+        <FactScene fact={fact} readout={readout} dark={dark} live={live} />
       </Stage3D>
       <p className="wp-fact__name">{name}</p>
       <p ref={readout} className="wp-fact__read num" aria-live="off" />

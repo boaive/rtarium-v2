@@ -106,10 +106,16 @@ export function usePlay(ref: RefObject<HTMLElement | null>, seconds: number, sha
     // (`go` only reaches refs)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref, seconds, share])
-  /** to a point of the play, there and no further */
-  const seek = (v: number) => {
+  /**
+   * to a point of the play, there and no further; `from`: a step chosen on its bar, played in full from its own start, at
+   * the play's own pace
+   */
+  const seek = (v: number, from?: number) => {
     started.current = true
-    go(v, 1 / Math.max(0.9, seconds * 0.16))
+    if (from === undefined) return go(v, 1 / Math.max(0.9, seconds * 0.16))
+    progress.value = from
+    progress.listeners.forEach((f) => f())
+    go(v, 1 / seconds)
   }
   return [progress, seek] as const
 }

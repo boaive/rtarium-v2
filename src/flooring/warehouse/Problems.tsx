@@ -17,7 +17,7 @@ export function Problems() {
   return (
     <Table
       problems={PROBLEMS}
-      title="Traditional screeds were not built for this."
+      title="Traditional screeds were not built for automated warehouses."
       answer="RTARIUM was."
     />
   )

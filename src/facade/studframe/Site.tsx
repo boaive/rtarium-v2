@@ -63,7 +63,7 @@ export function Site() {
     return () => void progress.listeners.delete(paint)
   }, [progress])
 
-  const go = (p: number) => seek(p)
+  const go = (p: number, from?: number) => seek(p, from)
   /** where each step of the bar takes you: the L frames solid, the element set, locked, sealed, the tower banded, finished */
   const holds = [INSTALL.seats[1], INSTALL.hook[1], INSTALL.look[0] + 0.05, INSTALL.bead[1], INSTALL.fill[1], INSTALL.finish[1]].map((p) => p + 0.012)
 
@@ -82,7 +82,7 @@ export function Site() {
             <FollowScroll progress={progress} />
           </Stage3D>
         </div>
-        <StepBar label="How a stud frame element goes onto the building" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => go(holds[i])} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
+        <StepBar label="How a stud frame element goes onto the building" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => go(holds[i], i ? holds[i - 1] : 0)} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
       </div>
     </section>
   )

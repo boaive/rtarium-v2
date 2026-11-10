@@ -211,15 +211,16 @@ export function Answers() {
     // there first, so the scroll carries on from it
     let seeking = false
     let seekRaf = 0
-    const seek = (to: number) => {
+    const seek = (to: number, at?: number) => {
       cancelAnimationFrame(seekRaf)
-      const from = p < 0 ? to : p
+      // (a step of the bar plays in full, from its own start: `at`)
+      const from = at ?? (p < 0 ? to : p)
       if (reduced || Math.abs(to - from) < 1e-4) {
         p = to
         apply()
         return
       }
-      const time = Math.min(1.6, 0.55 + 0.28 * Math.abs(to - from)) * 1000
+      const time = Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from)) * 1000
       const t0 = performance.now()
       seeking = true
       const frame = (now: number) => {
@@ -238,7 +239,7 @@ export function Answers() {
       const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
       const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.76)
       if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
-      seek(answerAt(s))
+      seek(answerAt(s), k)
     }
     el.addEventListener('run:show', show)
     const kick = () => {

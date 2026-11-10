@@ -7,6 +7,7 @@ import { createBus } from '../facade/three/kit'
 import { sectionY, type Progress } from '../facade/progress'
 import { useCornerBox, useLive } from '../facade/unitized/live'
 import { HintTag, StepBar, type Hint } from '../facade/unitized/StepBar'
+import { paintCards } from '../facade/unitized/stack'
 import { ORDER100, ORDER30, PieceStage, RUN_AT, STILL100, STILL30 } from './three/PieceStage'
 import type { Room } from './three/fit'
 import { Block, Figures, Sheet, Steps, useSheet } from './Sheet'
@@ -27,7 +28,7 @@ import { PAIRED, REVIEW, SOLID } from './content'
  */
 
 /** the word in the box: how to go through the parts */
-const HOW: Hint = { text: 'Pick a part, or use the arrows', icon: 'pick' }
+const HOW: Hint = { text: 'Scroll or use the arrows', icon: 'scroll' }
 
 interface Part {
   /** the model's anchor */
@@ -65,22 +66,53 @@ const LABELS: LabelSpec[] = [
 // (the lists' order is the model's)
 if (import.meta.env.DEV && (PARTS30.some((p, i) => p.id !== ORDER30[i]) || PARTS100.some((p, i) => p.id !== ORDER100[i]))) console.warn('Panels: the parts lists are out of the model\'s order')
 
-/** screens the section takes: one to stand on, the rest for the two bursts */
-const RUN = 3.4
-/** over the run: the solid panel opens; then, after its rest, it closes, takes its core and opens as the SIP panel */
-const OPEN_AT = [0.02, 0.2] as const
-const CHANGE_AT = [0.36, 0.84] as const
-/** where each panel rests: where the bar and the table take the page */
-const REST = [0.28, 0.93] as const
+/**
+ * The run, in screens of scroll, as the Unitized page's six layers: the solid panel opens; then its parts, a scroll each,
+ * each card coming up as its part is shown on the model; then it closes, takes its core and opens as the SIP panel, its
+ * cards cleared; then its parts, a scroll each, its cards coming up anew.
+ */
+const OPEN: [number, number] = [0.1, 1.1]
+/** a part's stretch of scroll, and how much of it its card takes to come up */
+const PART = 0.75
+const COME = 0.5
+const FROM30 = 1.2
+/** after its last part, the panel closes up whole: one scroll more */
+const WHOLE30: [number, number] = [FROM30 + PARTS30.length * PART + 0.05, FROM30 + PARTS30.length * PART + 0.65]
+const CHANGE_S: [number, number] = [WHOLE30[1] + 0.35, WHOLE30[1] + 2.15]
+const FROM100 = CHANGE_S[1] + 0.2
+const WHOLE100: [number, number] = [FROM100 + PARTS100.length * PART + 0.05, FROM100 + PARTS100.length * PART + 0.65]
+const SCROLL = WHOLE100[1] + 0.12
+/** screens the section takes: the scroll, and the one it stands on */
+const RUN = SCROLL + 1
+/** a part's card arrived: where the page rests for it (screens) */
+const restS = (which: 30 | 100, k: number) => (which === 30 ? FROM30 : FROM100) + k * PART + COME + 0.02
+/** the page's stops through the section: each part of each panel (fractions of the run) */
+const STOPS = [...PARTS30.map((_, k) => restS(30, k)), WHOLE30[1] + 0.02, ...PARTS100.map((_, k) => restS(100, k)), WHOLE100[1] + 0.02].map((x) => x / SCROLL)
+/** where each panel stands whole, closed up after its parts */
+const wholeAt = (x: number) => (x >= WHOLE30[0] && x < CHANGE_S[0]) || x >= WHOLE100[0]
+/** where each panel's bar step takes the page: its first part */
+const REST = [STOPS[0], STOPS[PARTS30.length + 1]] as const
 
 const ramp = ([a, b]: readonly [number, number], v: number) => Math.min(1, Math.max(0, (v - a) / (b - a)))
-/**
- * The panel's sequence at a point of the run. (From the solid panel's rest it goes straight to where it starts to close:
- * the stretch of the sequence between them is its marks, which the table does here.)
- */
-const tAt = (p: number) => (p < CHANGE_AT[0] ? STILL30 * ramp(OPEN_AT, p) : RUN_AT.close30[0] + (STILL100 - RUN_AT.close30[0]) * ramp(CHANGE_AT, p))
+/** the panel's sequence at a point of the scroll: opening, resting through its parts, changing over, resting again */
+const tAt = (x: number) =>
+  x < WHOLE30[0]
+    ? STILL30 * ramp(OPEN, x)
+    : x < CHANGE_S[0]
+      ? RUN_AT.close30[0] + (RUN_AT.close30[1] - RUN_AT.close30[0]) * ramp(WHOLE30, x)
+      : x < WHOLE100[0]
+        ? RUN_AT.close30[1] + (STILL100 - RUN_AT.close30[1]) * ramp(CHANGE_S, x)
+        : RUN_AT.close100[0] + (RUN_AT.close100[1] - RUN_AT.close100[0]) * ramp(WHOLE100, x)
 /** the name, the table and the figures change over as the panel takes its core */
 const SWAP = (RUN_AT.divide[0] + RUN_AT.core[1]) / 2
+/** each card's arrival at a point of the scroll: the panel's own, from its first part on */
+const arrivals = (which: 30 | 100, x: number) =>
+  (which === 30 ? PARTS30 : PARTS100).map((_, k) => {
+    const a = (which === 30 ? FROM30 : FROM100) + k * PART
+    return ramp([a, a + COME], x)
+  })
+/** how near a stop counts as at it */
+const NEAR = 0.004
 
 /** on a phone: how much of the panel's change goes by in a second, when the arrow takes it to the other panel */
 const CHANGE = 0.21
@@ -101,12 +133,20 @@ export function Panels() {
   /** which panel is shown, and which of its parts is chosen */
   const [which, setWhich] = useState<30 | 100>(30)
   const [part, setPart] = useState<number | null>(null)
+  /** the panel closed up whole, after its parts */
+  const [closed, setClosed] = useState(false)
   /** the panel has come to rest, opened: its parts can be numbered */
   const [still, setStill] = useState(compact)
   /** the part the model holds whole, read by it every frame */
   const focus = useRef<string | null>(null)
   /** the room the panel keeps to in its box: clear of the read-outs at the top and the parts along the foot */
   const room = useRef<Room>({ x: 0.04, y: 0.1, w: 0.92, h: 0.74 })
+  const deck = useRef<HTMLOListElement>(null)
+  const track = useRef<(HTMLLIElement | null)[]>([])
+  /** where the run stands, and the stop a step last sent the page to while it is on its way there */
+  const aimP = useRef(0)
+  const aim = useRef({ p: -1, t: 0 })
+  const cards = useRef<(HTMLLIElement | null)[]>([])
   const [solidSheet, openSolid] = useSheet()
   const [sipSheet, openSip] = useSheet()
 
@@ -131,16 +171,35 @@ export function Panels() {
       // (the page already glides; the panel follows it a little behind, so a wheel's tick never jumps the layers)
       p = p < 0 || reduced ? target : damp(p, target, 6.5, dt)
       if (Math.abs(p - target) < 1e-4) p = target
-      const v = reduced ? (p < (REST[0] + REST[1]) / 2 ? STILL30 : STILL100) : tAt(p)
+      const x = p * SCROLL
+      const v = tAt(x)
       if (t.value !== v) {
         t.value = v
         t.listeners.forEach((f) => f())
       }
-      setWhich(v > SWAP ? 100 : 30)
+      const w: 30 | 100 = v > SWAP ? 100 : 30
+      setWhich(w)
       setStill(v === STILL30 || v === STILL100)
-      // the bar: each panel's cell fills as it is shown; both keep their names, so both stay in sight
-      cells.current[0]?.style.setProperty('--f', ramp([0, CHANGE_AT[0]], p).toFixed(4))
-      cells.current[1]?.style.setProperty('--f', ramp([CHANGE_AT[0], 1], p).toFixed(4))
+      // the cards come up a part a scroll; the part on the model is the newest card's
+      const a = arrivals(w, x).map((u) => (reduced ? Math.round(u) : 1 - Math.pow(1 - u, 3)))
+      paintCards(deck.current, cards.current.slice(0, a.length), a)
+      const whole = wholeAt(x)
+      let latest = -1
+      a.forEach((u, k) => u > 0.5 && (latest = k))
+      cards.current.slice(0, a.length).forEach((c, k) => c?.toggleAttribute('data-current', !whole && k === latest))
+      setPart(latest < 0 || whole ? null : latest)
+      setClosed(whole)
+      // the track along the box's foot: each line fills as its part comes in
+      track.current.slice(0, a.length).forEach((c, k) => {
+        if (!c) return
+        c.style.setProperty('--f', a[k].toFixed(4))
+        const state = whole || k < latest ? 'past' : k === latest ? 'now' : 'next'
+        if (c.dataset.state !== state) c.dataset.state = state
+      })
+      // the bar: each panel's cell fills through its parts, full at its last
+      cells.current[0]?.style.setProperty('--f', ramp([0, WHOLE30[1]], x).toFixed(4))
+      cells.current[1]?.style.setProperty('--f', ramp([CHANGE_S[0], WHOLE100[1]], x).toFixed(4))
+      aimP.current = p
       if (p !== target) raf = requestAnimationFrame(tick)
     }
     const on = () => {
@@ -160,12 +219,19 @@ export function Panels() {
 
   // a part stays chosen only while its panel rests; one asked for on the way is chosen on arrival
   useEffect(() => {
+    if (!compact) return
     if (!still) setPart(null)
     else if (want.current !== null) {
       setPart(want.current)
       want.current = null
     }
-  }, [still])
+  }, [still, compact])
+
+  // the deck changes over with the panel: painted at once by the clock, never left as it was
+  useEffect(() => {
+    if (compact) return
+    window.dispatchEvent(new Event('scroll'))
+  }, [compact, which])
 
   // on a phone, the arrow: the panel closes, divides, takes its core, joins and opens again (or back), in time
   useEffect(() => {
@@ -202,20 +268,39 @@ export function Panels() {
     if (compact) setWhich(next)
     else if (el) scrollToY(sectionY(el, REST[next === 30 ? 0 : 1]))
   }
-  /** a part back or on; past the last of the solid panel's, on to the SIP panel, and back */
+  /** to a part of a panel: on a desktop the page scrolls to it, as a layer's card does on the six layers */
+  const goPart = (w: 30 | 100, k: number) => {
+    const el = section.current
+    if (!el) return
+    const at = restS(w, k) / SCROLL
+    aim.current = { p: at, t: performance.now() }
+    scrollToY(sectionY(el, at))
+  }
+  /** a part back or on: from where the last step was going, if the page is still on its way */
   const step = (dir: 1 | -1) => {
-    if (!still) return show(which)
-    const k = part === null ? (dir > 0 ? -1 : parts.length) : part
-    const n = k + dir
-    if (n >= 0 && n < parts.length) setPart(n)
-    else if (dir > 0 && which === 30) show(100)
-    else if (dir < 0 && which === 100) show(30)
+    if (compact) {
+      if (!still) return show(which)
+      const k = part === null ? (dir > 0 ? -1 : parts.length) : part
+      const n = k + dir
+      if (n >= 0 && n < parts.length) setPart(n)
+      else if (dir > 0 && which === 30) show(100)
+      else if (dir < 0 && which === 100) show(30)
+      return
+    }
+    const el = section.current
+    if (!el) return
+    const from = performance.now() - aim.current.t < 1200 ? aim.current.p : aimP.current
+    const to = dir > 0 ? STOPS.find((v) => v > from + NEAR) : [...STOPS].reverse().find((v) => v < from - NEAR)
+    if (to === undefined) return
+    aim.current = { p: to, t: performance.now() }
+    scrollToY(sectionY(el, to))
   }
   const atStart = which === 30 && (part === null || part === 0)
   const atEnd = which === 100 && part === parts.length - 1
 
   const shown = still ? parts.map((_, i) => `${prefix}${i}`) : []
   const pick = (i: number) => {
+    if (!compact) return goPart(which, i)
     if (still) setPart((p) => (p === i ? null : i))
     else {
       want.current = i
@@ -229,8 +314,9 @@ export function Panels() {
         ref={section}
         id="panels"
         className="fu-layers wp-panels on-yellow"
-        // the page's one scroll a step: each panel at its rest
-        data-stops={compact ? undefined : REST.join(',')}
+        // the page's one scroll a step: each part of each panel, as the six layers' each layer
+        data-stops={compact ? undefined : STOPS.map((v) => v.toFixed(5)).join(',')}
+        data-no-top=""
         aria-labelledby="wp-panels-title"
         style={{ '--run': compact ? 1 : RUN } as CSSProperties}
       >
@@ -243,18 +329,42 @@ export function Panels() {
               <p className="wp-panels__thick num">{which === 30 ? '30 mm' : '100 mm'}</p>
             </div>
 
-            {/* the panel's parts: each one shows where it is on the panel */}
-            <ol key={`parts-${which}`} className="wp-parts" aria-label="The panel's parts">
-              {parts.map((p, i) => (
-                <li key={p.id}>
-                  <button type="button" className="wp-parts__row" aria-pressed={part === i} onClick={() => pick(i)}>
-                    <span className="wp-parts__num num">{String(i + 1).padStart(2, '0')}</span>
-                    <span className="wp-parts__name">{p.name}</span>
-                    <span className="wp-parts__value">{p.value}</span>
-                  </button>
-                </li>
-              ))}
-            </ol>
+            {/* the panel's parts, as the six layers' cards: they come up one by one once the panel rests, and anew for
+                the other panel; each one shows where it is on the panel */}
+            {compact ? (
+              <ol key={`parts-${which}`} className="wp-parts" aria-label="The panel's parts">
+                {parts.map((p, i) => (
+                  <li key={p.id}>
+                    <button type="button" className="wp-parts__row" aria-pressed={part === i} onClick={() => pick(i)}>
+                      <span className="wp-parts__num num">{String(i + 1).padStart(2, '0')}</span>
+                      <span className="wp-parts__name">{p.name}</span>
+                      <span className="wp-parts__value">{p.value}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <ol
+                key={`deck-${which}`}
+                ref={deck}
+                className="fu-deck fu-deck--layers wp-deck"
+                aria-label="The panel's parts"
+                style={{ '--n': parts.length } as CSSProperties}
+              >
+                {parts.map((p, i) => (
+                  <li key={p.id} ref={(el) => void (cards.current[i] = el)} className="fu-card" style={{ zIndex: i + 1 }}>
+                    <button type="button" className="fu-card__btn" aria-pressed={part === i} onClick={() => pick(i)}>
+                      <span className="fu-card__head">
+                        <span className="fu-card__num num">{String(i + 1).padStart(2, '0')}</span>
+                        <span className="fu-card__name">{p.short}</span>
+                        <b className="wp-deck__value num">{p.value}</b>
+                      </span>
+                      <span className="fu-card__body">{p.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
 
             <div className="wp-panels__foot">
               <p className="wp-panels__figs">{which === 30 ? '70 kg/m² · 125 kg per point · M8 ferrules' : '74 kg/m² · 72 kg per point · EPS/SPS core'}</p>
@@ -287,7 +397,7 @@ export function Panels() {
                 {/* which part is shown: its number of them, and its name */}
                 <p className="fu-sheet__now" aria-live="polite">
                   <span className="num">{part === null ? (which === 30 ? '30 mm' : '100 mm') : `${String(part + 1).padStart(2, '0')} / ${String(parts.length).padStart(2, '0')}`}</span>
-                  <span className="fu-sheet__name">{part === null ? (which === 30 ? SOLID.name : PAIRED.name) : parts[part].short}</span>
+                  <span className="fu-sheet__name">{part === null ? `${which === 30 ? SOLID.name : PAIRED.name}${closed ? ', whole' : ''}` : parts[part].short}</span>
                 </p>
 
                 <div className="fu-sheet__steps">
@@ -304,7 +414,13 @@ export function Panels() {
 
                 <ol className="fu-track" aria-label="Go to a part" style={{ gridTemplateColumns: `repeat(${parts.length}, minmax(0, 1fr))` }}>
                   {parts.map((p, i) => (
-                    <li key={p.id} className="fu-track__cell" data-state={part === i ? 'now' : 'past'} style={{ '--f': 1 } as CSSProperties}>
+                    <li
+                      key={p.id}
+                      ref={(el) => void (track.current[i] = el)}
+                      className="fu-track__cell"
+                      data-state={compact ? (part === i ? 'now' : 'past') : undefined}
+                      style={compact ? ({ '--f': 1 } as CSSProperties) : undefined}
+                    >
                       <button type="button" className="fu-track__btn" onClick={() => pick(i)}>
                         <span className="fu-track__line" aria-hidden="true" />
                         <span className="fu-track__name">{p.short}</span>

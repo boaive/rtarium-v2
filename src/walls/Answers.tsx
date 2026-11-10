@@ -67,7 +67,7 @@ const MEDIA: Record<string, { src: string; alt: string }> = {
 }
 
 /** screens of scroll for each slide: the ones with a close look in them run longer */
-const STRETCH = [1.7, 2.6, 2.2, 1.8, 1.7, 1.4]
+const STRETCH = [1.7, 2.6, 2.2, 1.8, 1.7, 1.4].map((x) => x * 1.5)
 const RUN = STRETCH.reduce((a, b) => a + b, 0)
 const START = STRETCH.map((_, k) => STRETCH.slice(0, k).reduce((a, b) => a + b, 0))
 const N = ANSWERS.length
@@ -191,7 +191,7 @@ export function Answers() {
       const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
       last = now
       const target = answerAt(-el.getBoundingClientRect().top / window.innerHeight)
-      p = p < 0 || reduced ? target : damp(p, target, 12, dt)
+      p = p < 0 || reduced ? target : damp(p, target, 6, dt)
       if (Math.abs(p - target) < 1e-4) p = target
       apply()
       if (p !== target) raf = requestAnimationFrame(tick)
@@ -214,19 +214,19 @@ export function Answers() {
       const on = (SHOWN[ANSWERS[k].id] ?? []).filter(([, a, b]) => f > a && f < (b ?? (k === N - 1 ? 2 : 0.86))).map(([id]) => id)
       setShown((s) => (s.join() === on.join() ? s : on))
     }
-    // a step of the bar (`run:show`, from the page's stepper): the run played to that step, back or on, smoothly and in a time
-    // of its own, as the slab to slab's bar plays to its step; `move`: the page goes straight there first
+    // a step of the bar (`run:show`, from the page's stepper): that step played in full, from its own start to its end, in a
+    // time of its own, whichever step it was at; `move`: the page goes straight there first
     let seeking = false
     let seekRaf = 0
-    const seek = (to: number) => {
+    const seek = (to: number, at?: number) => {
       cancelAnimationFrame(seekRaf)
-      const from = p < 0 ? to : p
+      const from = at ?? (p < 0 ? to : p)
       if (reduced || Math.abs(to - from) < 1e-4) {
         p = to
         apply()
         return
       }
-      const time = Math.min(1.6, 0.55 + 0.28 * Math.abs(to - from)) * 1000
+      const time = Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from)) * 1000
       const start = performance.now()
       seeking = true
       const frame = (at: number) => {
@@ -245,7 +245,7 @@ export function Answers() {
       const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
       const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.84)
       if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
-      seek(answerAt(s))
+      seek(answerAt(s), k)
     }
     const kick = () => {
       if (!raf) {

@@ -1021,11 +1021,13 @@
 .say__in {
   display: grid;
   gap: var(--s-5);
+  justify-items: center;
+  text-align: center;
 }
 .say__kicker {
   font-size: var(--t-lead);
   font-weight: 700;
-  color: var(--white);
+  color: var(--yellow);
 }
 .say__in .word__in {
   transform: translateY(136%);

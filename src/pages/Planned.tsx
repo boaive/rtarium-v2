@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { APPLICATIONS, SITE, contactConfigured } from '../content/site'
 import { Link } from '../lib/router'
+import { Contact } from './ContactForm'
 
 /**
  * Destinations the homepage links to that are outside this build. Each says plainly that its full
@@ -46,38 +47,28 @@ export function ContactPage() {
     document.title = 'Contact · RTARIUM by HEMISPHERE ONE'
   }, [])
   return (
-    <section className="page" aria-labelledby="page-title">
-      <div className="page__copy">
-        <h1 id="page-title" className="page__title">
-          Contact
-        </h1>
-        {contactConfigured() ? (
-          <ul className="page__points">
-            {SITE.contact.email && (
-              <li>
-                <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
-              </li>
-            )}
-            {SITE.contact.phone && <li>{SITE.contact.phone}</li>}
-            {SITE.contact.address && <li>{SITE.contact.address}</li>}
-          </ul>
-        ) : (
-          <p className="page__lede">
-            HEMISPHERE ONE’s enquiry address and phone number will be published here. Until then there is no form on this
-            page, so nothing you write can go unanswered.
-          </p>
-        )}
-        <div className="page__actions">
-          <Link to="/" className="pill pill--solid">
-            Back to the homepage
-          </Link>
-        </div>
-      </div>
-      <figure className="page__media">
-        <img src="/img/shoot/mesh-profile.webp" alt="An RTARIUM sheet seen edge-on: two mesh faces with fibres looping between them" />
-        <figcaption>RTARIUM seen edge-on, production shoot.</figcaption>
-      </figure>
-    </section>
+    <Contact
+      labelledBy="page-title"
+      intro={
+        <>
+          <h1 id="page-title" className="contact__title">
+            Contact
+          </h1>
+          <p className="contact__lede">Tell us about the project, the building, its floor or its walls, and we will come back to you.</p>
+          {contactConfigured() ? (
+            <ul className="page__points contact__points">
+              {SITE.contact.email && (
+                <li>
+                  <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
+                </li>
+              )}
+              {SITE.contact.phone && <li>{SITE.contact.phone}</li>}
+              {SITE.contact.address && <li>{SITE.contact.address}</li>}
+            </ul>
+          ) : null}
+        </>
+      }
+    />
   )
 }
 

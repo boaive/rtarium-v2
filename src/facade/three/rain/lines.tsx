@@ -10,7 +10,7 @@ import { isWire, WIRE } from '../../../three/wire'
  * Drawings with a weight: line segments drawn `width` pixels wide (a plain line is one pixel, which
  * reads as a hairline scratch at a distance). The geometry is any segment list (pairs of points).
  */
-export function FatLines({ geometry, color, width = WIRE.width, opacity = 1, material }: { geometry: THREE.BufferGeometry; color?: string; width?: number; opacity?: number; material?: LineMaterial }) {
+export function FatLines({ geometry, color, width = WIRE.width, opacity = 1, material, renderOrder = 0 }: { geometry: THREE.BufferGeometry; color?: string; width?: number; opacity?: number; material?: LineMaterial; renderOrder?: number }) {
   const size = useThree((s) => s.size)
   const own = useMemo(() => (material ? null : fatMaterial(color ?? WIRE.color, width, opacity)), [material, color, width, opacity])
   const mat = material ?? own!
@@ -19,8 +19,9 @@ export function FatLines({ geometry, color, width = WIRE.width, opacity = 1, mat
     g.setPositions((geometry.getAttribute('position').array as Float32Array).slice())
     const o = new LineSegments2(g, mat)
     o.frustumCulled = false
+    o.renderOrder = renderOrder
     return o
-  }, [geometry, mat])
+  }, [geometry, mat, renderOrder])
   useEffect(() => void mat.resolution.set(size.width, size.height), [mat, size])
   useEffect(
     () => () => {

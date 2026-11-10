@@ -235,7 +235,7 @@ export default function SemiconductorPlant() {
       <div className="fu" data-ground="black">
         <Problems
           problems={PROBLEMS}
-          title="Traditional screeds were not built for this."
+          title="Traditional screeds were not built for semiconductor plants."
           answer="RTARIUM was."
         />
       </div>

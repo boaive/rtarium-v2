@@ -273,10 +273,34 @@ html.sheet-open {
   line-height: 0.94;
 }
 
+/* the other two (under a stream's build): the heading's column, then a column each, as the façade pages' two more ways */
+.wp-streams--two {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+.wp-streams--two .wp-streams__cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.wp-streams__stage {
+  position: relative;
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+/* the buildings, over the stills' room at the top of the columns, as the other closes' models stand */
+.wp-streams__canvas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 1;
+  height: 46%;
+}
+.wp-streams__canvas,
+.wp-streams__canvas * {
+  pointer-events: none !important;
+}
 .wp-streams__cols {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--line);
 }
 /* its still at the top, as the close's models stand; its number, name, line and the way in at the foot */
 .wp-stream {
@@ -294,16 +318,14 @@ html.sheet-open {
   border-right: 0;
 }
 .wp-stream:hover,
+.wp-stream.is-hover,
 .wp-stream.is-on {
   --bg: var(--yellow);
 }
 /* a still of the stream's own build, finished */
 .wp-stream__still {
   aspect-ratio: 3 / 2;
-  margin-bottom: var(--s-3);
-  overflow: hidden;
-  background: var(--white);
-  outline: 1px solid rgb(8 8 8 / 0.12);
+  margin: 0 0 var(--s-3);
 }
 .wp-stream__still img {
   width: 100%;
@@ -449,9 +471,19 @@ html.sheet-open {
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
+  .wp-streams--two,
+  .wp-streams--two .wp-streams__cols,
   .wp-streams__cols {
     grid-template-columns: minmax(0, 1fr);
     border-top: 0;
+  }
+  /* a phone: the columns one under another, no room for the buildings over them */
+  .wp-streams__stage {
+    border-top: 0;
+  }
+  .wp-streams__canvas,
+  .wp-stream__still {
+    display: none;
   }
   .wp-stream {
     border-right: 0;
@@ -562,6 +594,41 @@ html.sheet-open {
 .wp-parts__value {
   font-weight: 750;
   white-space: nowrap;
+}
+/* the cards (the six layers' deck): up to eight parts, so their tabs a little shallower, to keep the newest card read whole */
+.wp-deck {
+  --tab: clamp(36px, 5vh, 50px);
+}
+.wp-deck .fu-card__name {
+  font-size: clamp(1rem, min(1.35vw, 2.5vh), 1.4rem);
+}
+/* the size beside the name, at the heading's far end; the part in full under them, small, kept to the card */
+.wp-deck__value {
+  margin-left: auto;
+  font-size: var(--t-small);
+  font-weight: 750;
+  color: var(--card-ink);
+  white-space: nowrap;
+}
+.wp-deck .fu-card__body {
+  margin-top: 0;
+  padding-top: 2px;
+  font-size: var(--t-small);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* the panel's name is in from the start: the section has no opening of its own to wait for, as the six layers do */
+.wp-panels .fu-layers__title {
+  opacity: 1;
+  transform: none;
+}
+.wp-deck .fu-card__btn[aria-pressed='true'] .fu-card__name {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
 }
 .wp-panels__foot {
   display: grid;
@@ -720,22 +787,26 @@ html.sheet-open {
 
 /* ---- a stream, built: what was built, its figures, and the way into its case study ------------- */
 
+/* a screen of its own: the words on the left, the building, finished and turning, large on the right */
 .wp-built {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  gap: clamp(32px, 6vw, 96px);
-  align-items: end;
-  min-height: 70svh;
-  padding: clamp(56px, 12vh, 140px) var(--gutter) clamp(48px, 10vh, 120px);
-  border-top: 1px solid rgb(8 8 8 / 0.16);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+  min-height: 100svh;
+  padding-top: var(--nav-h);
   background: var(--white);
   color: var(--black);
+}
+.wp-built__words {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s-4);
+  padding: clamp(24px, 5vh, 56px) var(--gutter);
 }
 .wp-built__kicker {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: var(--s-4);
   font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -748,40 +819,39 @@ html.sheet-open {
   background: var(--yellow);
   outline: 1px solid var(--black);
 }
+/* the frame stream's two frames, switched here too */
+.wp-built__switch {
+  align-self: flex-start;
+}
 .wp-built__title {
-  font-size: var(--t-display);
+  font-size: clamp(2.2rem, min(4vw, 7vh), 4.4rem);
   font-weight: 750;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
   text-wrap: balance;
 }
 .wp-built__lede {
-  max-width: 36rem;
-  margin-top: var(--s-5);
+  max-width: 34rem;
   font-size: var(--t-lead);
   font-weight: 500;
   line-height: 1.45;
   color: var(--on-light-2);
 }
-.wp-built__side {
-  display: grid;
-  justify-items: start;
-  gap: var(--s-5);
-}
+/* the figures, counted up: a row, each with its name over it, a rule over them all */
 .wp-built__figs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: 100%;
+  margin: var(--s-3) 0 var(--s-2);
   border-top: 1.5px solid var(--black);
 }
 .wp-built__figs > div {
   display: grid;
-  gap: 8px;
-  padding: 14px 16px 0 0;
+  gap: 6px;
+  padding: 14px 14px 0 0;
 }
 .wp-built__figs > div + div {
-  padding-left: 16px;
-  border-left: 1px solid rgb(8 8 8 / 0.16);
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
 }
 .wp-built__figs dt {
   font-size: var(--t-micro);
@@ -789,30 +859,93 @@ html.sheet-open {
   color: var(--on-light-2);
 }
 .wp-built__figs dd {
-  font-size: clamp(1.8rem, min(3.6vw, 6.4vh), 3.2rem);
+  font-size: clamp(1.9rem, min(3.4vw, 6vh), 3.4rem);
   font-weight: 800;
   letter-spacing: -0.045em;
   line-height: 1;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .wp-built__figs dd small {
   margin-left: 4px;
-  font-size: 0.42em;
+  font-size: 0.4em;
   font-weight: 700;
   letter-spacing: 0;
 }
-.wp-built__line {
-  max-width: 26rem;
-  font-size: var(--t-small);
-  font-weight: 500;
-  line-height: 1.5;
-  color: var(--on-light-2);
+.wp-built__words .wp-go {
+  align-self: flex-start;
+  margin-top: var(--s-2);
+}
+/* the building: on a ground of its own, a shade under the page's, its advantages over its foot */
+.wp-built__stage {
+  position: relative;
+  margin: clamp(12px, 2.4vh, 24px) var(--gutter) clamp(20px, 4vh, 40px) 0;
+  background: radial-gradient(120% 90% at 50% 55%, rgb(255 255 255 / 0.65), rgb(8 8 8 / 0.04));
+  outline: 1px solid var(--line);
+  overflow: hidden;
+}
+.wp-built__canvas {
+  position: absolute;
+  inset: 0;
+}
+.wp-built__canvas,
+.wp-built__canvas * {
+  pointer-events: none !important;
+}
+.wp-built__pros {
+  position: absolute;
+  left: clamp(16px, 2vw, 32px);
+  right: clamp(16px, 2vw, 32px);
+  bottom: clamp(16px, 2.6vh, 28px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wp-built__pros li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--black);
+  color: var(--white);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  line-height: 1.3;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.5s var(--ease-out),
+    transform 0.6s var(--ease-out);
+  transition-delay: calc(0.9s + var(--i) * 0.18s);
+}
+.wp-built__pros li::before {
+  content: '+';
+  color: var(--yellow);
+  font-weight: 800;
+}
+.wp-built__pros.is-in li {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wp-built__pros li {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
   .wp-built {
     grid-template-columns: minmax(0, 1fr);
-    align-items: start;
     min-height: 0;
+    padding-top: 0;
+  }
+  .wp-built__stage {
+    min-height: 60svh;
+    margin: 0 var(--gutter) var(--s-6);
   }
 }
 
@@ -829,24 +962,4 @@ html.sheet-open {
   height: clamp(80px, calc((100svh - var(--words-top) - var(--words-foot) - var(--block)) / 2 - var(--say) - 24px), 150px);
 }
 
-/* under a stream's build and its case study: the way to the other two */
-.wp-others {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px 32px;
-  padding: clamp(32px, 6vh, 64px) var(--gutter);
-  border-top: 1px solid var(--line);
-  background: var(--white);
-}
-.wp-others__label {
-  font-size: var(--t-small);
-  font-weight: 600;
-  color: var(--fg-2);
-}
-.wp-others__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
+

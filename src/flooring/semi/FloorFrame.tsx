@@ -81,7 +81,7 @@ export function FloorFrame() {
     return () => void progress.listeners.delete(paint)
   }, [progress])
 
-  const go = (p: number) => seek(p)
+  const go = (p: number, from?: number) => seek(p, from)
   /** where each step of the bar takes you: once its part has been made */
   const holds = [FRAME.tool[1] + 0.01, FRAME.bay[1] + 0.01, FRAME.under[1] + 0.01, FRAME.fab[1] + 0.04]
 
@@ -99,7 +99,7 @@ export function FloorFrame() {
           </Stage3D>
           <Labels bus={bus} labels={LABELS} shown={shown} />
         </div>
-        <StepBar label="From the floor to the fab" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => go(holds[i])} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
+        <StepBar label="From the floor to the fab" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => go(holds[i], i ? holds[i - 1] : 0)} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
       </div>
     </section>
   )

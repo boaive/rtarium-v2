@@ -68,7 +68,7 @@ export function Hang() {
     return () => void progress.listeners.delete(paint)
   }, [progress])
 
-  const go = (p: number) => seek(p)
+  const go = (p: number, from?: number) => seek(p, from)
   /** where each step of the bar takes you: each part made solid, the joints made, the block drawn, the unit set, the façade up */
   const holds = [HANG.bracket[1], HANG.barrier[1], HANG.drop[1], HANG.stack[1], HANG.crane[1], HANG.lift[1], HANG.fill + 0.04].map((p) => p + 0.012)
 
@@ -94,7 +94,7 @@ export function Hang() {
           label="How a unit is hung, and the façade goes up"
           names={PHASES.map((ph) => ph.name)}
           step={step}
-          onGo={(i) => go(holds[Math.min(holds.length - 1, [0, 1, 2, 3, 6][i])])}
+          onGo={(i) => go(holds[Math.min(holds.length - 1, [0, 1, 2, 3, 6][i])], i ? holds[[0, 1, 2, 3, 6][i - 1]] : 0)}
           cellRef={(i, el) => void (cells.current[i] = el)}
           hint={ended ? REPLAY_HINT : null}
         />

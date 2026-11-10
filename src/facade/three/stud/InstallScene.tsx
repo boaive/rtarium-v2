@@ -514,7 +514,8 @@ export function InstallScene({ progress, live, settle }: { progress: Progress; l
         <mesh key={k} ref={(el) => void (rings.current[k] = el)} geometry={g} material={lots.ringAt[k] < 0 ? m.done : m.u.concrete} visible={false} castShadow receiveShadow />
       ))}
       {/* the tower, a drawing, and then the building finished under the scan */}
-      <FatLines geometry={geo.tower} material={draw.block} />
+      {/* (drawn after the building, so the finished roof never paints over the parapet's rail at the front) */}
+      <FatLines geometry={geo.tower} material={draw.block} renderOrder={1} />
       <group ref={finishGroup} visible={false}>
         <mesh geometry={finished.slabs} material={m.slab} castShadow receiveShadow />
         <mesh geometry={finished.frames} material={m.frame} />
