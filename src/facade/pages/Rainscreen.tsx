@@ -3,6 +3,7 @@ import '../unitized.css'
 import '../rainscreen.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../Shell'
+import { usePageSteps } from '../pageSteps'
 import { Hero } from '../rainscreen/Hero'
 import { Barrier } from '../rainscreen/Barrier'
 import { Install } from '../rainscreen/Install'
@@ -25,6 +26,9 @@ import { More } from '../unitized/More'
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
  */
+/** the section whose run plays with the scroll itself, left to the scroll: the bridge */
+const FREE = ['bridge']
+
 export default function Rainscreen() {
   usePageMeta(
     'Rainscreen Cladding',
@@ -60,6 +64,9 @@ export default function Rainscreen() {
       window.removeEventListener('resize', on)
     }
   }, [])
+
+  // one scroll, one step, the whole page through, as the Unitized page (usePageSteps), the bridge playing with the scroll
+  usePageSteps(FREE)
 
   return (
     <FacadePage>

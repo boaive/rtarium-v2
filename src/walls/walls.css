@@ -246,42 +246,47 @@ html.sheet-open {
 
 /* ---- streams: the choice, three columns on warm white ------------------------------------------ */
 
+/* the façade pages' close (`fu-more`, unitized.css): a band under the header, its line, the heading's column, then a
+   column a stream, the whole screen */
 .wp-streams {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
   min-height: 100svh;
-  padding-top: calc(var(--nav-h) + clamp(24px, 5vh, 56px));
+  padding-top: var(--nav-h);
   background: var(--white);
   color: var(--black);
 }
 .wp-streams__head {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   justify-content: space-between;
   gap: var(--s-6);
-  padding: 0 var(--gutter) clamp(24px, 5vh, 48px);
-  border-bottom: 1px solid rgb(8 8 8 / 0.16);
+  padding: clamp(56px, 10vh, 112px) var(--gutter) clamp(28px, 5vh, 52px);
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
 }
 .wp-streams__title {
-  font-size: var(--t-display);
+  font-size: clamp(2rem, min(3.3vw, 6vh), 3.6rem);
   font-weight: 750;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
 }
 
 .wp-streams__cols {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
 }
+/* its still at the top, as the close's models stand; its number, name, line and the way in at the foot */
 .wp-stream {
   --bg: var(--white);
   --fg: var(--black);
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
-  gap: var(--s-4);
-  padding: clamp(24px, 4vh, 40px) var(--gutter) clamp(32px, 7vh, 72px);
-  border-right: 1px solid rgb(8 8 8 / 0.16);
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  gap: var(--s-3);
+  padding: clamp(16px, 3vh, 32px) var(--gutter) clamp(28px, 5vh, 52px);
+  border-right: 1px solid var(--line);
   background: var(--bg);
   transition: background-color var(--d-mid) var(--ease-out);
 }
@@ -311,15 +316,16 @@ html.sheet-open {
   transform: scale(1.03);
 }
 .wp-stream__num {
+  align-self: end;
   font-size: var(--t-small);
   font-weight: 600;
 }
 .wp-stream__name {
-  align-self: end;
-  font-size: clamp(1.9rem, min(3.2vw, 6vh), 3.4rem);
+  min-height: 2em;
+  font-size: clamp(1.5rem, 2.2vw, 2.3rem);
   font-weight: 750;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 .wp-stream__line {
   max-width: 22rem;
@@ -434,17 +440,22 @@ html.sheet-open {
 }
 
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
-  .wp-streams__head {
-    flex-direction: column;
-    align-items: flex-start;
+  .wp-streams {
+    grid-template-columns: minmax(0, 1fr);
   }
-  
+  .wp-streams__head {
+    align-items: flex-start;
+    padding-top: 40px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
   .wp-streams__cols {
     grid-template-columns: minmax(0, 1fr);
+    border-top: 0;
   }
   .wp-stream {
     border-right: 0;
-    border-bottom: 1px solid rgb(8 8 8 / 0.16);
+    border-bottom: 1px solid var(--line);
   }
   .wp-build__head {
     flex-direction: column;

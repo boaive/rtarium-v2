@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import '../unitized.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../Shell'
+import { usePageSteps } from '../pageSteps'
 import { Hero } from '../unitized/Hero'
 import { Layers } from '../unitized/Layers'
 import { Hang } from '../unitized/Hang'
@@ -24,6 +25,9 @@ import { More } from '../unitized/More'
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
  */
+/** the sections whose run plays with the scroll itself, left to the scroll: the answers */
+const FREE = ['answers']
+
 export default function Unitized() {
   usePageMeta(
     'Unitized Thin Concrete Façade',
@@ -59,6 +63,9 @@ export default function Unitized() {
       window.removeEventListener('resize', on)
     }
   }, [])
+
+  // one scroll, one step, the whole page through (usePageSteps), the answers playing with the scroll
+  usePageSteps(FREE)
 
   return (
     <FacadePage>

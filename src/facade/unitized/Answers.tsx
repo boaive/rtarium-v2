@@ -75,6 +75,8 @@ const STRETCH = [1.3, 1.3, 1.3, 1.3, 2.2]
 const RUN = STRETCH.reduce((a, b) => a + b, 0)
 const START = STRETCH.map((_, k) => STRETCH.slice(0, k).reduce((a, b) => a + b, 0))
 const N = ANSWERS.length
+/** where the last answer has played out (the panel at its 6 m), as a point of the run: there the section is done */
+const DONE = (START[N - 1] + STRETCH[N - 1] * 0.9) / RUN
 
 /** the run, in screens scrolled into the pin, as answers: answer k over k..k+1 */
 function answerAt(s: number) {
@@ -164,7 +166,8 @@ export function Answers() {
         // the bar: the current cell fills as its answer plays; a passed one closes to its number
         const c = cells.current[k]
         if (c) {
-          c.style.setProperty('--f', Math.min(1, Math.max(0, f / 0.94)).toFixed(4))
+          // (full where its answer has played out, as it holds: the last at its 6 m)
+          c.style.setProperty('--f', Math.min(1, Math.max(0, f / (k === N - 1 ? 0.9 : 0.76))).toFixed(4))
           c.style.setProperty('--c', (k < N - 1 ? smooth(0.86, 1, f) : 0).toFixed(4))
         }
       })
@@ -177,6 +180,9 @@ export function Answers() {
     }
     const tick = (now: number) => {
       raf = 0
+      // held by the page (`data-held`): it stays where it stands while the page goes back past it, or once it is done;
+      // and while a step of the bar plays it there, that play has it
+      if (seeking || el.hasAttribute('data-held')) return
       // (a frame's timestamp can be a little earlier than the moment it was asked for)
       const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
       last = now
@@ -184,6 +190,11 @@ export function Answers() {
       const target = answerAt(-el.getBoundingClientRect().top / vh)
       p = p < 0 || reduced ? target : damp(p, target, 12, dt)
       if (Math.abs(p - target) < 1e-4) p = target
+      apply()
+      if (p !== target) raf = requestAnimationFrame(tick)
+    }
+    /** everything that follows where the run stands, `p` */
+    const apply = () => {
       if (t.value !== p) {
         t.value = p
         t.listeners.forEach((f) => f())
@@ -194,28 +205,79 @@ export function Answers() {
       // an answer's labels are up once it has played out, until its words go
       const f = p - k
       setLit(f > (k === N - 1 ? 0.82 : 0.5) && f < 0.8 + (k === N - 1 ? 1 : 0) ? ANSWERS[k].id : '')
-      if (p !== target) raf = requestAnimationFrame(tick)
     }
+    // a step of the bar, from the page (`run:show`): the run played to its answer, back or on, smoothly and in a time
+    // of its own, as the slab to slab's bar plays to its step, the page itself still; `move`: the page goes straight
+    // there first, so the scroll carries on from it
+    let seeking = false
+    let seekRaf = 0
+    const seek = (to: number) => {
+      cancelAnimationFrame(seekRaf)
+      const from = p < 0 ? to : p
+      if (reduced || Math.abs(to - from) < 1e-4) {
+        p = to
+        apply()
+        return
+      }
+      const time = Math.min(1.6, 0.55 + 0.28 * Math.abs(to - from)) * 1000
+      const t0 = performance.now()
+      seeking = true
+      const frame = (now: number) => {
+        const u = Math.min(1, Math.max(0, (now - t0) / time))
+        p = from + (to - from) * (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
+        apply()
+        if (u < 1) seekRaf = requestAnimationFrame(frame)
+        else {
+          seeking = false
+          kick()
+        }
+      }
+      seekRaf = requestAnimationFrame(frame)
+    }
+    const show = (e: Event) => {
+      const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
+      const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.76)
+      if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
+      seek(answerAt(s))
+    }
+    el.addEventListener('run:show', show)
     const kick = () => {
       if (!raf) {
         last = performance.now()
         raf = requestAnimationFrame(tick)
       }
     }
+    // let go by the page (`run:release`): straight to where the scroll is, never easing there from where it was held
+    const release = () => {
+      cancelAnimationFrame(seekRaf)
+      seeking = false
+      p = -1
+      kick()
+    }
+    el.addEventListener('run:release', release)
     kick()
     window.addEventListener('scroll', kick, { passive: true })
     window.addEventListener('resize', kick)
     return () => {
+      el.removeEventListener('run:show', show)
+      el.removeEventListener('run:release', release)
       window.removeEventListener('scroll', kick)
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
+      cancelAnimationFrame(seekRaf)
     }
   }, [t])
+
+  // the labels change with the answer, after the frame that moved the scene there: the scene, which draws only when asked,
+  // is asked for one more, so the labels it places are the new answer's, never the last one's left where they stood
+  useEffect(() => {
+    t.listeners.forEach((f) => f())
+  }, [lit, t])
 
   const shown = ANSWERS.find((a) => a.id === lit)?.labels ?? []
 
   return (
-    <section ref={section} id="answers" className="fu-ans on-yellow" aria-labelledby="fu-answers-title" style={{ '--run': RUN } as CSSProperties}>
+    <section ref={section} id="answers" className="fu-ans on-yellow" data-done={DONE} aria-labelledby="fu-answers-title" style={{ '--run': RUN } as CSSProperties}>
       <div ref={pin} className="fu-ans__pin">
         <div className="fu-ans__stage" aria-hidden="true">
           <Stage3D shadows fallback={<img className="fu-still" src="/img/shoot/mesh-profile.webp" alt="" />}>
@@ -271,6 +333,7 @@ export function Answers() {
           step={step}
           onGo={goToAnswer}
           cellRef={(k, el) => void (cells.current[k] = el)}
+          hints="run"
         />
       </div>
     </section>

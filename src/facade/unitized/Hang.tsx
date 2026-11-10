@@ -1,54 +1,56 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useIsCompact } from '../../lib/motion'
-import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
 import { createBus } from '../three/kit'
 import { ScrubRig } from '../three/ScrubRig'
-import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../progress'
+import { FollowScroll, smooth, usePlay } from '../progress'
 import { HANG, HangScene, hangShot } from '../three/unit/HangScene'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { useLive } from './live'
-import { StepBar } from './StepBar'
+import { REPLAY_HINT, StepBar } from './StepBar'
 
 /**
  * Slab to slab, and onto the building. One scene on the warm white page, edge to edge and sharp (the
- * title and the bar stand over it; the camera keeps the drawing clear of both), pinned for its run: the connection made solid part by part, then the unit's
+ * title and the bar stand over it; the camera keeps the drawing clear of both), one screen, played on one scroll: the connection made solid part by part, then the unit's
  * neighbours, the apartment block as a drawing, the crane bringing the next unit, and the rest of the
  * façade going up by itself. The answers' bar along the foot (EnduroSat's phase bar) fills each step
  * as it runs, closes the passed ones to their numbers, and takes you to any of them.
  */
 
+/** the steps along the bar; each starts once the one before has played out (and past its hold), so the bar never runs ahead of the scene */
 const PHASES = [
   { name: 'Mounting bracket', from: 0, to: HANG.bracket[1] },
   { name: 'Fire & smoke barrier', from: HANG.bracket[1] + 0.04, to: HANG.barrier[1] },
   { name: 'Connection to the frame', from: HANG.unit[0], to: HANG.drop[1] },
   { name: 'Unit to unit', from: HANG.pull[0], to: HANG.stack[1] },
-  { name: 'Onto the building', from: HANG.block[0], to: HANG.fill },
+  { name: 'Onto the building', from: HANG.stack[1] + 0.04, to: HANG.fill },
 ]
 const LABELS: LabelSpec[] = [
   { id: 'j-side', text: 'Side joint', dx: -70, dy: 50 },
   { id: 'j-stack', text: 'Stack joint', dx: 60, dy: -56 },
 ]
-const RUN = 8.4
-/** where each of the five steps has played out, as points of the section's run */
-const ENDS = [HANG.bracket[1], HANG.barrier[1], HANG.drop[1], HANG.stack[1], HANG.fill + 0.04].map((p) => p + 0.012)
+/** seconds for the whole sequence, played on one scroll once the section is on screen (as the warehouse's frame to floor) */
+const PLAY = 12
 
 export function Hang() {
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const stage = useRef<HTMLDivElement>(null)
-  const [progress] = useScrollProgress(section, 1, 'run')
+  const [progress, seek] = usePlay(section, PLAY)
   const bus = useMemo(createBus, [])
   const live = useLive(stage)
   const settle = useRef(0)
   const shotAt = useMemo(() => (p: number) => hangShot(p, compact, settle.current), [compact])
   const cells = useRef<(HTMLLIElement | null)[]>([])
   const [step, setStep] = useState(0)
+  /** played to its end: its bar says its steps can be picked to be seen again */
+  const [ended, setEnded] = useState(false)
 
   useEffect(() => {
     const paint = () => {
       const p = progress.value
+      setEnded(p >= 0.995)
       let now = 0
       PHASES.forEach((ph, i) => {
         if (p >= ph.from - 0.02) now = i
@@ -66,21 +68,13 @@ export function Hang() {
     return () => void progress.listeners.delete(paint)
   }, [progress])
 
-  /** the scroll at progress p through the section's run */
-  const yAt = (el: HTMLElement, p: number) => Math.round(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * p)
-  const go = (p: number) => {
-    const el = section.current
-    if (el) scrollToY(yAt(el, p))
-  }
+  const go = (p: number) => seek(p)
   /** where each step of the bar takes you: each part made solid, the joints made, the block drawn, the unit set, the façade up */
   const holds = [HANG.bracket[1], HANG.barrier[1], HANG.drop[1], HANG.stack[1], HANG.crane[1], HANG.lift[1], HANG.fill + 0.04].map((p) => p + 0.012)
 
-  // one scroll, one step: the page glides on to where the next step has played out, and the scene plays it on the
-  // way, taking longer over a longer step (the last: the block, the crane, the lift, the façade going up)
-  usePlaySteps(section, ENDS)
 
   return (
-    <section ref={section} id="hang" className="fu-hang on-light" aria-labelledby="fu-hang-title" style={{ '--run': RUN } as CSSProperties}>
+    <section ref={section} id="hang" className="fu-hang on-light" aria-labelledby="fu-hang-title" style={{ '--run': 1 } as CSSProperties}>
       <div className="fu-hang__pin">
         <h2 id="fu-hang-title" className="fu-hang__title">
           Hang. Seal. Join. Done.
@@ -102,6 +96,7 @@ export function Hang() {
           step={step}
           onGo={(i) => go(holds[Math.min(holds.length - 1, [0, 1, 2, 3, 6][i])])}
           cellRef={(i, el) => void (cells.current[i] = el)}
+          hint={ended ? REPLAY_HINT : null}
         />
       </div>
     </section>

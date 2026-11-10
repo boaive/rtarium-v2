@@ -5,6 +5,7 @@ import '../data.css'
 import '../semi.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../../facade/Shell'
+import { usePageSteps } from '../../facade/pageSteps'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
 import { createBus } from '../../facade/three/kit'
 import { useLive } from '../../facade/unitized/live'
@@ -183,6 +184,9 @@ function Model() {
   )
 }
 
+/** the section whose run plays with the scroll itself, left to the scroll: the build */
+const FREE = ['build']
+
 export default function SemiconductorPlant() {
   usePageMeta(
     'Semiconductor Plant',
@@ -219,6 +223,9 @@ export default function SemiconductorPlant() {
       window.removeEventListener('resize', on)
     }
   }, [])
+
+  // one scroll, one step, the whole page through, as the façade pages (usePageSteps), the build playing with the scroll
+  usePageSteps(FREE)
 
   return (
     <FacadePage>

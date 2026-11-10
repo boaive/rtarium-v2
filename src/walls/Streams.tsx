@@ -4,11 +4,11 @@ import { useIsCompact } from '../lib/motion'
 import { Arrow } from '../facade/Shell'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three/Stage3D'
 import { createBus } from '../facade/three/kit'
-import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../facade/progress'
+import { FollowScroll, smooth, usePlay } from '../facade/progress'
 
 /** where each of a build's four steps has played out, as points of the section's run */
 const STREAM_ENDS = [0, 1, 2, 3].map((i) => Math.min(1, (i + 0.95) / 4))
-import { StepBar } from '../facade/unitized/StepBar'
+import { REPLAY_HINT, StepBar } from '../facade/unitized/StepBar'
 import { closerAt, StreamScene } from './three/StreamScene'
 import { buildingOf, quantities, type BuildId } from './three/buildings'
 import type { Room } from './three/fit'
@@ -26,7 +26,8 @@ import { CASES, REVIEW, STREAMS, type StreamId } from './content'
  * page). A frame structure is an RC frame or a steel portal on one footprint: a switch over the stage changes it.
  */
 
-const RUN = 6
+/** seconds for the whole sequence, played on one scroll once the section is on screen (as the warehouse's frame to floor) */
+const PLAY = 9
 
 function Build({ id }: { id: StreamId }) {
   const compact = useIsCompact()
@@ -35,10 +36,12 @@ function Build({ id }: { id: StreamId }) {
   const [frame, setFrame] = useState<'rc' | 'peb'>('rc')
   const which: BuildId = id === 'housing' ? 'housing' : id === 'industrial' ? 'hub' : frame
   const building = useMemo(() => buildingOf(which), [which])
-  const [progress] = useScrollProgress(section, 1, 'run')
+  const [progress, seek] = usePlay(section, PLAY)
   const bus = useMemo(createBus, [])
   const cells = useRef<(HTMLLIElement | null)[]>([])
   const [step, setStep] = useState(0)
+  /** played to its end: its bar says its steps can be picked to be seen again */
+  const [ended, setEnded] = useState(false)
   const [shown, setShown] = useState<string[]>([])
   const room = useRef<Room>({ x: 0.05, y: 0.2, w: 0.9, h: 0.62 })
   const [sheet, openSheet] = useSheet()
@@ -109,6 +112,7 @@ function Build({ id }: { id: StreamId }) {
   useEffect(() => {
     const paint = () => {
       const t = progress.value * 4
+      setEnded(progress.value >= 0.995)
       edge.current?.style.setProperty('--z', closerAt(t).toFixed(3))
       const k = Math.min(3, Math.floor(t))
       setStep(k)
@@ -127,17 +131,11 @@ function Build({ id }: { id: StreamId }) {
     return () => void progress.listeners.delete(paint)
   }, [progress, building])
 
-  const go = (i: number) => {
-    const el = section.current
-    if (!el) return
-    scrollToY(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * STREAM_ENDS[i])
-  }
-  // one scroll, one step: each played out on the way to where it holds
-  usePlaySteps(section, STREAM_ENDS)
+  const go = (i: number) => seek(STREAM_ENDS[i])
 
   return (
     <>
-      <section ref={section} id="stream-build" className="fu-hang wp-build on-light" aria-labelledby="wp-build-title" style={{ '--run': RUN } as CSSProperties}>
+      <section ref={section} id="stream-build" className="fu-hang wp-build on-light" aria-labelledby="wp-build-title" style={{ '--run': 1 } as CSSProperties}>
         <div ref={pin} className="fu-hang__pin">
           <div className="wp-build__head">
             <h2 id="wp-build-title" className="fu-hang__title">
@@ -164,7 +162,7 @@ function Build({ id }: { id: StreamId }) {
             <Labels key={which} bus={bus} labels={labels} shown={shown} />
             <div ref={edge} className="wp-edge" />
           </div>
-          <StepBar label={`${study.title}, step by step`} names={building.steps} step={step} onGo={go} cellRef={(i, el) => void (cells.current[i] = el)} />
+          <StepBar label={`${study.title}, step by step`} names={building.steps} step={step} onGo={go} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
         </div>
 
         <Sheet dialog={sheet} kicker="Illustrative case study" title={study.title} review={REVIEW.caseStudy}>

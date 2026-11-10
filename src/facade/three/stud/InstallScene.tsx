@@ -50,7 +50,8 @@ const JX = EX - LEN / 2 - JOINT / 2
 const SEATS = [-0.8, 0.8] as const
 /** the crane: its mast behind the front, inside the plan, its jib long enough to reach the element where it starts, on the ground in front */
 const MAST: [number, number] = [TOWER_W * 0.3, -TOWER.r - 1.5]
-const MAST_H = TOWER_H + 4
+/** the mast stands well clear of the roof, so its cab and counterweights never crowd the parapet and the plant */
+const MAST_H = TOWER_H + 7
 const HEAD = 4
 const JIB = 19
 const COUNTER = 6
@@ -98,11 +99,11 @@ export function installShot(p: number, compact: boolean, settle = 0): Shot {
   // in close on the joint while it is sealed, and back
   const seal: Shot = { target: [JX + 0.2, BY + 0.26, 0.4], dist: 8.5 * k, azim: -24, elev: 8, frame: [0.5, 0.48] }
   const sealing = smooth(INSTALL.rod[0] - 0.03, INSTALL.rod[0] + 0.005, p) * (1 - smooth(INSTALL.bead[1], INSTALL.wide[0] + 0.02, p))
-  const wide: Shot = { target: [TOWER_W * 0.5, (MAST_H + HEAD) * 0.5, -4], dist: 118 * kw, azim: -28, elev: 9, frame: [0.5, 0.52] }
+  const wide: Shot = { target: [TOWER_W * 0.5, (MAST_H + HEAD) * 0.5, -4], dist: 122 * kw, azim: -28, elev: 9, frame: [0.5, 0.52] }
   const done: Shot = { target: [TOWER_W * 0.5, TOWER_H * 0.5, -4], dist: 100 * kw, azim: -30, elev: 9, frame: [0.5, 0.5] }
   // finished: round a little, so the bands are seen wrapping the end
   // (far enough back that the crane, left standing, clears the header)
-  const fin: Shot = { target: [TOWER_W * 0.55, (MAST_H + HEAD) * 0.5, -TOWER.r], dist: 128 * kw, azim: -42, elev: 11, frame: [0.5, 0.5] }
+  const fin: Shot = { target: [TOWER_W * 0.55, (MAST_H + HEAD) * 0.5, -TOWER.r], dist: 133 * kw, azim: -42, elev: 11, frame: [0.5, 0.5] }
   let s = mixShot(near, lift, smooth(INSTALL.crane[0] - 0.02, INSTALL.lift[0] + 0.04, p))
   s = mixShot(s, back, smooth(INSTALL.lift[1] - 0.07, INSTALL.hook[1], p))
   s = mixShot(s, look, lean)

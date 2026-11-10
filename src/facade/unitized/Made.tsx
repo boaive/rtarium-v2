@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
-import { prefersReducedMotion } from '../../lib/motion'
+import { prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { smooth } from '../progress'
 
 /**
- * Inverted casting: the production shoot, four steps. As the section comes up the frames open from
- * their corners one after another, their size read out at the corner, and a line runs through the
- * step numbers; all of it follows the scroll. Pointing at a card lifts the whole card a little,
- * leaning from the point under the cursor (a tap does the same on touch).
+ * Inverted casting: the production shoot, four steps, the whole of it on one screen. As the section comes up the
+ * frames open from their corners one after another, their size read out at the corner, and a line runs through the
+ * step numbers; all of it follows the scroll. The photographs take the room the screen leaves under the words (never
+ * taller than wide). Pointing at a card lifts the whole card a little, leaning from the point under the cursor (a tap
+ * does the same on touch). On a phone the section is as long as its cards, two by two.
  */
 
 const MADE = [
@@ -17,7 +18,10 @@ const MADE = [
 ]
 
 export function Made() {
+  const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
+  const inner = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLOListElement>(null)
   const frames = useRef<(HTMLElement | null)[]>([])
   const reads = useRef<(HTMLSpanElement | null)[][]>([])
   const rail = useRef<HTMLDivElement>(null)
@@ -47,22 +51,48 @@ export function Made() {
         if (ry) ry.textContent = `Y: ${Math.round(g * s[1])}`
       })
     }
+    // on one screen, the photographs as tall as the room left under the words, never taller than wide
+    const fit = () => {
+      const box = inner.current
+      const ol = list.current
+      const head = box?.firstElementChild
+      const f = frames.current[0]
+      if (!box || !ol || !head || !f) return
+      if (compact) box.style.removeProperty('--photo-h')
+      else {
+        box.style.setProperty('--photo-h', '0px')
+        const cs = getComputedStyle(box)
+        const room = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+        const used = ol.getBoundingClientRect().bottom - head.getBoundingClientRect().top
+        box.style.setProperty('--photo-h', `${Math.round(Math.max(140, Math.min(f.offsetWidth, room - used)))}px`)
+      }
+      sizes.clear()
+    }
     const on = () => {
       if (!raf) raf = requestAnimationFrame(read)
     }
     const resize = () => {
-      sizes.clear()
+      fit()
       on()
     }
+    fit()
     read()
+    void document.fonts?.ready.then(resize)
+    // measured again whenever the screen it fills, or the words over the photographs, change size (a font coming in,
+    // a style arriving late), so the photographs never keep a size measured for another
+    const sized = new ResizeObserver(resize)
+    if (section.current) sized.observe(section.current)
+    const head = inner.current?.firstElementChild
+    if (head) sized.observe(head)
     window.addEventListener('scroll', on, { passive: true })
     window.addEventListener('resize', resize)
     return () => {
       cancelAnimationFrame(raf)
+      sized.disconnect()
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', resize)
     }
-  }, [])
+  }, [compact])
 
   /** the point under the cursor, as the origin the photograph grows from */
   const aim = (e: ReactMouseEvent<HTMLElement>) => {
@@ -72,46 +102,48 @@ export function Made() {
   }
 
   return (
-    <section ref={section} className="fu-made on-light" aria-labelledby="fu-made-title">
-      <header className="fu-made__head">
-        <h2 id="fu-made-title" className="fu-made__title">
-          Inverted casting
-        </h2>
-        <p className="fu-made__lede">The finished face goes down first. The surface is set before the structure is added.</p>
-      </header>
-      <div ref={rail} className="fu-made__rail" aria-hidden="true" />
-      <ol className="fu-made__steps" data-pop={pop ?? undefined}>
-        {MADE.map((m, i) => (
-          <li
-            key={m.name}
-            className={`fu-made__step ${pop === i ? 'is-pop' : ''}`}
-            style={{ '--i': i } as CSSProperties}
-            onPointerEnter={(e) => {
-              aim(e)
-              if (e.pointerType === 'mouse') setPop(i)
-            }}
-            onPointerMove={aim}
-            onPointerLeave={(e) => e.pointerType === 'mouse' && setPop((p) => (p === i ? null : p))}
-            onClick={(e) => {
-              aim(e)
-              setPop((p) => (p === i ? null : i))
-            }}
-          >
-            <span className="fu-made__num num">{i + 1}</span>
-            <figure ref={(el) => void (frames.current[i] = el)} className="fu-made__photo">
-              <span className="fu-made__frame">
-                <img src={m.img} alt={m.alt} loading="lazy" decoding="async" width={720} height={1280} style={{ objectPosition: m.pos }} />
-              </span>
-              <i className="fu-made__dot" aria-hidden="true">
-                <span ref={(el) => void ((reads.current[i] ??= [])[0] = el)} className="fu-made__x num" />
-                <span ref={(el) => void ((reads.current[i] ??= [])[1] = el)} className="fu-made__y num" />
-              </i>
-            </figure>
-            <h3 className="fu-made__name">{m.name}</h3>
-            <p className="fu-made__text">{m.text}</p>
-          </li>
-        ))}
-      </ol>
+    <section ref={section} id="made" className={`fu-made on-light ${compact ? '' : 'is-screen'}`} aria-labelledby="fu-made-title">
+      <div ref={inner} className="fu-made__inner">
+        <header className="fu-made__head">
+          <h2 id="fu-made-title" className="fu-made__title">
+            Inverted casting
+          </h2>
+          <p className="fu-made__lede">The finished face goes down first. The surface is set before the structure is added.</p>
+        </header>
+        <div ref={rail} className="fu-made__rail" aria-hidden="true" />
+        <ol ref={list} className="fu-made__steps" data-pop={pop ?? undefined}>
+          {MADE.map((m, i) => (
+            <li
+              key={m.name}
+              className={`fu-made__step ${pop === i ? 'is-pop' : ''}`}
+              style={{ '--i': i } as CSSProperties}
+              onPointerEnter={(e) => {
+                aim(e)
+                if (e.pointerType === 'mouse') setPop(i)
+              }}
+              onPointerMove={aim}
+              onPointerLeave={(e) => e.pointerType === 'mouse' && setPop((p) => (p === i ? null : p))}
+              onClick={(e) => {
+                aim(e)
+                setPop((p) => (p === i ? null : i))
+              }}
+            >
+              <span className="fu-made__num num">{String(i + 1).padStart(2, '0')}</span>
+              <figure ref={(el) => void (frames.current[i] = el)} className="fu-made__photo">
+                <span className="fu-made__frame">
+                  <img src={m.img} alt={m.alt} loading="lazy" decoding="async" width={720} height={1280} style={{ objectPosition: m.pos }} />
+                </span>
+                <i className="fu-made__dot" aria-hidden="true">
+                  <span ref={(el) => void ((reads.current[i] ??= [])[0] = el)} className="fu-made__x num" />
+                  <span ref={(el) => void ((reads.current[i] ??= [])[1] = el)} className="fu-made__y num" />
+                </i>
+              </figure>
+              <h3 className="fu-made__name">{m.name}</h3>
+              <p className="fu-made__text">{m.text}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   )
 }

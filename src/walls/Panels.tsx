@@ -6,7 +6,7 @@ import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three
 import { createBus } from '../facade/three/kit'
 import { sectionY, type Progress } from '../facade/progress'
 import { useCornerBox, useLive } from '../facade/unitized/live'
-import { StepBar } from '../facade/unitized/StepBar'
+import { HintTag, StepBar, type Hint } from '../facade/unitized/StepBar'
 import { ORDER100, ORDER30, PieceStage, RUN_AT, STILL100, STILL30 } from './three/PieceStage'
 import type { Room } from './three/fit'
 import { Block, Figures, Sheet, Steps, useSheet } from './Sheet'
@@ -25,6 +25,9 @@ import { PAIRED, REVIEW, SOLID } from './content'
  * core, joins and opens as the SIP insulated panel, which rests the same way. On a phone there is no run: the panel
  * rests opened, and an arrow takes it on to the other.
  */
+
+/** the word in the box: how to go through the parts */
+const HOW: Hint = { text: 'Pick a part, or use the arrows', icon: 'pick' }
 
 interface Part {
   /** the model's anchor */
@@ -222,7 +225,15 @@ export function Panels() {
 
   return (
     <>
-      <section ref={section} id="panels" className="fu-layers wp-panels on-yellow" aria-labelledby="wp-panels-title" style={{ '--run': compact ? 1 : RUN } as CSSProperties}>
+      <section
+        ref={section}
+        id="panels"
+        className="fu-layers wp-panels on-yellow"
+        // the page's one scroll a step: each panel at its rest
+        data-stops={compact ? undefined : REST.join(',')}
+        aria-labelledby="wp-panels-title"
+        style={{ '--run': compact ? 1 : RUN } as CSSProperties}
+      >
         <div className="fu-layers__pin">
           <div className="fu-layers__copy wp-panels__side">
             <div key={`name-${which}`} className="wp-panels__head">
@@ -287,6 +298,9 @@ export function Panels() {
                     <Arrow />
                   </button>
                 </div>
+
+                {/* how to go through them: the parts along the foot, or the arrows */}
+                <HintTag hint={HOW} className="fu-sheet__hint" />
 
                 <ol className="fu-track" aria-label="Go to a part" style={{ gridTemplateColumns: `repeat(${parts.length}, minmax(0, 1fr))` }}>
                   {parts.map((p, i) => (

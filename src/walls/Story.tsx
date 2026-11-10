@@ -142,6 +142,7 @@ export function Story({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
     <Lineage
       id="walls-story"
       sectionRef={sectionRef}
+      paged
       versions={BLOCKS}
       words={WORDS}
       finale={false}

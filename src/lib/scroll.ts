@@ -20,7 +20,11 @@ export function startSmoothScroll() {
   lenis = new Lenis({ lerp: LERP, wheelMultiplier: WHEEL, smoothWheel: true, autoRaf: true })
 }
 
+/** the page's jumps (`scrollToY` at once), counted: a step's goal from before one is no longer where the page is going */
+let jumps = 0
+
 export function scrollToY(y: number, immediate = false) {
+  if (immediate) jumps++
   if (lenis) {
     // a long way takes a little longer, so a jump never lurches
     const far = Math.abs(y - window.scrollY) / Math.max(1, window.innerHeight)
@@ -121,7 +125,25 @@ function freeFoot() {
  * last it scrolls freely, and a free scroll that runs into the section lands on its nearest end. The keys step only
  * inside it. Returns what puts the page back to free scrolling. Under reduced motion it does nothing.
  */
-export function stepScreens(own?: () => number[], opts: { time?: number | ((screens: number) => number) } = {}) {
+export function stepScreens(
+  own?: () => number[],
+  opts: {
+    time?: number | ((screens: number, to: number) => number)
+    /** where a step back (up) may land, if not every stop: a section that steps through its own parts is left whole going up */
+    back?: () => number[]
+    /**
+     * Stretches scrolled freely, from a stop to a stop (a section whose run plays with the scroll itself): the wheel glides
+     * through either way, and the page lands on the stretch's end it reaches. Asked by the way the page is going (0: at
+     * rest), so a stretch may be free one way and stepped over the other
+     */
+    free?: (dir: number) => [number, number][]
+    /**
+     * Where a step from `from` to `to` may start instead, the page leaping there at once (a pinned section's run, which
+     * looks the same all the way through): the glide is only the rest of the way. None: it starts where the page is
+     */
+    leap?: (from: number, to: number) => number | null
+  } = {},
+) {
   const glide = lenis
   if (!glide) return () => {}
 
@@ -155,18 +177,27 @@ export function stepScreens(own?: () => number[], opts: { time?: number | ((scre
   let turn = 0
   let turnedAt = -Infinity
 
+  /** the jumps there had been when `goal` was set */
+  let goalJumps = 0
+  /** where the page is going: the step's goal while it glides there, unless the page has been jumped since (a section
+   * taking it straight on to where it was left), else where it is */
+  const going = () => (glide.isScrolling && goal !== null && goalJumps === jumps ? goal : window.scrollY)
+
   const moveTo = (y: number, auto = false) => {
-    const from = glide.isScrolling && goal !== null ? goal : window.scrollY
+    const from = going()
     origin = from
     goal = y
+    goalJumps = jumps
     goingDir = Math.sign(y - from)
     turn = 0
     moving = true
+    const leap = opts.leap?.(from, y)
+    if (leap !== null && leap !== undefined && Math.abs(leap - window.scrollY) > 1) glide.scrollTo(leap, { immediate: true, force: true })
     // a step that runs through a screen takes a little longer, so it never lurches
     // (a section whose steps each play something out takes its own, longer time, and glides rather than snaps; it
     // may give the time by the length of the step, in screens)
     const screens = Math.abs(y - window.scrollY) / window.innerHeight
-    const given = typeof opts.time === 'function' ? opts.time(screens) : opts.time
+    const given = typeof opts.time === 'function' ? opts.time(screens, y) : opts.time
     const played = auto || given !== undefined
     const time = auto ? AUTO_TIME : (given ?? (screens > 1.3 ? STEP_TIME * 1.45 : STEP_TIME))
     glide.scrollTo(y, { duration: time, easing: played ? easeAuto : easeStep, force: true })
@@ -175,8 +206,8 @@ export function stepScreens(own?: () => number[], opts: { time?: number | ((scre
     timer = window.setTimeout(() => (moving = false), time * 1000 * (played ? 1 : STEP_HELD))
   }
   const step = (dir: number) => {
-    const stops = stopsOf()
-    const y = glide.isScrolling && goal !== null ? goal : window.scrollY
+    const stops = dir < 0 && opts.back ? opts.back() : stopsOf()
+    const y = going()
     const to = dir > 0 ? stops.find((s) => s > y + 4) : [...stops].reverse().find((s) => s < y - 4)
     if (to !== undefined) moveTo(to)
   }
@@ -208,7 +239,7 @@ export function stepScreens(own?: () => number[], opts: { time?: number | ((scre
     const again = strong && !landed && opts.time === undefined
     if (!moving) {
       const { lo, hi, auto } = zone()
-      const at = glide.isScrolling && goal !== null ? goal : window.scrollY
+      const at = going()
       // above the steps, going down: the wheel glides as on any page (Lenis takes the event) until it reaches them
       if (dir > 0 && at < lo - 4) {
         goal = null
@@ -235,6 +266,22 @@ export function stepScreens(own?: () => number[], opts: { time?: number | ((scre
         sum = 0
         moveTo(hi)
         return
+      }
+      // through a free stretch: the wheel glides as on any page, and the page lands on the end it gets to
+      if (opts.free) {
+        const run = opts.free(dir).find(([a, b]) => (dir > 0 ? at >= a - 4 && at < b - 4 : at > a + 4 && at <= b + 4))
+        if (run) {
+          goal = null
+          const end = dir > 0 ? run[1] : run[0]
+          if (dir > 0 ? glide.targetScroll + d * WHEEL < end : glide.targetScroll + d * WHEEL > end) return
+          e.preventDefault()
+          e.stopPropagation()
+          spent = true
+          landed = true
+          sum = 0
+          moveTo(end)
+          return
+        }
       }
       // going up at or above the first stop, or down at or below the last (a new swipe, not the tail of the step
       // that landed there): free. A section's steps never touch a scroll well outside it, going away from it (a
@@ -290,7 +337,7 @@ export function stepScreens(own?: () => number[], opts: { time?: number | ((scre
     // stepping in one section: outside it the keys scroll the page as they always do, and Home and End go to its ends
     if (own) {
       const { lo, hi } = zone()
-      const y = glide.isScrolling && goal !== null ? goal : window.scrollY
+      const y = going()
       if (!dir || y < lo - 4 || y > hi + 4 || (dir < 0 && y <= lo + 4) || (dir > 0 && y >= hi - 4)) return
     }
     e.preventDefault()
@@ -310,6 +357,8 @@ export function stepScreens(own?: () => number[], opts: { time?: number | ((scre
       // outside the steps the page rests wherever it is let go
       const { lo, hi } = zone()
       if (y < lo - 4 || y > hi + 4) return
+      // and so it does in a free stretch: its run is the scroll itself, and stops where it is let go
+      if (opts.free?.(0).some(([a, b]) => y > a + 4 && y < b - 4)) return
       const stops = stopsOf()
       if (!stops.length) return
       const near = stops.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a))

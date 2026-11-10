@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
-import { scrollToY } from '../lib/scroll'
+import { scrollToY, stepScreens } from '../lib/scroll'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import type { Ground } from '../three/stageStore'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from './three/Stage3D'
 import { createBus } from './three/kit'
 import { CellRig, type CellShot } from './three/CellRig'
 import { CladdingPanel, CUT_TARGET, PANEL_TARGET } from './three/CladdingPanel'
-import { smooth } from './progress'
+import { smooth, STORY_STEP } from './progress'
+
 
 /**
  * The story: what RTARIUM replaces, one material at a time, and then RTARIUM.
@@ -18,7 +19,7 @@ import { smooth } from './progress'
  *   - as a block comes up, its panel's box fills it, then the crossing slides out of the corner and the
  *     other boxes open; they are open, and still, well before the block reaches the top;
  *   - while it is read nothing moves but the page;
- *   - as it goes, its row is drawn in under the header (an index: it takes you back to the block), and
+ *   - as it goes, its row is lowered into place under the header (an index: it takes you back to the block), and
  *     its boxes close diagonally into the far corner while it is still on screen: the panel's box
  *     shrinks to its edge as the yellow one grows, the photograph's frame shrinks back into its corner;
  *   - black and white change places from block to block, the panel changes sides, the yellow stays; the
@@ -321,7 +322,6 @@ function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: Line
       <div className="fs-duo__panel on-black">
         <div className="fs-duo__top fs-rise" style={{ '--d': '0s' } as CSSProperties}>
           <p className="fs-label">{words.claim}</p>
-          <span className="fs-duo__mark" aria-hidden="true" />
         </div>
         <div className="fs-duo__head">
           <h3 id={`fs-${v.id}`} className="fs-duo__name">
@@ -380,6 +380,9 @@ export function Lineage({
   id = 'lineage',
   finale = true,
   second,
+  fromTop = false,
+  after,
+  paged = false,
 }: {
   sectionRef: RefObject<HTMLElement | null>
   live?: { current: boolean }
@@ -389,6 +392,12 @@ export function Lineage({
   second?: (k: number, compact: boolean) => ReactNode
   words?: LineageWords
   id?: string
+  /** whether the page steps from its very top (its opening screen) into the story, rather than scrolling freely down to it */
+  fromTop?: boolean
+  /** where the page rests after the story (the sections under it, the page's foot): the same one scroll a step on past it */
+  after?: () => number[]
+  /** the page steps through it with its own stepper (usePageSteps): where each block is read is written on the section */
+  paged?: boolean
   /**
    * Whether the last version closes the story in a layout of its own, the rows of the others going up as it comes
    * (the façade's RTARIUM). Without it every version is a block like the others, and the rows leave with the section.
@@ -486,11 +495,13 @@ export function Lineage({
         const under = Math.min(0, (edge ?? Infinity) - (navH + stack))
         // RTARIUM's rows are clear of the header by the time it reaches it: nothing shows behind the logo
         const leave = finale ? (under * (navH + stack)) / Math.max(1, stack) : under
-        bar.style.transform = `translate(0px, ${(navH + k * rowH - layerTop + leave).toFixed(1)}px)`
+        // lowered into its slot from under the row above, as on the flooring pages: only what has come down past the
+        // slot's top shows, solid, so the block's words pass behind it
+        const e = ease(rise)
+        bar.style.transform = `translate(0px, ${(navH + k * rowH - (1 - e) * rowH - layerTop + leave).toFixed(1)}px)`
         bar.style.width = `${W}px`
-        // drawn in from the left, solid, so the block's words pass behind it
         bar.style.opacity = rise > 0 ? '1' : '0'
-        bar.style.clipPath = `inset(0 ${((1 - ease(smooth(0, 0.3, rise))) * 100).toFixed(2)}% 0 0)`
+        bar.style.clipPath = `inset(${((1 - e) * 100).toFixed(2)}% 0 0 0)`
         const docked = rise > 0.5
         bar.tabIndex = docked ? 0 : -1
         bar.toggleAttribute('data-docked', docked)
@@ -512,6 +523,43 @@ export function Lineage({
       window.removeEventListener('resize', resize)
     }
   }, [layouts, LAST, REPLACED, finale])
+
+  // one scroll, one material (and, from the top, one scroll from the opening into the first): the page glides from
+  // where a block is read to where the next is, and the one closes and the next opens on the way; above and below
+  // the story the page scrolls freely
+  useEffect(() => {
+    /** where each block is read: the page there, the block held under the rows of those before it */
+    const reads = () => {
+      const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
+      const rowH = bars.current[0]?.offsetHeight ?? 0
+      return blocks.current.flatMap((b, k) => (b ? [Math.round(b.getBoundingClientRect().top + window.scrollY - (k < LAST ? navH + k * rowH : navH))] : []))
+    }
+    if (paged) {
+      // the page's one scroll a step goes through it: where each block is read, points of its run, both ways
+      const el = sectionRef.current
+      if (!el) return
+      const write = () => {
+        const top = el.getBoundingClientRect().top + window.scrollY
+        const run = Math.max(1, el.offsetHeight - window.innerHeight)
+        el.dataset.stops = reads()
+          .map((y) => ((y - top) / run).toFixed(5))
+          .join(',')
+      }
+      el.dataset.noTop = ''
+      el.dataset.back = 'all'
+      write()
+      window.addEventListener('resize', write)
+      return () => window.removeEventListener('resize', write)
+    }
+    return stepScreens(
+      () => {
+        const at = reads()
+        const all = fromTop && at.length && at[0] > 0 ? [0, ...at] : at
+        return after ? [...all, ...after().filter((y) => !all.length || y > all[all.length - 1] + 4)] : all
+      },
+      { time: STORY_STEP },
+    )
+  }, [LAST, fromTop, after, paged, sectionRef])
 
   /** a row takes you back to its material: the scroll where its block is read */
   const go = (i: number) => {

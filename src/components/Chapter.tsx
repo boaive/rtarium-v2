@@ -185,7 +185,9 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
     const place = () => {
       slides.current.forEach((slide, i) => {
         if (!slide) return
-        const o = p - i
+        // a slide all but home is home: the scroll can come to rest a few pixels short of its stop, and a slide left
+        // that far out leaves a sliver of the screen beside it uncovered, the 3D under it showing at its edge
+        const o = Math.abs(p - i) < 0.006 ? 0 : p - i
         let x = 0
         let clip = 0
         let shown = true

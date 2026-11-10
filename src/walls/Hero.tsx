@@ -5,6 +5,7 @@ import { Stage3D, MovingKeyLight } from '../facade/three/Stage3D'
 import { createBus, type Shot } from '../facade/three/kit'
 import { ScrubRig, mixShot } from '../facade/three/ScrubRig'
 import { FollowScroll, useScrollProgress } from '../facade/progress'
+import { ScrollCue } from '../components/ScrollCue'
 import { useLive } from '../facade/unitized/live'
 import { HERO_END, HERO_TARGET, HeroPanel } from './three/HeroPanel'
 
@@ -66,6 +67,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
         <Words as="p" className="fu-mega" lines={['Wall panels, insulated', 'and interlocked.']} />
         <p className="wp-hero__line">30 mm solid and 100 mm insulated concrete panels, reinforced with RTARIUM.</p>
       </div>
+      <ScrollCue className="fu-hero__cue" />
     </section>
   )
 }

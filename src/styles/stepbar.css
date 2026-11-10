@@ -124,6 +124,127 @@
 .fu-bar__skip:hover svg {
   transform: translateY(3px);
 }
+/*
+ * A word to the visitor, wherever a part of the page is worked by the scroll or by its buttons (HintTag): a plain tag
+ * in the ink of what it stands on, its mark saying what to do: a mouse, its wheel turning (scroll), or an arrow
+ * pointing down at the steps (pick one). Over a bar it stands at the bar's left; while it asks for a step to be
+ * picked, the steps lift one after another now and then, as if picked up. Gone once it no longer applies.
+ */
+.hint {
+  --hint-ink: var(--black);
+  --hint-ground: var(--yellow);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1.5px solid var(--hint-ink);
+  background: var(--hint-ground);
+  color: var(--hint-ink);
+  font-size: var(--t-small);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: hint-in 0.55s var(--ease-out) both;
+}
+.hint svg {
+  flex: none;
+}
+.hint__point {
+  animation: hint-point 1.3s var(--ease-in-out) infinite;
+}
+.hint__wheel {
+  animation: hint-wheel 1.6s var(--ease-in-out) infinite;
+}
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes hint-point {
+  0%,
+  100% {
+    transform: translateY(-1px);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+@keyframes hint-wheel {
+  0% {
+    opacity: 0;
+    transform: translateY(-1px);
+  }
+  25% {
+    opacity: 1;
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+/* over a bar, at its left */
+.fu-bar__hint {
+  --hint-ink: var(--bar-ink);
+  --hint-ground: var(--bar-ground);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 12px);
+  z-index: 2;
+}
+.fu-bar.has-hint .fu-bar__cell {
+  animation: bar-nudge 4s var(--ease-in-out) infinite;
+  animation-delay: calc(0.7s + var(--k, 0) * 110ms);
+}
+@keyframes bar-nudge {
+  0%,
+  14%,
+  100% {
+    transform: none;
+  }
+  7% {
+    transform: translateY(-5px);
+  }
+}
+/* in a black studio box (the six layers, the wall panels): small and quiet, no tag round it, just over the line of
+   its parts along the foot, at its left, clear of the model */
+.fu-sheet__hint {
+  --hint-ink: rgb(242 240 233 / 0.6);
+  --hint-ground: transparent;
+  position: absolute;
+  z-index: 4;
+  left: var(--pad);
+  bottom: calc(var(--pad) + 40px);
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  font-size: var(--t-micro);
+  font-weight: 600;
+  animation: none;
+}
+.fu-sheet__hint .hint__mouse {
+  width: 9px;
+  height: 13px;
+}
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fu-sheet__hint {
+    right: var(--pad);
+    bottom: calc(var(--pad) + 28px);
+    white-space: normal;
+    line-height: 1.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint,
+  .hint__point,
+  .hint__wheel,
+  .fu-bar.has-hint .fu-bar__cell {
+    animation: none;
+  }
+}
 
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
   .fu-bar {

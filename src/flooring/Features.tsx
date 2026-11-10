@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
-import { scrollToY, stepScreens } from '../lib/scroll'
+import { scrollToY } from '../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three/Stage3D'
 import { createBus } from '../facade/three/kit'
 import { smooth, type Progress } from '../facade/progress'
@@ -79,8 +79,6 @@ function goToFeature(k: number) {
   if (el) scrollToY(playedAt(el, k))
 }
 
-/** seconds one scroll takes from a feature to the next: long enough to watch the next one play out */
-const FEATURE_TIME = 2.2
 
 export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
   const compact = useIsCompact()
@@ -108,19 +106,9 @@ export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
     return () => window.removeEventListener('resize', measure)
   }, [])
 
-  // one scroll, one feature: the page glides to where the next has played out, and the floor plays it on the way;
-  // above and below the section the page scrolls freely
-  useEffect(
-    () =>
-      stepScreens(
-        () => {
-          const el = sectionRef.current
-          return el ? FEATURES.map((_, k) => playedAt(el, k)) : []
-        },
-        { time: FEATURE_TIME },
-      ),
-    [sectionRef],
-  )
+  // left as the slab to slab's build is, by the page's stepper (usePageSteps): plays with the scroll going down, never
+  // back, its bar playing it to a step; done where its last step has played out
+  const done = (START[N - 1] + STRETCH[N - 1] * 0.9) / RUN
 
   useEffect(() => {
     const el = sectionRef.current
@@ -149,18 +137,26 @@ export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
         // the bar: the current cell fills as its feature plays; a passed one closes to its number
         const c = cells.current[k]
         if (c) {
-          c.style.setProperty('--f', Math.min(1, Math.max(0, f / 0.94)).toFixed(4))
+          c.style.setProperty('--f', Math.min(1, Math.max(0, f / (k === N - 1 ? 0.9 : 0.72))).toFixed(4))
           c.style.setProperty('--c', (k < N - 1 ? smooth(0.86, 1, f) : 0).toFixed(4))
         }
       })
     }
     const tick = (now: number) => {
       raf = 0
+      // held by its controller (`data-held`, the page's stepper): it stays where it stands; and while a step of the bar plays
+      // it there, that play has it
+      if (seeking || el.hasAttribute('data-held')) return
       const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
       last = now
       const target = featureAt(-el.getBoundingClientRect().top / window.innerHeight)
       p = p < 0 || reduced ? target : damp(p, target, 12, dt)
       if (Math.abs(p - target) < 1e-4) p = target
+      apply()
+      if (p !== target) raf = requestAnimationFrame(tick)
+    }
+    /** everything that follows where the run stands, `p` */
+    const apply = () => {
       if (t.value !== p) {
         t.value = Math.min(N_FEATURES - 1e-4, p)
         t.listeners.forEach((f) => f())
@@ -171,7 +167,39 @@ export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
       // a feature's labels are up once it has played out, until its words go
       const f = p - k
       setLit(f > 0.5 && f < 0.8 + (k === N - 1 ? 1 : 0) ? FEATURES[k].id : '')
-      if (p !== target) raf = requestAnimationFrame(tick)
+    }
+    // a step of the bar (`run:show`, from the page's stepper): the run played to that step, back or on, smoothly and in a time
+    // of its own, as the slab to slab's bar plays to its step; `move`: the page goes straight there first
+    let seeking = false
+    let seekRaf = 0
+    const seek = (to: number) => {
+      cancelAnimationFrame(seekRaf)
+      const from = p < 0 ? to : p
+      if (reduced || Math.abs(to - from) < 1e-4) {
+        p = to
+        apply()
+        return
+      }
+      const time = Math.min(1.6, 0.55 + 0.28 * Math.abs(to - from)) * 1000
+      const start = performance.now()
+      seeking = true
+      const frame = (at: number) => {
+        const u = Math.min(1, Math.max(0, (at - start) / time))
+        p = from + (to - from) * (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
+        apply()
+        if (u < 1) seekRaf = requestAnimationFrame(frame)
+        else {
+          seeking = false
+          kick()
+        }
+      }
+      seekRaf = requestAnimationFrame(frame)
+    }
+    const show = (e: Event) => {
+      const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
+      const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.72)
+      if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
+      seek(featureAt(s))
     }
     const kick = () => {
       if (!raf) {
@@ -179,20 +207,38 @@ export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
         raf = requestAnimationFrame(tick)
       }
     }
+    // let go by its controller (`run:release`): straight to where the scroll is, never easing there from where it was held
+    const release = () => {
+      cancelAnimationFrame(seekRaf)
+      seeking = false
+      p = -1
+      kick()
+    }
+    el.addEventListener('run:show', show)
+    el.addEventListener('run:release', release)
     kick()
     window.addEventListener('scroll', kick, { passive: true })
     window.addEventListener('resize', kick)
     return () => {
+      el.removeEventListener('run:show', show)
+      el.removeEventListener('run:release', release)
+      cancelAnimationFrame(seekRaf)
       window.removeEventListener('scroll', kick)
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
     }
   }, [t, sectionRef])
 
+  // the labels change with the step, after the frame that moved the scene there: the scene, which draws only when asked,
+  // is asked for one more, so the labels it places are the new step's, never the last one's left where they stood
+  useEffect(() => {
+    t.listeners.forEach((f) => f())
+  }, [lit, t])
+
   const shown = FEATURES.find((a) => a.id === lit)?.labels ?? []
 
   return (
-    <section ref={sectionRef} id="features" className="fu-ans on-yellow" aria-labelledby="ffo-features-title" style={{ '--run': RUN } as CSSProperties}>
+    <section data-done={done} ref={sectionRef} id="features" className="fu-ans on-yellow" aria-labelledby="ffo-features-title" style={{ '--run': RUN } as CSSProperties}>
       <div ref={pin} className="fu-ans__pin">
         <div className="fu-ans__stage" aria-hidden="true">
           <Stage3D shadows fallback={<img className="fu-still" src="/img/site-strip.webp" alt="" />}>
@@ -225,6 +271,7 @@ export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | n
           step={step}
           onGo={goToFeature}
           cellRef={(k, el) => void (cells.current[k] = el)}
+          hints="run"
         />
       </div>
     </section>

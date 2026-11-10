@@ -7,8 +7,8 @@
 export const WIRE = {
   color: '#080808',
   /** pixels, for the lines drawn with a weight (a plain line is one pixel) */
-  width: 1.2,
-  opacity: 0.85,
+  width: 1,
+  opacity: 0.5,
 } as const
 
 /** whether a line of this colour is one of the site's black wires */

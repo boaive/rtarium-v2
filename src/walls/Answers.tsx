@@ -142,6 +142,10 @@ export function Answers() {
     return () => window.removeEventListener('resize', measure)
   }, [compact])
 
+  // left as the slab to slab's build is, by the page's stepper (usePageSteps): plays with the scroll going down, never
+  // back, its bar playing it to a step; done where its last step has played out
+  const done = (START[N - 1] + STRETCH[N - 1] * 0.9) / RUN
+
   useEffect(() => {
     const el = section.current
     if (!el) return
@@ -173,7 +177,7 @@ export function Answers() {
         }
         const c = cells.current[k]
         if (c) {
-          c.style.setProperty('--f', Math.min(1, Math.max(0, f / 0.94)).toFixed(4))
+          c.style.setProperty('--f', Math.min(1, Math.max(0, f / (k === N - 1 ? 0.9 : 0.84))).toFixed(4))
           c.style.setProperty('--c', (k < N - 1 ? smooth(0.88, 1, f) : 0).toFixed(4))
         }
       })
@@ -181,11 +185,19 @@ export function Answers() {
     }
     const tick = (now: number) => {
       raf = 0
+      // held by its controller (`data-held`, the page's stepper): it stays where it stands; and while a step of the bar plays
+      // it there, that play has it
+      if (seeking || el.hasAttribute('data-held')) return
       const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
       last = now
       const target = answerAt(-el.getBoundingClientRect().top / window.innerHeight)
       p = p < 0 || reduced ? target : damp(p, target, 12, dt)
       if (Math.abs(p - target) < 1e-4) p = target
+      apply()
+      if (p !== target) raf = requestAnimationFrame(tick)
+    }
+    /** everything that follows where the run stands, `p` */
+    const apply = () => {
       if (t.value !== p) {
         t.value = p
         t.listeners.forEach((f) => f())
@@ -201,7 +213,39 @@ export function Answers() {
       const f = p - k
       const on = (SHOWN[ANSWERS[k].id] ?? []).filter(([, a, b]) => f > a && f < (b ?? (k === N - 1 ? 2 : 0.86))).map(([id]) => id)
       setShown((s) => (s.join() === on.join() ? s : on))
-      if (p !== target) raf = requestAnimationFrame(tick)
+    }
+    // a step of the bar (`run:show`, from the page's stepper): the run played to that step, back or on, smoothly and in a time
+    // of its own, as the slab to slab's bar plays to its step; `move`: the page goes straight there first
+    let seeking = false
+    let seekRaf = 0
+    const seek = (to: number) => {
+      cancelAnimationFrame(seekRaf)
+      const from = p < 0 ? to : p
+      if (reduced || Math.abs(to - from) < 1e-4) {
+        p = to
+        apply()
+        return
+      }
+      const time = Math.min(1.6, 0.55 + 0.28 * Math.abs(to - from)) * 1000
+      const start = performance.now()
+      seeking = true
+      const frame = (at: number) => {
+        const u = Math.min(1, Math.max(0, (at - start) / time))
+        p = from + (to - from) * (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
+        apply()
+        if (u < 1) seekRaf = requestAnimationFrame(frame)
+        else {
+          seeking = false
+          kick()
+        }
+      }
+      seekRaf = requestAnimationFrame(frame)
+    }
+    const show = (e: Event) => {
+      const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
+      const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.84)
+      if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
+      seek(answerAt(s))
     }
     const kick = () => {
       if (!raf) {
@@ -209,18 +253,36 @@ export function Answers() {
         raf = requestAnimationFrame(tick)
       }
     }
+    // let go by its controller (`run:release`): straight to where the scroll is, never easing there from where it was held
+    const release = () => {
+      cancelAnimationFrame(seekRaf)
+      seeking = false
+      p = -1
+      kick()
+    }
+    el.addEventListener('run:show', show)
+    el.addEventListener('run:release', release)
     kick()
     window.addEventListener('scroll', kick, { passive: true })
     window.addEventListener('resize', kick)
     return () => {
+      el.removeEventListener('run:show', show)
+      el.removeEventListener('run:release', release)
+      cancelAnimationFrame(seekRaf)
       window.removeEventListener('scroll', kick)
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
     }
   }, [t])
 
+  // the labels change with the step, after the frame that moved the scene there: the scene, which draws only when asked,
+  // is asked for one more, so the labels it places are the new step's, never the last one's left where they stood
+  useEffect(() => {
+    t.listeners.forEach((f) => f())
+  }, [shown, t])
+
   return (
-    <section ref={section} id="wall-answers" className="fu-ans wp-ans on-yellow" aria-labelledby="wp-answers-title" style={{ '--run': RUN } as CSSProperties}>
+    <section data-done={done} ref={section} id="wall-answers" className="fu-ans wp-ans on-yellow" aria-labelledby="wp-answers-title" style={{ '--run': RUN } as CSSProperties}>
       <div ref={pin} className="fu-ans__pin">
         <div className="fu-ans__stage" aria-hidden="true">
           <Stage3D shadows keyLight={false}>
@@ -257,7 +319,7 @@ export function Answers() {
           })}
         </div>
 
-        <StepBar label="A smarter approach to wall systems" names={ANSWERS.map((a) => a.bar)} step={step} onGo={goTo} cellRef={(k, el) => void (cells.current[k] = el)} />
+        <StepBar label="A smarter approach to wall systems" names={ANSWERS.map((a) => a.bar)} step={step} onGo={goTo} cellRef={(k, el) => void (cells.current[k] = el)} hints="run" />
       </div>
     </section>
   )

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import '../../facade/overview.css'
 import { Link } from '../../lib/router'
 import { Arrow } from '../../facade/Shell'
@@ -14,21 +14,26 @@ import { FlooringTrio } from '../three/FlooringTrio'
  * applications in the next two, each with its floor over it as the overview shows it, its number, its
  * line and Explore. Pointing at a column fills it yellow and turns its floor towards the visitor.
  */
-export function More({ current }: { current: FlooringAppId }) {
+export function More({ current, id, sectionRef }: { current: FlooringAppId | null; id?: string; sectionRef?: RefObject<HTMLElement | null> }) {
   const pick = FLOORING_APPS.map((_, n) => n).filter((n) => FLOORING_APPS[n].id !== current)
+  // with none left out (the overview itself): all three, "Three ways onto a floor", and no way back
+  const all = pick.length === FLOORING_APPS.length
   const [ref, inView] = useInView<HTMLDivElement>('0px 0px -20% 0px')
-  const section = useRef<HTMLElement>(null)
+  const own = useRef<HTMLElement>(null)
+  const section = sectionRef ?? own
   const live = useLive(section)
   const [hover, setHover] = useState<number | null>(null)
 
   return (
-    <section ref={section} className="fct fu-more on-light" aria-labelledby="fdc-more-title">
+    <section ref={section} id={id} className={`fct fu-more ${all ? 'fu-more--all' : ''} on-light`} aria-labelledby="fdc-more-title">
       <div ref={ref} className={`fu-more__grid fc-reveal ${inView ? 'is-in' : ''}`}>
         <header className="fu-more__head">
-          <Words id="fdc-more-title" className="fct__title fu-more__title" lines={['Two more ways', 'onto a floor.']} />
-          <Link to={FLOORING.path} className="fu-more__overview">
-            Advanced Flooring overview
-          </Link>
+          <Words id="fdc-more-title" className="fct__title fu-more__title" lines={all ? ['Three ways', 'onto a floor.'] : ['Two more ways', 'onto a floor.']} />
+          {!all && (
+            <Link to={FLOORING.path} className="fu-more__overview">
+              Advanced Flooring overview
+            </Link>
+          )}
         </header>
         <div className="fct__stage fu-more__stage">
           <div className="fct__canvas" aria-hidden="true">

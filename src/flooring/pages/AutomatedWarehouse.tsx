@@ -5,6 +5,7 @@ import '../data.css'
 import '../warehouse.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../../facade/Shell'
+import { usePageSteps } from '../../facade/pageSteps'
 import { More } from '../data/More'
 import { Hero } from '../warehouse/Hero'
 import { Problems } from '../warehouse/Problems'
@@ -54,6 +55,9 @@ const failScene: FailSceneOf = (t, bus, compact, room, live) => <FailScene t={t}
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
  */
+/** the section whose run plays with the scroll itself, left to the scroll: the solution */
+const FREE = ['solution']
+
 export default function AutomatedWarehouse() {
   usePageMeta(
     'Automated Warehouse',
@@ -89,6 +93,9 @@ export default function AutomatedWarehouse() {
       window.removeEventListener('resize', on)
     }
   }, [])
+
+  // one scroll, one step, the whole page through, as the façade pages (usePageSteps), the solution playing with the scroll
+  usePageSteps(FREE)
 
   return (
     <FacadePage>

@@ -5,6 +5,7 @@ import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from 
 import { createBus, type Shot } from '../three/kit'
 import { ScrubRig, mixShot } from '../three/ScrubRig'
 import { FollowScroll, useScrollProgress } from '../progress'
+import { ScrollCue } from '../../components/ScrollCue'
 import { HERO_FOCUS, HERO_TARGET, HeroWall } from '../three/rain/HeroWall'
 import { useLive } from '../unitized/live'
 
@@ -70,6 +71,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
       <div className="fu-hero__foot">
         <Words as="p" className="fu-mega" lines={['Designed for Lasting', 'Weather Protection.']} />
       </div>
+      <ScrollCue className="fu-hero__cue" />
     </section>
   )
 }
