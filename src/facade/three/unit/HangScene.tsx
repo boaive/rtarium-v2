@@ -189,8 +189,9 @@ class Lines {
  */
 function blockGeometry() {
   const L = new Lines()
-  const x0 = -0.45
-  const x1 = W + 0.45
+  // flush with the cladding at both ends: nothing of the structure stands out past the last column of units
+  const x0 = 0
+  const x1 = W
   const zb = -DEPTH
   const zf = -GAP
   const cz = CZ

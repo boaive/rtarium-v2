@@ -1,27 +1,28 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
 import { createBus } from '../../facade/three/kit'
-import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../../facade/progress'
-import { StepBar } from '../../facade/unitized/StepBar'
+import { FollowScroll, smooth, usePlay } from '../../facade/progress'
+import { REPLAY_HINT, StepBar } from '../../facade/unitized/StepBar'
 import type { BuildRoom } from '../data/three/BuildScene'
 import { FRAME, FrameScene } from './three/FrameScene'
 
 /**
  * From floor to facility, after the build, as on the Data & AI Centres page: one scene on the warm white page,
- * pinned for its run, the title over it and the bar along its foot. The floor the build ended on is
+ * one screen, played on one scroll, the title over it and the bar along its foot. The floor the build ended on is
  * the first thing seen; a tool is drawn on it, it grows into the cleanroom, the waffle slab and the
  * subfab are drawn under it and the fab round it. The camera keeps the scene to the room between the
  * title and the bar, never edge to edge.
  */
 
+/** the steps along the bar; each starts once the one before has played out (and past its hold), so the bar never runs ahead of the scene */
 const PHASES = [
   { name: 'The floor', from: 0, to: FRAME.tool[1] },
   { name: 'The cleanroom', from: FRAME.grow[0], to: FRAME.bay[1] },
-  { name: 'Waffle slab and subfab', from: FRAME.under[0], to: FRAME.under[1] },
-  { name: 'The fab', from: FRAME.fab[0], to: FRAME.fab[1] },
+  { name: 'Waffle slab and subfab', from: FRAME.bay[1] + 0.035, to: FRAME.under[1] },
+  { name: 'The fab', from: FRAME.under[1] + 0.035, to: FRAME.fab[1] },
 ]
-const RUN = 6.5
+/** seconds for the whole sequence, played on one scroll once the section is on screen (as the warehouse's frame to floor) */
+const PLAY = 9
 
 const LABELS: LabelSpec[] = [
   { id: 'piece', anchor: 'sf-piece', text: 'RTARIUM cleanroom floor', dx: -60, dy: 80 },
@@ -31,10 +32,12 @@ const LABELS: LabelSpec[] = [
 export function FloorFrame() {
   const section = useRef<HTMLElement>(null)
   const pin = useRef<HTMLDivElement>(null)
-  const [progress] = useScrollProgress(section, 1, 'run')
+  const [progress, seek] = usePlay(section, PLAY)
   const bus = useMemo(createBus, [])
   const cells = useRef<(HTMLLIElement | null)[]>([])
   const [step, setStep] = useState(0)
+  /** played to its end: its bar says its steps can be picked to be seen again */
+  const [ended, setEnded] = useState(false)
   const [shown, setShown] = useState<string[]>([])
   /** the room the scene keeps to: between the gutters, under the title, over the bar */
   const room = useRef<BuildRoom>({ x: 0.05, y: 0.2, w: 0.9, h: 0.62 })
@@ -57,6 +60,7 @@ export function FloorFrame() {
   useEffect(() => {
     const paint = () => {
       const p = progress.value
+      setEnded(p >= 0.995)
       let now = 0
       PHASES.forEach((ph, i) => {
         if (p >= ph.from - 0.02) now = i
@@ -77,18 +81,12 @@ export function FloorFrame() {
     return () => void progress.listeners.delete(paint)
   }, [progress])
 
-  const go = (p: number) => {
-    const el = section.current
-    if (!el) return
-    scrollToY(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * p)
-  }
+  const go = (p: number, from?: number) => seek(p, from)
   /** where each step of the bar takes you: once its part has been made */
   const holds = [FRAME.tool[1] + 0.01, FRAME.bay[1] + 0.01, FRAME.under[1] + 0.01, FRAME.fab[1] + 0.04]
-  // one scroll, one step: each played out to its end on the way there
-  usePlaySteps(section, PHASES.map((ph) => Math.min(0.995, ph.to + 0.012)))
 
   return (
-    <section ref={section} id="frame" className="fu-hang on-light" aria-labelledby="fsc-frame-title" style={{ '--run': RUN } as CSSProperties}>
+    <section ref={section} id="frame" className="fu-hang on-light" aria-labelledby="fsc-frame-title" style={{ '--run': 1 } as CSSProperties}>
       <div ref={pin} className="fu-hang__pin">
         <h2 id="fsc-frame-title" className="fu-hang__title">
           From floor to facility.
@@ -101,7 +99,7 @@ export function FloorFrame() {
           </Stage3D>
           <Labels bus={bus} labels={LABELS} shown={shown} />
         </div>
-        <StepBar label="From the floor to the fab" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => go(holds[i])} cellRef={(i, el) => void (cells.current[i] = el)} />
+        <StepBar label="From the floor to the fab" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => go(holds[i], i ? holds[i - 1] : 0)} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
       </div>
     </section>
   )

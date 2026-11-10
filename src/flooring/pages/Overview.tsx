@@ -1,20 +1,20 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import '../../facade/overview.css'
 import '../../facade/unitized.css'
 import '../flooring.css'
-import { Link } from '../../lib/router'
 import { useIsCompact } from '../../lib/motion'
 import { setShared, type Ground } from '../../three/stageStore'
 import { Say } from '../../components/Say'
-import { Arrow, FacadePage, usePageMeta } from '../../facade/Shell'
-import { Words, useInView } from '../../facade/Story'
+import { FacadePage, usePageMeta } from '../../facade/Shell'
+import { usePageSteps } from '../../facade/pageSteps'
+import { Words } from '../../facade/Story'
 import { Stage3D, MovingKeyLight } from '../../facade/three/Stage3D'
 import { createBus, type Shot } from '../../facade/three/kit'
 import { ScrubRig, mixShot } from '../../facade/three/ScrubRig'
 import { FollowScroll, useScrollProgress } from '../../facade/progress'
-import { FLOORING, FLOORING_APPS } from '../content'
+import { FLOORING } from '../content'
 import { FloorHero } from '../three/FloorHero'
-import { FlooringTrio } from '../three/FlooringTrio'
+import { More } from '../data/More'
 import { Layer } from '../Layer'
 import { Features } from '../Features'
 
@@ -42,6 +42,9 @@ function heroShots(compact: boolean): [Shot, Shot] {
 
 const STATEMENT = 'RTARIUM is the first independent three-dimensional mineral reinforcement mesh for high-performance concrete overlays, built for floors that cannot stop.'
 
+/** the section whose run plays with the scroll itself, left to the scroll: the features */
+const FREE = ['features']
+
 export default function Overview() {
   usePageMeta(
     FLOORING.title,
@@ -57,17 +60,11 @@ export default function Overview() {
   const heroBus = useMemo(createBus, [])
   const [hs0, hs1] = useMemo(() => heroShots(compact), [compact])
   const heroShot = useMemo(() => (p: number) => mixShot(hs0, hs1, p), [hs0, hs1])
-  const [waysRef, waysIn] = useInView<HTMLDivElement>('0px 0px -25% 0px')
-  const [hover, setHover] = useState<number | null>(null)
 
   // which canvases are on screen: only those keep moving in time
   const heroLive = useRef(false)
-  const waysLive = useRef(false)
   useEffect(() => {
-    const live = new Map<Element, { current: boolean }>([
-      [hero.current!, heroLive],
-      [ways.current!, waysLive],
-    ])
+    const live = new Map<Element, { current: boolean }>([[hero.current!, heroLive]])
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) live.get(e.target)!.current = e.isIntersecting
     })
@@ -111,6 +108,10 @@ export default function Overview() {
     }
   }, [])
 
+  // one scroll, one step, the whole page through, as the façade pages (usePageSteps): the layer stepped through by it,
+  // the features playing with the scroll
+  usePageSteps(FREE)
+
   return (
     <FacadePage>
       {/* ---- the opening, on yellow ---- */}
@@ -142,51 +143,13 @@ export default function Overview() {
       <Say sectionRef={say} label="RTARIUM in industrial flooring" text={STATEMENT} />
 
       {/* ---- the layer between the slab and the screed ---- */}
-      <Layer sectionRef={layer} />
+      <Layer sectionRef={layer} paged />
 
       {/* ---- the core features, each on one floor ---- */}
       <Features sectionRef={features} />
 
-      {/* ---- the three applications, side by side ---- */}
-      <section ref={ways} id="applications" className="fct on-light" aria-labelledby="ffo-ways-title">
-        <div ref={waysRef} className={`fct__inner ${waysIn ? 'is-in' : ''}`}>
-          <header className="fct__head">
-            <Words id="ffo-ways-title" className="fct__title" lines={['Three ways', 'onto a floor.']} />
-          </header>
-          <div className="fct__stage">
-            <div className="fct__canvas">
-              <Stage3D shadows keyLight={false} fallback={<img className="fco-still" src="/img/site-strip.webp" alt="" />}>
-                <FlooringTrio play={waysIn} hover={hover} live={waysLive} />
-              </Stage3D>
-            </div>
-            <ol className="fct__cols">
-              {FLOORING_APPS.map((a, i) => (
-                <li
-                  key={a.id}
-                  className={`fct-col ${hover === i ? 'is-hover' : ''}`}
-                  style={{ '--i': i } as CSSProperties}
-                  onPointerEnter={() => setHover(i)}
-                  onPointerLeave={() => setHover((h) => (h === i ? null : h))}
-                  onFocus={() => setHover(i)}
-                  onBlur={() => setHover((h) => (h === i ? null : h))}
-                >
-                  <div className="fct-col__text">
-                    <span className="fct-col__num num">0{i + 1}</span>
-                    <h3 className="fct-col__name">{a.title}</h3>
-                    <p className="fct-col__line">{a.line}</p>
-                    <Link to={a.path} className="fc-go fct-col__go">
-                      <span className="fc-go__label">Explore</span>
-                      <span className="fc-go__cell" aria-hidden="true">
-                        <Arrow />
-                      </span>
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      </section>
+      {/* ---- the three applications, side by side: the application pages' close, all three ---- */}
+      <More current={null} id="applications" sectionRef={ways} />
     </FacadePage>
   )
 }

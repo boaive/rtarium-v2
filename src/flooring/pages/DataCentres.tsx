@@ -4,6 +4,7 @@ import '../../facade/rainscreen.css'
 import '../data.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../../facade/Shell'
+import { usePageSteps } from '../../facade/pageSteps'
 import { Hero } from '../data/Hero'
 import { Problems } from '../data/Problems'
 import { Build } from '../data/Build'
@@ -26,6 +27,9 @@ import { More } from '../data/More'
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
  */
+/** the section whose run plays with the scroll itself, left to the scroll: the build */
+const FREE = ['build']
+
 export default function DataCentres() {
   usePageMeta(
     'Data & AI Centres',
@@ -62,6 +66,9 @@ export default function DataCentres() {
       window.removeEventListener('resize', on)
     }
   }, [])
+
+  // one scroll, one step, the whole page through, as the façade pages (usePageSteps), the build playing with the scroll
+  usePageSteps(FREE)
 
   return (
     <FacadePage>

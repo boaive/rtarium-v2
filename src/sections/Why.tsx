@@ -1,7 +1,7 @@
-import { useRef, type CSSProperties, type RefObject } from 'react'
+import { useEffect, useRef, type CSSProperties, type RefObject } from 'react'
 import { Chapter, Statement, useScreen, type Step } from '../components/Chapter'
 import { useInView } from '../facade/Story'
-import { useIsCompact } from '../lib/motion'
+import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { useMarkIn } from '../lib/reveal'
 
 /**
@@ -31,6 +31,9 @@ const ROWS = [
   { name: 'Flat 2D mesh', what: 'A single grid that reinforces only along the sheet.', weak: 'Works in one plane.' },
 ]
 const STRENGTHS = ['Non-corrosive.', 'Alkali-resistant.', 'Three-dimensional.']
+/** the rows' way in, as shares of the screen's rise (as the flooring pages' table): the first starts at FROM, each takes SPAN */
+const FROM = 0.3
+const SPAN = 0.36
 
 /**
  * On a phone the table is three cards, one for each strength of RTARIUM, each set against the compromise it
@@ -76,17 +79,54 @@ function Cards({ list }: { list: RefObject<HTMLOListElement | null> }) {
 
 /**
  * The three compromises and the mesh in their place, on one warm-white screen: a table to take in at a
- * glance, nothing to scroll open. RTARIUM closes it on black, its three strengths under the columns they
- * answer.
+ * glance, nothing to scroll open. It comes in as the flooring pages' table does: as the screen rises, row after
+ * row, its line draws across, its number drops out from under the line and its words rise, straight with the
+ * scroll. RTARIUM closes it on black: the band opens up from its foot, the name rises out of it, and the three
+ * strengths follow, each line drawn under the column it answers.
  */
 function Replaces() {
   const section = useRef<HTMLElement>(null)
   useScreen(section, 'replaces', 'light')
+  const rows = useRef<HTMLTableSectionElement>(null)
   const [ref, inView] = useInView<HTMLDivElement>('0px 0px -20% 0px')
   // on a phone the section runs past one screen: it is read at its own pace, never brought to a screen inside it (lib/scroll.ts)
   const compact = useIsCompact()
   const cards = useRef<HTMLOListElement>(null)
   useMarkIn(cards, '.vs__card', compact)
+  // the band plays when it is itself on screen, not when the table above it is
+  const [band, bandIn] = useInView<HTMLDivElement>('0px 0px -8% 0px')
+
+  // the rows with the scroll, no easing of their own: the page's glide (Lenis) is what makes it smooth
+  useEffect(() => {
+    const el = section.current
+    const items = rows.current ? ([...rows.current.children] as HTMLElement[]) : []
+    if (!el) return
+    const still = prefersReducedMotion()
+    const step = (1 - FROM - SPAN) / Math.max(1, items.length - 1)
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const rise = (window.innerHeight - el.getBoundingClientRect().top) / window.innerHeight
+      // each row's share of the table's height: its number is set to it, as large as the row allows
+      const table = rows.current?.parentElement as HTMLTableElement | null
+      if (table && items.length) table.style.setProperty('--rh', `${((table.clientHeight - (table.tHead?.offsetHeight ?? 0)) / items.length).toFixed(1)}px`)
+      items.forEach((row, k) => {
+        const t = still ? 1 : Math.min(1, Math.max(0, (rise - FROM - k * step) / SPAN))
+        row.style.setProperty('--g', t.toFixed(4))
+      })
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [])
 
   return (
     <section id="replaces" ref={section} className="ledger on-light" data-screen="light" data-flow={compact ? '' : undefined} aria-labelledby="replaces-title">
@@ -101,29 +141,34 @@ function Replaces() {
             <table className="ledger__table">
               <thead>
                 <tr>
+                  <td aria-hidden="true" />
                   <th scope="col">Reinforcement</th>
                   <th scope="col">What it is</th>
                   <th scope="col">Its weakness</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody ref={rows}>
                 {ROWS.map((r, i) => (
                   <tr key={r.name} style={{ '--i': i } as CSSProperties}>
-                    <th scope="row">
-                      <span className="num">0{i + 1}</span>
-                      {r.name}
-                    </th>
+                    <td className="ledger__n" aria-hidden="true">
+                      <span className="ledger__num">
+                        <span className="num">0{i + 1}</span>
+                      </span>
+                    </td>
+                    <th scope="row">{r.name}</th>
                     <td>{r.what}</td>
                     <td className="ledger__weak">{r.weak}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div className="ledger__answer on-black">
-              <p className="ledger__word">RTARIUM</p>
+            <div ref={band} className={`ledger__answer on-black ${bandIn ? 'is-in' : ''}`}>
+              <p className="ledger__word">
+                <span>RTARIUM</span>
+              </p>
               <ul className="ledger__strengths">
                 {STRENGTHS.map((a, j) => (
-                  <li key={a}>
+                  <li key={a} style={{ '--j': j } as CSSProperties}>
                     <span className="num" aria-hidden="true">
                       0{j + 1}
                     </span>

@@ -1,18 +1,17 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import '../overview.css'
-import { Link } from '../../lib/router'
+import '../unitized.css'
 import { useIsCompact } from '../../lib/motion'
 import { setShared, type Ground } from '../../three/stageStore'
-import { Arrow, FacadePage, usePageMeta } from '../Shell'
-import { Words, useInView } from '../Story'
+import { FacadePage, usePageMeta } from '../Shell'
+import { Words } from '../Story'
 import { Lineage } from '../Lineage'
-import { SYSTEMS } from '../content'
 import { Stage3D, MovingKeyLight } from '../three/Stage3D'
 import { createBus, type Shot } from '../three/kit'
 import { ScrubRig, mixShot } from '../three/ScrubRig'
 import { HeroPanel } from '../three/HeroPanel'
-import { SystemsTrio } from '../three/SystemsTrio'
 import { FollowScroll, useScrollProgress } from '../progress'
+import { More } from '../unitized/More'
 
 /**
  * Façade & Cladding, the overview. One continuous scroll, yellow the ground that stays:
@@ -20,7 +19,8 @@ import { FollowScroll, useScrollProgress } from '../progress'
  *   the opening   the section's name and its line, over a thin façade panel poured as the page opens
  *   the story     one façade reinforced four ways (steel bar, GFRC / GRC, UHPC, RTARIUM): the façade
  *                 in 3D beside cards that stack as they are read (see Lineage)
- *   the systems   all three façade systems side by side, their models rising in turn
+ *   the systems   all three façade systems side by side, their models rising in turn: the system pages' own block
+ *                 (More), a band under the header, its line, the whole screen
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
  */
@@ -39,6 +39,13 @@ function heroShots(compact: boolean): [Shot, Shot] {
 
 /* ---- the page -------------------------------------------------------------------------------- */
 
+/** where the page rests after the story: the three systems, the whole screen; then the page's foot */
+function afterStory() {
+  const el = document.getElementById('systems')
+  const end = document.documentElement.scrollHeight - window.innerHeight
+  return el ? [Math.round(el.getBoundingClientRect().top + window.scrollY), end] : [end]
+}
+
 export default function Overview() {
   usePageMeta(
     'Façade & Cladding',
@@ -52,18 +59,14 @@ export default function Overview() {
   const heroBus = useMemo(createBus, [])
   const [hs0, hs1] = useMemo(() => heroShots(compact), [compact])
   const heroShot = useMemo(() => (p: number) => mixShot(hs0, hs1, p), [hs0, hs1])
-  const [sysRef, sysIn] = useInView<HTMLDivElement>('0px 0px -25% 0px')
-  const [hover, setHover] = useState<number | null>(null)
 
   // which canvases are on screen: only those keep moving in time
   const heroLive = useRef(false)
   const storyLive = useRef(false)
-  const sysLive = useRef(false)
   useEffect(() => {
     const live = new Map<Element, { current: boolean }>([
       [hero.current!, heroLive],
       [story.current!, storyLive],
-      [systems.current!, sysLive],
     ])
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) live.get(e.target)!.current = e.isIntersecting
@@ -135,48 +138,10 @@ export default function Overview() {
       </section>
 
       {/* ---- the story: one façade, four versions, stacked as the page scrolls ---- */}
-      <Lineage sectionRef={story} live={storyLive} />
+      <Lineage sectionRef={story} live={storyLive} fromTop after={afterStory} />
 
-      {/* ---- the three systems, side by side ---- */}
-      <section ref={systems} id="systems" className="fct on-light" aria-labelledby="fct-title">
-        <div ref={sysRef} className={`fct__inner ${sysIn ? 'is-in' : ''}`}>
-          <header className="fct__head">
-            <Words id="fct-title" className="fct__title" lines={['Three ways', 'onto a building.']} />
-          </header>
-          <div className="fct__stage">
-            <div className="fct__canvas">
-              <Stage3D shadows keyLight={false} fallback={<img className="fco-still" src="/img/facade/panel-ivory.webp" alt="" />}>
-                <SystemsTrio play={sysIn} hover={hover} live={sysLive} />
-              </Stage3D>
-            </div>
-            <ol className="fct__cols">
-              {SYSTEMS.map((s, i) => (
-                <li
-                  key={s.id}
-                  className={`fct-col ${hover === i ? 'is-hover' : ''}`}
-                  style={{ '--i': i } as CSSProperties}
-                  onPointerEnter={() => setHover(i)}
-                  onPointerLeave={() => setHover((h) => (h === i ? null : h))}
-                  onFocus={() => setHover(i)}
-                  onBlur={() => setHover((h) => (h === i ? null : h))}
-                >
-                  <div className="fct-col__text">
-                    <span className="fct-col__num num">0{i + 1}</span>
-                    <h3 className="fct-col__name">{s.title}</h3>
-                    <p className="fct-col__line">{s.short}</p>
-                    <Link to={s.path} className="fc-go fct-col__go">
-                      <span className="fc-go__label">Explore</span>
-                      <span className="fc-go__cell" aria-hidden="true">
-                        <Arrow />
-                      </span>
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      </section>
+      {/* ---- the three systems, side by side: the system pages' block, all three ---- */}
+      <More current={null} id="systems" sectionRef={systems} />
     </FacadePage>
   )
 }

@@ -167,7 +167,15 @@ export function Voices({ bands = BANDS, model = <Model /> }: { bands?: Band[]; m
   }, [N])
 
   return (
-    <section ref={section} id="voices" className="fdc-v on-light" style={{ '--rows': N } as CSSProperties} aria-labelledby="fdc-v-title">
+    <section
+      ref={section}
+      id="voices"
+      className="fdc-v on-light"
+      // the page's one scroll a step: a band open at each, then the meter wound down (points of its run of N − 0.3 screens)
+      data-stops={[...Array.from({ length: N - 1 }, (_, k) => k + 1), N - 0.55].map((v) => (v / (N - 0.3)).toFixed(5)).join(',')}
+      style={{ '--rows': N } as CSSProperties}
+      aria-labelledby="fdc-v-title"
+    >
       <div className="fdc-v__pin">
         <h2 id="fdc-v-title" className="fdc-v__title">
           Specified. Approved. Built.

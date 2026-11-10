@@ -274,11 +274,6 @@
   justify-content: space-between;
   gap: var(--s-4);
 }
-.fs-duo__mark {
-  width: 10px;
-  height: 10px;
-  background: currentColor;
-}
 .fs-duo__body {
   display: grid;
   align-self: end;
@@ -510,6 +505,14 @@
   letter-spacing: -0.035em;
   line-height: 1.04;
   text-wrap: balance;
+}
+/* the box beside the name stands at the right of the screen: its words hold to its right edge, the label's mark after it */
+.fs-block:not(.fs-block--last) .fs-cell--limit .fs-cell__in {
+  align-items: flex-end;
+  text-align: right;
+}
+.fs-block:not(.fs-block--last) .fs-cell--limit .fs-label {
+  flex-direction: row-reverse;
 }
 
 /* the photograph, framed in its box with room round it: it grows out of its top left corner as the
@@ -779,6 +782,13 @@
   }
   .fs-used__text {
     font-size: var(--t-small);
+  }
+  .fs-block:not(.fs-block--last) .fs-cell--limit .fs-cell__in {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .fs-block:not(.fs-block--last) .fs-cell--limit .fs-label {
+    flex-direction: row;
   }
   .fs-limit {
     max-width: none;

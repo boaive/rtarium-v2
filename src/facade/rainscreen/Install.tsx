@@ -1,46 +1,50 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useIsCompact } from '../../lib/motion'
-import { scrollToY } from '../../lib/scroll'
 import { Stage3D, MovingKeyLight } from '../three/Stage3D'
 import { ScrubRig } from '../three/ScrubRig'
-import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../progress'
+import { FollowScroll, smooth, usePlay } from '../progress'
 import { INSTALL, INSTALL_FOCUS, INSTALL_REACH, InstallScene, installShot } from '../three/rain/InstallScene'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { useLive } from '../unitized/live'
-import { StepBar } from '../unitized/StepBar'
+import { REPLAY_HINT, StepBar } from '../unitized/StepBar'
 
 /**
  * From structure to facade: the rainscreen put up, in the order the installation films show. One scene on the
- * warm white page, edge to edge (the title and the bar stand over it), pinned for its run: a bay of
+ * warm white page, edge to edge (the title and the bar stand over it), one screen, played on one scroll: a bay of
  * the wall given its brackets, its wool and its rails, then the tower crane bringing the panel that
  * hooks on, then the block and the rest of the façade going up by itself. Slab to slab's bar along
  * the foot fills each step as it runs and takes you to any of them.
  */
 
+/** the steps along the bar; each starts once the one before has played out (and past its hold), so the bar never runs ahead of the scene */
 const PHASES = [
   { name: 'Brackets', from: 0, to: INSTALL.bracket[1] },
-  { name: 'Insulation', from: INSTALL.bracket[1] + 0.03, to: INSTALL.wool[1] },
-  { name: 'Rails', from: INSTALL.wool[1] + 0.02, to: INSTALL.hanger[1] },
-  { name: 'Panel, by crane', from: INSTALL.crane[0], to: INSTALL.look[1] },
-  { name: 'Onto the building', from: INSTALL.hook[1] + 0.02, to: INSTALL.fill[1] },
+  { name: 'Insulation', from: INSTALL.bracket[1] + 0.04, to: INSTALL.wool[1] },
+  { name: 'Rails', from: INSTALL.wool[1] + 0.04, to: INSTALL.hanger[1] },
+  { name: 'Panel, by crane', from: INSTALL.crane[0], to: INSTALL.hook[1] + 0.02 },
+  { name: 'Onto the building', from: INSTALL.hook[1] + 0.06, to: INSTALL.fill[1] },
 ]
-const RUN = 8
+/** seconds for the whole sequence, played on one scroll once the section is on screen (as the warehouse's frame to floor) */
+const PLAY = 11
 
 export function Install() {
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const stage = useRef<HTMLDivElement>(null)
-  const [progress] = useScrollProgress(section, 1, 'run')
+  const [progress, seek] = usePlay(section, PLAY)
   const live = useLive(stage)
   const settle = useRef(0)
   const shotAt = useMemo(() => (p: number) => installShot(p, compact, settle.current), [compact])
   const cells = useRef<(HTMLLIElement | null)[]>([])
   const [step, setStep] = useState(0)
+  /** played to its end: its bar says its steps can be picked to be seen again */
+  const [ended, setEnded] = useState(false)
 
   useEffect(() => {
     const paint = () => {
       const p = progress.value
+      setEnded(p >= 0.995)
       let now = 0
       PHASES.forEach((ph, i) => {
         if (p >= ph.from - 0.02) now = i
@@ -57,18 +61,12 @@ export function Install() {
     return () => void progress.listeners.delete(paint)
   }, [progress])
 
-  const go = (p: number) => {
-    const el = section.current
-    if (!el) return
-    scrollToY(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * p)
-  }
+  const go = (p: number, from?: number) => seek(p, from)
   /** where each step of the bar takes you: each part made solid, the panel hooked on, the façade up */
   const holds = [INSTALL.bracket[1], INSTALL.wool[1], INSTALL.hanger[1], INSTALL.hook[1] + 0.02, INSTALL.out[1]].map((p) => p + 0.012)
-  // one scroll, one step: each played out to its end on the way there
-  usePlaySteps(section, PHASES.map((ph) => Math.min(0.995, ph.to + 0.012)))
 
   return (
-    <section ref={section} id="install" className="fu-hang on-light" aria-labelledby="fr-install-title" style={{ '--run': RUN } as CSSProperties}>
+    <section ref={section} id="install" className="fu-hang on-light" aria-labelledby="fr-install-title" style={{ '--run': 1 } as CSSProperties}>
       <div className="fu-hang__pin">
         <h2 id="fr-install-title" className="fu-hang__title">
           From structure to façade.
@@ -82,7 +80,7 @@ export function Install() {
             <FollowScroll progress={progress} />
           </Stage3D>
         </div>
-        <StepBar label="How the rainscreen goes up" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => go(holds[i])} cellRef={(i, el) => void (cells.current[i] = el)} />
+        <StepBar label="How the rainscreen goes up" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => go(holds[i], i ? holds[i - 1] : 0)} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
       </div>
     </section>
   )

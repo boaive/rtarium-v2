@@ -89,7 +89,7 @@ function schedule(parts: Part[], seed: number) {
 }
 
 /** each kind of part's look: a painted panel matt, the steel a little metallic, the glass clear */
-function material(mat: Mat, color: string) {
+export function material(mat: Mat, color: string) {
   const metal = mat === 'steel' || mat === 'metal'
   if (mat === 'glass') return new THREE.MeshStandardMaterial({ color, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.45, depthWrite: false })
   return new THREE.MeshStandardMaterial({ color, roughness: metal ? 0.4 : mat === 'frame' || mat === 'door' ? 0.5 : 0.78, metalness: metal ? 0.55 : 0.02 })

@@ -116,8 +116,10 @@ export function towerLines() {
   for (let i = 0; i <= 4; i++) posts2.push([(W * i) / 4, -0.15], [(W * i) / 4, -2 * TOWER.r + 0.15])
   for (const a of [Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4]) posts2.push([W + R * Math.sin(a), -TOWER.r + R * Math.cos(a)], [-R * Math.sin(a), -TOWER.r + R * Math.cos(a)])
   for (const [x, z] of posts2) L.seg([x, H, z], [x, H + 1.0, z])
-  L.box([2.2, H, -TOWER.r - 2], [5.6, H + 1.6, -TOWER.r + 1])
-  L.box([W - 5.6, H, -TOWER.r - 2], [W - 2.2, H + 1.6, -TOWER.r + 1])
+  // the plant, in the back corners: clear of the crane's mast, which stands in the roof behind the front's left third,
+  // so the two never cross in the drawing
+  L.box([0.4, H, -2 * TOWER.r + 0.8], [2.8, H + 1.6, -2 * TOWER.r + 3.2])
+  L.box([W - 2.8, H, -2 * TOWER.r + 0.8], [W - 0.4, H + 1.6, -2 * TOWER.r + 3.2])
   return L.geometry()
 }
 

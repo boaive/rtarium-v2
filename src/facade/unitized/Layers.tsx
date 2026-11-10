@@ -12,7 +12,7 @@ import { ReviewNote } from '../../components/Media'
 import { Arrow } from '../Shell'
 import { useCornerBox, useLive } from './live'
 import { paintCards } from './stack'
-import { Skip } from './StepBar'
+import { HintTag, Skip, type Hint } from './StepBar'
 
 /**
  * Six layers, one unit, on yellow. Pinned for its run: on the left the layers as sticky stacking
@@ -64,6 +64,8 @@ const NEAR = 0.006
 const SEEN = [...BUILD].reverse()
 /** the camera stands a little further off than the shots ask, so the unit has room round it in the box */
 const ROOM = 1.08
+/** the word in the box: how to go through the layers */
+const HOW: Hint = { text: 'Scroll or use the arrows', icon: 'scroll' }
 
 export function Layers() {
   const compact = useIsCompact()
@@ -162,8 +164,31 @@ export function Layers() {
     onClick: () => scrollToY(restAt(l)),
   })
 
+  // the title comes in as the section takes the screen, before the frame and its card: not while the opening above
+  // is still most of what is seen
+  const [landed, setLanded] = useState(false)
+  useEffect(() => {
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const r = section.current?.getBoundingClientRect()
+      setLanded(!!r && r.top <= window.innerHeight * 0.25 && r.bottom > window.innerHeight * 0.5)
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [])
+
   return (
-    <section ref={section} id="layers" className="fu-layers on-yellow" aria-labelledby="fu-layers-title" style={{ '--run': RUN } as CSSProperties}>
+    <section ref={section} id="layers" className={`fu-layers on-yellow ${landed ? 'is-landed' : ''}`} data-stops={STOPS.join(',')} data-no-top="" aria-labelledby="fu-layers-title" style={{ '--run': RUN } as CSSProperties}>
       <div className="fu-layers__pin">
         <div className="fu-layers__copy">
           <h2 id="fu-layers-title" className="fu-layers__title">
@@ -216,6 +241,9 @@ export function Layers() {
                   <Arrow />
                 </button>
               </div>
+
+              {/* how to go through them: the scroll, or the arrows */}
+              <HintTag hint={HOW} className="fu-sheet__hint" />
 
               {/* the six along the foot, in the order they stand in the unit (the frame, which goes on first, on
                   the right): each line fills from the right as its layer comes in */}

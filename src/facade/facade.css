@@ -500,6 +500,14 @@
   font-weight: 700;
   text-decoration: none;
 }
+/* as a button (a sheet, a stream), the same as a link: none of the browser's own border, padding or face */
+button.fc-go {
+  padding: 0;
+  border: 0;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
 .fc-go__label {
   display: inline-flex;
   align-items: center;

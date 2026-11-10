@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
 import { createBus } from '../../facade/three/kit'
 import { FollowScroll, smooth, usePlay } from '../../facade/progress'
-import { StepBar } from '../../facade/unitized/StepBar'
+import { REPLAY_HINT, StepBar } from '../../facade/unitized/StepBar'
 import type { BuildRoom } from '../data/three/BuildScene'
 import { FRAME, FrameScene } from './three/FrameScene'
 
@@ -13,11 +13,12 @@ import { FRAME, FrameScene } from './three/FrameScene'
  * drawn round it, its last label on the floor. The bar follows it, and takes you to any of its steps.
  */
 
+/** the steps along the bar; each starts once the one before has played out (and past its hold), so the bar never runs ahead of the scene */
 const PHASES = [
   { name: 'The floor', from: 0, to: FRAME.racks[1] },
   { name: 'The aisles', from: FRAME.grow[0], to: FRAME.aisles[1] },
-  { name: 'The high bay', from: FRAME.frame[0], to: FRAME.frame[1] },
-  { name: 'The fulfilment centre', from: FRAME.shell[0], to: FRAME.plant[1] },
+  { name: 'The high bay', from: FRAME.aisles[1] + 0.035, to: FRAME.frame[1] },
+  { name: 'The fulfilment centre', from: FRAME.frame[1] + 0.03, to: FRAME.plant[1] },
 ]
 /** seconds for the whole build */
 const PLAY = 9
@@ -34,6 +35,8 @@ export function FloorFrame() {
   const bus = useMemo(createBus, [])
   const cells = useRef<(HTMLLIElement | null)[]>([])
   const [step, setStep] = useState(0)
+  /** played to its end: its bar says its steps can be picked to be seen again */
+  const [ended, setEnded] = useState(false)
   const [shown, setShown] = useState<string[]>([])
   const room = useRef<BuildRoom>({ x: 0.05, y: 0.2, w: 0.9, h: 0.62 })
 
@@ -55,6 +58,7 @@ export function FloorFrame() {
   useEffect(() => {
     const paint = () => {
       const p = progress.value
+      setEnded(p >= 0.995)
       let now = 0
       PHASES.forEach((ph, i) => {
         if (p >= ph.from - 0.02) now = i
@@ -91,7 +95,7 @@ export function FloorFrame() {
           </Stage3D>
           <Labels bus={bus} labels={LABELS} shown={shown} />
         </div>
-        <StepBar label="From the floor to the building" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => seek(holds[i])} cellRef={(i, el) => void (cells.current[i] = el)} skip={false} />
+        <StepBar label="From the floor to the building" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => seek(holds[i], i ? holds[i - 1] : 0)} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
       </div>
     </section>
   )

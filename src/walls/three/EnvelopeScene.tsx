@@ -566,7 +566,8 @@ export function EnvelopeScene({ t, bus, room }: { t: Progress; bus: LabelBus; ro
     camera.updateProjectionMatrix()
     // nothing is drawn outside the room: a close look is cropped to it, never spills over the words or the bar
     const r = room.current
-    const pad = 6
+    // cropped right at the room, where its edge is drawn
+    const pad = 0
     gl.setScissorTest(true)
     gl.setScissor(r.x * size.width - pad, (1 - r.y - r.h) * size.height - pad, r.w * size.width + 2 * pad, r.h * size.height + 2 * pad)
 

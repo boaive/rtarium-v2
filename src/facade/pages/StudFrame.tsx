@@ -4,6 +4,7 @@ import '../rainscreen.css'
 import '../studframe.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../Shell'
+import { usePageSteps } from '../pageSteps'
 import { Hero } from '../studframe/Hero'
 import { Components } from '../studframe/Components'
 import { Cast } from '../studframe/Cast'
@@ -28,6 +29,9 @@ import { More } from '../unitized/More'
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
  */
+/** the section whose run plays with the scroll itself, left to the scroll: the casting */
+const FREE = ['casting']
+
 export default function StudFrame() {
   usePageMeta(
     'Stud Frame Cladding',
@@ -63,6 +67,9 @@ export default function StudFrame() {
       window.removeEventListener('resize', on)
     }
   }, [])
+
+  // one scroll, one step, the whole page through, as the Unitized page (usePageSteps), the casting playing with the scroll
+  usePageSteps(FREE)
 
   return (
     <FacadePage>

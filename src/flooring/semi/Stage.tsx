@@ -86,6 +86,10 @@ export function Stage({
     return () => window.removeEventListener('resize', measure)
   }, [])
 
+  // left as the slab to slab's build is, by the page's stepper (usePageSteps): plays with the scroll going down, never
+  // back, its bar playing it to a step; done where its last step has played out
+  const done = (START[N - 1] + stretch[N - 1] * 0.9) / RUN
+
   useEffect(() => {
     const el = section.current
     if (!el) return
@@ -139,18 +143,26 @@ export function Stage({
         }
         const cell = cells.current[k]
         if (cell) {
-          cell.style.setProperty('--f', Math.min(1, Math.max(0, f / 0.94)).toFixed(4))
+          cell.style.setProperty('--f', Math.min(1, Math.max(0, f / (k === N - 1 ? 0.9 : 0.76))).toFixed(4))
           cell.style.setProperty('--c', (k < N - 1 ? smooth(0.86, 1, f) : 0).toFixed(4))
         }
       })
     }
     const tick = (now: number) => {
       raf = 0
+      // held by its controller (`data-held`, the page's stepper): it stays where it stands; and while a step of the bar plays
+      // it there, that play has it
+      if (seeking || el.hasAttribute('data-held')) return
       const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
       last = now
       const target = stepAt(-el.getBoundingClientRect().top / window.innerHeight)
       p = p < 0 || reduced ? target : damp(p, target, 12, dt)
       if (Math.abs(p - target) < 1e-4) p = target
+      apply()
+      if (p !== target) raf = requestAnimationFrame(tick)
+    }
+    /** everything that follows where the run stands, `p` */
+    const apply = () => {
       if (t.value !== p) {
         t.value = p
         t.listeners.forEach((f) => f())
@@ -161,7 +173,40 @@ export function Stage({
       // a step's labels are up once it has played out, until its words go
       const f = p - k
       setLit(f > 0.55 && f < 0.8 + (k === N - 1 ? 1 : 0) ? steps[k].id : '')
-      if (p !== target) raf = requestAnimationFrame(tick)
+    }
+    // a step of the bar (`run:show`, from the page's stepper): the run played to that step, back or on, smoothly and in a time
+    // of its own, as the slab to slab's bar plays to its step; `move`: the page goes straight there first
+    let seeking = false
+    let seekRaf = 0
+    const seek = (to: number, at?: number) => {
+      cancelAnimationFrame(seekRaf)
+      // (a step of the bar plays in full, from its own start: `at`)
+      const from = at ?? (p < 0 ? to : p)
+      if (reduced || Math.abs(to - from) < 1e-4) {
+        p = to
+        apply()
+        return
+      }
+      const time = Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from)) * 1000
+      const start = performance.now()
+      seeking = true
+      const frame = (at: number) => {
+        const u = Math.min(1, Math.max(0, (at - start) / time))
+        p = from + (to - from) * (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
+        apply()
+        if (u < 1) seekRaf = requestAnimationFrame(frame)
+        else {
+          seeking = false
+          kick()
+        }
+      }
+      seekRaf = requestAnimationFrame(frame)
+    }
+    const show = (e: Event) => {
+      const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
+      const s = START[k] + stretch[k] * (k === N - 1 ? 0.9 : 0.76)
+      if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
+      seek(stepAt(s), k)
     }
     const kick = () => {
       if (!raf) {
@@ -169,15 +214,33 @@ export function Stage({
         raf = requestAnimationFrame(tick)
       }
     }
+    // let go by its controller (`run:release`): straight to where the scroll is, never easing there from where it was held
+    const release = () => {
+      cancelAnimationFrame(seekRaf)
+      seeking = false
+      p = -1
+      kick()
+    }
+    el.addEventListener('run:show', show)
+    el.addEventListener('run:release', release)
     kick()
     window.addEventListener('scroll', kick, { passive: true })
     window.addEventListener('resize', kick)
     return () => {
+      el.removeEventListener('run:show', show)
+      el.removeEventListener('run:release', release)
+      cancelAnimationFrame(seekRaf)
       window.removeEventListener('scroll', kick)
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
     }
   }, [t, steps, stretch, START, N])
+
+  // the labels change with the step, after the frame that moved the scene there: the scene, which draws only when asked,
+  // is asked for one more, so the labels it places are the new step's, never the last one's left where they stood
+  useEffect(() => {
+    t.listeners.forEach((f) => f())
+  }, [lit, t])
 
   /** scrolls to where step k has played out, its words still in place */
   const goToStep = (k: number) => {
@@ -191,6 +254,7 @@ export function Stage({
 
   return (
     <section
+      data-done={done}
       ref={section}
       id={id}
       className="fu-ans fdc-build fsc-build on-yellow"
@@ -233,7 +297,7 @@ export function Stage({
           ))}
         </div>
 
-        <StepBar label={barLabel} names={steps.map((s) => s.name)} step={step} onGo={goToStep} cellRef={(k, el) => void (cells.current[k] = el)} />
+        <StepBar label={barLabel} names={steps.map((s) => s.name)} step={step} onGo={goToStep} cellRef={(k, el) => void (cells.current[k] = el)} hints="run" />
       </div>
     </section>
   )

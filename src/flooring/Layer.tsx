@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { scrollToY } from '../lib/scroll'
+import { scrollToY, stepScreens } from '../lib/scroll'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import type { Ground } from '../three/stageStore'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../facade/three/Stage3D'
 import { createBus } from '../facade/three/kit'
 import { CellRig, type CellShot } from '../facade/three/CellRig'
-import { smooth } from '../facade/progress'
+import { smooth, STORY_STEP } from '../facade/progress'
 import { FloorSample, type SampleKind } from './three/FloorSample'
 
 /**
@@ -176,7 +176,7 @@ function Sample({ k, compact }: { k: number; compact: boolean }) {
   )
 }
 
-export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
+export function Layer({ sectionRef, paged = false }: { sectionRef: RefObject<HTMLElement | null>; paged?: boolean }) {
   const compact = useIsCompact()
   const layouts = compact ? NARROW : WIDE
   const layer = useRef<HTMLElement>(null)
@@ -286,6 +286,35 @@ export function Layer({ sectionRef }: { sectionRef: RefObject<HTMLElement | null
       window.removeEventListener('resize', resize)
     }
   }, [layouts, sectionRef])
+
+  // one scroll, one block, as in the façade's story: the page glides from where a block is read to where the next is,
+  // the one closing and the next opening on the way; above and below the story the page scrolls freely
+  useEffect(() => {
+    /** where each block is read: the page there, the block held under the rows of those before it */
+    const reads = () => {
+      const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
+      const rowH = bars.current[0]?.offsetHeight ?? 0
+      return blocks.current.flatMap((b, k) => (b ? [Math.round(b.getBoundingClientRect().top + window.scrollY - (navH + under(k) * rowH))] : []))
+    }
+    if (paged) {
+      // the page's one scroll a step (usePageSteps) goes through it: where each block is read, points of its run, both ways
+      const el = sectionRef.current
+      if (!el) return
+      const write = () => {
+        const top = el.getBoundingClientRect().top + window.scrollY
+        const run = Math.max(1, el.offsetHeight - window.innerHeight)
+        el.dataset.stops = reads()
+          .map((y) => ((y - top) / run).toFixed(5))
+          .join(',')
+      }
+      el.dataset.noTop = ''
+      el.dataset.back = 'all'
+      write()
+      window.addEventListener('resize', write)
+      return () => window.removeEventListener('resize', write)
+    }
+    return stepScreens(reads, { time: STORY_STEP })
+  }, [paged, sectionRef])
 
   /** a row takes you back to its block */
   const go = (i: number) => {

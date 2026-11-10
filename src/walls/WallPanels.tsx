@@ -5,6 +5,7 @@ import '../facade/overview.css'
 import './walls.css'
 import { setShared, type Ground } from '../three/stageStore'
 import { FacadePage, usePageMeta } from '../facade/Shell'
+import { usePageSteps } from '../facade/pageSteps'
 import { Hero } from './Hero'
 import { Story } from './Story'
 import { Answers } from './Answers'
@@ -27,6 +28,9 @@ import { SOLID } from './content'
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
  */
+/** the section whose run plays with the scroll itself, left to the scroll: the answers */
+const FREE = ['wall-answers']
+
 export default function WallPanels() {
   usePageMeta(
     'Wall Panels',
@@ -63,6 +67,9 @@ export default function WallPanels() {
       window.removeEventListener('resize', on)
     }
   }, [])
+
+  // one scroll, one step, the whole page through, as the façade pages (usePageSteps), the answers playing with the scroll
+  usePageSteps(FREE)
 
   return (
     <FacadePage>

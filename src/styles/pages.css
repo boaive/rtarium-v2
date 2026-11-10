@@ -196,3 +196,400 @@
     aspect-ratio: 4 / 3;
   }
 }
+
+/* ---- contact: two halves and a line between them; words alone on the left, the form a section at a time on the right */
+
+.contact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100svh;
+  background: var(--white);
+  color: var(--black);
+}
+.contact__left {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+}
+.contact__intro {
+  padding: calc(var(--nav-h) + clamp(40px, 9vh, 110px)) var(--gutter) clamp(36px, 6vh, 64px);
+  border-bottom: 1px solid var(--line);
+}
+.contact__title {
+  font-size: clamp(3.4rem, 7.2vw, 7.4rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+}
+.contact__lede {
+  max-width: 32rem;
+  margin-top: clamp(18px, 3.4vh, 36px);
+  font-size: clamp(1.25rem, 1.9vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.contact__points {
+  margin-top: var(--s-5);
+}
+/* the form's sections, at the column's foot: where the visitor is, what is done */
+.contact__map {
+  margin: auto 0 0;
+  padding: clamp(28px, 5vh, 56px) var(--gutter);
+  list-style: none;
+}
+.contact__sec button {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--on-light-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--d-fast) var(--ease-out);
+}
+.contact__sec:last-child button {
+  border-bottom: 1px solid var(--line);
+}
+.contact__sec button:disabled {
+  cursor: default;
+}
+.contact__sec[data-state='next'] button {
+  opacity: 0.55;
+}
+.contact__sec[data-state='now'] button,
+.contact__sec[data-state='done'] button,
+.contact__sec[data-state='seen'] button:hover {
+  color: var(--black);
+}
+.contact__sec-num {
+  font-size: var(--t-micro);
+  font-weight: 600;
+}
+.contact__sec-name {
+  font-size: clamp(1rem, 1.25vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.contact__sec-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.contact__sec[data-state='done'] .contact__sec-mark {
+  background: var(--yellow);
+  color: var(--black);
+}
+.contact__sec[data-state='now'] .contact__sec-mark::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  background: var(--black);
+}
+.contact__sec button:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: -2px;
+}
+
+.contact__right {
+  padding: calc(var(--nav-h) + clamp(40px, 9vh, 110px)) var(--gutter) clamp(40px, 7vh, 72px);
+}
+.cf {
+  display: grid;
+}
+/* the section's count: 01 / 03, its name beside it */
+.cf-count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: clamp(28px, 5.4vh, 56px);
+  font-size: clamp(1.2rem, 1.6vw, 1.6rem);
+  font-weight: 700;
+}
+.cf-count__now {
+  display: inline-block;
+  animation: cf-in 0.5s var(--ease-out) both;
+}
+.cf-count__name {
+  margin-left: 14px;
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--on-light-2);
+}
+/* a row a field: its label on the left, the line to write on the right; the row being written on drawn yellow under it */
+.cf-rows {
+  border-bottom: 1px solid var(--line);
+}
+.cf-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr);
+  gap: 10px 24px;
+  align-items: start;
+  padding: clamp(16px, 2.6vh, 24px) 0;
+  border-top: 1px solid var(--line);
+  animation: cf-in 0.55s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+.cf-rows > .cf-row:first-child {
+  border-top: 1.5px solid var(--black);
+}
+.cf-row::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--yellow);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.45s var(--ease-out);
+  pointer-events: none;
+}
+.cf-row:focus-within::after {
+  transform: scaleX(1);
+}
+@keyframes cf-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.cf-row__label {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 4px;
+  font-size: clamp(1rem, 1.25vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.cf-row__label i {
+  font-style: normal;
+  color: var(--on-light-2);
+}
+.cf-row__num {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  color: var(--on-light-2);
+}
+.cf-row__field {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-width: 0;
+}
+.cf-input {
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--black);
+  font: inherit;
+  font-size: clamp(1rem, 1.25vw, 1.25rem);
+  font-weight: 500;
+  outline: none;
+}
+.cf-input::placeholder {
+  color: rgb(8 8 8 / 0.36);
+}
+.cf-input--area {
+  min-height: 7.5em;
+  resize: vertical;
+  line-height: 1.5;
+}
+/* what is wrong with a field: a small tag under it, on the brand's yellow (never red) */
+.cf-row__wrong {
+  padding: 2px 8px;
+  background: var(--yellow);
+  font-size: var(--t-micro);
+  font-weight: 700;
+}
+/* what it is about: a row of choices, a line round each, the chosen one on black */
+.cf-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cf-choice {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 14px;
+  border: 1px solid rgb(8 8 8 / 0.28);
+  font-size: var(--t-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--d-fast) var(--ease-out),
+    border-color var(--d-fast) var(--ease-out),
+    color var(--d-fast) var(--ease-out);
+}
+.cf-choice:hover {
+  border-color: var(--black);
+}
+.cf-choice.is-on {
+  border-color: var(--black);
+  background: var(--black);
+  color: var(--yellow);
+}
+.cf-choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.cf-choice:has(input:focus-visible) {
+  outline: 2px solid var(--black);
+  outline-offset: 3px;
+}
+.cf-trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+/* the way on: Back drawn in line, Next (and at the last Send) the site's black button, each arrow in its own cell */
+.cf-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: clamp(28px, 5vh, 48px);
+}
+.cf-btn {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: 54px;
+  padding: 0;
+  border: 1.5px solid var(--black);
+  background: var(--black);
+  color: var(--yellow);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+.cf-btn--go {
+  min-width: min(100%, 300px);
+}
+.cf-btn--line {
+  background: transparent;
+  color: var(--black);
+}
+.cf-btn__label {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  padding: 0 22px;
+}
+.cf-btn__cell {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  border-left: 1.5px solid currentColor;
+  transition: transform var(--d-mid) var(--ease-out);
+}
+.cf-btn--go .cf-btn__cell {
+  border-left-color: var(--white);
+}
+.cf-btn--back .cf-btn__cell {
+  border-left: 0;
+  border-right: 1.5px solid currentColor;
+}
+.cf-btn:hover .cf-btn__cell,
+.cf-btn:focus-visible .cf-btn__cell {
+  transform: translateX(4px);
+}
+.cf-btn--back:hover .cf-btn__cell,
+.cf-btn--back:focus-visible .cf-btn__cell {
+  transform: translateX(-4px);
+}
+.cf-btn:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 4px;
+}
+.cf-btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+.cf-note {
+  margin-top: var(--s-4);
+  font-size: var(--t-micro);
+  line-height: 1.5;
+  color: var(--on-light-2);
+}
+.cf-note[role='alert'] {
+  justify-self: start;
+  padding: 4px 10px;
+  background: var(--yellow);
+  color: var(--black);
+  font-weight: 700;
+}
+/* sent */
+.cf-done {
+  display: grid;
+  justify-items: start;
+  animation: cf-in 0.55s var(--ease-out) both;
+}
+.cf-done__tick {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: 6px;
+  background: var(--yellow);
+  font-size: 0.8em;
+}
+.cf-done__title {
+  max-width: 22ch;
+  padding-top: clamp(16px, 2.6vh, 24px);
+  border-top: 1.5px solid var(--black);
+  font-size: clamp(1.8rem, 3vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.cf-done__line {
+  margin-top: var(--s-4);
+  font-size: var(--t-lead);
+  line-height: 1.5;
+  color: var(--on-light-2);
+}
+@media (max-width: 860px) {
+  .contact {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+  .contact__left {
+    border-right: 0;
+  }
+  .contact__map {
+    display: none;
+  }
+  .contact__right {
+    padding-top: clamp(32px, 6vh, 56px);
+  }
+  .cf-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-row,
+  .cf-count__now,
+  .cf-done {
+    animation: none;
+  }
+  .cf-row::after {
+    transition: none;
+  }
+}

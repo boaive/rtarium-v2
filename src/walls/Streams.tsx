@@ -4,12 +4,15 @@ import { useIsCompact } from '../lib/motion'
 import { Arrow } from '../facade/Shell'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three/Stage3D'
 import { createBus } from '../facade/three/kit'
-import { FollowScroll, smooth, usePlaySteps, useScrollProgress } from '../facade/progress'
+import { FollowScroll, smooth, usePlay } from '../facade/progress'
 
 /** where each of a build's four steps has played out, as points of the section's run */
 const STREAM_ENDS = [0, 1, 2, 3].map((i) => Math.min(1, (i + 0.95) / 4))
-import { StepBar } from '../facade/unitized/StepBar'
+import { REPLAY_HINT, StepBar } from '../facade/unitized/StepBar'
 import { closerAt, StreamScene } from './three/StreamScene'
+import { WallsTrio } from './three/WallsTrio'
+import { useInView } from '../facade/Story'
+import { useLive } from '../facade/unitized/live'
 import { buildingOf, quantities, type BuildId } from './three/buildings'
 import type { Room } from './three/fit'
 import { Block, Figures, Sheet, Steps, useSheet } from './Sheet'
@@ -26,7 +29,119 @@ import { CASES, REVIEW, STREAMS, type StreamId } from './content'
  * page). A frame structure is an RC frame or a steel portal on one footprint: a switch over the stage changes it.
  */
 
-const RUN = 6
+/** seconds for the whole sequence, played on one scroll once the section is on screen (as the warehouse's frame to floor) */
+const PLAY = 9
+
+/** a figure counted up from nothing once it is in view, in a second and a half, easing out */
+function Count({ to, digits = 0, go }: { to: number; digits?: number; go: boolean }) {
+  const [v, setV] = useState(0)
+  useEffect(() => {
+    if (!go) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return setV(to)
+    let raf = 0
+    const t0 = performance.now()
+    const tick = (now: number) => {
+      const u = Math.min(1, (now - t0) / 1500)
+      setV(to * (1 - Math.pow(1 - u, 3)))
+      if (u < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [go, to])
+  return <>{v.toFixed(digits)}</>
+}
+
+/**
+ * A stream, built: a screen of its own. On the left what was built, its line, its figures counted up as the screen
+ * arrives and the way into its case study; on the right the building itself, finished, large, turning slowly, what it
+ * has going for it set over its foot.
+ */
+function Built({
+  which,
+  title,
+  brief,
+  pros,
+  totals,
+  openSheet,
+  frame,
+}: {
+  which: BuildId
+  title: string
+  brief: string
+  pros: string[]
+  totals: { panels: number; area: number; tonnes: number }
+  openSheet: () => void
+  /** the frame stream: its two frames, switched here as on the build above */
+  frame?: { on: 'rc' | 'peb'; set: (f: 'rc' | 'peb') => void }
+}) {
+  const [ref, inView] = useInView<HTMLDivElement>('0px 0px -25% 0px')
+  const section = useRef<HTMLElement>(null)
+  const live = useLive(section)
+  const ids = useMemo(() => [which], [which])
+  return (
+    <section ref={section} className="wp-built on-light" aria-labelledby="wp-built-title">
+      <div ref={ref} className={`wp-built__words fc-reveal ${inView ? 'is-in' : ''}`}>
+        <p className="wp-built__kicker">Illustrative case study</p>
+        {frame && (
+          <div className="wp-switch wp-built__switch" role="group" aria-label="Frame">
+            {(['rc', 'peb'] as const).map((f) => (
+              <button key={f} type="button" aria-pressed={frame.on === f} className={frame.on === f ? 'is-on' : ''} onClick={() => frame.set(f)}>
+                {f === 'rc' ? 'RC frame' : 'Steel portal (PEB)'}
+              </button>
+            ))}
+          </div>
+        )}
+        <h2 id="wp-built-title" className="wp-built__title">
+          {title.includes(',') ? `${title}.` : `${title}, built.`}
+        </h2>
+        <p className="wp-built__lede">{brief}</p>
+        <dl className="wp-built__figs">
+          <div>
+            <dt>Panels</dt>
+            <dd className="num">
+              <Count to={totals.panels} go={inView} />
+            </dd>
+          </div>
+          <div>
+            <dt>Wall area</dt>
+            <dd className="num">
+              <Count to={Math.round(totals.area)} go={inView} />
+              <small>m²</small>
+            </dd>
+          </div>
+          <div>
+            <dt>Panels&rsquo; weight</dt>
+            <dd className="num">
+              <Count to={totals.tonnes} digits={1} go={inView} />
+              <small>t</small>
+            </dd>
+          </div>
+        </dl>
+        <button type="button" className="fc-go wp-go" onClick={openSheet}>
+          <span className="fc-go__label">View the case study</span>
+          <span className="fc-go__cell" aria-hidden="true">
+            <Arrow />
+          </span>
+        </button>
+      </div>
+      <div className="wp-built__stage">
+        <div className="wp-built__canvas" aria-hidden="true">
+          <Stage3D shadows keyLight={false}>
+            <WallsTrio ids={ids} play={inView} hover={null} live={live} fill={0.62} height={0.62} spin />
+          </Stage3D>
+        </div>
+        {/* what it has going for it, over the building's foot */}
+        <ul className={`wp-built__pros ${inView ? 'is-in' : ''}`} aria-label="Its advantages">
+          {pros.slice(0, 3).map((n, i) => (
+            <li key={n} style={{ '--i': i } as CSSProperties}>
+              {n}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
 
 function Build({ id }: { id: StreamId }) {
   const compact = useIsCompact()
@@ -35,10 +150,12 @@ function Build({ id }: { id: StreamId }) {
   const [frame, setFrame] = useState<'rc' | 'peb'>('rc')
   const which: BuildId = id === 'housing' ? 'housing' : id === 'industrial' ? 'hub' : frame
   const building = useMemo(() => buildingOf(which), [which])
-  const [progress] = useScrollProgress(section, 1, 'run')
+  const [progress, seek] = usePlay(section, PLAY)
   const bus = useMemo(createBus, [])
   const cells = useRef<(HTMLLIElement | null)[]>([])
   const [step, setStep] = useState(0)
+  /** played to its end: its bar says its steps can be picked to be seen again */
+  const [ended, setEnded] = useState(false)
   const [shown, setShown] = useState<string[]>([])
   const room = useRef<Room>({ x: 0.05, y: 0.2, w: 0.9, h: 0.62 })
   const [sheet, openSheet] = useSheet()
@@ -109,6 +226,7 @@ function Build({ id }: { id: StreamId }) {
   useEffect(() => {
     const paint = () => {
       const t = progress.value * 4
+      setEnded(progress.value >= 0.995)
       edge.current?.style.setProperty('--z', closerAt(t).toFixed(3))
       const k = Math.min(3, Math.floor(t))
       setStep(k)
@@ -127,17 +245,12 @@ function Build({ id }: { id: StreamId }) {
     return () => void progress.listeners.delete(paint)
   }, [progress, building])
 
-  const go = (i: number) => {
-    const el = section.current
-    if (!el) return
-    scrollToY(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * STREAM_ENDS[i])
-  }
-  // one scroll, one step: each played out on the way to where it holds
-  usePlaySteps(section, STREAM_ENDS)
+  // a step of the bar: played in full, from where the step before it ends
+  const go = (i: number) => seek(STREAM_ENDS[i], i ? STREAM_ENDS[i - 1] : 0)
 
   return (
     <>
-      <section ref={section} id="stream-build" className="fu-hang wp-build on-light" aria-labelledby="wp-build-title" style={{ '--run': RUN } as CSSProperties}>
+      <section ref={section} id="stream-build" className="fu-hang wp-build on-light" aria-labelledby="wp-build-title" style={{ '--run': 1 } as CSSProperties}>
         <div ref={pin} className="fu-hang__pin">
           <div className="wp-build__head">
             <h2 id="wp-build-title" className="fu-hang__title">
@@ -164,7 +277,7 @@ function Build({ id }: { id: StreamId }) {
             <Labels key={which} bus={bus} labels={labels} shown={shown} />
             <div ref={edge} className="wp-edge" />
           </div>
-          <StepBar label={`${study.title}, step by step`} names={building.steps} step={step} onGo={go} cellRef={(i, el) => void (cells.current[i] = el)} />
+          <StepBar label={`${study.title}, step by step`} names={building.steps} step={step} onGo={go} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
         </div>
 
         <Sheet dialog={sheet} kicker="Illustrative case study" title={study.title} review={REVIEW.caseStudy}>
@@ -220,46 +333,75 @@ function Build({ id }: { id: StreamId }) {
           </div>
         </Sheet>
       </section>
-      {/* once it is built: what was built, in figures counted off the model, and the way into its case study */}
-      <section className="wp-built on-light" aria-labelledby="wp-built-title">
-        <div className="wp-built__words">
-          <p className="wp-built__kicker">Illustrative case study</p>
-          <h2 id="wp-built-title" className="wp-built__title">
-            {study.title.includes(',') ? `${study.title}.` : `${study.title}, built.`}
-          </h2>
-          <p className="wp-built__lede">{study.brief}</p>
-        </div>
-        <div className="wp-built__side">
-          <dl className="wp-built__figs">
-            <div>
-              <dt>Panels</dt>
-              <dd className="num">{totals.panels}</dd>
-            </div>
-            <div>
-              <dt>Wall area</dt>
-              <dd className="num">
-                {Math.round(totals.area)}
-                <small>m²</small>
-              </dd>
-            </div>
-            <div>
-              <dt>Panels&rsquo; weight</dt>
-              <dd className="num">
-                {totals.tonnes.toFixed(1)}
-                <small>t</small>
-              </dd>
-            </div>
-          </dl>
-          <p className="wp-built__line">How it goes up, its quantities, a drawing, what it needs, its advantages and its limits.</p>
-          <button type="button" className="fc-go wp-go" onClick={openSheet}>
-            <span className="fc-go__label">View the case study</span>
-            <span className="fc-go__cell" aria-hidden="true">
-              <Arrow />
-            </span>
-          </button>
-        </div>
-      </section>
+      {/* once it is built: the building itself, finished, turning; what it is, its figures counted off the model as the
+          screen arrives, what it has going for it, and the way into its case study */}
+      <Built which={which} title={study.title} brief={study.brief} pros={study.pros} totals={totals} openSheet={openSheet} frame={id === 'frame' ? { on: frame, set: setFrame } : undefined} />
     </>
+  )
+}
+
+/** each stream's own build, in the columns' order: the home, the logistics hub, the RC frame infilled */
+const TRIO: BuildId[] = ['housing', 'hub', 'rc']
+
+/**
+ * The streams' close (the façade and flooring pages' `fu-more` grammar): a band under the header, its line, the heading's
+ * column, then a column for each stream, its building standing over it, rising in turn as the block arrives and turning
+ * when its column is pointed at; its number, its name, its line and the way in. `leave`: the stream already shown,
+ * left out, so the block is the other two.
+ */
+function StreamsBlock({ id, title, leave, chosen, onChoose }: { id: string; title: string; leave?: StreamId; chosen: StreamId | null; onChoose: (id: StreamId) => void }) {
+  const pick = STREAMS.map((_, n) => n).filter((n) => STREAMS[n].id !== leave)
+  const ids = useMemo(() => pick.map((n) => TRIO[n]), [pick.join()]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [cols, inView] = useInView<HTMLOListElement>('0px 0px -20% 0px')
+  const close = useRef<HTMLElement>(null)
+  const live = useLive(close)
+  const [hover, setHover] = useState<number | null>(null)
+  return (
+    <section ref={close} id={id} className={`wp-streams ${pick.length === 2 ? 'wp-streams--two' : ''} on-light`} aria-labelledby={`${id}-title`}>
+      <header className="wp-streams__head">
+        <h2 id={`${id}-title`} className="wp-streams__title">
+          {title}
+        </h2>
+      </header>
+      <div className="wp-streams__stage">
+        <div className="wp-streams__canvas" aria-hidden="true">
+          <Stage3D shadows keyLight={false}>
+            <WallsTrio ids={ids} play={inView} hover={hover} live={live} />
+          </Stage3D>
+        </div>
+        <ol ref={cols} className="wp-streams__cols">
+          {pick.map((n, i) => {
+            const s = STREAMS[n]
+            return (
+              <li
+                key={s.id}
+                className={`wp-stream ${chosen === s.id ? 'is-on' : ''} ${hover === i ? 'is-hover' : ''}`}
+                style={{ '--i': i } as CSSProperties}
+                onPointerEnter={() => setHover(i)}
+                onPointerLeave={() => setHover((h) => (h === i ? null : h))}
+                onFocus={() => setHover(i)}
+                onBlur={() => setHover((h) => (h === i ? null : h))}
+              >
+                {/* room for its building, which stands here in the canvas over the columns */}
+                <figure className="wp-stream__still" role="img" aria-label={s.still.alt} />
+                <span className="wp-stream__num num">0{n + 1} /</span>
+                <h3 className="wp-stream__name">
+                  {s.head[0]} <br />
+                  {s.head[1]}
+                </h3>
+                <p className="wp-stream__line">{s.line}</p>
+                <button type="button" className="fc-go wp-stream__go" aria-pressed={chosen === s.id} onClick={() => onChoose(s.id)}>
+                  <span className="fc-go__label">{chosen === s.id ? 'Exploring' : 'Explore'}</span>
+                  <span className="fc-go__cell" aria-hidden="true">
+                    <Arrow />
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+    </section>
   )
 }
 
@@ -280,55 +422,12 @@ export function Streams() {
     pending.current = true
     setChosen(id)
   }
-
   return (
     <>
-      <section id="streams" className="wp-streams on-light" aria-labelledby="wp-streams-title">
-        <header className="wp-streams__head">
-          <h2 id="wp-streams-title" className="wp-streams__title">
-            Explore a system.
-          </h2>
-        </header>
-        <ol className="wp-streams__cols">
-          {STREAMS.map((s, i) => (
-            <li key={s.id} className={`wp-stream ${chosen === s.id ? 'is-on' : ''}`} style={{ '--i': i } as CSSProperties}>
-              <figure className="wp-stream__still">
-                <img src={s.still.src} alt={s.still.alt} loading="lazy" decoding="async" width={960} height={640} />
-              </figure>
-              <span className="wp-stream__num num">0{i + 1} /</span>
-              <h3 className="wp-stream__name">
-                {s.head[0]} <br />
-                {s.head[1]}
-              </h3>
-              <p className="wp-stream__line">{s.line}</p>
-              <button type="button" className="fc-go wp-stream__go" aria-pressed={chosen === s.id} onClick={() => choose(s.id)}>
-                <span className="fc-go__label">{chosen === s.id ? 'Exploring' : 'Explore'}</span>
-                <span className="fc-go__cell" aria-hidden="true">
-                  <Arrow />
-                </span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <StreamsBlock id="streams" title="Explore a system." chosen={chosen} onChoose={choose} />
       {chosen && <Build key={chosen} id={chosen} />}
-      {chosen && (
-        <nav className="wp-others on-light" aria-label="The other streams">
-          <p className="wp-others__label">The other streams</p>
-          <ul className="wp-others__list">
-            {STREAMS.filter((s) => s.id !== chosen).map((s) => (
-              <li key={s.id}>
-                <button type="button" className="fc-go wp-others__go" onClick={() => choose(s.id)}>
-                  <span className="fc-go__label">{s.name}</span>
-                  <span className="fc-go__cell" aria-hidden="true">
-                    <Arrow />
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
+      {/* the other two, in the same block: a stream a column, its building over it */}
+      {chosen && <StreamsBlock key={`others-${chosen}`} id="other-streams" title="Two more systems." leave={chosen} chosen={null} onChoose={choose} />}
     </>
   )
 }

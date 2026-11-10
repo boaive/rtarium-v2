@@ -4,7 +4,7 @@ import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../three/Stage3D'
 import { createBus, type LabelBus } from '../three/kit'
 import { StructureScene, ThermalScene, WaterScene } from '../three/rain/BarrierScenes'
-import { smooth, type Progress } from '../progress'
+import { listingStops, smooth, type Progress } from '../progress'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { useLive } from '../unitized/live'
@@ -293,6 +293,20 @@ export function Barrier() {
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
     }
+  }, [refs, L])
+
+  // one scroll a step, by the page's stepper: each listing as it arrives, then its 3D played out, a scroll of its own
+  useEffect(() => {
+    const el = section.current
+    if (!el) return
+    const write = () => {
+      const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
+      const rowH = rows.current[0]?.offsetHeight ?? 0
+      listingStops(el, refs.block, (k) => navH + under(k) * rowH, PLAY[1])
+    }
+    write()
+    window.addEventListener('resize', write)
+    return () => window.removeEventListener('resize', write)
   }, [refs, L])
 
   /** a row takes you back to where its listing's 3D has played out */

@@ -42,7 +42,8 @@
   grid-template-rows: auto minmax(0, 1fr);
   gap: clamp(18px, 4vh, 44px);
   height: 100svh;
-  padding: calc(var(--nav-h) + clamp(16px, 3vh, 32px)) var(--gutter) clamp(18px, 3.4vh, 32px);
+  --pin-foot: clamp(18px, 3.4vh, 32px);
+  padding: calc(var(--nav-h) + clamp(16px, 3vh, 32px)) var(--gutter) var(--pin-foot);
   overflow: hidden;
 }
 .fdc-v__title {
@@ -185,6 +186,11 @@
 .fdc-v__row--carbon .fdc-v__body {
   left: var(--gutter);
   right: var(--gutter);
+}
+/* the black runs on to the foot of the screen as it opens: no strip of white left under it (a shadow, which the row's
+   own overflow does not clip, dropped by the pin's foot) */
+.fdc-v__row--carbon {
+  box-shadow: 0 calc((var(--pin-foot) + 1px) * var(--w)) 0 0 var(--black);
 }
 .fdc-v__row--carbon .fdc-v__line,
 .fdc-v__row--carbon .fdc-v__tag {

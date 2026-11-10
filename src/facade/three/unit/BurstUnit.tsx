@@ -23,10 +23,11 @@ import { useUnitGeometries, useUnitMaterials } from './useUnit'
  * round the window as it arrives; a layer's edges flash yellow as it lands.
  */
 
-/** when each layer is lowered in (fractions of the section's run); the panel's is RTARIUM alone */
+/** when each layer is lowered in (fractions of the section's run); the panel's is RTARIUM alone. The frame, the first,
+ * comes just after the section lands, on the same scroll that brought it: the box open and the title in first */
 export const ARRIVE: (readonly [number, number])[] = [
-  [0.02, 0.1],
-  [0.13, 0.21],
+  [0.06, 0.14],
+  [0.16, 0.23],
   [0.24, 0.32],
   [0.35, 0.43],
   [0.46, 0.54],
