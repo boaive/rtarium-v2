@@ -31,6 +31,8 @@ const ROWS = [
   { name: 'Flat 2D mesh', what: 'A single grid that reinforces only along the sheet.', weak: 'Works in one plane.' },
 ]
 const STRENGTHS = ['Non-corrosive.', 'Alkali-resistant.', 'Three-dimensional.']
+/** a phone's swipe stops through the deck (Hero's useSwipePager), as shares of its run: each card in front, one a swipe */
+const DECK_STOPS = '0,0.5,1'
 /** the rows' way in, as shares of the screen's rise (as the flooring pages' table): the first starts at FROM, each takes SPAN */
 const FROM = 0.3
 const SPAN = 0.36
@@ -176,7 +178,7 @@ function Replaces() {
   }, [])
 
   return (
-    <section id="replaces" ref={section} className="ledger on-light" data-screen="light" data-flow={compact ? '' : undefined} aria-labelledby="replaces-title">
+    <section id="replaces" ref={section} className="ledger on-light" data-screen="light" data-flow={compact ? '' : undefined} data-swipe-stops={compact ? DECK_STOPS : undefined} aria-labelledby="replaces-title">
       <div ref={ref} className={`ledger__in ${inView ? 'is-in' : ''}`}>
         <h2 id="replaces-title" className="ledger__title">
           One mesh in place of three compromises.

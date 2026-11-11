@@ -102,7 +102,7 @@ const steps: Step[] = [
 export function Innovation() {
   return (
     <>
-      <Track id="innovation" title="Innovation" steps={steps} phoneGround="yellow" phoneSideways />
+      <Track id="innovation" title="Innovation" steps={steps} phoneGround="yellow" />
       <StageLabel anchor="axis-x">X</StageLabel>
       <StageLabel anchor="axis-y">Y</StageLabel>
       <StageLabel anchor="axis-z">Z, through the depth</StageLabel>

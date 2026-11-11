@@ -277,6 +277,14 @@ function swipeStops(tour: HTMLElement) {
   const sh = screenH(tour)
   // (the white, the tour's last screen, is no stop: from the cavity's last point one swipe goes through it to About)
   const ys = Array.from({ length: PHONE_SCREENS - 1 }, (_, k) => Math.round(tour.offsetTop + k * sh))
+  /** stretches a section holds its own stops through (`data-swipe-stops`, shares of its run): no stops are added in them */
+  const owned: [number, number][] = []
+  for (const p of document.querySelectorAll<HTMLElement>('[data-swipe-stops]')) {
+    const top = p.getBoundingClientRect().top + window.scrollY
+    const run = Math.max(1, p.offsetHeight - vh)
+    for (const f of (p.dataset.swipeStops ?? '').split(',').map(Number)) if (Number.isFinite(f)) ys.push(Math.round(top + f * run))
+    owned.push([top - 2, top + run + 2])
+  }
   for (const p of document.querySelectorAll<HTMLElement>(STOP_PARTS)) {
     if (p === tour || tour.contains(p)) continue
     // (a part keeps its own room for the header at its top: it comes to rest at its own top)
@@ -292,7 +300,7 @@ function swipeStops(tour: HTMLElement) {
   kept.forEach((y, i) => {
     all.push(y)
     const next = kept[i + 1] ?? max
-    if (y < tourEnd - 2) return
+    if (y < tourEnd - 2 || owned.some(([a, b]) => y >= a && y < b)) return
     for (let at = y + vh * SWIPE.step; next - y > vh * SWIPE.long && next - at > vh * SWIPE.near; at += vh * SWIPE.step) all.push(Math.round(at))
   })
   if (max - all[all.length - 1] > vh * SWIPE.near) all.push(max)
