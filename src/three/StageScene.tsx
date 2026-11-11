@@ -55,8 +55,6 @@ const PARALLAX = { dist: 0.14, elev: 5, azim: 12 }
 const SWAY_PERIOD = 16
 /** how fast a view in a box turns, steadily, in degrees a second (once round in a minute) */
 const BOX_TURN = 6
-/** a phone's figure: how far either side it rocks (deg), and how long one rock there and back takes (s) */
-const BOX_ROCK = { deg: 12, period: 14 }
 /** the settle as it is woven: starting height (m), spring stiffness and damping (a small bounce, then still) */
 const DROP = { height: 0.05, k: 70, c: 7.5, tilt: 0.3 }
 /** the opening piece is woven out from its middle: when it starts and how long it takes (s) */
@@ -159,7 +157,7 @@ function concreteTexture() {
 
 /** One screen's own view of the mesh: its camera and its look, damped on their own. */
 interface View {
-  cam: { tgt: THREE.Vector3; elev: number; azim: number; dist: number; fov: number; fx: number; fy: number; spin: number; phase: number }
+  cam: { tgt: THREE.Vector3; elev: number; azim: number; dist: number; fov: number; fx: number; fy: number; spin: number }
   fx: {
     axes: number
     shear: number
@@ -216,7 +214,6 @@ function newView(pose: Pose, compact: boolean, o: number): View {
       fx: frame[0],
       fy: frame[1],
       spin: 0,
-      phase: 0,
     },
     fx: {
       axes: 0,
@@ -431,19 +428,6 @@ export function StageScene({ compact, reduced }: Props) {
       }, (INTRO.delay + INTRO.duration) * 1000)
     }
     const since = (now - started.current) / 1000
-    // a phone's figures: only the one most in view turns (the rest hold where they are), as only one film played
-    let turning: Region | null = null
-    if (compact) {
-      let most = 0
-      for (const d of drawn) {
-        if (!d.r.box) continue
-        const seen = Math.min(d.bottom, vh) - Math.max(d.top, 0)
-        if (seen > most) {
-          most = seen
-          turning = d.r
-        }
-      }
-    }
     // ---- a phone: a frame that would show the same picture as the last one is not drawn --------
     // What the picture is made from (where each screen is, the tour, the drag) is compared with the last frame; once it
     // has not changed and the last frames drew the same thing (every movement settled), the canvas keeps its picture
@@ -546,7 +530,8 @@ export function StageScene({ compact, reduced }: Props) {
       } else f.pour = -0.25
 
       // ---- camera: the view travels with its panel and turns a little as the panel passes -------
-      const k = reduced ? 1e4 : hero ? 9 : bl ? SCRUB : GLIDE
+      // (a phone's opening follows the finger's native scroll closely: the tour value is already smoothed in Hero)
+      const k = reduced ? 1e4 : hero ? (compact ? 26 : 9) : bl ? SCRUB : GLIDE
       // narrower landscape windows: stand back so the mesh keeps clear of the copy beside it;
       // stacked layout on a screen that is not tall: smaller, and up into the space above the copy
       const squat = compact ? clamp01((vw / vh - 0.6) / 0.45) : 0
@@ -567,14 +552,10 @@ export function StageScene({ compact, reduced }: Props) {
       // a view in a box never sways back and forth: it turns round one way at an even pace, on and on
       // (in development a recording of a box's loop may turn it faster: window.__boxTurn)
       const turn = pose.spin || (r.box ? (import.meta.env.DEV && (window as unknown as { __boxTurn?: number }).__boxTurn) || BOX_TURN : 0)
-      // (a phone's figure not the one most in view holds still where it is)
-      const holding = compact && r.box && r !== turning
-      // a phone's figure does not go round: it rocks gently either side of its pose (BOX_ROCK), which keeps a close view
-      // calm; only while it is the one most in view, holding where it is otherwise
-      if (compact && r.box && !pose.spin) {
-        if (!reduced && !holding) c.phase += dt
-        c.spin = reduced ? 0 : BOX_ROCK.deg * Math.sin((c.phase * Math.PI * 2) / BOX_ROCK.period)
-      } else c.spin = reduced ? 0 : holding ? c.spin : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
+      // a phone's figure stands still in its pose: no turn, no rock (it read as a wobble in the hand); it moves only with
+      // the page, and the phone draws nothing while the page is still
+      if (compact && r.box && !pose.spin) c.spin = 0
+      else c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
       // (a phone's views never sway on their own: the mesh moves only when the visitor scrolls or turns it)
       const sway = reduced || r.box || compact ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
       const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0)
