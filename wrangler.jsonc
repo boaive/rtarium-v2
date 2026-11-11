@@ -1,0 +1,9 @@
+{
+  "name": "rtarium",
+  "account_id": "68e936a18438dd5323c5109b13b8ef19",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}
