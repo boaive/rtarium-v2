@@ -47,7 +47,8 @@ export function VideoLoop({ src, small, poster, label, className = '' }: { src: 
 
   return (
     <div className={`loop ${className}`}>
-      <video ref={video} muted loop playsInline preload="none" poster={poster} aria-label={label} src={near ? (compact && small ? small : src) : undefined} />
+      {/* (it starts loading as it comes near, so it can play the moment it is the film in view) */}
+      <video ref={video} muted loop playsInline preload={near ? 'auto' : 'none'} poster={poster} aria-label={label} src={near ? (compact && small ? small : src) : undefined} />
       <button type="button" className="loop__toggle" onClick={() => setPaused((p) => !p)} aria-pressed={!paused}>
         <span className={`loop__icon ${paused ? 'is-paused' : ''}`} aria-hidden="true" />
         {paused ? 'Play footage' : 'Pause footage'}

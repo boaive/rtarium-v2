@@ -15,7 +15,8 @@ function playOne() {
     }
   for (const v of films.keys()) {
     if (v === best) {
-      if (v.paused && v.readyState >= 2) void v.play().catch(() => {})
+      // (asked to play even before it has data: a film that loads only when asked would otherwise wait for ever)
+      if (v.paused) void v.play().catch(() => {})
     } else if (!v.paused) v.pause()
   }
 }

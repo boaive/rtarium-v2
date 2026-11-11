@@ -204,8 +204,10 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
       const from = lastAt
       lastAt = at
       if (at < HANDOFF.at - 0.4) done = false
-      // crossing into the white going down, from the tour (a hard flick may cross it, and even About's top, in one go)
+      // crossing into the white going down, from the tour's last part (a hard flick may cross it, and even About's top,
+      // in one go); a jump from elsewhere (a link in the menu, the page opened on a chapter) is never caught
       if (done || !down || from >= HANDOFF.at || at < HANDOFF.at) return
+      if (from < HANDOFF.at - 3 || at > PHONE_SCREENS + 2) return
       done = true
       // the curtain, at once: the screen is already the white it is
       veil.classList.remove('is-clearing')
