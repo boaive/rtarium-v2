@@ -260,9 +260,11 @@ function newView(pose: Pose, compact: boolean, o: number): View {
 export function StageScene({ compact, reduced }: Props) {
   const thickness = useStageValue('thickness')
   const cell = useCell(thickness)
-  const yarn = useYarnMaterial({ lite: compact })
+  // (a phone: less texture filtering, see useYarnMaterial)
+  const yarn = useYarnMaterial({ lite: compact, anisotropy: compact ? 2 : 8 })
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
+  const cameraNow = useThree((s) => s.camera)
 
   const keyLight = useRef<THREE.DirectionalLight>(null)
   const rimLight = useRef<THREE.DirectionalLight>(null)
@@ -315,8 +317,8 @@ export function StageScene({ compact, reduced }: Props) {
   useEffect(() => {
     gl.setClearColor(0x000000, 0)
     gl.autoClear = false
-    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop, POSES, POUR_OUT, ANCHORS }
-  }, [gl, scene])
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop, POSES, POUR_OUT, ANCHORS, gl, yarn, camera: cameraNow }
+  }, [gl, scene, yarn, cameraNow])
 
   const lineMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#fdd001', toneMapped: false }), [])
   const inkLineMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#080808', toneMapped: false }), [])
@@ -411,6 +413,15 @@ export function StageScene({ compact, reduced }: Props) {
     if (!started.current) {
       started.current = now
       setShared({ ready: true })
+      // a phone's solid yarn (no discards) compiles with the rest before the first frame, never mid-scroll the first time
+      // a chunk takes it (a moment in the scene, out of sight, so it is built for the scene's own fog and light)
+      if (compact) {
+        const probe = new THREE.Mesh(cell.lo, yarn.getSolid())
+        probe.position.y = -100
+        scene.add(probe)
+        gl.compile(scene, camera)
+        scene.remove(probe)
+      }
       // once the opening is under way, the programs of everything still hidden (concrete, mortar,
       // the drawing lines) compile in parallel, so nothing stalls the first time it appears
       warmup.current = window.setTimeout(() => {
@@ -667,6 +678,20 @@ export function StageScene({ compact, reduced }: Props) {
           const near = m.userData.near as [number, number] | undefined
           if (near) m.visible = near[0] < f.winX / 2 + 0.5 && near[1] < f.winZ / 2 + 0.5
         }
+        // a phone: a chunk wholly built, with every part of the mesh shown, takes the yarn that never discards (the GPU
+        // then skips the yarns hidden behind others); one still being woven on, or trimmed, keeps the one that can
+        if (compact) {
+          const whole = v.vis.x >= 0.999 && v.vis.y * (1 - f.flat) >= 0.999 && v.vis.z * (1 - f.flat) >= 0.999
+          const solid = yarn.getSolid()
+          for (const m of field.current.children) {
+            const far = m.userData.far as [number, number] | undefined
+            const mesh = m as THREE.InstancedMesh
+            // (built far enough in that none of its cells is still dissolving or being laid: the build's 0.9)
+            const built = whole && !!far && far[0] <= f.winX / 2 - f.band * 0.9 && far[1] <= f.winZ / 2 - f.band * 0.9
+            const want = built ? solid : (m.userData.cut as THREE.Material)
+            if (want && mesh.material !== want) mesh.material = want
+          }
+        }
       }
       u.uPartDim.value.copy(v.dim)
       u.uPartVis.value.set(v.vis.x, v.vis.y * (1 - f.flat), v.vis.z * (1 - f.flat))
@@ -675,7 +700,8 @@ export function StageScene({ compact, reduced }: Props) {
       u.uXray.value = f.xray
       u.uFaceColor.value.copy(v.face)
       u.uPileColor.value.copy(v.pile)
-      u.uFlex.value = f.flex
+      // (a phone has no cursor to press the sheet: its vertices skip the press field's three reads)
+      u.uFlex.value = compact ? 0 : f.flex
       // the opening's press reads as a hollow in the mesh, not a light
       u.uPressGlow.value = hero ? 0.12 : 0.5
       if (tile.current) {
@@ -686,7 +712,8 @@ export function StageScene({ compact, reduced }: Props) {
         tile.current.updateMatrixWorld()
       }
       // each chunk's detail for this view's camera (two views in a transition each get their own)
-      ;(field.current?.userData.lod as ((cam: THREE.Camera) => void) | undefined)?.(camera)
+      // (a phone's opening piece keeps its full cells: a couple of hundred, and the first thing seen, so it stays crisp)
+      ;(field.current?.userData.lod as ((cam: THREE.Camera, farMul?: number) => void) | undefined)?.(camera, compact && hero && stage.tour < 0.6 ? 4 : 1)
       if (axes.current) {
         axes.current.visible = f.axes > 0.01
         // X, then Y, then Z grow one after the other

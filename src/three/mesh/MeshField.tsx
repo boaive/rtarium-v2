@@ -44,20 +44,29 @@ export function useCell(thickness: Thickness): CellGeometry {
 }
 
 /** Yarn material bound to the current WebGL context. Returns the animatable uniforms too. */
-export function useYarnMaterial(opts: Omit<YarnMaterialOptions, 'textures'> = {}) {
+export function useYarnMaterial(opts: Omit<YarnMaterialOptions, 'textures'> & { anisotropy?: number } = {}) {
   const gl = useThree((s) => s.gl)
   const [map, normalMap, roughnessMap] = useTexture(TEXTURE_URLS)
   const built = useMemo(() => {
     // textures are cached per URL; clone so each canvas owns its GPU copy and settings
+    // (a phone's stage asks for less filtering: seen along the sheet, 8 samples a texture read is most of a frame there)
     const textures = prepareYarnTextures(
       { map: map.clone(), normalMap: normalMap.clone(), roughnessMap: roughnessMap.clone() },
-      Math.min(8, gl.capabilities.getMaxAnisotropy()),
+      Math.min(opts.anisotropy ?? 8, gl.capabilities.getMaxAnisotropy()),
     )
-    return { ...createYarnMaterial({ ...opts, textures }), textures }
+    const made = createYarnMaterial({ ...opts, textures })
+    let solid: THREE.Material | null = null
+    return {
+      ...made,
+      textures,
+      getSolid: () => (solid ??= made.getSolid()),
+      disposeSolid: () => solid?.dispose(),
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, normalMap, roughnessMap, gl, opts.lite])
+  }, [map, normalMap, roughnessMap, gl, opts.lite, opts.anisotropy])
   useEffect(
     () => () => {
+      built.disposeSolid()
       built.material.dispose()
       built.depthMaterial.dispose()
       built.textures.map.dispose()
@@ -151,6 +160,11 @@ export function MeshField({
         // the chunk's cell nearest the centre, in the build window's cell units (see yarnMaterial uWin)
         const nearest = (lo: number, hi: number) => (lo <= 0 && hi >= 0 ? 0 : Math.min(Math.abs(lo), Math.abs(hi)))
         mesh.userData.near = [nearest(cx - nx / 2 + 0.5, cx + w - 1 - nx / 2 + 0.5), nearest(cz - (nz - 1) / 2, cz + d - 1 - (nz - 1) / 2)]
+        // and its cell farthest from the centre: the chunk is wholly built once the window takes that one in
+        const farthest = (lo: number, hi: number) => Math.max(Math.abs(lo), Math.abs(hi))
+        mesh.userData.far = [farthest(cx - nx / 2 + 0.5, cx + w - 1 - nx / 2 + 0.5), farthest(cz - (nz - 1) / 2, cz + d - 1 - (nz - 1) / 2)]
+        // (the material it was made with, the one that can weave its cells on: a phone may lend it a solid one)
+        mesh.userData.cut = material
         mesh.computeBoundingSphere()
         mesh.computeBoundingBox()
         mesh.boundingSphere!.radius += reach
@@ -187,14 +201,15 @@ export function MeshField({
 
   const tmp = useMemo(() => new THREE.Vector3(), [])
   const lod = useMemo(
-    () => (camera: THREE.Camera) => {
+    /** `farMul` moves the far threshold out (or in) for this view alone */
+    () => (camera: THREE.Camera, farMul = 1) => {
       // Detail goes by size on screen. The thresholds are distances for a 30 degree lens; a wider
       // lens shows the same chunk smaller, so it brings them in (flying through the cavity at
       // 62 degrees, most of the sheet does not need the heavy cell), and a longer lens pushes them out.
       const fov = (camera as THREE.PerspectiveCamera).fov
       const lens = fov ? Math.tan(THREE.MathUtils.degToRad(fov / 2)) / TAN_15 : 1
       const lodDistance = lodDistanceProp
-      const farDistance = farDistanceProp
+      const farDistance = farDistanceProp * farMul
       for (const c of chunks) {
         if (!c.mesh.visible) continue
         tmp.copy(c.center).applyMatrix4(group.matrixWorld)

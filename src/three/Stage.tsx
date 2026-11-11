@@ -139,7 +139,9 @@ export function Stage() {
     return () => window.clearTimeout(id)
   }, [ready, compact])
   const top = Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
-  const dpr = Math.round((1 + (top - 1) * quality) * 100) / 100
+  // (a phone never steps below 1.25: at 1 its fine yarns go soft on a dense screen, and it saves less than it costs)
+  const floor = compact ? Math.min(top, 1.25) : 1
+  const dpr = Math.round((floor + (top - floor) * quality) * 100) / 100
 
   useEffect(() => {
     if (!supported) setShared({ failed: true })
