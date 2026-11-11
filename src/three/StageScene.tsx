@@ -55,6 +55,8 @@ const PARALLAX = { dist: 0.14, elev: 5, azim: 12 }
 const SWAY_PERIOD = 16
 /** how fast a view in a box turns, steadily, in degrees a second (once round in a minute) */
 const BOX_TURN = 6
+/** a phone's figure: how far either side it rocks (deg), and how long one rock there and back takes (s) */
+const BOX_ROCK = { deg: 12, period: 14 }
 /** the settle as it is woven: starting height (m), spring stiffness and damping (a small bounce, then still) */
 const DROP = { height: 0.05, k: 70, c: 7.5, tilt: 0.3 }
 /** the opening piece is woven out from its middle: when it starts and how long it takes (s) */
@@ -98,6 +100,9 @@ const CENTRE: [number, number] = [0.5, 0.5]
 const anchorPt: [number, number, number] = [0, 0, 0]
 /** where each screen is this frame: read once, used by the choice of the active screen and by the views */
 const rects = new Map<Region, DOMRect>()
+/** a phone's idle check: the drag, as text; and what this frame drew, view after view */
+const ob0 = (o: { yaw: number; pitch: number; dragging: boolean }) => `${o.yaw.toFixed(4)},${o.pitch.toFixed(4)},${o.dragging}`
+const sigNow: number[] = []
 
 /** the region across the middle of the screen, else the most visible one */
 function activeRegion(vh: number) {
@@ -154,7 +159,7 @@ function concreteTexture() {
 
 /** One screen's own view of the mesh: its camera and its look, damped on their own. */
 interface View {
-  cam: { tgt: THREE.Vector3; elev: number; azim: number; dist: number; fov: number; fx: number; fy: number; spin: number }
+  cam: { tgt: THREE.Vector3; elev: number; azim: number; dist: number; fov: number; fx: number; fy: number; spin: number; phase: number }
   fx: {
     axes: number
     shear: number
@@ -211,6 +216,7 @@ function newView(pose: Pose, compact: boolean, o: number): View {
       fx: frame[0],
       fy: frame[1],
       spin: 0,
+      phase: 0,
     },
     fx: {
       axes: 0,
@@ -282,6 +288,10 @@ export function StageScene({ compact, reduced }: Props) {
   const orbit = useRef({ yaw: 0, pitch: 0 })
   const drop = useRef({ y: DROP.height, v: 0, tilt: DROP.tilt, vt: 0 })
   const cleared = useRef(false)
+  /** a phone's idle check: what the last frame was made from, what it drew, and how many frames in a row drew the same */
+  const sigIn = useRef('')
+  const sigLast = useRef<number[]>([])
+  const still = useRef(0)
 
   const press = useMemo(() => new PressField(96, 96), [])
   useEffect(() => {
@@ -410,6 +420,36 @@ export function StageScene({ compact, reduced }: Props) {
       }, (INTRO.delay + INTRO.duration) * 1000)
     }
     const since = (now - started.current) / 1000
+    // a phone's figures: only the one most in view turns (the rest hold where they are), as only one film played
+    let turning: Region | null = null
+    if (compact) {
+      let most = 0
+      for (const d of drawn) {
+        if (!d.r.box) continue
+        const seen = Math.min(d.bottom, vh) - Math.max(d.top, 0)
+        if (seen > most) {
+          most = seen
+          turning = d.r
+        }
+      }
+    }
+    // ---- a phone: a frame that would show the same picture as the last one is not drawn --------
+    // What the picture is made from (where each screen is, the tour, the drag) is compared with the last frame; once it
+    // has not changed and the last frames drew the same thing (every movement settled), the canvas keeps its picture
+    // and the phone's GPU rests until the visitor moves the page again
+    if (compact) {
+      let key = `${vw},${vh},${gl.getPixelRatio()},${stage.tour},${stage.tourDive},${stage.tourPoints},${stage.flat},${thickness},${stage.inspect},${ob0(stage.orbit)}`
+      for (const d of drawn) {
+        const b = rects.get(d.r)
+        const bl = d.r.blend?.()
+        key += `|${d.id},${d.top.toFixed(1)},${d.bottom.toFixed(1)},${b ? `${b.left.toFixed(1)},${b.width.toFixed(1)}` : ''},${bl ? `${bl.a},${bl.b},${bl.t.toFixed(4)}` : ''}`
+      }
+      const idle = key === sigIn.current && still.current >= 2 && since > INTRO.delay + INTRO.duration + 1.5 && !stage.inspect
+      if (key !== sigIn.current) still.current = 0
+      sigIn.current = key
+      if (idle) return
+    }
+    sigNow.length = 0
     gl.clear()
     const rv = reduced ? 1 : clamp01(since / 1.6)
     // the opening piece is woven out from its middle
@@ -516,8 +556,16 @@ export function StageScene({ compact, reduced }: Props) {
       // a view in a box never sways back and forth: it turns round one way at an even pace, on and on
       // (in development a recording of a box's loop may turn it faster: window.__boxTurn)
       const turn = pose.spin || (r.box ? (import.meta.env.DEV && (window as unknown as { __boxTurn?: number }).__boxTurn) || BOX_TURN : 0)
-      c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
-      const sway = reduced || r.box ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
+      // (a phone's figure not the one most in view holds still where it is)
+      const holding = compact && r.box && r !== turning
+      // a phone's figure does not go round: it rocks gently either side of its pose (BOX_ROCK), which keeps a close view
+      // calm; only while it is the one most in view, holding where it is otherwise
+      if (compact && r.box && !pose.spin) {
+        if (!reduced && !holding) c.phase += dt
+        c.spin = reduced ? 0 : BOX_ROCK.deg * Math.sin((c.phase * Math.PI * 2) / BOX_ROCK.period)
+      } else c.spin = reduced ? 0 : holding ? c.spin : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
+      // (a phone's views never sway on their own: the mesh moves only when the visitor scrolls or turns it)
+      const sway = reduced || r.box || compact ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
       const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0)
       // the opening's tour goes down to eye level between the faces; elsewhere the camera stays above
       const elev = THREE.MathUtils.clamp(c.elev * DEG + (hero ? orbit.current.pitch : 0), hero ? -0.3 : 0.05, 1.45)
@@ -814,6 +862,13 @@ export function StageScene({ compact, reduced }: Props) {
         gl.setClearColor(0x000000, 0)
       }
       gl.clearDepth()
+      // (what this view draws, for a phone's comparison with the next frame)
+      if (compact) {
+        sigNow.push(...camera.matrixWorld.elements, ...camera.projectionMatrix.elements, s0, s1, f.winX, f.winZ, f.band, f.weaveX, f.weaveZ, f.explode, f.xray, f.flex, f.axes, f.shear, f.dim, f.widthDim, f.slabs, f.gap, f.pour, f.shadow)
+        sigNow.push(...v.dim.toArray(), ...v.vis.toArray(), ...v.glow.toArray(), ...v.face.toArray(), ...v.pile.toArray(), ...v.fogColor.toArray(), v.fog[0], v.fog[1])
+        sigNow.push(mortar.current?.visible ? since : 0, concrete.opacity, mortarU.uFront.value, catcherMat.opacity, gl.toneMappingExposure, scene.environmentIntensity, keyLight.current?.intensity ?? 0)
+        if (tile.current) sigNow.push(tile.current.position.y, tile.current.rotation.x, tile.current.rotation.z, tile.current.scale.x)
+      }
       gl.render(scene, camera)
       if (bx) {
         gl.setViewport(0, 0, vw, vh)
@@ -899,6 +954,13 @@ export function StageScene({ compact, reduced }: Props) {
     }
     gl.setScissorTest(false)
     for (const [anchor, el] of stage.labels) if (!placed.has(anchor) && el.style.opacity !== '0') el.style.opacity = '0'
+    // a phone: the same picture as the frame before (to well under a pixel)? one more frame alike and the next ones rest
+    if (compact) {
+      const prev = sigLast.current
+      const same = prev.length === sigNow.length && sigNow.every((x, i) => Math.abs(x - prev[i]) <= 1e-6 + Math.abs(x) * 1e-5)
+      still.current = same ? still.current + 1 : 0
+      sigLast.current = sigNow.slice()
+    }
 
     // the press field is shared: advance it once a frame while any view is pressing
     if (flexing && press.step(dt)) press.upload()

@@ -263,18 +263,47 @@ export function useOrbitDrag(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const pr = { id: -1, x: 0, y: 0 }
+    /**
+     * `axis` (a finger only): undecided (0) until it has gone 10 px; then sideways (1), which turns the mesh, or up and
+     * down (-1), a swipe through the page, which never turns it (not even by the little a thumb drifts sideways on its way)
+     */
+    const pr = { id: -1, x: 0, y: 0, sx: 0, sy: 0, axis: 0 }
     const interactive = (t: EventTarget | null) => Boolean((t as HTMLElement | null)?.closest?.('a, button, input, select'))
+    const release = () => {
+      pr.id = -1
+      stage.orbit.dragging = false
+      el.classList.remove('is-dragging')
+    }
     const down = (e: PointerEvent) => {
       if ((e.pointerType === 'mouse' && e.button !== 0) || interactive(e.target)) return
       pr.id = e.pointerId
-      pr.x = e.clientX
-      pr.y = e.clientY
-      stage.orbit.dragging = true
-      el.classList.add('is-dragging')
+      pr.x = pr.sx = e.clientX
+      pr.y = pr.sy = e.clientY
+      pr.axis = e.pointerType === 'touch' ? 0 : 1
+      // (a mouse holds the mesh at once; a finger only once it is known to be going sideways)
+      if (pr.axis === 1) {
+        stage.orbit.dragging = true
+        el.classList.add('is-dragging')
+      }
     }
     const move = (e: PointerEvent) => {
       if (e.pointerId !== pr.id) return
+      if (pr.axis === 0) {
+        const tx = e.clientX - pr.sx
+        const ty = e.clientY - pr.sy
+        if (Math.hypot(tx, ty) < 10) return
+        if (Math.abs(tx) > Math.abs(ty) * 1.3) {
+          pr.axis = 1
+          pr.x = e.clientX
+          pr.y = e.clientY
+          stage.orbit.dragging = true
+          el.classList.add('is-dragging')
+        } else {
+          pr.axis = -1
+          release()
+        }
+        return
+      }
       const dx = e.clientX - pr.x
       const dy = e.clientY - pr.y
       pr.x = e.clientX
@@ -284,9 +313,7 @@ export function useOrbitDrag(ref: RefObject<HTMLElement | null>) {
     }
     const end = (e: PointerEvent) => {
       if (e.pointerId !== pr.id) return
-      pr.id = -1
-      stage.orbit.dragging = false
-      el.classList.remove('is-dragging')
+      release()
     }
     el.addEventListener('pointerdown', down)
     window.addEventListener('pointermove', move)

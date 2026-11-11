@@ -259,9 +259,10 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
   const [active, setActive] = useState(false)
   const [seen, setSeen] = useState(false)
   const failed = useStageValue('failed')
-  // (a figure with its film plays that, and lends the 3D nothing)
-  // (in development, while the films are recorded from the 3D, it draws: ?live)
-  const filmed = Boolean(LOOPS[step.pose]) && !(import.meta.env.DEV && new URLSearchParams(window.location.search).has('live'))
+  // the figure is the live 3D, sharp at any size (only the one most in view turns: StageScene);
+  // its film stands in only where there is no 3D (no WebGL, or the scene failed), in place of a still
+  // (in development ?films shows the films, to check them)
+  const filmed = Boolean(LOOPS[step.pose]) && (failed || (import.meta.env.DEV && new URLSearchParams(window.location.search).has('films')))
   useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true })
   useEffect(() => {
     const el = row.current
