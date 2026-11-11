@@ -98,7 +98,7 @@
     opacity: 1;
   }
   .hero__curtain.is-clearing {
-    transition: opacity 0.28s cubic-bezier(0.33, 0, 0.2, 1);
+    transition: opacity 0.22s cubic-bezier(0.33, 0, 0.2, 1);
   }
   @media (prefers-reduced-motion: reduce) {
     .hero__curtain.is-clearing {

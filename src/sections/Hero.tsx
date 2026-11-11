@@ -137,8 +137,8 @@ const POINTS = [
  * is held (ms); how long About takes to come out of the white (ms); and the same hold and quiet in frames too, so a
  * slow frame never ends the hold early
  */
-// (it starts as the glide is all but into the white, 96% of it, the curtain the same white: a moment sooner, unseen)
-const HANDOFF = { at: PHONE_SCREENS - 1 - 0.1, hold: 40, quiet: 40, most: 2400, fade: 280, frames: 3, quietFrames: 2 }
+// (it starts as the glide is all but into the white, 91% of it, the curtain the same white: sooner, all but unseen)
+const HANDOFF = { at: PHONE_SCREENS - 1 - 0.15, hold: 25, quiet: 25, most: 2400, fade: 220, frames: 2, quietFrames: 1 }
 
 /**
  * A phone's tour ends in the white, and About does not scroll up into it: once the page goes on down into the white past
