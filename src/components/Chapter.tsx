@@ -283,7 +283,8 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
       <div className="eb-row__copy">{step.render(active)}</div>
       <figure className="eb-fig">
         <div ref={box} className="eb-fig__view" data-screen={ground}>
-          {filmed ? <Loop pose={step.pose} /> : still && <img className="eb-fig__still" src={still} alt="" />}
+          {/* the 3D is drawn into the card's own canvas (StageScene), so it scrolls with the card */}
+          {filmed ? <Loop pose={step.pose} /> : still ? <img className="eb-fig__still" src={still} alt="" /> : <canvas className="eb-fig__canvas" aria-hidden="true" />}
           <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
           <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
         </div>

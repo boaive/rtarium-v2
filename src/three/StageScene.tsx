@@ -392,9 +392,13 @@ export function StageScene({ compact, reduced }: Props) {
         continue
       }
       const b = rects.get(r)
-      if (!b || b.bottom <= 0 || b.top >= vh || b.width < 2) continue
+      // (a phone's card is drawn into its own canvas, so it is drawn a little before it reaches the screen: ready on arrival)
+      const ahead = compact && r.box ? vh * 0.5 : 0
+      if (!b || b.bottom <= -ahead || b.top >= vh + ahead || b.width < 2) continue
       drawn.push({ r, id, top: b.top, bottom: b.bottom })
     }
+    // (a phone's cards first: each borrows the corner of the canvas to draw in, and gives it back clear before the rest)
+    if (compact) drawn.sort((a, b) => Number(!!b.r.box) - Number(!!a.r.box))
     for (const r of views.current.keys()) if (!drawn.some((d) => d.r === r)) views.current.delete(r)
 
     gl.setScissorTest(false)
@@ -437,7 +441,9 @@ export function StageScene({ compact, reduced }: Props) {
       for (const d of drawn) {
         const b = rects.get(d.r)
         const bl = d.r.blend?.()
-        key += `|${d.id},${d.top.toFixed(1)},${d.bottom.toFixed(1)},${b ? `${b.left.toFixed(1)},${b.width.toFixed(1)}` : ''},${bl ? `${bl.a},${bl.b},${bl.t.toFixed(4)}` : ''}`
+        // (a card's picture does not change as it scrolls, only with its size: it scrolls with the page in its own canvas)
+        const place = d.r.box ? `${(b?.height ?? 0).toFixed(1)}` : `${d.top.toFixed(1)},${d.bottom.toFixed(1)}`
+        key += `|${d.id},${place},${b ? `${b.left.toFixed(1)},${b.width.toFixed(1)}` : ''},${bl ? `${bl.a},${bl.b},${bl.t.toFixed(4)}` : ''}`
       }
       const idle = key === sigIn.current && still.current >= 2 && since > INTRO.delay + INTRO.duration + 1.5 && !stage.inspect
       if (key !== sigIn.current) still.current = 0
@@ -693,8 +699,9 @@ export function StageScene({ compact, reduced }: Props) {
         tile.current.updateMatrixWorld()
       }
       // each chunk's detail for this view's camera (two views in a transition each get their own)
-      // (a phone's opening piece keeps its full cells: a couple of hundred, and the first thing seen, so it stays crisp)
-      ;(field.current?.userData.lod as ((cam: THREE.Camera, farMul?: number) => void) | undefined)?.(camera, compact && hero && stage.tour < 0.6 ? 4 : 1)
+      // (a phone's opening piece and its cards keep their full cells: the first is the first thing seen, and a card is
+      // drawn only when its picture changes, so neither costs much, and both stay crisp)
+      ;(field.current?.userData.lod as ((cam: THREE.Camera, farMul?: number) => void) | undefined)?.(camera, compact && ((hero && stage.tour < 0.6) || r.box) ? 4 : 1)
       if (axes.current) {
         axes.current.visible = f.axes > 0.01
         // X, then Y, then Z grow one after the other
@@ -844,6 +851,47 @@ export function StageScene({ compact, reduced }: Props) {
         }
       }
 
+      // (what this view draws, for a phone's comparison with the next frame)
+      const sig = (a: number, b: number) => {
+        sigNow.push(...camera.matrixWorld.elements, ...camera.projectionMatrix.elements, a, b, f.winX, f.winZ, f.band, f.weaveX, f.weaveZ, f.explode, f.xray, f.flex, f.axes, f.shear, f.dim, f.widthDim, f.slabs, f.gap, f.pour, f.shadow)
+        sigNow.push(...v.dim.toArray(), ...v.vis.toArray(), ...v.glow.toArray(), ...v.face.toArray(), ...v.pile.toArray(), ...v.fogColor.toArray(), v.fog[0], v.fog[1])
+        sigNow.push(mortar.current?.visible ? since : 0, concrete.opacity, mortarU.uFront.value, catcherMat.opacity, gl.toneMappingExposure, scene.environmentIntensity, keyLight.current?.intensity ?? 0)
+        if (tile.current) sigNow.push(tile.current.position.y, tile.current.rotation.x, tile.current.rotation.z, tile.current.scale.x)
+      }
+
+      // ---- a phone's card: drawn into its own canvas, which scrolls with the card ----------------
+      // The fixed canvas is drawn a frame behind a finger's native scroll, so a card's mesh drawn on it trails its frame
+      // and wobbles against it. Instead the card is drawn in the canvas's lower corner, copied into the card's own canvas
+      // and the corner cleared: the picture then moves with the page as an image does, and is drawn again only when it
+      // changes (nothing to draw while the page only scrolls)
+      const own = compact && bx ? r.el.querySelector<HTMLCanvasElement>('canvas.eb-fig__canvas') : null
+      if (own && bx) {
+        const pr = gl.getPixelRatio()
+        const w = Math.min(vw, bx.width)
+        const h = Math.min(vh, bx.height)
+        const pw = Math.round(w * pr)
+        const ph = Math.round(h * pr)
+        gl.setScissorTest(true)
+        gl.setViewport(0, 0, w, h)
+        gl.setScissor(0, 0, w, h)
+        gl.clear()
+        sig(-1, w * 1e4 + h)
+        gl.render(scene, camera)
+        if (own.width !== pw || own.height !== ph) {
+          own.width = pw
+          own.height = ph
+        }
+        const ctx = own.getContext('2d')
+        if (ctx) {
+          ctx.clearRect(0, 0, pw, ph)
+          ctx.drawImage(gl.domElement, 0, gl.domElement.height - ph, pw, ph, 0, 0, pw, ph)
+        }
+        gl.clear()
+        gl.setViewport(0, 0, vw, vh)
+        camera.aspect = vw / vh
+        continue
+      }
+
       // ---- draw this view inside its own panel ------------------------------------------------
       // an edge inside the screen meets the next panel: it is pulled in to whole canvas pixels and one more, or the
       // canvas, drawn at a density other than the screen's (fractional display scaling, or stepped down to keep up),
@@ -870,13 +918,7 @@ export function StageScene({ compact, reduced }: Props) {
         gl.setClearColor(0x000000, 0)
       }
       gl.clearDepth()
-      // (what this view draws, for a phone's comparison with the next frame)
-      if (compact) {
-        sigNow.push(...camera.matrixWorld.elements, ...camera.projectionMatrix.elements, s0, s1, f.winX, f.winZ, f.band, f.weaveX, f.weaveZ, f.explode, f.xray, f.flex, f.axes, f.shear, f.dim, f.widthDim, f.slabs, f.gap, f.pour, f.shadow)
-        sigNow.push(...v.dim.toArray(), ...v.vis.toArray(), ...v.glow.toArray(), ...v.face.toArray(), ...v.pile.toArray(), ...v.fogColor.toArray(), v.fog[0], v.fog[1])
-        sigNow.push(mortar.current?.visible ? since : 0, concrete.opacity, mortarU.uFront.value, catcherMat.opacity, gl.toneMappingExposure, scene.environmentIntensity, keyLight.current?.intensity ?? 0)
-        if (tile.current) sigNow.push(tile.current.position.y, tile.current.rotation.x, tile.current.rotation.z, tile.current.scale.x)
-      }
+      if (compact) sig(s0, s1)
       gl.render(scene, camera)
       if (bx) {
         gl.setViewport(0, 0, vw, vh)
