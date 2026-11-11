@@ -4,6 +4,7 @@ import { setShared, useStageValue, type Ground, type PoseId } from '../three/sta
 import { POSES } from '../three/poses'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY } from '../lib/scroll'
+import { FILM_STEPS, dropFilm, filmReady, seenFilm } from '../lib/films'
 
 /** what a screen shows where its mesh would be when there is no 3D */
 const STILLS: Partial<Record<PoseId, string>> = {
@@ -177,13 +178,91 @@ export function Rows({ id, title, steps, ground = 'light' }: { id: string; title
   )
 }
 
+/**
+ * A phone's figures play as films: each pose its loop, recorded from the 3D itself (the mesh turning once round, at an
+ * even pace, on its ground), so the page draws no 3D under its rows as it scrolls. The thin section's loop is the one
+ * of the thickness chosen; Monolithic's, a flat mesh's while the comparison shows one.
+ */
+const LOOPS: Partial<Record<PoseId, string>> = {
+  structure: 'about-structure',
+  material: 'about-material',
+  pour: 'about-pour',
+  depth: 'innovation-depth',
+  shear: 'innovation-shear',
+  mineral: 'innovation-mineral',
+  stack: 'tech-stack',
+}
+/** Monolithic's comparison, said to its loop (Innovation's ShearCompare): a flat mesh shown, or RTARIUM */
+export const FLAT_EVENT = 'rtarium:flat'
+
+function Loop({ pose }: { pose: PoseId }) {
+  const video = useRef<HTMLVideoElement>(null)
+  const thickness = useStageValue('thickness')
+  const [flat, setFlat] = useState(false)
+  const [near, setNear] = useState(false)
+  useEffect(() => {
+    if (pose !== 'shear') return
+    const on = (e: Event) => setFlat(Boolean((e as CustomEvent<boolean>).detail))
+    window.addEventListener(FLAT_EVENT, on)
+    return () => window.removeEventListener(FLAT_EVENT, on)
+  }, [pose])
+  const base = LOOPS[pose]
+  const name = !base ? '' : pose === 'stack' ? `${base}-${thickness}` : pose === 'shear' && flat ? `${base}-flat` : base
+  // loaded once it comes near the screen, playing while it is on it, still while it is not (the film swapped for another
+  // of the same figure, the new one watched in its place)
+  useEffect(() => {
+    const el = video.current
+    if (!el) return
+    el.muted = true
+    seenFilm(el, 0)
+    // near: loaded ahead of the screen
+    const ahead = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: '60% 0px 60% 0px' })
+    ahead.observe(el)
+    // how much of it is on the screen: the one most in view plays
+    const seen = new IntersectionObserver(
+      ([e]) => seenFilm(el, e.intersectionRatio),
+      { threshold: FILM_STEPS },
+    )
+    seen.observe(el)
+    // (a film that comes in while its box is the one in view starts as soon as it can)
+    el.addEventListener('loadeddata', filmReady)
+    return () => {
+      ahead.disconnect()
+      seen.disconnect()
+      el.removeEventListener('loadeddata', filmReady)
+      dropFilm(el)
+    }
+  }, [name])
+  if (!base) return null
+  const src = `/video/loops/${name}.mp4`
+  return (
+    <video
+      key={name}
+      ref={video}
+      className="eb-fig__loop"
+      src={near ? src : undefined}
+      poster={`/video/loops/${name}.jpg`}
+      muted
+      loop
+      playsInline
+      preload={near ? 'auto' : 'none'}
+      aria-hidden="true"
+      disablePictureInPicture
+    />
+  )
+}
+
 function Row({ chapter, title, step, index, ground }: { chapter: string; title: string; step: Step; index: number; ground: Ground }) {
   const row = useRef<HTMLElement>(null)
   const box = useRef<HTMLDivElement>(null)
+  const none = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(false)
   const [seen, setSeen] = useState(false)
   const failed = useStageValue('failed')
-  useStageRegion(box, () => step.pose, undefined, { box: true })
+  // (a figure with its film plays that, and lends the 3D nothing)
+  // (in development, while the films are recorded from the 3D, it draws: ?live)
+  const filmed = Boolean(LOOPS[step.pose]) && !(import.meta.env.DEV && new URLSearchParams(window.location.search).has('live'))
+  useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true })
   useEffect(() => {
     const el = row.current
     if (!el) return
@@ -203,7 +282,7 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
       <div className="eb-row__copy">{step.render(active)}</div>
       <figure className="eb-fig">
         <div ref={box} className="eb-fig__view" data-screen={ground}>
-          {still && <img className="eb-fig__still" src={still} alt="" />}
+          {filmed ? <Loop pose={step.pose} /> : still && <img className="eb-fig__still" src={still} alt="" />}
           <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
           <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
         </div>

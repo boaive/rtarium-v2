@@ -514,7 +514,8 @@ export function StageScene({ compact, reduced }: Props) {
       c.fx = damp(c.fx, frame[0], k, dt)
       c.fy = damp(c.fy, lerp(frame[1], Math.min(frame[1], 0.27), squat), k, dt)
       // a view in a box never sways back and forth: it turns round one way at an even pace, on and on
-      const turn = pose.spin || (r.box ? BOX_TURN : 0)
+      // (in development a recording of a box's loop may turn it faster: window.__boxTurn)
+      const turn = pose.spin || (r.box ? (import.meta.env.DEV && (window as unknown as { __boxTurn?: number }).__boxTurn) || BOX_TURN : 0)
       c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
       const sway = reduced || r.box ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
       const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0)
@@ -792,6 +793,13 @@ export function StageScene({ compact, reduced }: Props) {
         gl.setViewport(bx.left, vh - bx.bottom, bx.width, bx.height)
         gl.setScissor(x0, (ch - s1) / pr, x1 - x0, (s1 - s0) / pr)
       } else gl.setScissor(0, (ch - s1) / pr, vw, (s1 - s0) / pr)
+      // (in development, recording a box's loop: the box painted in its ground, as the page under it would show)
+      const recBg = import.meta.env.DEV && bx ? (window as unknown as { __recBg?: string }).__recBg : undefined
+      if (recBg) {
+        gl.setClearColor(recBg, 1)
+        gl.clearColor()
+        gl.setClearColor(0x000000, 0)
+      }
       gl.clearDepth()
       gl.render(scene, camera)
       if (bx) {
