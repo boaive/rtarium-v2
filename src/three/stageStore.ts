@@ -32,6 +32,11 @@ export interface Region {
    * grounds `ga` and `gb` (the edge between them at `1 - t` of the width). `pose()` then names the nearer one.
    */
   blend?: () => Blend
+  /**
+   * The view is drawn inside the element's own box (a framed figure in the page) rather than across the screen:
+   * the mesh centred in it, as wide in it as it is on the screen
+   */
+  box?: boolean
 }
 
 export interface Blend {
@@ -59,6 +64,8 @@ export const stage = {
   tour: 0,
   /** how far the tour has gone into white light (0..1); the ground and the fog wash to warm white */
   wash: 0,
+  /** on a phone, how many of the cavity's points are named (0..3): one more at each of its own screens */
+  tourPoints: 0,
   /** the Tech Space figure under the cursor or focused, if any */
   inspect: null as Inspect | null,
 }

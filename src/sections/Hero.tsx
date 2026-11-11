@@ -4,11 +4,37 @@ import { setShared, stage, useStageValue } from '../three/stageStore'
 import { tourWash } from '../three/poses'
 import { Lines } from '../components/Chapter'
 import { Link } from '../lib/router'
-import { damp, prefersReducedMotion } from '../lib/motion'
+import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY } from '../lib/scroll'
 
 /** the screens of the opening tour: the piece, the mesh built out, the cavity, the light */
 const SCREENS = 4
+/**
+ * On a phone the cavity has screens of its own after its line, one for each point named in it, while the camera
+ * holds between the faces: the opening, the mesh built out, the line, three points, the light. Each screen is a
+ * place on the tour (`at`, as on a wide screen: 1 built, 2 between the faces, 3 out of the light, 4 About).
+ */
+const PHONE_KEYS: [number, number][] = [
+  [0, 0],
+  [1, 1],
+  [2, 1.72],
+  [3, 1.98],
+  [4, 2.04],
+  [5, 2.1],
+  [6, 3],
+  [7, 4],
+]
+const PHONE_SCREENS = PHONE_KEYS.length - 1
+/** the screen of the cavity's first point, on a phone */
+const FIRST_POINT = 3
+function phoneTour(s: number) {
+  for (let k = 1; k < PHONE_KEYS.length; k++) {
+    const [s1, p1] = PHONE_KEYS[k]
+    const [s0, p0] = PHONE_KEYS[k - 1]
+    if (s <= s1) return p0 + ((s - s0) / (s1 - s0)) * (p1 - p0)
+  }
+  return PHONE_KEYS[PHONE_KEYS.length - 1][1]
+}
 
 /**
  * The opening tour, the one vertical sequence on the page tied to the scroll. Four screens: the
@@ -19,7 +45,7 @@ const SCREENS = 4
  * is damped into `stage.tour` (0..4) every frame and written to `--p` for the copy; how far the
  * tour has gone into the light is written to `--wash` for the ground.
  */
-function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) => void) {
+function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) => void, phone: boolean) {
   const screenCb = useRef(onScreen)
   screenCb.current = onScreen
   useEffect(() => {
@@ -37,7 +63,9 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
       const r = el.getBoundingClientRect()
       const vh = window.innerHeight
       // one screen more than it has: leaving the light, the tour carries on into About's first view
-      const target = Math.min(SCREENS, Math.max(0, -r.top / vh))
+      const screens = phone ? PHONE_SCREENS : SCREENS
+      const at = Math.min(screens, Math.max(0, -r.top / vh))
+      const target = phone ? phoneTour(at) : at
       p = p < 0 || prefersReducedMotion() ? target : damp(p, target, 10, dt)
       if (Math.abs(p - target) < 1e-4) p = target
       stage.tour = p
@@ -46,7 +74,9 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
       root.style.setProperty('--wash', stage.wash.toFixed(4))
       // the header and the labels follow the ground: yellow, then the white of the light
       if (r.top <= vh * 0.5 && r.bottom > vh * 0.5) setShared({ chapter: 'hero', step: 0, ground: stage.wash > 0.5 ? 'light' : 'yellow' })
-      const i = Math.min(SCREENS - 1, Math.max(0, Math.round(target)))
+      const i = Math.min(screens - 1, Math.max(0, Math.round(at)))
+      // a phone's cavity: the points named so far, one more a screen, none once the light comes
+      stage.tourPoints = phone && i >= FIRST_POINT && i < FIRST_POINT + 3 ? i - FIRST_POINT + 1 : 0
       if (i !== shown) {
         shown = i
         screenCb.current(i)
@@ -68,8 +98,15 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
       cancelAnimationFrame(raf)
       root.style.removeProperty('--wash')
     }
-  }, [section])
+  }, [section, phone])
 }
+
+/** the points named in the cavity (on a phone, one at a time, each with its number) */
+const POINTS = [
+  { anchor: 'tour-face-a', name: 'Upper basalt face' },
+  { anchor: 'tour-fibres', name: 'Connecting fibres' },
+  { anchor: 'tour-face-b', name: 'Lower basalt face' },
+]
 
 export function Hero() {
   const section = useRef<HTMLElement>(null)
@@ -78,7 +115,8 @@ export function Hero() {
   const failed = useStageValue('failed')
   useStageRegion(section, () => 'hero')
   useOrbitDrag(open)
-  useTour(section, setAt)
+  const compact = useIsCompact()
+  useTour(section, setAt, compact)
 
   // the scroll cue starts the tour: one screen down
   const start = () => {
@@ -92,7 +130,7 @@ export function Hero() {
     <>
       {/* the tour scrolls freely, both ways (the scroll is the animation), down into the cavity and on through the white
           to About's first view; the page goes a screen at a time after that */}
-      <section ref={section} className="hero" aria-labelledby="hero-title" data-pass-screen={SCREENS - 1} data-free-scroll="">
+      <section ref={section} className="hero" aria-labelledby="hero-title" data-pass-screen={(compact ? PHONE_SCREENS : SCREENS) - 1} data-free-scroll="">
         <div ref={open} className={`hero__screen hero__screen--open scene ${state(0)}`} data-screen="yellow">
           {failed && <img className="hero__still" src="/img/render-structure.webp" alt="" />}
           <div className="hero__copy">
@@ -134,18 +172,19 @@ export function Hero() {
           </div>
         </div>
 
+        {/* a phone: a screen for each point named in the cavity, one after another, the words gone */}
+        {compact &&
+          [0, 1, 2].map((k) => <div key={k} className={`hero__screen hero__screen--point scene ${state(FIRST_POINT + k)}`} data-screen="yellow" />)}
+
         {/* on through the cavity into white light, and out of it onto the mesh: the 3D alone, no words */}
-        <div className={`hero__screen scene ${state(3)}`} data-screen="yellow" />
+        <div className={`hero__screen scene ${state(compact ? FIRST_POINT + 3 : 3)}`} data-screen="yellow" />
       </section>
-      <StageLabel anchor="tour-face-a" column={0.24}>
-        Upper basalt face
-      </StageLabel>
-      <StageLabel anchor="tour-fibres" column={0.24}>
-        Connecting fibres
-      </StageLabel>
-      <StageLabel anchor="tour-face-b" column={0.24}>
-        Lower basalt face
-      </StageLabel>
+      {POINTS.map((t, i) => (
+        <StageLabel key={t.anchor} anchor={t.anchor} column={0.24} className="pin--point">
+          <span className="pin__n num">0{i + 1}</span>
+          <span className="pin__name">{t.name}</span>
+        </StageLabel>
+      ))}
       <CavityDimension />
     </>
   )

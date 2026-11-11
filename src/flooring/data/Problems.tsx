@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { prefersReducedMotion } from '../../lib/motion'
+import { prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { Say } from '../../components/Say'
 
 /**
@@ -56,6 +56,37 @@ const SPAN = 0.36
 export function Problems({ problems = PROBLEMS, title = TITLE, answer = ANSWER }: { problems?: Problem[]; title?: string; answer?: string }) {
   const section = useRef<HTMLElement>(null)
   const rows = useRef<HTMLOListElement>(null)
+  const compact = useIsCompact()
+
+  // a phone: the cards a deck, as What it replaces is on Home. The section holds still while the scroll brings each
+  // card after the first up over the one before, a band lower (`--deck`, 0 to the number of cards less one, across the
+  // run; minimal.css); then the page goes on
+  useEffect(() => {
+    const el = section.current
+    const deck = rows.current
+    if (!compact || !el || !deck) return
+    const still = prefersReducedMotion()
+    const n = Math.max(1, deck.children.length - 1)
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      const run = Math.max(1, r.height - window.innerHeight)
+      const p = still ? 1 : Math.min(1, Math.max(0, -r.top / run))
+      deck.style.setProperty('--deck', (p * n).toFixed(4))
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [compact])
 
   // as the screen rises, row after row: its line draws across and its number drops out from under the line, straight
   // with the scroll, no easing of its own: the page's glide (Lenis) is what makes it smooth. All landed as it reaches the top

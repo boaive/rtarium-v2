@@ -1,8 +1,8 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { refreshGround, useStageRegion } from '../three/Stage'
 import { setShared, useStageValue, type Ground, type PoseId } from '../three/stageStore'
 import { POSES } from '../three/poses'
-import { damp, prefersReducedMotion } from '../lib/motion'
+import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY } from '../lib/scroll'
 
 /** what a screen shows where its mesh would be when there is no 3D */
@@ -146,7 +146,78 @@ const DRIFT = 0.28
  * never cuts. A step with nothing to draw (footage) holds the pose before it under its film.
  * Reaching a step plays its sequence in time, as on the vertical chapters.
  */
-export function Track({ id, title, steps, className = '' }: { id: string; title: string; steps: Step[]; className?: string }) {
+export function Track(props: { id: string; title: string; steps: Step[]; className?: string; phoneGround?: Ground }) {
+  const compact = useIsCompact()
+  if (compact) return <Rows {...props} ground={props.phoneGround} />
+  return <SideTrack {...props} />
+}
+
+/**
+ * A sideways chapter on a phone, set as Enerblock sets its solutions: read down the page at the finger's own speed, on
+ * warm white, in rows parted by hairlines the width of the screen. Each step a row: its number, its name in small
+ * capitals, the copy in plain weights, and its 3D in a framed figure under it (the stage draws the mesh inside the
+ * figure's box: `useStageRegion` with `box`), a drawing's title block along the figure's foot. The step whose figure
+ * holds the middle of the screen is the one playing.
+ */
+export function Rows({ id, title, steps, ground = 'light' }: { id: string; title: string; steps: Step[]; ground?: Ground }) {
+  CHAPTERS.set(id, { title, labels: steps.map((s) => s.label) })
+  const section = useRef<HTMLElement>(null)
+  // holding the middle of the screen, read on every scroll as the other sections are, the header takes this ground
+  useScreen(section, id, ground)
+  return (
+    <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground}>
+      <header className="eb__head">
+        <p className="eb__title">{title}</p>
+        {steps.length > 1 && <p className="eb__count num">{two(steps.length)} parts</p>}
+      </header>
+      {steps.map((s, i) => (
+        <Row key={s.id} chapter={id} title={title} step={s} index={i} ground={ground} />
+      ))}
+    </section>
+  )
+}
+
+function Row({ chapter, title, step, index, ground }: { chapter: string; title: string; step: Step; index: number; ground: Ground }) {
+  const row = useRef<HTMLElement>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(false)
+  const [seen, setSeen] = useState(false)
+  const failed = useStageValue('failed')
+  useStageRegion(box, () => step.pose, undefined, { box: true })
+  useEffect(() => {
+    const el = row.current
+    if (!el) return
+    // in play from when the row's middle reaches the screen's lower third until it leaves the upper
+    const io = new IntersectionObserver(([e]) => {
+      setActive(e.isIntersecting)
+      if (e.isIntersecting) setSeen(true)
+    }, { rootMargin: '-30% 0px -30% 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [chapter, index])
+  const still = failed ? STILLS[step.pose] : undefined
+  return (
+    <article ref={row} id={`${chapter}-${step.id}`} className={`eb-row scene scene--${step.id} on-${ground} ${active ? 'is-active' : seen ? 'is-seen' : ''}`}>
+      <p className="eb-row__num num">{two(index + 1)} /</p>
+      <h3 className="eb-row__label">{step.label}</h3>
+      <div className="eb-row__copy">{step.render(active)}</div>
+      <figure className="eb-fig">
+        <div ref={box} className="eb-fig__view" data-screen={ground}>
+          {still && <img className="eb-fig__still" src={still} alt="" />}
+          <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
+          <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
+        </div>
+        <figcaption className="eb-fig__block">
+          <span className="eb-fig__name">{title}</span>
+          <span>Fig. {two(index + 1)}</span>
+          <span>{step.label}</span>
+        </figcaption>
+      </figure>
+    </article>
+  )
+}
+
+function SideTrack({ id, title, steps, className = '' }: { id: string; title: string; steps: Step[]; className?: string }) {
   const section = useRef<HTMLElement>(null)
   const pin = useRef<HTMLDivElement>(null)
   const slides = useRef<(HTMLDivElement | null)[]>([])
@@ -156,6 +227,24 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
   const [seen, setSeen] = useState(0)
   const failed = useStageValue('failed')
   const n = steps.length
+  /**
+   * On a phone the chapter is one screen and its steps a carousel: the step it shows (`at`) is moved by its
+   * buttons and by a sideways swipe, not by the scroll, and the slides and the mesh travel to it the same way.
+   */
+  const compact = useIsCompact()
+  const at = useRef(0)
+  const [shown, setShown] = useState(0)
+  const kickRef = useRef(() => {})
+  const go = useCallback(
+    (i: number) => {
+      const to = Math.min(n - 1, Math.max(0, i))
+      if (to === at.current) return
+      at.current = to
+      setShown(to)
+      kickRef.current()
+    },
+    [n],
+  )
   CHAPTERS.set(id, { title, labels: steps.map((s) => s.label) })
 
   const meshPose = useMemo(
@@ -182,6 +271,9 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
     let raf = 0
     let last = performance.now()
     let p = -1
+    // a phone: when the last frame came, and the wait for one that has not (see `kick`)
+    let frameAt = performance.now()
+    let starved = 0
     const place = () => {
       slides.current.forEach((slide, i) => {
         if (!slide) return
@@ -212,12 +304,17 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
     }
     const tick = (now: number) => {
       raf = 0
-      const dt = Math.min(0.1, (now - last) / 1000)
+      frameAt = performance.now()
+      const gap = (now - last) / 1000
+      const dt = Math.min(0.1, gap)
       last = now
       const r = el.getBoundingClientRect()
       const vh = window.innerHeight
-      const target = Math.min(n - 1, Math.max(0, -r.top / vh))
-      p = p < 0 || prefersReducedMotion() ? target : damp(p, target, 11, dt)
+      const target = compact ? at.current : Math.min(n - 1, Math.max(0, -r.top / vh))
+      // a phone whose frames come slowly (a preview pane, a device under load) goes straight to the step it was asked
+      // for, rather than crawling there a frame at a time with the ground and the copy behind it
+      const slow = compact && gap > 0.25
+      p = p < 0 || prefersReducedMotion() || slow ? target : damp(p, target, compact ? 7 : 11, dt)
       if (Math.abs(p - target) < 1e-4) p = target
       prog.current = p
       place()
@@ -239,7 +336,20 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
         last = performance.now()
         raf = requestAnimationFrame(tick)
       }
+      // a phone whose page gets no frames (a preview pane, a page held in the background) would leave the carousel, the
+      // ground and the copy where they were: if no frame has come a moment after a tap or a scroll, the step is set
+      // there and then, without one (`tick` sees the long gap and goes straight to it)
+      if (!compact) return
+      window.clearTimeout(starved)
+      starved = window.setTimeout(() => {
+        if (!raf || performance.now() - frameAt < 150) return
+        cancelAnimationFrame(raf)
+        raf = 0
+        last = performance.now() - 1000
+        tick(performance.now())
+      }, 160)
     }
+    kickRef.current = kick
     kick()
     window.addEventListener('scroll', kick, { passive: true })
     window.addEventListener('resize', kick)
@@ -247,8 +357,40 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
       window.removeEventListener('scroll', kick)
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
+      window.clearTimeout(starved)
     }
-  }, [id, n, steps])
+  }, [id, n, steps, compact])
+
+  // a phone: a sideways swipe across the screen takes the carousel a step (a vertical one scrolls the page on)
+  useEffect(() => {
+    const el = pin.current
+    if (!compact || !el) return
+    const g = { id: -1, x: 0, y: 0 }
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse' || (e.target as HTMLElement | null)?.closest?.('a, button')) return
+      g.id = e.pointerId
+      g.x = e.clientX
+      g.y = e.clientY
+    }
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== g.id) return
+      g.id = -1
+      const dx = e.clientX - g.x
+      const dy = e.clientY - g.y
+      if (Math.abs(dx) > 44 && Math.abs(dx) > Math.abs(dy) * 1.3) go(at.current + (dx < 0 ? 1 : -1))
+    }
+    const cancel = (e: PointerEvent) => {
+      if (e.pointerId === g.id) g.id = -1
+    }
+    el.addEventListener('pointerdown', down)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    return () => {
+      el.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+    }
+  }, [compact, go])
 
   return (
     <section id={id} ref={section} className={`track ${className}`} aria-label={title} style={{ '--steps': n } as CSSProperties}>
@@ -274,8 +416,50 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
             </div>
           )
         })}
+        {compact && <Carousel steps={steps} at={shown} onGo={go} />}
       </div>
     </section>
+  )
+}
+
+const two = (k: number) => String(k).padStart(2, '0')
+
+/**
+ * A chapter's steps on a phone, at the foot of its screen: a line of a segment each (the ones passed and the one
+ * shown drawn in), which of how many with its name, and the way back and on. It takes the colour of the step shown.
+ */
+function Carousel({ steps, at, onGo }: { steps: Step[]; at: number; onGo: (i: number) => void }) {
+  const n = steps.length
+  return (
+    <div className={`carousel on-${steps[at].ground} ${at === 0 ? 'is-first' : ''}`}>
+      <ol className="carousel__line" aria-hidden="true">
+        {steps.map((s, i) => (
+          <li key={s.id} className={i < at ? 'is-past' : i === at ? 'is-now' : undefined} />
+        ))}
+      </ol>
+      <div className="carousel__row">
+        <p className="carousel__count" aria-live="polite">
+          <span className="num">
+            <b>{two(at + 1)}</b> / {two(n)}
+          </span>
+          <span key={at} className="carousel__name">
+            {steps[at].label}
+          </span>
+        </p>
+        <div className="carousel__nav">
+          <button type="button" className="carousel__btn" onClick={() => onGo(at - 1)} disabled={at === 0} aria-label={at > 0 ? `Previous: ${steps[at - 1].label}` : 'Previous'}>
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              <path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </button>
+          <button type="button" className="carousel__btn carousel__btn--next" onClick={() => onGo(at + 1)} disabled={at === n - 1} aria-label={at < n - 1 ? `Next: ${steps[at + 1].label}` : 'Next'}>
+            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+              <path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

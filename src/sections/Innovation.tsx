@@ -97,7 +97,7 @@ const steps: Step[] = [
 export function Innovation() {
   return (
     <>
-      <Track id="innovation" title="Innovation" steps={steps} />
+      <Track id="innovation" title="Innovation" steps={steps} phoneGround="black" />
       <StageLabel anchor="axis-x">X</StageLabel>
       <StageLabel anchor="axis-y">Y</StageLabel>
       <StageLabel anchor="axis-z">Z, through the depth</StageLabel>

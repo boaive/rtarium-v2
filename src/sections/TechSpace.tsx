@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react'
-import { Chapter, Lines, type Step } from '../components/Chapter'
+import { Chapter, Lines, Rows, type Step } from '../components/Chapter'
+import { useIsCompact } from '../lib/motion'
 import { ReviewNote } from '../components/Media'
 import { StageLabel } from '../three/Stage'
 import { setShared, useStageValue } from '../three/stageStore'
@@ -154,6 +155,41 @@ function FiguresSheet({ dialog }: { dialog: RefObject<HTMLDialogElement | null> 
  */
 export function TechSpace() {
   const dialog = useRef<HTMLDialogElement>(null)
+  const compact = useIsCompact()
+
+  /*
+   * On a phone, a row as About's and Innovation's are, and only what a first read needs: the line, what the three
+   * are, the thickness to choose (the system in the figure is rebuilt in it), the data sheet, and the way to every
+   * figure as a quiet link.
+   */
+  const phone: Step[] = [
+    {
+      id: 'system',
+      label: 'System',
+      ground: 'yellow',
+      pose: 'stack',
+      render: (active) => (
+        <div className="copy system-m">
+          <Lines lines={['Three elements.', 'One system.']} />
+          <p className="lead rv" style={{ '--i': 2 } as CSSProperties}>
+            The mesh, its basalt yarn, and the concrete it reinforces.
+          </p>
+          <ThicknessSwitch active={active} />
+          <div className="system-m__cta rv" style={{ '--i': 5 } as CSSProperties}>
+            <a className="system-m__sheet" href={DATA_SHEET} download>
+              Data sheet
+              <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+                <path d="M10 3v12M5 10l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+            </a>
+            <button type="button" className="system-m__all" onClick={() => dialog.current?.showModal()}>
+              All figures
+            </button>
+          </div>
+        </div>
+      ),
+    },
+  ]
 
   const steps: Step[] = [
     {
@@ -197,7 +233,7 @@ export function TechSpace() {
 
   return (
     <>
-      <Chapter id="tech" title="Tech Space" steps={steps} className="chapter--tech" />
+      {compact ? <Rows id="tech" title="Tech Space" steps={phone} ground="yellow" /> : <Chapter id="tech" title="Tech Space" steps={steps} className="chapter--tech" />}
       <FiguresSheet dialog={dialog} />
       <StageLabel anchor="slab-top">Concrete</StageLabel>
       <StageLabel anchor="slab-mesh">RTARIUM mesh</StageLabel>

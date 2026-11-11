@@ -1,0 +1,465 @@
+/*
+ * The header on a phone or a tablet (up to 1200px), and the menu behind its button.
+ *
+ * The header: the brand on its black capsule, the menu button a capsule of the ground with an ink cell at its end.
+ * Reading down the page it draws in to its smallest, out of the reader's way without ever leaving: the capsule closes
+ * over the name to the emblem alone, the button to its round cell, with how far down the page the reader is run round
+ * it. Reading back up it opens out again.
+ *
+ * The menu: a sheet inset from the screen's edges over the dimmed page, wiped down from the header. The sections in
+ * ruled rows, numbered, each rising out of its own mask as its rule draws in; a section's pages fold out under it; the
+ * way to the team and the fine print in a ruled grid at the foot; the name, the width of the sheet, rising last.
+ */
+
+/* ink: the colour the header's type is set in on this ground; paper: the ground itself */
+.nav {
+  --ink: var(--black);
+  --paper: var(--nav-bg, var(--white));
+  --tuck: 0.62s;
+}
+.nav.on-black {
+  --ink: var(--yellow);
+}
+
+/* ---- the menu button: a capsule, its label rolling over, an ink cell at its end --------------------------------------- */
+
+.nav__menu {
+  position: relative;
+  gap: 12px;
+  height: 44px;
+  min-height: 44px;
+  margin-right: -4px;
+  padding: 0 0 0 18px;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 22%, transparent);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    padding var(--tuck) var(--ease-out),
+    gap var(--tuck) var(--ease-out),
+    background-color var(--d-mid) var(--ease-out),
+    box-shadow var(--d-mid) var(--ease-out),
+    color var(--d-mid) var(--ease-out);
+}
+.nav__menu-text {
+  display: block;
+  height: 1.25em;
+  max-width: 3.6em;
+  overflow: hidden;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  transition:
+    max-width var(--tuck) var(--ease-out),
+    opacity var(--d-fast) var(--ease-out);
+}
+.nav__menu-roll {
+  display: grid;
+  transition: transform 0.55s cubic-bezier(0.7, 0, 0.2, 1);
+}
+.nav__menu[aria-expanded='true'] .nav__menu-roll {
+  transform: translateY(-50%);
+}
+.nav__menu-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-round);
+  background: var(--ink);
+  color: var(--paper);
+  transition:
+    background-color var(--d-mid) var(--ease-out),
+    color var(--d-mid) var(--ease-out),
+    transform 0.3s var(--ease-out);
+}
+.nav__menu:active .nav__menu-cell {
+  transform: scale(0.92);
+}
+.nav__menu-icon {
+  display: grid;
+  gap: 5px;
+  width: 16px;
+}
+.nav__menu-icon i {
+  height: 1.5px;
+  transition: transform 0.55s cubic-bezier(0.7, 0, 0.2, 1);
+}
+.nav__menu-icon i:last-child {
+  width: 10px;
+  justify-self: end;
+  transition:
+    transform 0.55s cubic-bezier(0.7, 0, 0.2, 1),
+    width 0.55s cubic-bezier(0.7, 0, 0.2, 1);
+}
+.nav__menu[aria-expanded='true'] .nav__menu-icon i:first-child {
+  transform: translateY(3.25px) rotate(45deg);
+}
+.nav__menu[aria-expanded='true'] .nav__menu-icon i:last-child {
+  width: 16px;
+  transform: translateY(-3.25px) rotate(-45deg);
+}
+/* the reading ring round the cell, shown once the header has drawn in */
+.nav__ring {
+  position: absolute;
+  inset: -5px;
+  width: 54px;
+  height: 54px;
+  overflow: visible;
+  transform: rotate(-90deg) scale(0.86);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--d-mid) var(--ease-out),
+    transform var(--tuck) var(--ease-out);
+}
+.nav__ring circle {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--read, 0));
+}
+
+/* ---- drawing in, reading down -------------------------------------------------------------------------------------- */
+
+.brand__clip {
+  display: block;
+  /* wider than the logo at any size, so open it never cuts: it only closes, drawn in */
+  max-width: 12rem;
+  overflow: hidden;
+}
+/* the clip closes over the name; the logo keeps its size under it */
+.brand__clip .brand__rt {
+  max-width: none;
+}
+.nav__home,
+.brand__clip,
+.nav__menu {
+  flex: none;
+}
+/* a phone has room for the capsule whole and the button's cell: the label goes, the cell stays */
+@media (max-width: 419px) {
+  .nav__menu,
+  .nav.is-open .nav__menu {
+    gap: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .nav__menu-text {
+    display: none;
+  }
+}
+
+/* drawing in, on a phone only: a laptop's window keeps its header as it is */
+@media (max-width: 860px) {
+  .brand__clip,
+  .brand__by {
+    transition:
+      max-width var(--tuck) var(--ease-out),
+      opacity var(--d-mid) var(--ease-out),
+      padding var(--tuck) var(--ease-out),
+      border-color var(--d-mid) var(--ease-out);
+  }
+  .brand__by {
+    max-width: 9.5rem;
+    overflow: hidden;
+  }
+  .brand {
+    transition: gap var(--tuck) var(--ease-out);
+  }
+  .nav__home {
+    transition:
+      padding var(--tuck) var(--ease-out),
+      box-shadow var(--d-mid) var(--ease-out),
+      transform var(--d-mid) var(--ease-out);
+  }
+  /* the capsule to the emblem alone, a 44px round button */
+  .nav.is-tucked .brand__clip {
+    max-width: 12.5px;
+  }
+  .nav.is-tucked .brand__by {
+    max-width: 0;
+    padding-left: 0;
+    border-left-color: transparent;
+    opacity: 0;
+  }
+  .nav.is-tucked .brand {
+    gap: 0;
+  }
+  .nav.is-tucked .nav__home {
+    padding: 13.5px 15.75px;
+  }
+  /* the button to its cell, the label folded away and the plate gone */
+  .nav.is-tucked .nav__menu {
+    gap: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .nav.is-tucked .nav__menu-text {
+    max-width: 0;
+    opacity: 0;
+  }
+  .nav.is-tucked .nav__ring {
+    opacity: 1;
+    transform: rotate(-90deg);
+  }
+}
+@media (max-width: 1200px) {
+  /* over the open sheet the button is a thin cross alone */
+  .nav.is-open .nav__menu {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+/* ---- the dimmed page, and the sheet over it -------------------------------------------------------------------------- */
+
+/*
+ * Enerblock's menu in RTARIUM's colours, as the desktop's dropdown is set: a black sheet over the whole screen, the
+ * sections in plain warm-white rows parted by rules, a thin plus to fold a section's pages out, Contact the last
+ * row. Yellow is the accent only: the square that marks the section the reader is in.
+ */
+.menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: rgb(8 8 8 / 0.55);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.45s var(--ease-out),
+    visibility 0s linear 0.45s;
+}
+.nav.is-open .menu-scrim {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.5s var(--ease-out),
+    visibility 0s;
+}
+
+.menu {
+  --rule: rgb(242 240 233 / 0.22);
+  --rule-soft: rgb(242 240 233 / 0.1);
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--black);
+  color: var(--white);
+  clip-path: inset(0 0 100% 0);
+  visibility: hidden;
+  transition:
+    clip-path 0.5s cubic-bezier(0.7, 0, 0.3, 1) 0.05s,
+    visibility 0s linear 0.6s;
+}
+.menu.is-open {
+  clip-path: inset(0);
+  visibility: visible;
+  transition:
+    clip-path 0.7s cubic-bezier(0.76, 0, 0.24, 1),
+    visibility 0s;
+}
+.menu__inner {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: calc(var(--nav-h) + clamp(24px, 7svh, 64px));
+}
+.menu__list {
+  align-self: start;
+}
+
+/* a row: the section's name, plain and black, a rule under it the width of the sheet */
+.menu__item {
+  border-bottom: 1px solid var(--rule);
+  opacity: 0;
+  transition: opacity 0.2s var(--ease-out);
+}
+.menu.is-open .menu__item {
+  opacity: 1;
+  transition: opacity 0.5s var(--ease-out) calc(0.3s + var(--i) * 0.05s);
+}
+.menu__item:last-child {
+  border-bottom: 0;
+}
+.menu__row {
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(16px, 4.4vw, 32px);
+}
+.menu__link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 60px;
+  padding: 12px 0;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.menu__mask {
+  display: block;
+  min-width: 0;
+  overflow: clip;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+.menu__label {
+  display: block;
+  font-size: clamp(1.45rem, 6.6vw, 1.85rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  transform: translateY(110%);
+  transition: transform 0.25s var(--ease-in-out);
+}
+.menu.is-open .menu__label {
+  transform: none;
+  transition: transform 0.8s var(--ease-out) calc(0.3s + var(--i) * 0.05s);
+}
+/* the section the reader is in: a square of yellow before its name */
+.menu__item.is-here .menu__link::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  background: var(--yellow);
+}
+.menu__link:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: -2px;
+}
+
+/* a thin plus, turning to a minus as the section's pages fold out */
+.menu__toggle {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--white);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.menu__toggle i {
+  position: absolute;
+  width: 22px;
+  height: 1.5px;
+  background: currentColor;
+  transition: transform 0.45s var(--ease-out);
+}
+.menu__toggle i:last-child {
+  transform: rotate(90deg);
+}
+.menu__toggle[aria-expanded='true'] i:last-child {
+  transform: rotate(0deg);
+}
+.menu__toggle:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: -4px;
+}
+
+/* the pages, folded out under their section, on a softer rule each */
+.menu__drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.5s var(--ease-out);
+}
+.menu__item.is-shown .menu__drawer {
+  grid-template-rows: 1fr;
+}
+.menu__sub {
+  min-height: 0;
+  overflow: hidden;
+}
+.menu__sub li {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.2s var(--ease-out),
+    transform 0.2s var(--ease-out);
+}
+.menu__item.is-shown .menu__sub li {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.45s var(--ease-out) calc(0.08s + var(--j) * 0.05s),
+    transform 0.6s var(--ease-out) calc(0.08s + var(--j) * 0.05s);
+}
+.menu__sub a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  min-height: 46px;
+  padding: 0 clamp(16px, 4.4vw, 32px);
+  border-top: 1px solid var(--rule-soft);
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgb(242 240 233 / 0.72);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.menu__sub a svg {
+  flex: none;
+  transition: transform var(--d-mid) var(--ease-out);
+}
+.menu__sub a[aria-current],
+.menu__sub a:hover,
+.menu__sub a:active {
+  color: var(--yellow);
+}
+.menu__sub a[aria-current] {
+  font-weight: 600;
+}
+.menu__sub a:hover svg,
+.menu__sub a:focus-visible svg,
+.menu__sub a:active svg {
+  transform: translateX(4px);
+}
+
+
+
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .menu.is-open,
+  .menu *,
+  .menu.is-open *,
+  .menu-scrim {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+}
+
+/* the open menu's button, at every width it shows: no plate, no cell, a thin cross */
+.nav.is-open .nav__menu-cell {
+  background: transparent;
+  color: var(--white);
+}
+.nav.is-open .nav__menu-icon {
+  width: 22px;
+}
+.nav.is-open .nav__menu-icon i {
+  height: 1.5px;
+}
+.nav.is-open .nav__menu-icon i:first-child {
+  transform: translateY(3.25px) rotate(45deg);
+}
+.nav.is-open .nav__menu-icon i:last-child {
+  width: 22px;
+  transform: translateY(-3.25px) rotate(-45deg);
+}
