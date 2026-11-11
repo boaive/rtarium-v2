@@ -33,6 +33,13 @@
   .hero__sub {
     pointer-events: auto;
   }
+  /* as the tour starts the headline drifts and fades into the mesh without the blur: a blur that changes every frame
+     repaints the type every frame, over a canvas that is drawing too, and a phone stutters under it */
+  .hero__title .lines__line,
+  .hero__sub,
+  .hero__scroll {
+    filter: none;
+  }
   .hero__title .lines__line:first-child {
     font-size: clamp(1.45rem, 6.6vw, 2.2rem);
   }

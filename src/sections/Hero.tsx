@@ -54,6 +54,11 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
     const el = section.current
     if (!el) return
     const root = document.documentElement
+    // a phone: --wash goes only on the two things that read it (the ground's wash, the tour's words), never on the
+    // page's root, where each change would make the browser restyle the whole page, every frame of the tour
+    const washOn = phone ? ([document.querySelector<HTMLElement>('.ground'), el].filter(Boolean) as HTMLElement[]) : [root]
+    let washText = ''
+    let pText = ''
     let raf = 0
     let last = performance.now()
     let p = -1
@@ -77,8 +82,11 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
       stage.tour = p
       stage.tourDive = dive
       stage.wash = tourWash(p)
-      el.style.setProperty('--p', p.toFixed(4))
-      root.style.setProperty('--wash', stage.wash.toFixed(4))
+      // (written only when they change: an unchanged write still costs the browser a restyle)
+      const pNext = p.toFixed(phone ? 3 : 4)
+      if (pNext !== pText) el.style.setProperty('--p', (pText = pNext))
+      const washNext = stage.wash.toFixed(phone ? 3 : 4)
+      if (washNext !== washText) for (const w of washOn) w.style.setProperty('--wash', (washText = washNext))
       // the header and the labels follow the ground: yellow, then the white of the light
       if (r.top <= vh * 0.5 && r.bottom > vh * 0.5) setShared({ chapter: 'hero', step: 0, ground: stage.wash > 0.5 ? 'light' : 'yellow' })
       const i = Math.min(screens - 1, Math.max(0, Math.round(at)))
@@ -104,7 +112,7 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
       window.removeEventListener('scroll', kick)
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
-      root.style.removeProperty('--wash')
+      for (const w of washOn) w.style.removeProperty('--wash')
     }
   }, [section, phone])
 }
@@ -247,12 +255,35 @@ function useTourSwipes(section: RefObject<HTMLElement | null>, phone: boolean) {
         if (Math.abs(near - y) > 2) go(near)
       }, 160)
     }
+    /*
+     * The listeners that can hold the page still (a touchmove or wheel that is not passive) are only there while the
+     * page is in the tour or just past its end: anywhere else the browser scrolls the page on its own, at once, never
+     * waiting for a script (with the 3D drawing, that wait is what made the rest of the page stutter under the finger).
+     */
+    let armed = false
+    const arm = () => {
+      const run = runs()[0]
+      const want = window.scrollY < run[run.length - 1] + vh() * 0.5
+      if (want === armed) return
+      armed = want
+      if (want) {
+        window.addEventListener('touchmove', move, { passive: false })
+        window.addEventListener('wheel', wheel, { capture: true, passive: false })
+      } else {
+        window.removeEventListener('touchmove', move)
+        window.removeEventListener('wheel', wheel, { capture: true })
+      }
+    }
+    const onScroll = () => {
+      arm()
+      rest()
+    }
     window.addEventListener('touchstart', start, { capture: true, passive: true })
-    window.addEventListener('touchmove', move, { passive: false })
     window.addEventListener('touchend', end_, { passive: true })
     window.addEventListener('touchcancel', end_, { passive: true })
-    window.addEventListener('scroll', rest, { passive: true })
-    window.addEventListener('wheel', wheel, { capture: true, passive: false })
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', arm)
+    arm()
     return () => {
       clearTimeout(settle)
       clearTimeout(guard)
@@ -261,7 +292,8 @@ function useTourSwipes(section: RefObject<HTMLElement | null>, phone: boolean) {
       window.removeEventListener('touchmove', move)
       window.removeEventListener('touchend', end_)
       window.removeEventListener('touchcancel', end_)
-      window.removeEventListener('scroll', rest)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', arm)
     }
   }, [section, phone])
 }

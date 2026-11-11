@@ -775,6 +775,19 @@ export function StageScene({ compact, reduced }: Props) {
         press.press(0.5, 0.5, 0.009, (0.05 / SHEET) * press.cols)
       }
 
+      // ---- a phone: the chunks wholly inside the fog are not drawn -------------------------------
+      // past the fog's far end the mesh is the ground's own colour, so they cannot be seen; between the faces most of the
+      // sheet is that far, and in the white all of it is (measured as the fog is, by depth in front of the camera)
+      if (compact && field.current) {
+        const fogFar = v.fog[1]
+        for (const m of field.current.children) {
+          const sphere = (m as THREE.InstancedMesh).boundingSphere
+          if (!m.visible || !sphere) continue
+          vA.copy(sphere.center).applyMatrix4(m.matrixWorld).applyMatrix4(camera.matrixWorldInverse)
+          if (-vA.z - sphere.radius * f.stretch > fogFar) m.visible = false
+        }
+      }
+
       // ---- draw this view inside its own panel ------------------------------------------------
       // an edge inside the screen meets the next panel: it is pulled in to whole canvas pixels and one more, or the
       // canvas, drawn at a density other than the screen's (fractional display scaling, or stepped down to keep up),
@@ -906,7 +919,10 @@ export function StageScene({ compact, reduced }: Props) {
           depthMaterial={yarn.depthMaterial}
           chunk={6}
           lodDistance={compact ? 0.16 : 0.3}
-          farDistance={0.9}
+          // a phone: the cells farther off (most of the sheet once it is built out, and the cavity beyond the first few
+          // rows) take the light cell; on a phone's screen a cell that far is a few pixels across, and the light cell has
+          // a third of the triangles (a sheet of 1600 cells goes from over a million to about half that)
+          farDistance={compact ? 0.5 : 0.9}
           shadows={!compact}
           reach={0.04}
           autoLod={false}

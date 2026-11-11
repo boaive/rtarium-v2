@@ -134,9 +134,10 @@ export function Stage() {
   const [watch, setWatch] = useState(false)
   useEffect(() => {
     if (!ready) return
-    const id = window.setTimeout(() => setWatch(true), 4000)
+    // (a phone starts watching sooner: one that cannot keep up steps its density down before the visitor has swiped far)
+    const id = window.setTimeout(() => setWatch(true), compact ? 2600 : 4000)
     return () => window.clearTimeout(id)
-  }, [ready])
+  }, [ready, compact])
   const top = Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
   const dpr = Math.round((1 + (top - 1) * quality) * 100) / 100
 
