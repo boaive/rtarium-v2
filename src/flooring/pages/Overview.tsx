@@ -11,7 +11,7 @@ import { usePageSteps } from '../../facade/pageSteps'
 import { Words } from '../../facade/Story'
 import { Stage3D, MovingKeyLight } from '../../facade/three/Stage3D'
 import { createBus, type Shot } from '../../facade/three/kit'
-import { ScrubRig, mixShot } from '../../facade/three/ScrubRig'
+import { HERO_TURN, ScrubRig, mixShot } from '../../facade/three/ScrubRig'
 import { FollowScroll, useScrollProgress } from '../../facade/progress'
 import { FLOORING } from '../content'
 import { FloorHero } from '../three/FloorHero'
@@ -31,13 +31,13 @@ import { Features } from '../Features'
  *   the ways       the three applications side by side, their floors rising in turn
  */
 
-/** low on the right, looking down onto the floor, as the Façade overview's panel stands */
+/** on the right, looking down onto the floor, in the place and at the size the Façade overview's panel stands */
 function heroShots(compact: boolean): [Shot, Shot] {
   const k = compact ? 1.7 : 1
   const f = (a: [number, number], b: [number, number]): [number, number] => (compact ? b : a)
   return [
-    { target: [0.02, -0.02, 0], dist: (compact ? 2.6 : 1.74) * k, azim: 36, elev: 26, frame: f([0.7, 0.52], [0.5, 0.48]) },
-    { target: [0.02, -0.02, 0], dist: (compact ? 2.2 : 1.48) * k, azim: 52, elev: 38, frame: f([0.68, 0.38], [0.5, 0.4]) },
+    { target: [0.02, -0.02, 0], dist: (compact ? 2.6 : 2.58) * k, azim: 36, elev: 26, frame: f([0.664, 0.526], [0.5, 0.48]) },
+    { target: [0.02, -0.02, 0], dist: (compact ? 2.2 : 2.19) * k, azim: 52, elev: 38, frame: f([0.644, 0.386], [0.5, 0.4]) },
   ]
 }
 
@@ -119,7 +119,7 @@ export default function Overview() {
       <section ref={hero} className="fco-hero on-yellow" aria-labelledby="ffo-title">
         <div className="fco-hero__stage">
           <Stage3D shadows keyLight={false} fallback={<img className="fco-still" src="/img/site-strip.webp" alt="" />}>
-            <ScrubRig progress={heroP} shotAt={heroShot} sway={3} live={heroLive} aspect={compact ? 0.56 : 1.6} />
+            <ScrubRig progress={heroP} shotAt={heroShot} sway={3} live={heroLive} aspect={compact ? 0.56 : 1.6} turn={HERO_TURN} />
             <MovingKeyLight focus={[0, 0, 0]} reach={0.9} />
             <FloorHero bus={heroBus} play />
             <FollowScroll progress={heroP} />

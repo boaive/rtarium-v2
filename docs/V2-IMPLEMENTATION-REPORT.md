@@ -451,3 +451,42 @@ said static).
 motion, no console errors on any of the ten routes, `tsc` and the production build. The phone layout was left out of this
 round on the owner's word: a first look found the larger titles touching the 3D on the Unitized, Rainscreen, Data & AI
 Centres and Wall Panels heroes, the models were moved down on phones for that, and the result has not been seen.
+
+## Owner's round after V3 (11 November 2026): the openings placed alike, the Wall Panels bursts
+
+**Every opening but Home's** (the Façade and Flooring overviews, their six system and application pages, Wall Panels)
+puts its model where the owner's reference image (an AI render of the Façade opening) puts its panel: the middle of the
+model's box 0.657 of the way across the screen and 0.549 down, its height 0.477 of the screen's; a long, low model
+(Stud Frame's cornice, Flooring's sample, Wall Panels' panel) no wider than 0.34 of the screen; the three application
+floors, with their racks and tools drawn on them, a little taller, 0.52 (owner: "it has height", so a little larger than
+the reference, but smaller than before). Only the desktop shots moved (distance and the point of the screen the target
+is set on); poses, angles and the phone's shots are unchanged. Measured in the page by projecting each model, checked
+within 0.001 at 1270 × 713, 1440 × 900 and 1920 × 1080. Wall Panels' camera, going in on the far end, keeps the panel in
+the same place and height.
+
+**The models turn slowly:** 14° either side and back, once in 26 s, eased in as the page opens (`HERO_TURN`,
+`ScrubRig`'s `turn`); its clock runs only while the opening is seen, so it never jumps when the visitor comes back. A turn
+back and forth rather than all the way round: a full turn would show the panels' backs and take the RTARIUM labels off
+the parts they name. Wall Panels' opening does not turn (owner: it has its own animation).
+
+**Wall Panels' bursts** (`Panels.tsx`), both panels: each section comes in with the panel whole, then the panel opens on
+its own clock, slowly (the solid panel 2.4 s; the SIP panel 4.6 s, first dividing, taking its core and joining), never
+with the page's glide. Two stops: opened, then, one scroll on, closed up whole; the next scroll goes on; back up, the
+same the other way (whole, opened, the section before). No part-by-part scrolling and no arrows: a part picked on the
+bar, or by its number on the model, is seen alone, the rest faded back, and its words come up on the left; picked again,
+every part is seen. The numbers stand in a row over the layers (each layer's at its top edge) and a row under them (what
+is cast in a layer), in order, each over or under its point, with fine straight leaders, never on a layer; one picked
+shows its number alone. The three figure boxes are gone (every figure is in the sheet) and the button reads "View all
+technical details"; with them went their styles, which had been boxing the sheet's own dimension rows.
+
+**The bursts' frame rate (same day):** the RTARIUM mesh in the burst was the homepage's yarn model, 45,000 cells a sheet
+(12 million triangles a frame, 25 million in the SIP panel), and it stuttered as the panels opened. It is now drawn from one
+period of the same model, drawn into a texture as it is seen from the camera, lit by the scene, and taken four samples a
+pixel as the canvas's multisampling took the model's (`RtariumSheet` in `walls/three/Panel.tsx`): measured against the model
+in the same view, the same colour and grain within a few per cent, and 60 frames a second. With it: the scenes' reflections
+are no longer made over each time a section draws itself again (`Lights` memoised), what is hidden at first is compiled with
+the rest (`Warm`), the burst's canvas is never drawn at fewer pixels while it moves (`Stage3D` `sharp`), and the page no longer
+leaves a burst until its panel has closed (or, going back, opened): `data-busy` and the steps' `hold`.
+A part picked while the burst stood still was not drawn until something else moved (the canvas draws only when asked):
+it now asks, so the part lights and its number comes up at once, every time. The black statement screens (`Say`) hold the
+page, the same way, until their words have arrived (0.2 s, then 95 ms a word, 0.62 s each).

@@ -7,7 +7,7 @@ import { smooth } from '../../facade/progress'
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { Lines } from '../../flooring/data/three/dc'
 import { useDrawing, useInkResolution } from '../../flooring/data/three/draw'
-import { Rtarium } from './Panel'
+import { RtariumSheet } from './Panel'
 import { disposeWallKit, faceEdge, fade, MM, slab, slabs, useWallTextures, wallKit } from './kit'
 import {
   CLIPS,
@@ -418,7 +418,9 @@ export function PanelPiece({
   const rodsAcross = (z: number) =>
     across.map((y) => <mesh key={`c${y}`} geometry={g.rod} material={m.grp} position={[0, y, z]} rotation={[0, 0, -Math.PI / 2]} scale={[1, w + J * 0.6, 1]} />)
   const id = (k: string) => (bus ? <Anchor bus={bus} id={k} position={[0, 0, 0]} /> : null)
-  const fA = ferrules[ferrules.length - 1]
+  // (the ferrule numbered: the lowest on the far line, where the opened layers show it; its number stands under the panel)
+  const farLine = Math.max(...ferrules.map(([x]) => x))
+  const fA = ferrules.find(([x]) => x === farLine)
 
   return (
     <group>
@@ -442,7 +444,7 @@ export function PanelPiece({
           <group ref={r.mesh30} position={[w / 2, (L + J) / 2, 0]} visible={false}>
             {meshes && (
               <Suspense fallback={null}>
-                <Rtarium t={15} nx={nx} ny={ny} onMaterial={onYarnA} />
+                <RtariumSheet t={15} nx={nx} ny={ny} onMaterial={onYarnA} />
               </Suspense>
             )}
           </group>
@@ -458,7 +460,7 @@ export function PanelPiece({
           {bus && (
             <>
               <group position={[w * 0.5, L, h]}>{id('pp-zone')}</group>
-              <group position={[along[3], L * 0.3, 0]}>{id('pp-grp')}</group>
+              <group position={[along[3], L * 0.5, 0]}>{id('pp-grp')}</group>
               <group position={[w + J, L * 0.62, 0]}>{id('pp-tongue')}</group>
             </>
           )}
@@ -531,7 +533,8 @@ export function PanelPiece({
                 {bus && (
                   <>
                     <group position={[w * 0.55, L, 0]}>{id('pp-core')}</group>
-                    <group position={[clips[clips.length - 1]?.[0] ?? 0.5, clips[clips.length - 1]?.[1] ?? 1.1, 0]}>{id('pp-clip')}</group>
+                    {/* (a clip low on the far line: its number stands under the panel, with what else is cast in) */}
+                    <group position={[rodLines[1] ?? 0.5, clipLines[1] ?? 0.9, 0]}>{id('pp-clip')}</group>
                     <group position={[T100.recess, L * 0.35, 0]}>{id('pp-recess')}</group>
                   </>
                 )}
@@ -548,7 +551,7 @@ export function PanelPiece({
                     <group ref={(el) => void (r.meshes100.current[l.z > 0 ? 1 : 0] = el)} position={[w / 2, L / 2, zm]} visible={false}>
                       {meshes && (
                         <Suspense fallback={null}>
-                          <Rtarium t={6} nx={nx} ny={Math.round(L / 0.012)} onMaterial={l.z > 0 ? onYarnA : onYarnB} />
+                          <RtariumSheet t={6} nx={nx} ny={Math.round(L / 0.012)} onMaterial={l.z > 0 ? onYarnA : onYarnB} />
                         </Suspense>
                       )}
                     </group>
@@ -594,7 +597,7 @@ export function PanelPiece({
                   </>
                 )}
                 {bus && l.key === 'o7' && <group position={[w * 0.75, L, k3]}>{id('pp-outer')}</group>}
-                {bus && l.key === 'i6' && <group position={[rodLines[1], L * 0.18, ROD_LINE]}>{id('pp-rod')}</group>}
+                {bus && l.key === 'i6' && <group position={[rodLines[1], L * 0.45, ROD_LINE]}>{id('pp-rod')}</group>}
                 {bus && l.key === 'i7' && <group position={[w * 0.3, L, k3]}>{id('pp-inner7')}</group>}
                 {bus && l.key === 'i6' && <group position={[w * 0.5, L, zm]}>{id('pp-mesh6i')}</group>}
                 {bus && l.key === 'i2' && <group position={[w * 0.5, L, (k0 + k1) / 2]}>{id('pp-cover2')}</group>}

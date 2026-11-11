@@ -7,6 +7,9 @@ import type { Progress } from '../progress'
 
 const DEG = Math.PI / 180
 
+/** every page's opening model turns slowly, the same way on every page: this far either side, once in this long */
+export const HERO_TURN = { deg: 14, period: 26 }
+
 /**
  * A camera that follows the scroll: the shot is a function of how far the section has been
  * scrolled, eased a little so a wheel's steps arrive as one glide. Same orbit as `Rig` (about a
@@ -19,6 +22,7 @@ export function ScrubRig({
   sway = 0,
   live,
   aspect,
+  turn,
 }: {
   progress: Progress
   shotAt: (p: number) => Shot
@@ -26,12 +30,20 @@ export function ScrubRig({
   live?: { current: boolean }
   /** the canvas shape (width / height) the shots were framed for: a narrower one pulls back so the model keeps its share of the width */
   aspect?: number
+  /**
+   * a slow turn of the model, in time while `live`, in place of the sway's side to side: the view goes `deg` either side
+   * of the shot's own and back, once in `period` seconds, easing in as it starts. Its clock runs only while it is seen,
+   * so the model is where it was left when the visitor comes back to it.
+   */
+  turn?: { deg: number; period: number }
 }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
   const reduced = useMemo(() => prefersReducedMotion(), [])
   const cur = useRef<Record<string, number> | null>(null)
+  /** the turn's own clock (s), run only while the turn plays */
+  const clock = useRef(0)
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 1 / 20)
@@ -52,10 +64,18 @@ export function ScrubRig({
     const c = cur.current
     let moving = false
     for (const k of Object.keys(to) as (keyof typeof to)[]) if (approach(c, k, to[k], 7, dt, 1e-4)) moving = true
-    const idle = !reduced && sway > 0 && (live?.current ?? true)
+    const idle = !reduced && (sway > 0 || Boolean(turn)) && (live?.current ?? true)
     const t = performance.now() / 1000
     const el = (c.elev + (idle ? sway * 0.25 * Math.sin((t * Math.PI * 2) / 17 + 0.8) : 0)) * DEG
-    const az = (c.azim + (idle ? sway * Math.sin((t * Math.PI * 2) / 12) : 0)) * DEG
+    let side = 0
+    if (turn && !reduced) {
+      if (idle) clock.current += dt
+      const s = clock.current
+      // (eased in over its first seconds, so the model starts to turn from rest)
+      const ease = Math.min(1, s / 5)
+      side = turn.deg * ease * ease * (3 - 2 * ease) * Math.sin((s * Math.PI * 2) / turn.period)
+    } else if (idle) side = sway * Math.sin((t * Math.PI * 2) / 12)
+    const az = (c.azim + side) * DEG
     camera.position.set(c.tx + c.dist * Math.cos(el) * Math.sin(az), c.ty + c.dist * Math.sin(el), c.tz + c.dist * Math.cos(el) * Math.cos(az))
     camera.lookAt(c.tx, c.ty, c.tz)
     if (camera.fov !== c.fov) camera.fov = c.fov

@@ -163,9 +163,20 @@ export function usePageSteps(free: readonly string[]) {
     window.addEventListener('scroll', watch, { passive: true })
     document.addEventListener('click', pick, true)
     const free = (dir: number) => (dir < 0 ? [] : sections().map(({ a, b }) => [a, b] as [number, number]))
+    // a section still playing out its step (`data-busy`: Wall Panels' bursts, opening or closing up) is not left until it
+    // has: the page may step within it, never out of it
+    const hold = (from: number, to: number) => {
+      for (const el of document.querySelectorAll<HTMLElement>('section[data-busy]')) {
+        const a = el.getBoundingClientRect().top + window.scrollY
+        const b = a + Math.max(0, el.offsetHeight - window.innerHeight)
+        if (from >= a - 4 && from <= b + 4 && (to < a - 4 || to > b + 4)) return true
+      }
+      return false
+    }
     const stop = stepScreens(stopsOf(false), {
       free,
       leap,
+      hold,
       time: (screens) => Math.min(1.9, STORY_STEP + 0.35 * Math.max(0, screens - 1)),
       back: stopsOf(true),
     })

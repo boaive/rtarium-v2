@@ -88,6 +88,10 @@
   color: var(--bar-ground);
   clip-path: inset(0 calc((1 - var(--f)) * 100%) 0 0);
 }
+/* a bar to pick from (`pick`): the cell picked fills, as a step's does while it runs, and empties when let go */
+.fu-bar--pick .fu-bar__face--fill {
+  transition: clip-path var(--d-mid) var(--ease-out);
+}
 .fu-bar__btn:focus-visible,
 .fu-bar__skip:focus-visible {
   outline: 2px solid var(--bar-ink);

@@ -169,6 +169,11 @@ export function stepScreens(
      * looks the same all the way through): the glide is only the rest of the way. None: it starts where the page is
      */
     leap?: (from: number, to: number) => number | null
+    /**
+     * Whether a step from `from` to `to` must wait: a section still playing out its last step, which the page may not
+     * leave until it has (Wall Panels' bursts, closing up). The scroll that asked is let go; the next one goes.
+     */
+    hold?: (from: number, to: number) => boolean
   } = {},
 ) {
   const glide = lenis
@@ -265,7 +270,7 @@ export function stepScreens(
     const stops = dir < 0 && opts.back ? opts.back() : stopsOf()
     const y = going()
     const to = dir > 0 ? stops.find((s) => s > y + 4) : [...stops].reverse().find((s) => s < y - 4)
-    if (to !== undefined) moveTo(to)
+    if (to !== undefined && !opts.hold?.(y, to)) moveTo(to)
   }
 
   /** the free stretch (a section that plays with the scroll) the page is in, going that way, if any */
