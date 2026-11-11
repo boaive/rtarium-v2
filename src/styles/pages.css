@@ -419,6 +419,11 @@
   background: var(--yellow);
   outline: 1px solid var(--black);
 }
+/* Cloudflare Turnstile, on the last step: the box keeps its height while it loads, so nothing jumps */
+.ct-verify {
+  min-height: 65px;
+  margin-top: clamp(16px, 2.6vh, 24px);
+}
 .ct-trap {
   position: absolute;
   left: -9999px;
