@@ -178,7 +178,7 @@ export function Stage({
     // of its own, as the slab to slab's bar plays to its step; `move`: the page goes straight there first
     let seeking = false
     let seekRaf = 0
-    const seek = (to: number, at?: number) => {
+    const seek = (to: number, at?: number, quick = false) => {
       cancelAnimationFrame(seekRaf)
       // (a step of the bar plays in full, from its own start: `at`)
       const from = at ?? (p < 0 ? to : p)
@@ -187,12 +187,13 @@ export function Stage({
         apply()
         return
       }
-      const time = Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from)) * 1000
+      // (quick: the last of a step the scroll has all but played, finished in about the time a scroll settles)
+      const time = (quick ? Math.min(0.6, 0.25 + 1.5 * Math.abs(to - from)) : Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from))) * 1000
       const start = performance.now()
       seeking = true
       const frame = (at: number) => {
         const u = Math.min(1, Math.max(0, (at - start) / time))
-        p = from + (to - from) * (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
+        p = from + (to - from) * (quick ? 1 - Math.pow(1 - u, 3) : u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
         apply()
         if (u < 1) seekRaf = requestAnimationFrame(frame)
         else {
@@ -206,7 +207,9 @@ export function Stage({
       const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
       const s = START[k] + stretch[k] * (k === N - 1 ? 0.9 : 0.76)
       if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
-      seek(stepAt(s), k)
+      // (without `move`, the stepper is saying the scroll has played it to its end: it is eased on from where it stands,
+      // never played again from its start)
+      seek(stepAt(s), move === undefined ? undefined : k, move === undefined)
     }
     const kick = () => {
       if (!raf) {

@@ -162,8 +162,9 @@ export function CastScene({ progress, live }: { progress: Progress; live: { curr
     setOpacity([e.mats.ferrule, e.mats.bore], p > CASTING.back[1] ? 1 : at(p, 'stitch', 0.75, 1))
 
     // 1. the mould set down; 5. taken away as the element comes out
-    setOpacity([m.mould], at(p, 'mould', 0, 0.6) * (1 - at(p, 'demould')))
-    if (mould.current) mould.current.position.y = 0.12 * (1 - at(p, 'mould', 0, 0.8)) - 0.15 * at(p, 'demould')
+    // (the mould there from the first moment, settling the last of the way into place: never an empty screen first)
+    setOpacity([m.mould], 1 - at(p, 'demould'))
+    if (mould.current) mould.current.position.y = 0.025 * (1 - at(p, 'mould', 0, 0.5)) - 0.15 * at(p, 'demould')
 
     if (live.current && !reduced) invalidate()
   }, -2)

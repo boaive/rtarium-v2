@@ -11,8 +11,137 @@
     />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="preload" as="fetch" href="/models/rtarium-cell-t10.glb" crossorigin="anonymous" />
+    <link rel="preload" as="image" href="/brand/rtarium-emblem.png" />
+    <!--
+      The opening, shown from the first paint, before the site's script has run (src/opener.ts plays it): black, the
+      RTARIUM emblem in the middle filling with yellow as the page, its fonts and its 3D load; then the emblem becomes a
+      window onto the page, and the black parts down its middle as two doors, left and right, each with half the emblem
+      cut from its edge, the window opening wide as they go. If the script never runs, it gives way by itself.
+    -->
+    <style>
+      @property --em {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 96px;
+      }
+      html.is-opening,
+      html.is-opening body {
+        overflow: hidden;
+      }
+      .opener {
+        --em: clamp(72px, 11vmin, 128px);
+        --p: 0;
+        --ease: cubic-bezier(0.53, 0, 0, 1);
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        animation: opener-bail 0.6s 12s forwards;
+        transition: --em 1.25s var(--ease);
+      }
+      @keyframes opener-bail {
+        to {
+          visibility: hidden;
+          opacity: 0;
+        }
+      }
+      .opener__door {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: calc(50% + 1px);
+        background: #080808;
+        transition: transform 1.25s var(--ease);
+        will-change: transform;
+      }
+      .opener__door--l {
+        left: 0;
+      }
+      .opener__door--r {
+        right: 0;
+      }
+      /* the emblem: faint, and filling with yellow from its foot as what the page needs comes in */
+      .opener__mark {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: var(--em);
+        height: var(--em);
+        transform: translate(-50%, -50%);
+        transition: opacity 0.3s ease;
+      }
+      .opener__mark::before,
+      .opener__fill {
+        content: '';
+        position: absolute;
+        inset: 0;
+        -webkit-mask: url(/brand/rtarium-emblem.png) center / contain no-repeat;
+        mask: url(/brand/rtarium-emblem.png) center / contain no-repeat;
+      }
+      .opener__mark::before {
+        background: rgb(253 208 1 / 0.16);
+      }
+      .opener__fill {
+        background: #fdd001;
+        clip-path: inset(calc((1 - var(--p)) * 100%) 0 0 0);
+      }
+      /* the emblem a window: each door with its half cut from the edge where they meet */
+      .opener.is-cut .opener__mark {
+        opacity: 0;
+      }
+      .opener.is-cut .opener__door {
+        -webkit-mask-image: url(/brand/rtarium-emblem.png), linear-gradient(#000 0 0);
+        mask-image: url(/brand/rtarium-emblem.png), linear-gradient(#000 0 0);
+        -webkit-mask-size: var(--em) var(--em), 100% 100%;
+        mask-size: var(--em) var(--em), 100% 100%;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+      }
+      /* (the emblem's middle on the edge where the doors meet, half of it on each door) */
+      .opener.is-cut .opener__door--l {
+        -webkit-mask-position: right calc(var(--em) / -2 + 1px) top 50%, 0 0;
+        mask-position: right calc(var(--em) / -2 + 1px) top 50%, 0 0;
+      }
+      .opener.is-cut .opener__door--r {
+        -webkit-mask-position: left calc(var(--em) / -2 + 1px) top 50%, 0 0;
+        mask-position: left calc(var(--em) / -2 + 1px) top 50%, 0 0;
+      }
+      /* open: the doors part, left and right, and the window in them opens wide as they go */
+      .opener.is-open {
+        --em: 150vmax;
+        pointer-events: none;
+      }
+      .opener.is-open .opener__door--l {
+        transform: translateX(-101%);
+      }
+      .opener.is-open .opener__door--r {
+        transform: translateX(101%);
+      }
+      .opener.is-fade {
+        opacity: 0;
+        transition: opacity 0.45s ease;
+      }
+    </style>
+    <!-- the opening plays once a visit: on the site's first page, not on a reload or the pages after it -->
+    <script>
+      try {
+        if (sessionStorage.getItem('rtarium:opened')) document.documentElement.classList.add('is-opened')
+      } catch (e) {}
+    </script>
+    <style>
+      html.is-opened .opener {
+        display: none;
+      }
+    </style>
+    <noscript><style>.opener { display: none; }</style></noscript>
   </head>
   <body>
+    <div id="opener" class="opener" aria-hidden="true">
+      <div class="opener__door opener__door--l"></div>
+      <div class="opener__door opener__door--r"></div>
+      <div class="opener__mark"><i class="opener__fill"></i></div>
+    </div>
     <div id="root"></div>
     <noscript>
       <div style="padding: 48px; font-family: sans-serif; color: #f2f0e9; background: #080808">

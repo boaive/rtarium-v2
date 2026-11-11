@@ -70,13 +70,15 @@ const LABELS: LabelSpec[] = [
   { id: 'thick', anchor: 'a-thick', text: 'Single thickness, 20 mm', dx: -56, dy: -40, wide: true },
 ]
 
-/** screens of scroll for each answer: the last has the panel to grow and cast */
-const STRETCH = [1.3, 1.3, 1.3, 1.3, 2.2]
+/** screens of scroll for each answer: the last has the panel to grow and cast (done by 0.78 of it: no dead scroll after) */
+const STRETCH = [1.3, 1.3, 1.3, 1.3, 1.8]
+/** where the last answer has played out, as a share of its stretch: the panel at its 6 m, cast */
+const LAST_AT = 0.86
 const RUN = STRETCH.reduce((a, b) => a + b, 0)
 const START = STRETCH.map((_, k) => STRETCH.slice(0, k).reduce((a, b) => a + b, 0))
 const N = ANSWERS.length
 /** where the last answer has played out (the panel at its 6 m), as a point of the run: there the section is done */
-const DONE = (START[N - 1] + STRETCH[N - 1] * 0.9) / RUN
+const DONE = (START[N - 1] + STRETCH[N - 1] * LAST_AT) / RUN
 
 /** the run, in screens scrolled into the pin, as answers: answer k over k..k+1 */
 function answerAt(s: number) {
@@ -98,7 +100,7 @@ function wordsAt(k: number, t: number) {
 export function goToAnswer(k: number) {
   const el = document.getElementById('answers')
   if (!el) return
-  const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.76)
+  const s = START[k] + STRETCH[k] * (k === N - 1 ? LAST_AT : 0.76)
   scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight)
 }
 
@@ -167,7 +169,7 @@ export function Answers() {
         const c = cells.current[k]
         if (c) {
           // (full where its answer has played out, as it holds: the last at its 6 m)
-          c.style.setProperty('--f', Math.min(1, Math.max(0, f / (k === N - 1 ? 0.9 : 0.76))).toFixed(4))
+          c.style.setProperty('--f', Math.min(1, Math.max(0, f / (k === N - 1 ? 0.8 : 0.76))).toFixed(4))
           c.style.setProperty('--c', (k < N - 1 ? smooth(0.86, 1, f) : 0).toFixed(4))
         }
       })
@@ -211,7 +213,7 @@ export function Answers() {
     // there first, so the scroll carries on from it
     let seeking = false
     let seekRaf = 0
-    const seek = (to: number, at?: number) => {
+    const seek = (to: number, at?: number, quick = false) => {
       cancelAnimationFrame(seekRaf)
       // (a step of the bar plays in full, from its own start: `at`)
       const from = at ?? (p < 0 ? to : p)
@@ -220,12 +222,13 @@ export function Answers() {
         apply()
         return
       }
-      const time = Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from)) * 1000
+      // (quick: the last of a step the scroll has all but played, finished in about the time a scroll settles)
+      const time = (quick ? Math.min(0.6, 0.25 + 1.5 * Math.abs(to - from)) : Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from))) * 1000
       const t0 = performance.now()
       seeking = true
       const frame = (now: number) => {
         const u = Math.min(1, Math.max(0, (now - t0) / time))
-        p = from + (to - from) * (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
+        p = from + (to - from) * (quick ? 1 - Math.pow(1 - u, 3) : u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
         apply()
         if (u < 1) seekRaf = requestAnimationFrame(frame)
         else {
@@ -237,9 +240,11 @@ export function Answers() {
     }
     const show = (e: Event) => {
       const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
-      const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.76)
+      const s = START[k] + STRETCH[k] * (k === N - 1 ? LAST_AT : 0.76)
       if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
-      seek(answerAt(s), k)
+      // (without `move`, the stepper is saying the scroll has played it to its end: it is eased on from where it stands,
+      // never played again from its start)
+      seek(answerAt(s), move === undefined ? undefined : k, move === undefined)
     }
     el.addEventListener('run:show', show)
     const kick = () => {

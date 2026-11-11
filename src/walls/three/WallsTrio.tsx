@@ -60,7 +60,7 @@ export function WallsTrio({
   hover,
   live,
   fill,
-  height = 0.48,
+  height = 0.56,
   spin = false,
 }: {
   ids: BuildId[]
@@ -69,7 +69,7 @@ export function WallsTrio({
   live?: { current: boolean }
   /** the share of its column a model takes (default: by how many share the band) */
   fill?: number
-  /** the most of the canvas's height a model takes */
+  /** the most of the canvas's height a model takes (each stands in the middle of it) */
   height?: number
   /** turning slowly all the while it is on screen (one building shown on its own) */
   spin?: boolean
@@ -97,10 +97,11 @@ export function WallsTrio({
   const viewH = 2 * depth * Math.tan((FOV / 2) * DEG)
   const colW = viewW / models.length
   const xs = models.map((_, i) => (i - (models.length - 1) / 2) * colW)
-  // each takes the same share of its column, and never more of the canvas's height than leaves room above it
-  // (two to a band are wider: they keep to the same height, clear of the line over them)
-  const scales = models.map((b) => Math.min((colW * (fill ?? (models.length < 3 ? 0.5 : 0.66))) / (b.w * Math.cos(TURN) + b.d * Math.sin(-TURN)), (viewH * height) / b.h))
-  const groundY = -0.004
+  // each takes the same share of its column, and never more of the canvas's height than leaves room round it (two to a
+  // band are wider: they keep to the same height)
+  const scales = models.map((b) => Math.min((colW * (fill ?? (models.length < 3 ? 0.55 : 0.7))) / (b.w * Math.cos(TURN) + b.d * Math.sin(-TURN)), (viewH * height) / b.h))
+  // each stands in the middle of the canvas, top to bottom: its middle where the camera's target is
+  const lifts = models.map((b, i) => TARGET_Y - (b.h * scales[i]) / 2)
 
   useEffect(() => {
     camera.fov = FOV
@@ -138,7 +139,7 @@ export function WallsTrio({
       const g = groups.current[i]
       if (!g) continue
       const r = 1 - Math.pow(1 - s[`r${i}`], 3)
-      g.position.set(xs[i], (1 - r) * -0.7, 0)
+      g.position.set(xs[i], lifts[i] + (1 - r) * -0.7, 0)
       g.visible = r > 0.002
       g.rotation.y = TURN + Math.atan2(-xs[i], depth) + s[`h${i}`] * 0.32 + (spin ? turned.current : sway ? 0.07 * Math.sin((now / 1000) * ((Math.PI * 2) / 16) + i * 1.9) : 0)
       g.scale.setScalar(scales[i] * (0.94 + 0.06 * r) * (1 + 0.04 * s[`h${i}`]))
@@ -154,12 +155,13 @@ export function WallsTrio({
           {b.list.map((p) => (
             <mesh key={p.mat} geometry={p.g} material={p.m} castShadow={p.mat !== 'glass'} receiveShadow={p.mat !== 'glass'} />
           ))}
+          {/* its own ground, under it wherever it stands: only its shadow shows */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+            <planeGeometry args={[Math.max(b.w, b.d) * 3, Math.max(b.w, b.d) * 3]} />
+            <shadowMaterial color="#2a241a" opacity={0.16} transparent depthWrite={false} />
+          </mesh>
         </group>
       ))}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, groundY, 0]} receiveShadow>
-        <planeGeometry args={[viewW * 1.4, 8]} />
-        <shadowMaterial color="#2a241a" opacity={0.16} transparent depthWrite={false} />
-      </mesh>
     </>
   )
 }

@@ -45,7 +45,7 @@ export function HeroCornice({ bus, play, focus }: { bus: LabelBus; play: boolean
   const release = useRef<(() => void) | null>(null)
   useEffect(() => {
     release.current = holdPump()
-    const id = window.setTimeout(() => release.current?.(), 9000)
+    const id = window.setTimeout(() => release.current?.(), 1200)
     return () => {
       window.clearTimeout(id)
       release.current?.()

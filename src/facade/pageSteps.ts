@@ -34,8 +34,10 @@ export function usePageSteps(free: readonly string[]) {
         const run = Math.max(0, h - vh)
         const at = el.dataset.stops
         if (FREE.includes(el.id)) {
-          // its top and where it is done; going up, it is stepped over whole
-          if (!back) ys.push(top, top + run * Number(el.dataset.done ?? 1))
+          // its top and where it is done; going up, the page stops at where it is done (held as it stands, never played
+          // back), and the next step up leaves it whole for the section before it
+          const done = top + run * Number(el.dataset.done ?? 1)
+          ys.push(...(back ? [done] : [top, done]))
         } else if (at) {
           const parts = at.split(',').map((p) => top + run * Number(p))
           if (back && el.dataset.back !== 'all') ys.push(parts[parts.length - 1])
@@ -136,6 +138,15 @@ export function usePageSteps(free: readonly string[]) {
           return a
         }
       }
+      // as quick out of a section stepped through its parts that asks for it (`data-leap-back`: its screen holds still all
+      // its run, and it keeps itself as it stands): going up, from its top, and going down, from the end of its run, the
+      // way out is one screen
+      for (const el of document.querySelectorAll<HTMLElement>('[data-leap-back]')) {
+        const a = Math.round(el.getBoundingClientRect().top + window.scrollY)
+        const end = a + Math.max(0, el.offsetHeight - window.innerHeight)
+        if (to < a && from > a + 4 && from <= a + el.offsetHeight) return a
+        if (to > end + 4 && from >= a - 4 && from < end - 4) return end
+      }
       return null
     }
     const pick = (e: MouseEvent) => {
@@ -155,7 +166,7 @@ export function usePageSteps(free: readonly string[]) {
     const stop = stepScreens(stopsOf(false), {
       free,
       leap,
-      time: (screens) => Math.min(1.6, STORY_STEP + 0.35 * Math.max(0, screens - 1)),
+      time: (screens) => Math.min(1.9, STORY_STEP + 0.35 * Math.max(0, screens - 1)),
       back: stopsOf(true),
     })
     return () => {

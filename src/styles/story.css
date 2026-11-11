@@ -263,21 +263,36 @@
   }
 }
 
-/* the tour's two lines, set on slabs so they read over the mesh */
+/* the tour's two lines, set on slabs so they read over the mesh: one at a time, each held in one place on the screen
+   (never riding up it with its screen, under the header), the next coming in where the last went */
 .hero__say {
-  position: absolute;
+  position: fixed;
   z-index: 2;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, 14px, 0);
+  transition:
+    opacity 0.3s var(--ease-out),
+    transform 0.4s var(--ease-out),
+    visibility 0s linear 0.3s;
+}
+.hero__screen.is-active .hero__say {
+  /* (gone before the tour washes into the white: the light comes in alone) */
+  opacity: clamp(0, calc(1 - var(--wash, 0) * 2.5), 1);
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 0.45s var(--ease-out) 0.08s,
+    transform 0.6s var(--ease-out) 0.08s,
+    visibility 0s;
 }
 .hero__say .lines {
   font-size: clamp(1.9rem, min(3.4vw, 6.2vh), 3.8rem);
 }
-.hero__say--br {
-  right: var(--gutter);
-  bottom: clamp(28px, 8vh, 80px);
-}
+.hero__say--br,
 .hero__say--tr {
   right: var(--gutter);
-  top: calc(var(--nav-h) + 3vh);
+  bottom: clamp(28px, 8vh, 80px);
 }
 
 @keyframes rise {

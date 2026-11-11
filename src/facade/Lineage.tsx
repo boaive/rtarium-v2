@@ -196,7 +196,7 @@ const VERSIONS: Version[] = [
     more: { label: 'See the three systems', to: '#systems' },
     material: 'RTARIUM 3D basalt mesh',
     thick: 20,
-    photo: { src: '/img/shoot/mesh-profile.webp', alt: 'An RTARIUM sheet seen edge-on: two basalt mesh faces with fibres looping between them' },
+    photo: { src: '/img/shoot/mesh-stack.webp', alt: 'Sheets of RTARIUM basalt mesh, stacked, against an insulation board', pos: '50% 82%' },
   },
 ]
 
@@ -431,7 +431,8 @@ export function Lineage({
       const rowH = bars.current[0]?.offsetHeight ?? 0
       const W = layer.current?.offsetWidth ?? window.innerWidth
       const layerTop = layer.current?.getBoundingClientRect().top ?? 0
-      const rest = (k: number) => (k < LAST ? navH + k * rowH : navH)
+      // (RTARIUM's closing card is read from the very top: a full screen of its own, over the yellow under the header)
+      const rest = (k: number) => (k < LAST ? navH + k * rowH : finale ? 0 : navH)
       const q: number[] = []
 
       blocks.current.forEach((b, k) => {
@@ -532,7 +533,7 @@ export function Lineage({
     const reads = () => {
       const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
       const rowH = bars.current[0]?.offsetHeight ?? 0
-      return blocks.current.flatMap((b, k) => (b ? [Math.round(b.getBoundingClientRect().top + window.scrollY - (k < LAST ? navH + k * rowH : navH))] : []))
+      return blocks.current.flatMap((b, k) => (b ? [Math.round(b.getBoundingClientRect().top + window.scrollY - (k < LAST ? navH + k * rowH : finale ? 0 : navH))] : []))
     }
     if (paged) {
       // the page's one scroll a step goes through it: where each block is read, points of its run, both ways
@@ -559,7 +560,7 @@ export function Lineage({
       },
       { time: STORY_STEP },
     )
-  }, [LAST, fromTop, after, paged, sectionRef])
+  }, [LAST, fromTop, after, paged, sectionRef, finale])
 
   /** a row takes you back to its material: the scroll where its block is read */
   const go = (i: number) => {

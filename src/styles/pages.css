@@ -197,152 +197,107 @@
   }
 }
 
-/* ---- contact: two halves and a line between them; words alone on the left, the form a section at a time on the right */
+/* ---- contact: a photograph with RTARIUM's name over it on the left; the form alone, on warm white, on the right -- */
 
 .contact {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   min-height: 100svh;
   background: var(--white);
-  color: var(--black);
 }
-.contact__left {
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--line);
-}
-.contact__intro {
-  padding: calc(var(--nav-h) + clamp(40px, 9vh, 110px)) var(--gutter) clamp(36px, 6vh, 64px);
-  border-bottom: 1px solid var(--line);
-}
-.contact__title {
-  font-size: clamp(3.4rem, 7.2vw, 7.4rem);
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 0.9;
-}
-.contact__lede {
-  max-width: 32rem;
-  margin-top: clamp(18px, 3.4vh, 36px);
-  font-size: clamp(1.25rem, 1.9vw, 2rem);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-.contact__points {
-  margin-top: var(--s-5);
-}
-/* the form's sections, at the column's foot: where the visitor is, what is done */
-.contact__map {
-  margin: auto 0 0;
-  padding: clamp(28px, 5vh, 56px) var(--gutter);
-  list-style: none;
-}
-.contact__sec button {
-  display: grid;
-  grid-template-columns: 2.6rem minmax(0, 1fr) auto;
-  align-items: center;
-  width: 100%;
-  padding: 14px 0;
-  border: 0;
-  border-top: 1px solid var(--line);
-  background: none;
-  color: var(--on-light-2);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: color var(--d-fast) var(--ease-out);
-}
-.contact__sec:last-child button {
-  border-bottom: 1px solid var(--line);
-}
-.contact__sec button:disabled {
-  cursor: default;
-}
-.contact__sec[data-state='next'] button {
-  opacity: 0.55;
-}
-.contact__sec[data-state='now'] button,
-.contact__sec[data-state='done'] button,
-.contact__sec[data-state='seen'] button:hover {
-  color: var(--black);
-}
-.contact__sec-num {
-  font-size: var(--t-micro);
-  font-weight: 600;
-}
-.contact__sec-name {
-  font-size: clamp(1rem, 1.25vw, 1.25rem);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.contact__sec-mark {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  font-size: 12px;
-  font-weight: 800;
-}
-.contact__sec[data-state='done'] .contact__sec-mark {
-  background: var(--yellow);
-  color: var(--black);
-}
-.contact__sec[data-state='now'] .contact__sec-mark::before {
-  content: '';
-  width: 9px;
-  height: 9px;
+.contact__media {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
   background: var(--black);
 }
-.contact__sec button:focus-visible {
-  outline: 2px solid var(--black);
-  outline-offset: -2px;
+.contact__media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* the photograph darkened, more at its top, so the slogan reads large over it */
+.contact__media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(8 8 8 / 0.86) 0%, rgb(8 8 8 / 0.7) 45%, rgb(8 8 8 / 0.62) 100%);
+}
+/* from the photograph's top left, under the header: a small label, the slogan large over four lines, what to tell us */
+.contact__brand {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  top: calc(var(--nav-h) + clamp(18px, 4vh, 56px));
+  z-index: 1;
+  display: grid;
+  justify-items: start;
+  color: var(--white);
+}
+.contact__slogan {
+  display: block;
+  font-size: clamp(3rem, min(6.6vw, 13.4vh), 7.8rem);
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  line-height: 0.92;
+  color: var(--white);
+}
+/* the slogan's second sentence, what it comes to, in the brand's yellow */
+.contact__lit {
+  color: var(--yellow);
+}
+.contact__lede {
+  display: block;
+  max-width: 30rem;
+  margin-top: clamp(22px, 4.6vh, 52px);
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgb(243 240 233 / 0.86);
+}
+.contact__points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: var(--s-4);
+}
+.contact__points li {
+  padding: 6px 12px;
+  border: 1px solid rgb(253 208 1 / 0.4);
+  font-weight: 600;
+}
+.contact__points a {
+  color: inherit;
 }
 
-.contact__right {
-  padding: calc(var(--nav-h) + clamp(40px, 9vh, 110px)) var(--gutter) clamp(40px, 7vh, 72px);
-}
-.cf {
+/* the form alone, on warm white, in the middle of its half */
+.contact__side {
   display: grid;
+  align-content: center;
+  padding: calc(var(--nav-h) + clamp(14px, 3vh, 40px)) var(--gutter) clamp(24px, 4vh, 48px);
+  background: var(--white);
+  color: var(--black);
 }
-/* the section's count: 01 / 03, its name beside it */
-.cf-count {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: clamp(28px, 5.4vh, 56px);
-  font-size: clamp(1.2rem, 1.6vw, 1.6rem);
-  font-weight: 700;
+/* a row a field, with room round it: a faint hairline over it, its label on the left, the line to write on the right */
+.ct-form {
+  width: min(100%, 640px);
 }
-.cf-count__now {
-  display: inline-block;
-  animation: cf-in 0.5s var(--ease-out) both;
-}
-.cf-count__name {
-  margin-left: 14px;
-  font-size: var(--t-small);
-  font-weight: 600;
-  color: var(--on-light-2);
-}
-/* a row a field: its label on the left, the line to write on the right; the row being written on drawn yellow under it */
-.cf-rows {
-  border-bottom: 1px solid var(--line);
-}
-.cf-row {
+.ct-row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr);
-  gap: 10px 24px;
-  align-items: start;
-  padding: clamp(16px, 2.6vh, 24px) 0;
-  border-top: 1px solid var(--line);
-  animation: cf-in 0.55s var(--ease-out) both;
-  animation-delay: calc(var(--i, 0) * 70ms);
+  grid-template-columns: minmax(0, 0.62fr) minmax(0, 1.4fr);
+  gap: 6px 28px;
+  align-items: baseline;
+  padding: clamp(18px, 3vh, 28px) 0;
+  border-top: 1px solid rgb(8 8 8 / 0.14);
 }
-.cf-rows > .cf-row:first-child {
-  border-top: 1.5px solid var(--black);
+.ct-rows > .ct-row:last-child {
+  border-bottom: 1px solid rgb(8 8 8 / 0.14);
 }
-.cf-row::after {
+/* the row being written in: a yellow line drawn across its foot */
+.ct-row::after {
   content: '';
   position: absolute;
   left: 0;
@@ -355,78 +310,60 @@
   transition: transform 0.45s var(--ease-out);
   pointer-events: none;
 }
-.cf-row:focus-within::after {
+.ct-row:focus-within::after {
   transform: scaleX(1);
 }
-@keyframes cf-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-}
-.cf-row__label {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding-top: 4px;
-  font-size: clamp(1rem, 1.25vw, 1.25rem);
-  font-weight: 700;
+.ct-row__label {
+  font-size: clamp(0.95rem, 1.05vw, 1.05rem);
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
-.cf-row__label i {
+.ct-row__label i {
   font-style: normal;
   color: var(--on-light-2);
 }
-.cf-row__num {
-  font-size: var(--t-micro);
-  font-weight: 600;
-  color: var(--on-light-2);
-}
-.cf-row__field {
+.ct-row__field {
   display: grid;
   justify-items: start;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
-.cf-input {
+.ct-input {
   width: 100%;
-  padding: 2px 0;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   color: var(--black);
   font: inherit;
-  font-size: clamp(1rem, 1.25vw, 1.25rem);
+  font-size: clamp(1rem, 1.2vw, 1.2rem);
   font-weight: 500;
   outline: none;
 }
-.cf-input::placeholder {
-  color: rgb(8 8 8 / 0.36);
+.ct-input::placeholder {
+  color: rgb(8 8 8 / 0.42);
 }
-.cf-input--area {
-  min-height: 7.5em;
+.ct-input--area {
+  min-height: 3em;
   resize: vertical;
-  line-height: 1.5;
+  line-height: 1.45;
 }
-/* what is wrong with a field: a small tag under it, on the brand's yellow (never red) */
-.cf-row__wrong {
-  padding: 2px 8px;
-  background: var(--yellow);
-  font-size: var(--t-micro);
-  font-weight: 700;
-}
-/* what it is about: a row of choices, a line round each, the chosen one on black */
-.cf-choices {
-  display: flex;
-  flex-wrap: wrap;
+/* what it is about: four quiet buttons, two by two, a hollow dot each; the chosen one black, its dot yellow */
+.ct-opts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
 }
-.cf-choice {
+.ct-opt {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  padding: 9px 14px;
-  border: 1px solid rgb(8 8 8 / 0.28);
+  gap: 10px;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid rgb(8 8 8 / 0.16);
+  border-radius: 10px;
   font-size: var(--t-small);
   font-weight: 600;
   cursor: pointer;
@@ -435,161 +372,307 @@
     border-color var(--d-fast) var(--ease-out),
     color var(--d-fast) var(--ease-out);
 }
-.cf-choice:hover {
-  border-color: var(--black);
+.ct-opt i {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid rgb(8 8 8 / 0.45);
+  border-radius: 50%;
+  transition:
+    background-color var(--d-fast) var(--ease-out),
+    border-color var(--d-fast) var(--ease-out);
 }
-.cf-choice.is-on {
+.ct-opt:hover {
+  border-color: rgb(8 8 8 / 0.42);
+}
+.ct-opt.is-on {
   border-color: var(--black);
   background: var(--black);
-  color: var(--yellow);
+  color: var(--white);
 }
-.cf-choice input {
+.ct-opt.is-on i {
+  border-color: var(--yellow);
+  background: var(--yellow);
+}
+.ct-opt input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
-.cf-choice:has(input:focus-visible) {
+.ct-opt:has(input:focus-visible) {
   outline: 2px solid var(--black);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
-.cf-trap {
+/* what is wrong with a field, said under it (never in red: a mark of the brand's yellow) */
+.ct-row__wrong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--black);
+}
+.ct-row__wrong::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--yellow);
+  outline: 1px solid var(--black);
+}
+.ct-trap {
   position: absolute;
   left: -9999px;
   width: 1px;
   height: 1px;
   overflow: hidden;
 }
-/* the way on: Back drawn in line, Next (and at the last Send) the site's black button, each arrow in its own cell */
-.cf-foot {
+/* where the visitor is: the step's number and name, and a thin line under them filling a third a step */
+.ct-progress {
+  display: grid;
+  gap: 12px;
+  margin-bottom: clamp(8px, 1.6vh, 16px);
+}
+.ct-progress__label {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+.ct-progress__name {
+  font-weight: 500;
+  color: var(--on-light-2);
+}
+.ct-progress__track {
+  position: relative;
+  display: block;
+  height: 2px;
+  overflow: hidden;
+  background: rgb(8 8 8 / 0.1);
+}
+.ct-progress__track i {
+  position: absolute;
+  inset: 0;
+  background: var(--black);
+  transform: scaleX(var(--p, 0));
+  transform-origin: left center;
+  transition: transform 0.7s var(--ease-out);
+}
+/* a step's rows rise in, one after another, as it opens */
+.ct-rows > .ct-row {
+  animation: ct-step-in 0.55s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+@keyframes ct-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ct-rows > .ct-row {
+    animation: none;
+  }
+  .ct-progress__track i {
+    transition: none;
+  }
+}
+.ct-foot {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: clamp(28px, 5vh, 48px);
+  align-items: center;
+  gap: 12px 24px;
+  margin-top: clamp(24px, 4.4vh, 44px);
 }
-.cf-btn {
+/* back: drawn as the way on, its arrow first */
+.ct-btn--back {
+  width: auto;
+}
+.ct-btn--back .ct-btn__cell {
+  border-left: 0;
+  border-right: 1px solid currentColor;
+}
+/* the way to send it, drawn in line: its label, and the arrow in a cell of its own; filled black when pointed at */
+.ct-btn {
+  position: relative;
   display: inline-flex;
   align-items: stretch;
-  min-height: 54px;
+  width: min(100%, 260px);
+  min-height: 50px;
   padding: 0;
-  border: 1.5px solid var(--black);
-  background: var(--black);
-  color: var(--yellow);
+  border: 1px solid var(--black);
+  background: transparent;
+  color: var(--black);
   font: inherit;
   font-size: var(--t-small);
   font-weight: 700;
   cursor: pointer;
+  isolation: isolate;
+  transition: color 0.35s var(--ease-out);
 }
-.cf-btn--go {
-  min-width: min(100%, 300px);
+.ct-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--black);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.55s var(--ease-out);
 }
-.cf-btn--line {
-  background: transparent;
-  color: var(--black);
+.ct-btn:hover::before,
+.ct-btn:focus-visible::before {
+  transform: scaleX(1);
+  transform-origin: left;
 }
-.cf-btn__label {
+.ct-btn:hover,
+.ct-btn:focus-visible {
+  color: var(--yellow);
+}
+.ct-btn__label {
   display: inline-flex;
   flex: 1 1 auto;
   align-items: center;
-  padding: 0 22px;
+  padding: 0 18px;
 }
-.cf-btn__cell {
+.ct-btn__cell {
   display: grid;
   place-items: center;
-  width: 54px;
-  border-left: 1.5px solid currentColor;
-  transition: transform var(--d-mid) var(--ease-out);
+  width: 52px;
+  border-left: 1px solid currentColor;
 }
-.cf-btn--go .cf-btn__cell {
-  border-left-color: var(--white);
-}
-.cf-btn--back .cf-btn__cell {
-  border-left: 0;
-  border-right: 1.5px solid currentColor;
-}
-.cf-btn:hover .cf-btn__cell,
-.cf-btn:focus-visible .cf-btn__cell {
-  transform: translateX(4px);
-}
-.cf-btn--back:hover .cf-btn__cell,
-.cf-btn--back:focus-visible .cf-btn__cell {
-  transform: translateX(-4px);
-}
-.cf-btn:focus-visible {
+.ct-btn:focus-visible {
   outline: 2px solid var(--black);
   outline-offset: 4px;
 }
-.cf-btn:disabled {
+.ct-btn:disabled {
   cursor: progress;
   opacity: 0.7;
 }
-.cf-note {
-  margin-top: var(--s-4);
+.ct-note {
   font-size: var(--t-micro);
   line-height: 1.5;
   color: var(--on-light-2);
 }
-.cf-note[role='alert'] {
-  justify-self: start;
+.ct-note[role='alert'] {
   padding: 4px 10px;
   background: var(--yellow);
   color: var(--black);
   font-weight: 700;
 }
 /* sent */
-.cf-done {
+.ct-done {
   display: grid;
   justify-items: start;
-  animation: cf-in 0.55s var(--ease-out) both;
+  gap: var(--s-4);
 }
-.cf-done__tick {
-  display: inline-grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  margin-right: 6px;
-  background: var(--yellow);
-  font-size: 0.8em;
+.ct-done .ct-progress {
+  justify-self: stretch;
 }
-.cf-done__title {
-  max-width: 22ch;
-  padding-top: clamp(16px, 2.6vh, 24px);
-  border-top: 1.5px solid var(--black);
-  font-size: clamp(1.8rem, 3vw, 3rem);
+.ct-done__title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: clamp(1.3rem, 1.8vw, 1.8rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  letter-spacing: -0.02em;
 }
-.cf-done__line {
-  margin-top: var(--s-4);
+.ct-done__tick {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  background: var(--yellow);
+  font-size: 1rem;
+}
+.ct-done__line {
   font-size: var(--t-lead);
   line-height: 1.5;
   color: var(--on-light-2);
 }
+
+/* the reveal, as the closing card's: each line under a block of its own colour that runs in across it from the left,
+   the words come up under it as it covers them, and it runs off to the right; the rest rises after (--d). Only once
+   the page is armed (script, and motion allowed) is anything hidden; `is-in` plays it */
+.ct-mask {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+}
+.ct-mask::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.ct-mask__in {
+  display: block;
+}
+.contact.is-armed .ct-mask__in {
+  opacity: 0;
+}
+.contact.is-armed.is-in .ct-mask::after {
+  animation: ct-mask-run 1.15s calc(0.15s + var(--k) * 0.12s) both;
+}
+.contact.is-armed.is-in .ct-mask__in {
+  animation: ct-mask-words 1.15s calc(0.15s + var(--k) * 0.12s) both;
+}
+@keyframes ct-mask-run {
+  0% {
+    transform: translateX(0) scaleX(0);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  48% {
+    transform: translateX(0) scaleX(1);
+  }
+  54% {
+    transform: translateX(0) scaleX(1);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  100% {
+    transform: translateX(102%) scaleX(1);
+  }
+}
+@keyframes ct-mask-words {
+  0%,
+  50% {
+    opacity: 0;
+  }
+  60%,
+  100% {
+    opacity: 1;
+  }
+}
+.contact.is-armed .ct-rise {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.contact.is-armed.is-in .ct-rise {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.6s var(--ease-out) var(--d, 0s),
+    transform 0.7s var(--ease-out) var(--d, 0s);
+}
+
 @media (max-width: 860px) {
   .contact {
     grid-template-columns: minmax(0, 1fr);
-    min-height: 0;
   }
-  .contact__left {
-    border-right: 0;
+  .contact__media {
+    min-height: 62svh;
   }
-  .contact__map {
-    display: none;
+  .contact__side {
+    padding-top: clamp(28px, 6vh, 48px);
   }
-  .contact__right {
-    padding-top: clamp(32px, 6vh, 56px);
-  }
-  .cf-row {
+  .ct-row {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cf-row,
-  .cf-count__now,
-  .cf-done {
-    animation: none;
-  }
-  .cf-row::after {
-    transition: none;
   }
 }

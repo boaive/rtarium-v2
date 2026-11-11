@@ -356,6 +356,24 @@ function StreamsBlock({ id, title, leave, chosen, onChoose }: { id: string; titl
   const close = useRef<HTMLElement>(null)
   const live = useLive(close)
   const [hover, setHover] = useState<number | null>(null)
+  // the buildings' room: the columns' top down to where their words start, measured, so each building stands in the
+  // middle of the space over its words
+  const stage = useRef<HTMLDivElement>(null)
+  const [room, setRoom] = useState<number | null>(null)
+  useEffect(() => {
+    const el = stage.current
+    if (!el) return
+    const measure = () => {
+      const stills = [...el.querySelectorAll<HTMLElement>('.wp-stream__still')]
+      if (!stills.length) return
+      const top = el.getBoundingClientRect().top
+      setRoom(Math.max(140, Math.round(Math.min(...stills.map((x) => x.getBoundingClientRect().bottom)) - top)))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   return (
     <section ref={close} id={id} className={`wp-streams ${pick.length === 2 ? 'wp-streams--two' : ''} on-light`} aria-labelledby={`${id}-title`}>
       <header className="wp-streams__head">
@@ -363,8 +381,8 @@ function StreamsBlock({ id, title, leave, chosen, onChoose }: { id: string; titl
           {title}
         </h2>
       </header>
-      <div className="wp-streams__stage">
-        <div className="wp-streams__canvas" aria-hidden="true">
+      <div ref={stage} className="wp-streams__stage">
+        <div className="wp-streams__canvas" aria-hidden="true" style={room ? { height: room } : undefined}>
           <Stage3D shadows keyLight={false}>
             <WallsTrio ids={ids} play={inView} hover={hover} live={live} />
           </Stage3D>

@@ -233,6 +233,16 @@
 .fs-block--last {
   height: calc(100svh - var(--nav-h));
 }
+/* RTARIUM's closing card: a full screen, over the yellow under the header as it comes up; its words clear of the header */
+.fs-duo.fs-block--last {
+  z-index: 10;
+  height: 100svh;
+}
+@media (min-width: 861px) {
+  .fs-duo.fs-block--last .fs-duo__panel {
+    padding-top: calc(var(--nav-h) + clamp(16px, 2.4vw, 36px));
+  }
+}
 
 /*
  * RTARIUM's closing card: two boxes, still. The photograph full-bleed on the left; on black on the right, the
@@ -388,6 +398,11 @@
   font-size: var(--t-body, 1rem);
   line-height: 1.55;
   color: var(--on-dark-2);
+}
+/* the card's quieter words in a soft off-white, not the muted mustard: they read as plain text on the black */
+.fs-duo__full,
+.fs-duo__line {
+  color: rgb(243 240 233 / 0.7);
 }
 .fs-duo__more {
   margin-top: clamp(22px, 4.4cqh, 40px);

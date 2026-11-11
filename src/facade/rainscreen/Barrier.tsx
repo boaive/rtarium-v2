@@ -304,6 +304,8 @@ export function Barrier() {
       const rowH = rows.current[0]?.offsetHeight ?? 0
       listingStops(el, refs.block, (k) => navH + under(k) * rowH, PLAY[1])
     }
+    // going up, back through it the same way, a listing at a time (as the overview's story), never over it whole
+    el.dataset.back = 'all'
     write()
     window.addEventListener('resize', write)
     return () => window.removeEventListener('resize', write)

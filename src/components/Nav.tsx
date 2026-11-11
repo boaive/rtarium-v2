@@ -55,7 +55,7 @@ const ENTRIES: NavEntry[] = [
 ]
 
 /** pages that set the header's ground themselves, screen by screen (the rest sit on warm white) */
-const OWN_GROUND = new Set(['/', '/advanced-flooring', '/advanced-flooring/data-ai-centres', '/advanced-flooring/automated-warehouse', '/advanced-flooring/semiconductor-plant', '/facade-cladding', '/facade-cladding/unitized-thin-concrete-facade', '/facade-cladding/rainscreen-cladding', '/facade-cladding/stud-frame-cladding', '/wall-panels'])
+const OWN_GROUND = new Set(['/', '/advanced-flooring', '/advanced-flooring/data-ai-centres', '/advanced-flooring/automated-warehouse', '/advanced-flooring/semiconductor-plant', '/facade-cladding', '/facade-cladding/unitized-thin-concrete-facade', '/facade-cladding/rainscreen-cladding', '/facade-cladding/stud-frame-cladding', '/wall-panels', '/contact'])
 
 export function Nav() {
   const { path } = useRoute()

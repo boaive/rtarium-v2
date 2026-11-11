@@ -1,18 +1,10 @@
 /*
- * Wall Panels (`wp-`). The page borrows the Façade & Cladding pages' grammar whole: the Unitized
+ * Wall Panels (`wp-`). The page borrows the Façade & Cladding pages' grammar whole: the overviews'
  * opening, the overview's story of boxes, the answers' pinned stage and its bar, the slab-to-slab
  * stage. What is its own is set here.
  */
 
-/* ---- the opening ----------------------------------------------------------------------------- */
-
-.wp-hero__line {
-  max-width: 30rem;
-  font-size: var(--t-lead);
-  font-weight: 500;
-  line-height: 1.35;
-  animation: rise 0.8s var(--ease-out) 1.1s both;
-}
+/* (the opening is the overviews' own, fco-hero in overview.css: the three openings are laid out alike) */
 
 /* ---- the story: RTARIUM's claim, and its facts under it, along the foot ---------------------- */
 
@@ -292,7 +284,8 @@ html.sheet-open {
   right: 0;
   top: 0;
   z-index: 1;
-  height: 46%;
+  /* (the room over the words, measured; this until it is) */
+  height: 56%;
 }
 .wp-streams__canvas,
 .wp-streams__canvas * {
@@ -307,7 +300,8 @@ html.sheet-open {
   --bg: var(--white);
   --fg: var(--black);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  /* the room for its building takes what the words leave: the building stands in the middle of it */
+  grid-template-rows: minmax(0, 1fr) auto auto auto auto;
   gap: var(--s-3);
   padding: clamp(16px, 3vh, 32px) var(--gutter) clamp(28px, 5vh, 52px);
   border-right: 1px solid var(--line);
@@ -324,7 +318,7 @@ html.sheet-open {
 }
 /* a still of the stream's own build, finished */
 .wp-stream__still {
-  aspect-ratio: 3 / 2;
+  min-height: clamp(160px, 26vh, 320px);
   margin: 0 0 var(--s-3);
 }
 .wp-stream__still img {
@@ -632,7 +626,86 @@ html.sheet-open {
 }
 .wp-panels__foot {
   display: grid;
-  gap: clamp(8px, 1.6vh, 14px);
+  gap: clamp(12px, 2.2vh, 20px);
+  width: min(100%, 520px);
+  margin-top: clamp(14px, 2.6vh, 28px);
+}
+/* the figures, as Home's thickness options: a label, and one bar of cells the width of the table */
+.wp-figs {
+  display: grid;
+  gap: 8px;
+}
+.wp-figs__label {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(8 8 8 / 0.7);
+}
+.wp-figs__row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  box-shadow: inset 0 0 0 1px rgb(8 8 8 / 0.55);
+}
+.wp-figs__cell {
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  padding: clamp(6px, 1vh, 10px) 12px;
+  border-left: 1px solid rgb(8 8 8 / 0.3);
+}
+.wp-figs__cell:first-child {
+  border-left: 0;
+}
+.wp-figs__cell dd {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.wp-figs__cell small {
+  font-size: 0.7em;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.wp-figs__cell dt {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  line-height: 1.3;
+  color: rgb(8 8 8 / 0.7);
+}
+/* the way to the technical sheet: Home's bar, black on the yellow, the width of the table */
+.wp-panels__more.explore {
+  width: 100%;
+  height: clamp(42px, 6vh, 50px);
+  box-shadow: none;
+}
+.wp-panels__more .explore__label {
+  flex: 1;
+  padding: 0 18px;
+  font-size: 0.72rem;
+}
+.wp-panels__more .explore__cell {
+  width: clamp(42px, 6vh, 50px);
+}
+/* a short screen (a laptop's): the rows closer, the figures without their label, so the eight parts of the SIP panel
+   and its figures stand clear of the bar */
+@media (max-height: 820px) {
+  .wp-lines .wp-line__btn {
+    padding-block: 5px;
+  }
+  .wp-figs__label {
+    display: none;
+  }
+  .wp-panels__foot {
+    gap: 10px;
+    margin-top: 12px;
+  }
 }
 .wp-panels__figs {
   font-size: var(--t-small);
@@ -963,3 +1036,175 @@ html.sheet-open {
 }
 
 
+
+/* the panel's parts as a table, drawn in a row at a time as each part comes in (--a): its line runs across, then its
+   number, name and size rise in; the part shown on the model in black */
+.wp-lines {
+  /* as tall as its rows, no more: the figures and the way to the details straight under it */
+  flex: none;
+  width: min(100%, 520px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wp-line {
+  --a: 0;
+  position: relative;
+}
+.wp-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: rgb(8 8 8 / 0.7);
+  transform: scaleX(var(--a));
+  transform-origin: left center;
+}
+.wp-line__btn {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  /* (no gap between its rows: the line on the part, closed, takes no room) */
+  gap: 0 10px;
+  width: 100%;
+  padding: clamp(7px, 1.2vh, 11px) 10px;
+  border: 0;
+  background: none;
+  color: var(--black);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  opacity: clamp(0, calc(var(--a) * 2 - 0.6), 1);
+  transform: translateY(calc((1 - var(--a)) * 10px));
+  transition:
+    background-color var(--d-fast) var(--ease-out),
+    color var(--d-fast) var(--ease-out);
+}
+.wp-line__num {
+  font-size: var(--t-micro);
+  font-weight: 700;
+}
+.wp-line__name {
+  font-size: clamp(0.95rem, 1.05vw, 1.05rem);
+  font-weight: 700;
+}
+.wp-line__value {
+  font-size: var(--t-small);
+  font-weight: 700;
+}
+.wp-line__btn:hover {
+  background: rgb(8 8 8 / 0.06);
+}
+/* the part shown: no box, its name and a line on it; the others step back while it is shown */
+.wp-lines:has(.wp-line[data-current]) .wp-line:not([data-current]) .wp-line__btn {
+  color: rgb(8 8 8 / 0.42);
+}
+.wp-line[data-current]::before {
+  height: 2px;
+  background: var(--black);
+}
+.wp-line__about {
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-rows: 0fr;
+  font-size: var(--t-small);
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgb(8 8 8 / 0.78);
+  transition: grid-template-rows 0.45s var(--ease-out);
+}
+.wp-line__about > span {
+  overflow: hidden;
+  padding-top: 3px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.35s var(--ease-out),
+    transform 0.45s var(--ease-out);
+}
+.wp-line[data-current] .wp-line__about {
+  grid-template-rows: 1fr;
+}
+.wp-line[data-current] .wp-line__about > span {
+  opacity: 1;
+  transform: none;
+}
+.wp-line__btn:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: -2px;
+}
+
+/* ---- the panels' words: the part shown as the answers' each answer, a headline and a line on it, one at a time ---- */
+
+/* the section's name smaller, as the answers' title: the part's headline is what reads */
+.wp-panels .fu-layers__title {
+  font-size: clamp(1.6rem, min(2.5vw, 4.6vh), 2.6rem);
+}
+.wp-words {
+  flex: 1 1 auto;
+  display: grid;
+  align-items: center;
+  width: min(100%, 34rem);
+  min-height: 0;
+}
+.wp-word {
+  grid-area: 1 / 1;
+  display: grid;
+  justify-items: start;
+  gap: clamp(10px, 1.8vh, 18px);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(14px);
+  filter: blur(4px);
+  transition:
+    opacity 0.35s var(--ease-out),
+    transform 0.5s var(--ease-out),
+    filter 0.35s var(--ease-out),
+    visibility 0s linear 0.35s;
+}
+.wp-word[data-on] {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  filter: none;
+  transition:
+    opacity 0.45s var(--ease-out) 0.12s,
+    transform 0.6s var(--ease-out) 0.12s,
+    filter 0.45s var(--ease-out) 0.12s,
+    visibility 0s;
+}
+.wp-word__kicker {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(8 8 8 / 0.7);
+}
+.wp-word__head {
+  font-size: clamp(2.4rem, min(4.3vw, 7.6vh), 4.9rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+.wp-word__line {
+  max-width: 24rem;
+  font-size: var(--t-lead);
+  font-weight: 500;
+  line-height: 1.42;
+  color: var(--on-yellow-2);
+  text-wrap: pretty;
+}
+/* the hint at the box's foot, now its parts are on the bar under it */
+.wp-panels .fu-sheet__hint {
+  bottom: var(--pad);
+}
+@media (prefers-reduced-motion: reduce) {
+  .wp-word,
+  .wp-word[data-on] {
+    transform: none;
+    filter: none;
+  }
+}
