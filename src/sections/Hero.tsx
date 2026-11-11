@@ -140,8 +140,8 @@ const POINTS = [
 const HANDOFF = { at: PHONE_SCREENS - 1 + 0.04, hold: 90, quiet: 70, most: 2400, fade: 360, frames: 6, quietFrames: 4 }
 
 /**
- * A phone's tour ends in the white, and About does not scroll up into it: the white is a stop of its own (useSwipePager),
- * and once the page goes on down from it (however fast), a warm-white curtain holds the screen and the page is set on About's first view. A fling still
+ * A phone's tour ends in the white, and About does not scroll up into it: once the page goes on down into the white past
+ * its top (a swipe from the cavity's last point: useSwipePager; however fast), a warm-white curtain holds the screen and the page is set on About's first view. A fling still
  * running is held there under the curtain (put back each frame it pushes the page on) until it has died out, so even a
  * hard flick lands on About's first view, never past it; then the curtain clears and About comes out of the white.
  * From there the page scrolls as any page does; going back up, it scrolls back through the white into the cavity.
@@ -241,12 +241,13 @@ const STOP_PARTS = '#main > section, #main .eb-row, footer'
  */
 const SWIPE = { reach: 0.06, flick: 0.45, near: 0.4, long: 1.25, step: 0.9 }
 
-/** where a phone's Home stops, top to bottom (px): the tour's seven screens, the white the last, then the parts after */
+/** where a phone's Home stops, top to bottom (px): the tour's screens up to the white, then About and the parts after */
 function swipeStops(tour: HTMLElement) {
   const vh = window.innerHeight
   const sh = screenH(tour)
   const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
-  const ys = Array.from({ length: PHONE_SCREENS }, (_, k) => Math.round(tour.offsetTop + k * sh))
+  // (the white, the tour's last screen, is no stop: from the cavity's last point one swipe goes through it to About)
+  const ys = Array.from({ length: PHONE_SCREENS - 1 }, (_, k) => Math.round(tour.offsetTop + k * sh))
   for (const p of document.querySelectorAll<HTMLElement>(STOP_PARTS)) {
     if (p === tour || tour.contains(p)) continue
     // (a part comes to rest just under the header, its number in view)
@@ -257,9 +258,12 @@ function swipeStops(tour: HTMLElement) {
   const kept: number[] = []
   for (const y of ys) if (!kept.length || y - kept[kept.length - 1] >= vh * SWIPE.near) kept.push(y)
   const all: number[] = []
+  // (a long stretch below the tour gets stops through it; the tour's own last stretch, through the white, none)
+  const tourEnd = tour.offsetTop + tour.offsetHeight
   kept.forEach((y, i) => {
     all.push(y)
     const next = kept[i + 1] ?? max
+    if (y < tourEnd - 2) return
     for (let at = y + vh * SWIPE.step; next - y > vh * SWIPE.long && next - at > vh * SWIPE.near; at += vh * SWIPE.step) all.push(Math.round(at))
   })
   if (max - all[all.length - 1] > vh * SWIPE.near) all.push(max)
@@ -270,8 +274,9 @@ function swipeStops(tour: HTMLElement) {
  * A phone's Home goes a stop a swipe, everywhere alike: while the finger is down the page is the browser's own and
  * follows it exactly; once it lets go, the page goes on to the next stop that way (never past it, however hard the
  * flick), or back to the stop it set off from if the swipe was a small one, in the browser's own smooth scroll (run off
- * the page's thread, so it keeps its pace while the 3D draws). The stops: the tour's seven screens, the white the last
- * (from it, About comes out of the white: useWhiteHandoff), then About and each of its parts, and so on down. A touch
+ * the page's thread, so it keeps its pace while the 3D draws). The stops: the tour's screens to the cavity's last point
+ * (from it one swipe goes on through the white, and About comes out of it: useWhiteHandoff), then About and each of its
+ * parts, and so on down. A touch
  * that took a mesh in hand, or that the white handed over to About, is left alone.
  */
 function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean) {

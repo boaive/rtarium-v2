@@ -147,9 +147,11 @@ const DRIFT = 0.28
  * never cuts. A step with nothing to draw (footage) holds the pose before it under its film.
  * Reaching a step plays its sequence in time, as on the vertical chapters.
  */
-export function Track(props: { id: string; title: string; steps: Step[]; className?: string; phoneGround?: Ground }) {
+export function Track(props: { id: string; title: string; steps: Step[]; className?: string; phoneGround?: Ground; phoneSideways?: boolean }) {
   const compact = useIsCompact()
-  if (compact) return <Rows {...props} ground={props.phoneGround} />
+  // (a phone reads a chapter down the page in rows, or, `phoneSideways`, as the wide screen does: one screen, the steps
+  // swiped sideways, its 3D across the screen)
+  if (compact && !props.phoneSideways) return <Rows {...props} ground={props.phoneGround} />
   return <SideTrack {...props} />
 }
 

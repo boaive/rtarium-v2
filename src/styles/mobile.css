@@ -47,6 +47,35 @@
     height: 100vh;
     height: 100lvh;
   }
+  /*
+   * One screen is the whole screen, on every phone: as tall as the screen gets with its address bar slid away (lvh).
+   * Sized to the screen with the bar showing (svh), each came up short once the bar slid away, the next one showing
+   * at its foot. What stands at a screen's foot keeps to the part of it seen with the bar showing (--bar: the bar's
+   * height, 0 where there is none). (:root: over the rules of these further down)
+   */
+  :root {
+    --bar: calc(100lvh - 100svh);
+  }
+  :root .scene,
+  :root .hero__screen,
+  :root .track,
+  :root .track__pin,
+  :root #replaces .ledger__in {
+    height: 100lvh;
+  }
+  :root #about .eb-row,
+  :root #innovation .eb-row,
+  :root #tech .eb-row {
+    height: 100lvh;
+    padding-bottom: calc(clamp(14px, 2.6svh, 24px) + var(--bar));
+  }
+  :root #about .eb-row:first-of-type,
+  :root #innovation .eb-row:first-of-type {
+    height: calc(100lvh - var(--about-head));
+  }
+  :root .carousel {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--bar));
+  }
   /* what it is and the way to the team leave with the first fifth of the first swipe, never lingering at the foot of the
      next screen */
   .hero__screen--open.is-active .hero__sub {
