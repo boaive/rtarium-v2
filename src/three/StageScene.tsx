@@ -104,6 +104,8 @@ const CENTRE: [number, number] = [0.5, 0.5]
 const anchorPt: [number, number, number] = [0, 0, 0]
 /** where each screen is this frame: read once, used by the choice of the active screen and by the views */
 const rects = new Map<Region, DOMRect>()
+/** what each phone card's own canvas holds (its view's figures, as the idle check takes them) */
+const cardSigs = new WeakMap<Region, number[]>()
 /** a phone's idle check: the drag, as text; and what this frame drew, view after view */
 const ob0 = (o: { yaw: number; pitch: number; dragging: boolean }) => `${o.yaw.toFixed(4)},${o.pitch.toFixed(4)},${o.dragging}`
 const sigNow: number[] = []
@@ -305,6 +307,13 @@ export function StageScene({ compact, reduced }: Props) {
   const still = useRef(0)
   /** the press field still moving (a card pressed, springing back): no frame is skipped */
   const pressLive = useRef(false)
+  /** when the page last moved (ms): a phone's card turns only with the page at rest */
+  const movedAt = useRef(-1e9)
+  useEffect(() => {
+    const on = () => void (movedAt.current = performance.now())
+    window.addEventListener('scroll', on, { passive: true })
+    return () => window.removeEventListener('scroll', on)
+  }, [])
 
   const press = useMemo(() => new PressField(96, 96), [])
   useEffect(() => {
@@ -488,7 +497,8 @@ export function StageScene({ compact, reduced }: Props) {
     // has not changed and the last frames drew the same thing (every movement settled), the canvas keeps its picture
     // and the phone's GPU rests until the visitor moves the page again
     if (compact) {
-      let key = `${vw},${vh},${gl.getPixelRatio()},${stage.tour},${stage.tourDive},${stage.tourPoints},${stage.flat},${thickness},${stage.inspect},${ob0(stage.orbit)}`
+      // (the page coming to rest lets a card set off turning again)
+      let key = `${now - movedAt.current < 220},${vw},${vh},${gl.getPixelRatio()},${stage.tour},${stage.tourDive},${stage.tourPoints},${stage.flat},${thickness},${stage.inspect},${ob0(stage.orbit)}`
       for (const d of drawn) {
         const b = rects.get(d.r)
         const bl = d.r.blend?.()
@@ -615,7 +625,9 @@ export function StageScene({ compact, reduced }: Props) {
       const turn = pose.spin || (r.box ? (import.meta.env.DEV && (window as unknown as { __boxTurn?: number }).__boxTurn) || BOX_TURN : 0)
       // a phone's figure stands still in its pose: no turn, no rock (it read as a wobble in the hand); it moves only with
       // the page, and the phone draws nothing while the page is still
-      if (compact && r.box && !pose.spin) c.spin = reduced || r !== turning ? c.spin : (c.spin + CARD_TURN * dt) % 360
+      // (and only while the page is at rest: turning, it is drawn and copied into its card every frame, a weight on a
+      // phone's frames that showed as a hitch while the page glided, and as it came to rest on About)
+      if (compact && r.box && !pose.spin) c.spin = reduced || r !== turning || now - movedAt.current < 220 ? c.spin : (c.spin + CARD_TURN * dt) % 360
       // a phone's opening piece turns slowly while the page rests on it, and eases back to its pose as the tour sets off
       else if (compact && hero) c.spin = reduced ? 0 : stage.tour < 0.08 ? (c.spin + OPEN_TURN * dt) % 360 : dampAngle(c.spin, 0, 2.4, dt)
       else c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
@@ -944,11 +956,21 @@ export function StageScene({ compact, reduced }: Props) {
         const h = Math.min(vh, bx.height)
         const pw = Math.round(w * pr)
         const ph = Math.round(h * pr)
+        // a card whose picture is the one it already holds is not drawn again (another card turning, say)
+        const from = sigNow.length
+        sig(-1, w * 1e4 + h)
+        const mine = sigNow.slice(from)
+        const had = cardSigs.get(r)
+        if (had && own.width === pw && own.height === ph && had.length === mine.length && mine.every((x, i) => Math.abs(x - had[i]) <= 1e-6 + Math.abs(x) * 1e-5)) {
+          gl.setViewport(0, 0, vw, vh)
+          camera.aspect = vw / vh
+          continue
+        }
+        cardSigs.set(r, mine)
         gl.setScissorTest(true)
         gl.setViewport(0, 0, w, h)
         gl.setScissor(0, 0, w, h)
         gl.clear()
-        sig(-1, w * 1e4 + h)
         gl.render(scene, camera)
         if (own.width !== pw || own.height !== ph) {
           own.width = pw

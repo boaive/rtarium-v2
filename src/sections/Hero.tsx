@@ -147,7 +147,10 @@ const HANDOFF = { at: PHONE_SCREENS - 1 - 0.15, hold: 25, quiet: 25, most: 2400,
  * hard flick lands on About's first view, never past it; then the curtain clears and About comes out of the white.
  * From there the page scrolls as any page does; going back up, it scrolls back through the white into the cavity.
  */
-function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObject<HTMLDivElement | null>, phone: boolean) {
+/** the way back from About into the tour, the hand-off's own (useWhiteHandoff), for the swipe pager to take */
+type Back = { current: ((to: number) => void) | null }
+
+function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObject<HTMLDivElement | null>, phone: boolean, back: Back) {
   useEffect(() => {
     const el = section.current
     const veil = curtain.current
@@ -224,13 +227,39 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
       lastAt = PHONE_SCREENS
       land(target)
     }
+    /*
+     * Back up from About, the way down in reverse: About fades to the white, the page is set in the white (the tour's
+     * last screen, all white by then), the curtain lifts unseen, and the page glides out of the white to `to`
+     */
+    let away = 0
+    back.current = (to: number) => {
+      stage.heldAt = performance.now()
+      veil.classList.add('is-clearing')
+      requestAnimationFrame(() => veil.classList.add('is-on'))
+      window.clearTimeout(away)
+      away = window.setTimeout(() => {
+        window.scrollTo({ top: el.offsetTop + (PHONE_SCREENS - 1) * screenH(el), behavior: 'instant' as ScrollBehavior })
+        lastY = window.scrollY
+        lastAt = PHONE_SCREENS - 1
+        done = false
+        // (two frames for the white to take the ground and the 3D under it, then the curtain goes and the glide sets off)
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            veil.classList.remove('is-clearing', 'is-on')
+            window.scrollTo({ top: to, behavior: 'smooth' })
+          }),
+        )
+      }, prefersReducedMotion() ? 0 : HANDOFF.fade)
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       window.removeEventListener('scroll', onScroll)
       window.clearTimeout(clear)
+      window.clearTimeout(away)
       cancelAnimationFrame(pin)
+      back.current = null
     }
-  }, [section, curtain, phone])
+  }, [section, curtain, phone, back])
 }
 
 /** what a phone's page stops on, a swipe at a time, after the tour's screens: About and each part after it, each section */
@@ -246,13 +275,12 @@ const SWIPE = { reach: 0.06, flick: 0.45, near: 0.4, long: 1.25, step: 0.9 }
 function swipeStops(tour: HTMLElement) {
   const vh = window.innerHeight
   const sh = screenH(tour)
-  const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
   // (the white, the tour's last screen, is no stop: from the cavity's last point one swipe goes through it to About)
   const ys = Array.from({ length: PHONE_SCREENS - 1 }, (_, k) => Math.round(tour.offsetTop + k * sh))
   for (const p of document.querySelectorAll<HTMLElement>(STOP_PARTS)) {
     if (p === tour || tour.contains(p)) continue
-    // (a part comes to rest just under the header, its number in view)
-    ys.push(Math.round(p.getBoundingClientRect().top + window.scrollY - (p.classList.contains('eb-row') ? navH : 0)))
+    // (a part keeps its own room for the header at its top: it comes to rest at its own top)
+    ys.push(Math.round(p.getBoundingClientRect().top + window.scrollY))
   }
   ys.sort((a, b) => a - b)
   const max = document.documentElement.scrollHeight - vh
@@ -280,7 +308,7 @@ function swipeStops(tour: HTMLElement) {
  * parts, and so on down. A touch
  * that took a mesh in hand, or that the white handed over to About, is left alone.
  */
-function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean) {
+function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, back: Back) {
   useEffect(() => {
     const el = section.current
     if (!phone || !el || prefersReducedMotion()) return
@@ -328,6 +356,9 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean) {
       }
       aim = to
       aimAt = performance.now()
+      // back up from About into the tour: the way down, in reverse (About fades to the white, out of it into the cavity)
+      const aboutTop = el.offsetTop + el.offsetHeight
+      if (dir < 0 && Math.abs(touch.base - aboutTop) < 3 && to < aboutTop - 2 && back.current) return back.current(to)
       window.scrollTo({ top: to, behavior: 'smooth' })
     }
     window.addEventListener('touchstart', start, { passive: true })
@@ -350,8 +381,9 @@ export function Hero() {
   const compact = useIsCompact()
   useTour(section, setAt, compact)
   const curtain = useRef<HTMLDivElement>(null)
-  useWhiteHandoff(section, curtain, compact)
-  useSwipePager(section, compact)
+  const back = useRef<((to: number) => void) | null>(null)
+  useWhiteHandoff(section, curtain, compact, back)
+  useSwipePager(section, compact, back)
 
   // the scroll cue starts the tour: one screen down
   const start = () => {

@@ -73,8 +73,201 @@
   :root #innovation .eb-row:first-of-type {
     height: calc(100lvh - var(--about-head));
   }
-  :root .carousel {
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--bar));
+  /*
+   * ---- A sideways chapter on a phone (Innovation), set as the Facade pages set their steps: which of how many, small,
+   * over the title at the top; the title plain in the ground's ink; what it says, and its controls, at the foot over a
+   * line of a segment a step; the 3D between. A soft plate of the ground behind the words, top and foot, where the mesh
+   * runs under them. ----
+   */
+  :root .track {
+    --psteps-h: 24px;
+    --count-h: 20px;
+    --steps-top: calc(var(--nav-h) + clamp(14px, 2.6svh, 26px));
+    --steps-foot: calc(var(--psteps-h) + 18px + env(safe-area-inset-bottom, 0px) + var(--bar));
+  }
+  :root .track .copy {
+    top: calc(var(--steps-top) + var(--count-h) + 8px);
+    bottom: var(--steps-foot);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-3);
+    padding: 0 var(--gutter);
+    border: 0;
+    background: none;
+    text-align: left;
+    pointer-events: none;
+  }
+  :root .track .copy > * {
+    pointer-events: auto;
+  }
+  :root .track .copy::before {
+    display: none;
+  }
+  :root .track .copy .lines {
+    position: relative;
+  }
+  :root .track .lines--slab .lines__line {
+    padding: 0;
+    background: none;
+    color: var(--slab-bg);
+  }
+  :root .track .copy .lead {
+    position: relative;
+    margin-top: auto;
+    max-width: 30rem;
+    font-size: clamp(0.98rem, 4.2vw, 1.12rem);
+    line-height: 1.42;
+  }
+  :root .track .copy .lines::before,
+  :root .track .copy .lead::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    left: calc(-1 * var(--gutter));
+    right: calc(-1 * var(--gutter));
+    pointer-events: none;
+  }
+  :root .track .copy .lines::before {
+    top: calc(-1 * (var(--steps-top) + var(--count-h) + 8px));
+    bottom: -28px;
+    background: linear-gradient(to bottom, var(--ground-c) calc(100% - 28px), transparent);
+  }
+  :root .track .copy .lead::before {
+    top: -32px;
+    bottom: calc(-1 * (var(--steps-foot) + 40px));
+    background: linear-gradient(to top, var(--ground-c) calc(100% - 32px), transparent);
+  }
+  .psteps__count {
+    position: absolute;
+    z-index: 4;
+    top: var(--steps-top);
+    left: var(--gutter);
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    line-height: var(--count-h);
+    font-variant-numeric: tabular-nums;
+    color: var(--slab-bg);
+    pointer-events: none;
+  }
+  .psteps__count b {
+    font-weight: 800;
+  }
+  .psteps {
+    position: absolute;
+    z-index: 4;
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px) + var(--bar));
+    color: var(--slab-bg);
+  }
+  .psteps__line {
+    display: flex;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .psteps__line li {
+    flex: 1;
+  }
+  .psteps__line button {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: var(--psteps-h);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+  .psteps__line button::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    margin-top: -1px;
+    background: currentColor;
+    opacity: 0.22;
+    transition: opacity var(--d-mid) var(--ease-out);
+  }
+  .psteps__line button.is-past::after {
+    opacity: 0.5;
+  }
+  .psteps__line button.is-now::after {
+    opacity: 1;
+  }
+
+  /* ---- a word on how a 3D screen is worked (TouchHint): shown once, the first time it is reached ---- */
+  .thint {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    padding: 9px 15px;
+    border-radius: var(--radius-round);
+    background: rgb(8 8 8 / 0.8);
+    color: #f2f0e9;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate3d(-50%, 8px, 0);
+    transition:
+      opacity 0.35s var(--ease-out),
+      transform 0.45s var(--ease-out);
+  }
+  .thint.is-on {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0);
+  }
+  /* (over the 3D, low: clear of its labels and of the words at the foot) */
+  .psteps__hint {
+    top: 78%;
+  }
+  .eb-fig__hint {
+    bottom: 16px;
+  }
+  .thint__dot {
+    animation: thint-swipe 1.6s ease-in-out infinite;
+  }
+  .thint__ring {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: thint-hold 1.4s ease-out infinite;
+  }
+  .thint.is-still .thint__dot,
+  .thint.is-still .thint__ring {
+    animation: none;
+  }
+  @keyframes thint-swipe {
+    0%,
+    100% {
+      transform: translateX(-6px);
+    }
+    50% {
+      transform: translateX(6px);
+    }
+  }
+  @keyframes thint-hold {
+    0% {
+      opacity: 1;
+      transform: scale(0.55);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.15);
+    }
   }
   /* what it is and the way to the team leave with the first fifth of the first swipe, never lingering at the foot of the
      next screen */

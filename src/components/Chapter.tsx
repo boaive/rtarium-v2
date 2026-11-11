@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { refreshGround, useOrbitDrag, useStageRegion } from '../three/Stage'
+import { TouchHint } from './TouchHint'
 import { setShared, useStageValue, type Ground, type PoseId, type Turn } from '../three/stageStore'
 import { POSES } from '../three/poses'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
@@ -328,6 +329,7 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
         <div ref={box} className="eb-fig__view" data-screen={ground}>
           {/* the 3D is drawn into the card's own canvas (StageScene), so it scrolls with the card */}
           {filmed ? <Loop pose={step.pose} /> : still ? <img className="eb-fig__still" src={still} alt="" /> : <canvas className="eb-fig__canvas" aria-hidden="true" />}
+          {!filmed && !still && <TouchHint id="hold-card" when={active} icon="hold" text="Hold and drag to turn" className="eb-fig__hint" />}
           <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
           <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
         </div>
@@ -540,7 +542,7 @@ function SideTrack({ id, title, steps, className = '' }: { id: string; title: st
             </div>
           )
         })}
-        {compact && <Carousel steps={steps} at={shown} onGo={go} />}
+        {compact && <PhoneSteps steps={steps} at={shown} onGo={go} inView={step >= 0} />}
       </div>
     </section>
   )
@@ -549,41 +551,35 @@ function SideTrack({ id, title, steps, className = '' }: { id: string; title: st
 const two = (k: number) => String(k).padStart(2, '0')
 
 /**
- * A chapter's steps on a phone, at the foot of its screen: a line of a segment each (the ones passed and the one
- * shown drawn in), which of how many with its name, and the way back and on. It takes the colour of the step shown.
+ * A sideways chapter's steps on a phone, as the Façade pages' steps are set: which of how many, small, over the step's
+ * title at the top of the screen, and at its foot a line of a segment each (the one shown drawn in, the ones passed half
+ * drawn), each taking you to its step. The steps are swiped sideways; the first time the chapter is reached a hint says so.
  */
-function Carousel({ steps, at, onGo }: { steps: Step[]; at: number; onGo: (i: number) => void }) {
+function PhoneSteps({ steps, at, onGo, inView }: { steps: Step[]; at: number; onGo: (i: number) => void; inView: boolean }) {
   const n = steps.length
+  const ground = steps[at].ground
   return (
-    <div className={`carousel on-${steps[at].ground} ${at === 0 ? 'is-first' : ''}`}>
-      <ol className="carousel__line" aria-hidden="true">
-        {steps.map((s, i) => (
-          <li key={s.id} className={i < at ? 'is-past' : i === at ? 'is-now' : undefined} />
-        ))}
-      </ol>
-      <div className="carousel__row">
-        <p className="carousel__count" aria-live="polite">
-          <span className="num">
-            <b>{two(at + 1)}</b> / {two(n)}
-          </span>
-          <span key={at} className="carousel__name">
-            {steps[at].label}
-          </span>
-        </p>
-        <div className="carousel__nav">
-          <button type="button" className="carousel__btn" onClick={() => onGo(at - 1)} disabled={at === 0} aria-label={at > 0 ? `Previous: ${steps[at - 1].label}` : 'Previous'}>
-            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-              <path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-            </svg>
-          </button>
-          <button type="button" className="carousel__btn carousel__btn--next" onClick={() => onGo(at + 1)} disabled={at === n - 1} aria-label={at < n - 1 ? `Next: ${steps[at + 1].label}` : 'Next'}>
-            <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-              <path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
+    <>
+      <p className={`psteps__count on-${ground}`} aria-live="polite">
+        <b>{two(at + 1)}</b> / {two(n)}
+      </p>
+      <TouchHint id="swipe-steps" when={inView && at === 0} icon="swipe" text="Swipe for the next" className="psteps__hint" />
+      <nav className={`psteps on-${ground}`} aria-label="Steps">
+        <ol className="psteps__line">
+          {steps.map((s, i) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                className={i === at ? 'is-now' : i < at ? 'is-past' : undefined}
+                onClick={() => onGo(i)}
+                aria-label={`${two(i + 1)}: ${s.label}`}
+                aria-current={i === at ? 'step' : undefined}
+              />
+            </li>
+          ))}
+        </ol>
+      </nav>
+    </>
   )
 }
 
