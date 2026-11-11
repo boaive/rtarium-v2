@@ -223,6 +223,11 @@ function Pace({ full }: { full: number }) {
   const invalidate = useThree((s) => s.invalidate)
   const dpr = useRef(full)
   const slow = useRef(0)
+  /** frames in a row that kept up, at a softer resolution: enough of them, and it is sharpened a step (a scene that never
+   * stands still, swaying, would else stay soft) */
+  const quick = useRef(0)
+  // a small canvas (a phone's figure) costs little to draw sharp, and shows every lost pixel: it never goes as soft
+  const least = size.width * size.height < 700 * 700 ? Math.min(full, 1.25) : LEAST_DPR
   const timer = useRef(0)
   /** sharp again asked for: done at the start of the next frame, as it is drawn */
   const restore = useRef(false)
@@ -241,9 +246,14 @@ function Pace({ full }: { full: number }) {
     // (a frame after a pause is not a slow one: the first of a run of frames carries the pause before it)
     if (delta > 0.25) return
     slow.current = delta > SLOW ? slow.current + 1 : Math.max(0, slow.current - 1)
-    if (slow.current >= 4 && dpr.current > LEAST_DPR) {
+    quick.current = delta > SLOW ? 0 : quick.current + 1
+    if (slow.current >= 4 && dpr.current > least) {
       slow.current = 0
-      apply(Math.max(LEAST_DPR, dpr.current * 0.8))
+      quick.current = 0
+      apply(Math.max(least, dpr.current * 0.8))
+    } else if (quick.current >= 45 && dpr.current < full) {
+      quick.current = 0
+      apply(Math.min(full, dpr.current * 1.15))
     }
     // still a moment: sharp again
     window.clearTimeout(timer.current)

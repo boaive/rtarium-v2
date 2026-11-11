@@ -42,6 +42,29 @@ function extent(root: THREE.Object3D): [number, number] {
   return [min, max]
 }
 
+/** the box round what is drawn of a model (its seen meshes, none hidden or faded out), in the world */
+function drawnBox(root: THREE.Object3D) {
+  const out = new THREE.Box3()
+  const box = new THREE.Box3()
+  root.updateWorldMatrix(true, true)
+  root.traverseVisible((o) => {
+    const mesh = o as THREE.Mesh
+    if (!mesh.isMesh) return
+    const mats = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) as THREE.Material[]
+    if (!mats.some((m) => m.visible && (!m.transparent || m.opacity > 0.05))) return
+    if ((mesh as THREE.InstancedMesh).isInstancedMesh) {
+      const im = mesh as THREE.InstancedMesh
+      im.computeBoundingBox()
+      box.copy(im.boundingBox!)
+    } else {
+      if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox()
+      box.copy(mesh.geometry.boundingBox!)
+    }
+    out.union(box.applyMatrix4(mesh.matrixWorld))
+  })
+  return out
+}
+
 interface Slot {
   /** the model's own centre (its preview target), brought to the slot's origin */
   centre: [number, number, number]
@@ -101,7 +124,8 @@ export function SystemsTrio({
   const viewW = 2 * DIST * Math.tan((FOV / 2) * (Math.PI / 180)) * aspect
   const colW = viewW / slots.length
   // on a narrow canvas (a phone's band) the models take more of their column, or they read as specks
-  const fill = fillAs ?? (aspect < 2 ? 0.9 : 0.66)
+  // (one alone, on a phone: a little less, so turned on its diagonal it never meets the edges)
+  const fill = fillAs ?? (slots.length === 1 ? 0.7 : aspect < 2 ? 0.9 : 0.66)
   /** each model's height at its own scale, measured once it is in, so the canvas's height can bound it too */
   const [tall, setTall] = useState<number[] | null>(null)
   // with room kept over them, no model stands taller than the line where that room starts (at its depth)
@@ -151,6 +175,22 @@ export function SystemsTrio({
         if (!Number.isFinite(y0)) return
         m.position.y -= (y0 - g.getWorldPosition(new THREE.Vector3()).y) / g.scale.y
         heights[i] = (y1 - y0) / g.scale.y
+        // one alone (a phone): centred on what is drawn of it, not on a centre set by hand, so it turns about its own
+        // middle and stands in the middle of its box
+        if (slots.length === 1) {
+          const turn = g.rotation.y
+          g.rotation.y = 0
+          g.updateMatrixWorld(true)
+          const box = drawnBox(m)
+          const at = g.getWorldPosition(new THREE.Vector3())
+          if (!box.isEmpty()) {
+            const c = box.getCenter(new THREE.Vector3())
+            m.position.x -= (c.x - at.x) / g.scale.x
+            m.position.z -= (c.z - at.z) / g.scale.z
+          }
+          g.rotation.y = turn
+          g.updateMatrixWorld(true)
+        }
       })
       if (headroom !== undefined) setTall(heights)
     }
