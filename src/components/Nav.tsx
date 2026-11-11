@@ -3,7 +3,7 @@ import { Link, useRoute } from '../lib/router'
 import { APPLICATIONS } from '../content/site'
 import { SYSTEMS } from '../facade/content'
 import { FLOORING_APPS } from '../flooring/content'
-import { useStageValue } from '../three/stageStore'
+import { stage, useStageValue } from '../three/stageStore'
 import { holdScroll } from '../lib/scroll'
 
 /**
@@ -172,7 +172,10 @@ export function Nav() {
         if (now - looked >= LOOK) {
           looked = now
           const b = behind(header.current)
-          setScrolled(b.under)
+          // (Home's tour: once off its opening screen the mesh fills the screen behind the bar, drawn on the 3D's own
+          // canvas, which the look under the bar cannot see into: the bar frosts over it)
+          const mesh = window.location.pathname === '/' && stage.tour > 0.25 && stage.tour < 3.6
+          setScrolled(b.under || mesh)
           setSeen(b.ground)
         }
       } else {
@@ -191,9 +194,14 @@ export function Nav() {
       if (!raf) raf = requestAnimationFrame(read)
       // (and once more as things settle: a ground that fades in after the page has stopped)
       clearTimeout(after)
-      after = window.setTimeout(() => {
+      const again = () => {
         looked = -Infinity
         if (!raf) raf = requestAnimationFrame(read)
+      }
+      // (and once the 3D, which follows the page a moment behind, has caught up with it)
+      after = window.setTimeout(() => {
+        again()
+        after = window.setTimeout(again, 520)
       }, 180)
     }
     read()

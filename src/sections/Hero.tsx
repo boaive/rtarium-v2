@@ -5,7 +5,7 @@ import { PHONE_POINTS, tourWash } from '../three/poses'
 import { Lines } from '../components/Chapter'
 import { Link } from '../lib/router'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
-import { scrollToY } from '../lib/scroll'
+import { glideToY, scrollToY } from '../lib/scroll'
 
 /** the screens of the opening tour: the piece, the mesh built out, the cavity, the light */
 const SCREENS = 4
@@ -121,20 +121,11 @@ function useTourSwipes(section: RefObject<HTMLElement | null>, phone: boolean) {
     if (!phone || !el || prefersReducedMotion()) return
     const vh = () => window.innerHeight
     const top = () => el.offsetTop
-    const yOf = (n: Element | null | undefined) => (n ? n.getBoundingClientRect().top + window.scrollY : null)
-    const rows = (id: string) => [...document.querySelectorAll<HTMLElement>(`#${id} .eb-row`)]
     /**
-     * The runs of screens a swipe steps through, each in order: the tour and About's parts after its first (each a screen,
-     * the first shares the tour's last view); Innovation (its heading and first part a screen, then a part a screen) and
-     * Tech Space after it. Between them, and after them, the page is the finger's own.
+     * The screens a swipe steps through: the tour's, on to About's first view. After it (and before it, at the top) the
+     * page scrolls as any page does, at the finger's own pace.
      */
-    const runs = () =>
-      [
-        [...STOPS.map((k) => top() + k * vh()), ...rows('about').slice(1).map(yOf)],
-        [yOf(document.getElementById('innovation')), ...rows('innovation').slice(1).map(yOf), yOf(document.getElementById('tech'))],
-      ]
-        .map((r) => r.filter((y): y is number => y !== null).map(Math.round))
-        .filter((r) => r.length > 1)
+    const runs = () => [STOPS.map((k) => Math.round(top() + k * vh()))]
     /** the run the page stands inside, if any (on a stop within it, or between two) */
     const within = (y: number) => runs().find((r) => y > r[0] - 4 && y < r[r.length - 1] - 4)
     let aim: number | null = null
@@ -151,11 +142,11 @@ function useTourSwipes(section: RefObject<HTMLElement | null>, phone: boolean) {
     const go = (y: number) => {
       from = window.scrollY
       aim = y
-      // (scrollToY's own time: 1.15 s and a little more the further it goes)
+      // a screen in 0.72 s, quick to set off and settling without a long tail; a little longer the further it goes
+      // (through the light to About, two screens, or on from a glide still under way)
       const far = Math.abs(y - window.scrollY) / vh()
-      const ms = Math.min(2.2, 1.15 + far * 0.08) * 1000
-      aimUntil = performance.now() + ms + 80
-      scrollToY(y)
+      const ms = glideToY(y, Math.min(1.05, 0.72 + Math.max(0, far - 1) * 0.2)) * 1000
+      aimUntil = performance.now() + ms + 60
       // a glide cut short (a touch that stopped it, say) never leaves the page between two views: it goes on to where
       // it was going
       clearTimeout(guard)
@@ -167,9 +158,9 @@ function useTourSwipes(section: RefObject<HTMLElement | null>, phone: boolean) {
     /** the views a swipe stops on: every screen of the tour but the light (out of the cavity it goes on, through the
      * white, straight to About's first view, and back the same way) */
     const STOPS = Array.from({ length: PHONE_SCREENS + 1 }, (_, k) => k).filter((k) => k !== PHONE_SCREENS - 1)
-    /** the run a swipe that way, from where the page is going, is taken through (or into, from the screen before it) */
+    /** the run a swipe that way, from where the page is going, is taken through (only from within it: from About on up, the page scrolls freely back to its first view, and steps from there) */
     const ours = (dir: number, at: number) =>
-      runs().find((r) => (dir > 0 ? at > r[0] - vh() + 4 && at < r[r.length - 1] - 4 : at > r[0] + 4 && at < r[r.length - 1] + vh() - 4))
+      runs().find((r) => (dir > 0 ? at >= r[0] - 4 && at < r[r.length - 1] - 4 : at > r[0] + 4 && at <= r[r.length - 1] + 4))
     const start = (e: TouchEvent) => {
       // (a finger set down while the page glides between two views does not stop it: the smooth scroll never hears it)
       if (aim !== null && performance.now() < aimUntil) e.stopPropagation()
@@ -219,6 +210,8 @@ function useTourSwipes(section: RefObject<HTMLElement | null>, phone: boolean) {
      */
     let wheelAt = -Infinity
     let wheelDir = 0
+    let wheelSize = 0
+    let freshAt = -Infinity
     const wheel = (e: WheelEvent) => {
       if (e.ctrlKey || !e.deltaY) return
       const dir = Math.sign(e.deltaY)
@@ -227,9 +220,14 @@ function useTourSwipes(section: RefObject<HTMLElement | null>, phone: boolean) {
       if (!run) return
       e.preventDefault()
       e.stopPropagation()
-      const fresh = e.timeStamp - wheelAt > 160 || dir !== wheelDir
+      // a new scroll: after a pause, the other way, or (a trackpad's momentum still dying away) one that comes in markedly
+      // stronger than the tail it lands on, never the tail itself
+      const size = Math.abs(e.deltaY)
+      const fresh = e.timeStamp - wheelAt > 160 || dir !== wheelDir || (size >= 30 && size > wheelSize * 2 && e.timeStamp - freshAt > 260)
       wheelAt = e.timeStamp
       wheelDir = dir
+      wheelSize = size
+      if (fresh) freshAt = e.timeStamp
       if (fresh) next(dir, at, run)
     }
     const end_ = () => {
@@ -243,10 +241,7 @@ function useTourSwipes(section: RefObject<HTMLElement | null>, phone: boolean) {
       settle = window.setTimeout(() => {
         if (touching || performance.now() < aimUntil) return
         const y = window.scrollY
-        // (come to rest just short of a run, or just past its end, with most of the screen on it: onto its first view, or
-        // its last, so a run is never first seen cut)
-        const edge = vh() * 0.35
-        const run = within(y) ?? runs().find((r) => (y > r[0] - edge && y <= r[0] + 4) || (y >= r[r.length - 1] - 4 && y < r[r.length - 1] + edge))
+        const run = within(y)
         if (!run) return
         const near = run.reduce((a, n) => (Math.abs(n - y) < Math.abs(a - y) ? n : a), run[0])
         if (Math.abs(near - y) > 2) go(near)

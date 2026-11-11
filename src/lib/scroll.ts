@@ -23,6 +23,16 @@ export function startSmoothScroll() {
 /** the page's jumps (`scrollToY` at once), counted: a step's goal from before one is no longer where the page is going */
 let jumps = 0
 
+/**
+ * A step of the page by the finger or the wheel (a phone's Home, a view at a time): a quick, even glide that is at once
+ * on its way and settles without a long tail, `seconds` long. Returns how long it takes (s).
+ */
+export function glideToY(y: number, seconds: number) {
+  if (lenis) lenis.scrollTo(y, { duration: seconds, easing: (t) => 1 - Math.pow(1 - t, 2.6), force: true })
+  else window.scrollTo({ top: y, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  return seconds
+}
+
 export function scrollToY(y: number, immediate = false) {
   if (immediate) jumps++
   if (lenis) {
