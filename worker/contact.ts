@@ -48,16 +48,22 @@ function reference(now: Date) {
 
 /** Cloudflare Turnstile: is the token real, unused and for this visitor? */
 async function turnstileOk(env: Env, token: string, ip: string | null) {
-  if (!env.TURNSTILE_SECRET_KEY) throw new Error('TURNSTILE_SECRET_KEY is not set')
-  const form = new FormData()
-  form.append('secret', env.TURNSTILE_SECRET_KEY)
-  form.append('response', token)
-  if (ip) form.append('remoteip', ip)
-  const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: form })
-  if (!r.ok) throw new Error(`Turnstile siteverify answered ${r.status}`)
-  const out = (await r.json()) as { success: boolean; 'error-codes'?: string[] }
-  if (!out.success) console.warn('[contact] turnstile rejected:', out['error-codes']?.join(', '))
-  return out.success
+  // trimmed: a secret pasted into a terminal can carry a stray space or line break
+  const secret = (env.TURNSTILE_SECRET_KEY ?? '').trim()
+  if (!secret) throw new Error('TURNSTILE_SECRET_KEY is not set')
+  const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret, response: token, ...(ip ? { remoteip: ip } : {}) }),
+  })
+  const out = (await r.json().catch(() => null)) as { success?: boolean; 'error-codes'?: string[] } | null
+  if (!out) throw new Error(`Turnstile siteverify answered ${r.status} without a result`)
+  const codes = out['error-codes'] ?? []
+  // our own set-up is wrong (not the visitor's fault): say so in the log, tell the visitor to try later
+  if (codes.some((c) => c.includes('secret') || c === 'bad-request' || c === 'internal-error'))
+    throw new Error(`Turnstile siteverify answered ${r.status}: ${codes.join(', ')}`)
+  if (!out.success) console.warn(`[contact] turnstile rejected (${r.status}): ${codes.join(', ') || 'no reason given'}`)
+  return out.success === true
 }
 
 export async function handleContact(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
