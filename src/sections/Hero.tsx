@@ -262,59 +262,69 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
   }, [section, curtain, phone, back])
 }
 
-/** what a phone's page stops on, a swipe at a time, after the tour's screens: About and each part after it, each section */
-const STOP_PARTS = '#main > section, #main .eb-row, footer'
 /**
- * A phone's swipe: how far the finger must go (share of the screen), or how fast (px/ms), to move on a stop; stops
- * nearer each other than `near` (share of a screen) are one; a stretch longer than `long` between two stops gets stops
- * `step` apart in it, so every swipe goes about as far
+ * A phone's swipe: how far the finger must go (share of the screen), or how fast (px/ms), to move on a stop; and how
+ * long the page must have been still before a page left between two stops is brought to the nearer (ms)
  */
-const SWIPE = { reach: 0.06, flick: 0.45, near: 0.4, long: 1.25, step: 0.9 }
+const SWIPE = { reach: 0.06, flick: 0.45, settle: 140 }
 
-/** where a phone's Home stops, top to bottom (px): the tour's screens up to the white, then About and the parts after */
-function swipeStops(tour: HTMLElement) {
-  const vh = window.innerHeight
-  const sh = screenH(tour)
-  // (the white, the tour's last screen, is no stop: from the cavity's last point one swipe goes through it to About)
-  const ys = Array.from({ length: PHONE_SCREENS - 1 }, (_, k) => Math.round(tour.offsetTop + k * sh))
-  /** stretches a section holds its own stops through (`data-swipe-stops`, shares of its run): no stops are added in them */
-  const owned: [number, number][] = []
-  for (const p of document.querySelectorAll<HTMLElement>('[data-swipe-stops]')) {
-    const top = p.getBoundingClientRect().top + window.scrollY
-    const run = Math.max(1, p.offsetHeight - vh)
-    for (const f of (p.dataset.swipeStops ?? '').split(',').map(Number)) if (Number.isFinite(f)) ys.push(Math.round(top + f * run))
-    owned.push([top - 2, top + run + 2])
-  }
-  for (const p of document.querySelectorAll<HTMLElement>(STOP_PARTS)) {
-    if (p === tour || tour.contains(p)) continue
-    // (a part keeps its own room for the header at its top: it comes to rest at its own top)
-    ys.push(Math.round(p.getBoundingClientRect().top + window.scrollY))
-  }
-  ys.sort((a, b) => a - b)
-  const max = document.documentElement.scrollHeight - vh
-  const kept: number[] = []
-  for (const y of ys) if (!kept.length || y - kept[kept.length - 1] >= vh * SWIPE.near) kept.push(y)
-  const all: number[] = []
-  // (a long stretch below the tour gets stops through it; the tour's own last stretch, through the white, none)
-  const tourEnd = tour.offsetTop + tour.offsetHeight
-  kept.forEach((y, i) => {
-    all.push(y)
-    const next = kept[i + 1] ?? max
-    if (y < tourEnd - 2 || owned.some(([a, b]) => y >= a && y < b)) return
-    for (let at = y + vh * SWIPE.step; next - y > vh * SWIPE.long && next - at > vh * SWIPE.near; at += vh * SWIPE.step) all.push(Math.round(at))
-  })
-  if (max - all[all.length - 1] > vh * SWIPE.near) all.push(max)
-  return all.map((y) => Math.min(max, y)).filter((y, i, a) => i === 0 || y > a[i - 1])
+/**
+ * A stretch of a phone's Home that goes a stop a swipe: its stops, top to bottom (px), and where a swipe on out of its
+ * last stop goes (null: nowhere of its own, the page scrolls on freely)
+ */
+interface Zone {
+  stops: number[]
+  after: number | null
+  /** the tour's: its last stop is About's top, reached from the tour, never a stop a swipe from it sets off from going down */
+  tour?: boolean
 }
 
 /**
- * A phone's Home goes a stop a swipe, everywhere alike: while the finger is down the page is the browser's own and
- * follows it exactly; once it lets go, the page goes on to the next stop that way (never past it, however hard the
- * flick), or back to the stop it set off from if the swipe was a small one, in the browser's own smooth scroll (run off
- * the page's thread, so it keeps its pace while the 3D draws). The stops: the tour's screens to the cavity's last point
- * (from it one swipe goes on through the white, and About comes out of it: useWhiteHandoff), then About and each of its
- * parts, and so on down. A touch
- * that took a mesh in hand, or that the white handed over to About, is left alone.
+ * The stretches of a phone's Home that go a stop a swipe: the tour, its screens to the cavity's last point and on (one
+ * swipe through the white) to About's top; and a section that names its own stops (`data-swipe-stops`, shares of its run:
+ * What it replaces, a card a swipe), and one more on to the section after it. Everywhere else the page scrolls freely.
+ */
+function pagedZones(tour: HTMLElement): Zone[] {
+  const vh = window.innerHeight
+  const sh = screenH(tour)
+  const aboutTop = Math.round(tour.offsetTop + tour.offsetHeight)
+  // (the white, the tour's last screen, is no stop: from the cavity's last point one swipe goes through it to About)
+  const zones: Zone[] = [{ stops: [...Array.from({ length: PHONE_SCREENS - 1 }, (_, k) => Math.round(tour.offsetTop + k * sh)), aboutTop], after: null, tour: true }]
+  for (const p of document.querySelectorAll<HTMLElement>('[data-swipe-stops]')) {
+    const top = p.getBoundingClientRect().top + window.scrollY
+    const run = Math.max(1, p.offsetHeight - vh)
+    const stops = (p.dataset.swipeStops ?? '')
+      .split(',')
+      .map(Number)
+      .filter(Number.isFinite)
+      .map((f) => Math.round(top + f * run))
+    if (stops.length) zones.push({ stops, after: Math.round(top + p.offsetHeight) })
+  }
+  return zones
+}
+
+/** the zone the page stands in at `y` going `dir` (0: either way), if any */
+function zoneAt(zones: Zone[], y: number, dir: number) {
+  return zones.find((z) => {
+    const first = z.stops[0]
+    const last = z.stops[z.stops.length - 1]
+    // (the tour's last stop, About's top, belongs to it only going back up: down from there the page is free)
+    if (z.tour && Math.abs(y - last) < 3) return dir < 0
+    return y > first - 3 && y < last + 3
+  })
+}
+
+const nearestOf = (stops: number[], y: number) => stops.reduce((a, s) => (Math.abs(s - y) < Math.abs(a - y) ? s : a), stops[0])
+
+/**
+ * A phone's Home goes a stop a swipe where a stop a swipe tells the story (pagedZones): the tour, a screen a swipe and
+ * one on through the white to About; and the deck of What it replaces, a card a swipe and one on to Innovation. There,
+ * while the finger is down the page is the browser's own and follows it exactly; once it lets go, the page goes on to
+ * the next stop that way (never past it, however hard the flick), or back to the one it set off from if the swipe was a
+ * small one, in the browser's own smooth scroll (run off the page's thread, so it keeps its pace while the 3D draws).
+ * Everywhere else the page scrolls freely, with the finger and its fling; and a page that comes to rest inside a paged
+ * stretch between two stops (a fling run on into it) is brought to the nearer. A touch that took a mesh in hand, or that
+ * the white handed over to About, is left alone; back up from About's top the way is the white's (useWhiteHandoff).
  */
 function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, back: Back) {
   useEffect(() => {
@@ -322,27 +332,32 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     if (!phone || !el || prefersReducedMotion()) return
     // (the smooth scroll set aside: written a frame behind the page, it would pull at the page's own glides)
     const bringBack = setAsideSmoothScroll()
-    const touch = { y: 0, x: 0, t: 0, at: 0, base: 0, multi: false }
-    let stops: number[] = []
+    const touch = { y: 0, x: 0, t: 0, at: 0, from: 0, down: false, multi: false }
     /** where the last glide was going, and when it set off */
     let aim: number | null = null
     let aimAt = 0
-    const nearest = (y: number) => stops.reduce((a, s) => (Math.abs(s - y) < Math.abs(a - y) ? s : a), stops[0] ?? 0)
+    const glide = (to: number) => {
+      aim = to
+      aimAt = performance.now()
+      window.scrollTo({ top: to, behavior: 'smooth' })
+    }
+    const gliding = () => aim !== null && performance.now() - aimAt < 1200 && Math.abs(window.scrollY - aim) > 2
     const start = (e: TouchEvent) => {
       touch.multi = e.touches.length !== 1
       const t = e.touches[0]
       if (!t) return
+      touch.down = true
       touch.y = t.clientY
       touch.x = t.clientX
       touch.t = e.timeStamp
       touch.at = performance.now()
-      stops = swipeStops(el)
       // (a swipe during a glide sets off from where that glide was going)
-      touch.base = aim !== null && performance.now() - aimAt < 900 ? aim : nearest(window.scrollY)
+      touch.from = gliding() && aim !== null ? aim : window.scrollY
     }
     const end = (e: TouchEvent) => {
+      touch.down = false
       const t = e.changedTouches[0]
-      if (touch.multi || !t || !stops.length) return
+      if (touch.multi || !t) return
       // a mesh taken in hand, or the white handing over to About, during this touch: not a swipe of the page
       if (stage.heldAt >= touch.at) return
       const dy = touch.y - t.clientY
@@ -351,32 +366,56 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       const vh = window.innerHeight
       const speed = Math.abs(dy) / Math.max(1, e.timeStamp - touch.t)
       const dir = Math.abs(dy) > vh * SWIPE.reach || (speed > SWIPE.flick && Math.abs(dy) > 12) ? Math.sign(dy) : 0
+      const zones = pagedZones(el)
+      const zone = zoneAt(zones, touch.from, dir)
+      // (a swipe that sets off where the page scrolls freely is the browser's own)
+      if (!zone) return
+      const { stops } = zone
       const y = window.scrollY
-      const i = stops.indexOf(touch.base)
-      let to = nearest(y)
+      const i = stops.indexOf(nearestOf(stops, touch.from))
+      if (dir === 0) return glide(nearestOf(stops, y))
       if (dir > 0) {
-        // the next stop on from where the swipe set off; past it already (a long drag), the next past where the page is
-        const next = stops[Math.min(stops.length - 1, i + 1)]
-        to = y > next + 4 ? (stops.find((s) => s > y + 4) ?? stops[stops.length - 1]) : next
-      } else if (dir < 0) {
-        const prev = stops[Math.max(0, i - 1)]
-        to = y < prev - 4 ? ([...stops].reverse().find((s) => s < y - 4) ?? stops[0]) : prev
+        // the next stop on from where the swipe set off; past it already (a long drag), the next past where the page is;
+        // on from the last, where the stretch hands the page on (or nowhere: the page goes on freely)
+        if (i === stops.length - 1) return zone.after !== null ? glide(zone.after) : undefined
+        const next = stops[i + 1]
+        return glide(y > next + 4 ? (stops.find((s) => s > y + 4) ?? stops[stops.length - 1]) : next)
       }
-      aim = to
-      aimAt = performance.now()
-      // back up from About into the tour: the way down, in reverse (About fades to the white, out of it into the cavity)
-      const aboutTop = el.offsetTop + el.offsetHeight
-      if (dir < 0 && Math.abs(touch.base - aboutTop) < 3 && to < aboutTop - 2 && back.current) return back.current(to)
-      window.scrollTo({ top: to, behavior: 'smooth' })
+      // back up from About's top into the tour: the way down, in reverse (About fades to the white, out of it into the cavity)
+      if (zone.tour && i === stops.length - 1 && back.current) return back.current(stops[i - 1])
+      // (back out of the first stop: the page goes on freely)
+      if (i === 0) return
+      const prev = stops[i - 1]
+      return glide(y < prev - 4 ? ([...stops].reverse().find((s) => s < y - 4) ?? stops[0]) : prev)
+    }
+    /** a page come to rest inside a paged stretch between two of its stops (a fling run on into it): to the nearer */
+    let quiet = 0
+    const settle = () => {
+      if (touch.down || gliding() || performance.now() - stage.heldAt < 1500) return
+      const y = window.scrollY
+      const zone = zoneAt(pagedZones(el), y, 0)
+      if (!zone) return
+      const near = nearestOf(zone.stops, y)
+      if (Math.abs(near - y) > 3) glide(near)
+    }
+    const scrolled = () => {
+      window.clearTimeout(quiet)
+      quiet = window.setTimeout(settle, SWIPE.settle)
     }
     window.addEventListener('touchstart', start, { passive: true })
     window.addEventListener('touchend', end, { passive: true })
+    const cancel = () => void (touch.down = false)
+    window.addEventListener('touchcancel', cancel, { passive: true })
+    window.addEventListener('scroll', scrolled, { passive: true })
     return () => {
+      window.clearTimeout(quiet)
       window.removeEventListener('touchstart', start)
       window.removeEventListener('touchend', end)
+      window.removeEventListener('touchcancel', cancel)
+      window.removeEventListener('scroll', scrolled)
       bringBack()
     }
-  }, [section, phone])
+  }, [section, phone, back])
 }
 
 export function Hero() {
