@@ -50,6 +50,7 @@
   overflow: hidden;
 }
 .fu-bar__cell[data-state='next'] .fu-bar__btn {
+  border-color: rgb(8 8 8 / 0.34);
   border-color: color-mix(in srgb, var(--bar-ink) 34%, transparent);
 }
 .fu-bar__btn:hover {
