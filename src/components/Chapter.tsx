@@ -146,7 +146,78 @@ const DRIFT = 0.28
  * never cuts. A step with nothing to draw (footage) holds the pose before it under its film.
  * Reaching a step plays its sequence in time, as on the vertical chapters.
  */
-export function Track({ id, title, steps, className = '' }: { id: string; title: string; steps: Step[]; className?: string }) {
+export function Track(props: { id: string; title: string; steps: Step[]; className?: string; phoneGround?: Ground }) {
+  const compact = useIsCompact()
+  if (compact) return <Rows {...props} ground={props.phoneGround} />
+  return <SideTrack {...props} />
+}
+
+/**
+ * A sideways chapter on a phone, set as Enerblock sets its solutions: read down the page at the finger's own speed, on
+ * warm white, in rows parted by hairlines the width of the screen. Each step a row: its number, its name in small
+ * capitals, the copy in plain weights, and its 3D in a framed figure under it (the stage draws the mesh inside the
+ * figure's box: `useStageRegion` with `box`), a drawing's title block along the figure's foot. The step whose figure
+ * holds the middle of the screen is the one playing.
+ */
+export function Rows({ id, title, steps, ground = 'light' }: { id: string; title: string; steps: Step[]; ground?: Ground }) {
+  CHAPTERS.set(id, { title, labels: steps.map((s) => s.label) })
+  const section = useRef<HTMLElement>(null)
+  // holding the middle of the screen, read on every scroll as the other sections are, the header takes this ground
+  useScreen(section, id, ground)
+  return (
+    <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground}>
+      <header className="eb__head">
+        <p className="eb__title">{title}</p>
+        {steps.length > 1 && <p className="eb__count num">{two(steps.length)} parts</p>}
+      </header>
+      {steps.map((s, i) => (
+        <Row key={s.id} chapter={id} title={title} step={s} index={i} ground={ground} />
+      ))}
+    </section>
+  )
+}
+
+function Row({ chapter, title, step, index, ground }: { chapter: string; title: string; step: Step; index: number; ground: Ground }) {
+  const row = useRef<HTMLElement>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(false)
+  const [seen, setSeen] = useState(false)
+  const failed = useStageValue('failed')
+  useStageRegion(box, () => step.pose, undefined, { box: true })
+  useEffect(() => {
+    const el = row.current
+    if (!el) return
+    // in play from when the row's middle reaches the screen's lower third until it leaves the upper
+    const io = new IntersectionObserver(([e]) => {
+      setActive(e.isIntersecting)
+      if (e.isIntersecting) setSeen(true)
+    }, { rootMargin: '-30% 0px -30% 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [chapter, index])
+  const still = failed ? STILLS[step.pose] : undefined
+  return (
+    <article ref={row} id={`${chapter}-${step.id}`} className={`eb-row scene scene--${step.id} on-${ground} ${active ? 'is-active' : seen ? 'is-seen' : ''}`}>
+      <p className="eb-row__num num">{two(index + 1)} /</p>
+      <h3 className="eb-row__label">{step.label}</h3>
+      <div className="eb-row__copy">{step.render(active)}</div>
+      <figure className="eb-fig">
+        <div ref={box} className="eb-fig__view" data-screen={ground}>
+          {still && <img className="eb-fig__still" src={still} alt="" />}
+          <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
+          <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
+        </div>
+        <figcaption className="eb-fig__block">
+          <span className="eb-fig__name">{title}</span>
+          <span>Fig. {two(index + 1)}</span>
+          <span>{step.label}</span>
+        </figcaption>
+      </figure>
+    </article>
+  )
+}
+
+function SideTrack({ id, title, steps, className = '' }: { id: string; title: string; steps: Step[]; className?: string }) {
   const section = useRef<HTMLElement>(null)
   const pin = useRef<HTMLDivElement>(null)
   const slides = useRef<(HTMLDivElement | null)[]>([])
@@ -360,7 +431,7 @@ const two = (k: number) => String(k).padStart(2, '0')
 function Carousel({ steps, at, onGo }: { steps: Step[]; at: number; onGo: (i: number) => void }) {
   const n = steps.length
   return (
-    <div className={`carousel on-${steps[at].ground}`}>
+    <div className={`carousel on-${steps[at].ground} ${at === 0 ? 'is-first' : ''}`}>
       <ol className="carousel__line" aria-hidden="true">
         {steps.map((s, i) => (
           <li key={s.id} className={i < at ? 'is-past' : i === at ? 'is-now' : undefined} />
@@ -371,7 +442,9 @@ function Carousel({ steps, at, onGo }: { steps: Step[]; at: number; onGo: (i: nu
           <span className="num">
             <b>{two(at + 1)}</b> / {two(n)}
           </span>
-          <span className="carousel__name">{steps[at].label}</span>
+          <span key={at} className="carousel__name">
+            {steps[at].label}
+          </span>
         </p>
         <div className="carousel__nav">
           <button type="button" className="carousel__btn" onClick={() => onGo(at - 1)} disabled={at === 0} aria-label={at > 0 ? `Previous: ${steps[at - 1].label}` : 'Previous'}>

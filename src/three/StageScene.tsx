@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { MeshField, PITCH, cellUrl, useCell, useYarnMaterial } from './mesh/MeshField'
 import { PressField } from './mesh/flex'
-import { ANCHORS, FIELD, HALF, POSES, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
+import { ANCHORS, FIELD, HALF, POSES, TOUR_LABELS, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
 import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
 import { THICKNESS_OPTIONS } from '../content/technical'
 import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
@@ -91,6 +91,8 @@ function pourClock(): number | null {
 /** whether an element the notes stand in line with is still on its way: they wait for it to arrive */
 const moving = (el: Element | null) => !!el && el.getAnimations().some((a) => a.playState === 'running' && (a as CSSAnimation).animationName === 'pour-copy')
 const fogTarget = new THREE.Color()
+/** where a view in a box stands in it: the middle */
+const CENTRE: [number, number] = [0.5, 0.5]
 const anchorPt: [number, number, number] = [0, 0, 0]
 /** where each screen is this frame: read once, used by the choice of the active screen and by the views */
 const rects = new Map<Region, DOMRect>()
@@ -367,7 +369,9 @@ export function StageScene({ compact, reduced }: Props) {
     // the screens in the viewport that have something to draw, each with where it is. Leaving the
     // cast, the opening holds the whole screen until its camera has come out as About's first
     // view; only then does About draw its own, from the same pose, so the two meet without a cut
-    const handing = !reduced && stage.tour > 3.002 && stage.tour < 3.995
+    // (on a phone About is rows of framed figures, not a screen the opening can turn into: there the opening keeps to
+    // its own section and leaves with its last screen, never drawn over the rows)
+    const handing = !reduced && !compact && stage.tour > 3.002 && stage.tour < 3.995
     const drawn: { r: Region; id: PoseId; top: number; bottom: number }[] = []
     for (const r of stage.regions) {
       const id = r.pose()
@@ -455,6 +459,11 @@ export function StageScene({ compact, reduced }: Props) {
       const hero = id === 'hero'
       const bl = hero ? undefined : r.blend?.()
       let pose: Pose = hero ? tourPose(reduced ? (stage.tour > 2.5 ? 3 : Math.min(stage.tour, 1)) : stage.tour, tourScratch) : bl ? blendPose(POSES[bl.a], POSES[bl.b], bl.t, blendScratch) : POSES[id]
+      // on a phone the opening names only the faces in the cavity; the close of the tour (About's first view on a wide
+      // screen) carries no labels, which would stand over the rows below it
+      if (hero && compact && stage.tour > 2.5) pose.labels = []
+      // and in the cavity it names its points one at a time, a screen each (Hero counts them): never with the words
+      else if (hero && compact) pose.labels = stage.tourPoints ? TOUR_LABELS.slice(0, stage.tourPoints) : []
       // where the panel is: -1 entering from below, 0 in place, 1 leaving above (the opening runs its own tour)
       const o = hero || reduced ? 0 : THREE.MathUtils.clamp(-view.top / vh, -1, 1)
       let v = views.current.get(r)
@@ -484,14 +493,15 @@ export function StageScene({ compact, reduced }: Props) {
       // a phone that is short for its width (16:9, or its browser bars showing) has less height between the copy
       // above and below the model: the model stands a little further back
       const short = compact ? clamp01((vw / vh - 0.5) / 0.08) : 0
-      const fit = compact ? (1 + squat * 0.85) * (1 + short * 0.2) : Math.max(1, 1.5 / (vw / vh))
+      const fit = r.box ? 1 : compact ? (1 + squat * 0.85) * (1 + short * 0.2) : Math.max(1, 1.5 / (vw / vh))
       const dist = (compact ? (pose.distCompact ?? pose.dist) : pose.dist) * fit * (1 + Math.abs(o) * PARALLAX.dist)
       dampVec(c.tgt, pose.tgt[0], pose.tgt[1], pose.tgt[2], k, dt)
       c.elev = damp(c.elev, pose.elev - o * PARALLAX.elev, k, dt)
       c.azim = dampAngle(c.azim, pose.azim + o * PARALLAX.azim, k, dt)
       c.dist = damp(c.dist, dist, k, dt)
       c.fov = damp(c.fov, pose.fov, k, dt)
-      const frame = compact ? pose.frameCompact : pose.frame
+      // a view in a box is centred in it
+      const frame = r.box ? CENTRE : compact ? pose.frameCompact : pose.frame
       c.fx = damp(c.fx, frame[0], k, dt)
       c.fy = damp(c.fy, lerp(frame[1], Math.min(frame[1], 0.27), squat), k, dt)
       c.spin = reduced ? 0 : pose.spin ? (c.spin + pose.spin * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
@@ -503,11 +513,21 @@ export function StageScene({ compact, reduced }: Props) {
       camera.position.copy(vPos)
       camera.up.set(0, 1, 0)
       camera.lookAt(c.tgt)
-      camera.fov = c.fov
-      // the frame is measured from the panel's top, so the mesh moves with the panel; the opening
-      // stays put through its tour and leaves with its last screen
+      // a view in a box: the camera sees the box as its whole screen, its field widened or narrowed so the mesh
+      // takes the same share of the box's width as it would of the screen's
+      const bx = r.box ? rects.get(r) : undefined
       const panelTop = hero ? Math.min(0, view.bottom - vh) : view.top
-      camera.setViewOffset(vw, vh, vw / 2 - c.fx * vw, vh / 2 - c.fy * vh - panelTop, vw, vh)
+      if (bx) {
+        camera.aspect = bx.width / bx.height
+        camera.fov = (2 * Math.atan(Math.tan((c.fov * DEG) / 2) * (vw / vh) * (bx.height / bx.width))) / DEG
+        camera.setViewOffset(bx.width, bx.height, bx.width / 2 - c.fx * bx.width, bx.height / 2 - c.fy * bx.height, bx.width, bx.height)
+      } else {
+        camera.aspect = vw / vh
+        camera.fov = c.fov
+        // the frame is measured from the panel's top, so the mesh moves with the panel; the opening
+        // stays put through its tour and leaves with its last screen
+        camera.setViewOffset(vw, vh, vw / 2 - c.fx * vw, vh / 2 - c.fy * vh - panelTop, vw, vh)
+      }
       camera.updateProjectionMatrix()
       camera.updateMatrixWorld()
       scene.environmentRotation.y = azim
@@ -753,9 +773,22 @@ export function StageScene({ compact, reduced }: Props) {
       const s1 = y1 < vh ? Math.max(0, Math.floor(y1 * pr) - 1) : ch
       if (s1 <= s0) continue
       gl.setScissorTest(true)
-      gl.setScissor(0, (ch - s1) / pr, vw, (s1 - s0) / pr)
+      if (bx) {
+        // only inside the box, and only the part of it on the screen
+        const x0 = Math.max(0, bx.left)
+        const x1 = Math.min(vw, bx.right)
+        if (x1 <= x0) continue
+        gl.setViewport(bx.left, vh - bx.bottom, bx.width, bx.height)
+        gl.setScissor(x0, (ch - s1) / pr, x1 - x0, (s1 - s0) / pr)
+      } else gl.setScissor(0, (ch - s1) / pr, vw, (s1 - s0) / pr)
       gl.clearDepth()
       gl.render(scene, camera)
+      if (bx) {
+        gl.setViewport(0, 0, vw, vh)
+        camera.aspect = vw / vh
+        // a framed figure carries no labels: the copy beside it says what it shows
+        continue
+      }
 
       // ---- labels pinned to this view's sheet -------------------------------------------------
       // the opening's callouts wait until the piece has been woven

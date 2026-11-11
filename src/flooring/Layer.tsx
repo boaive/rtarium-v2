@@ -176,7 +176,51 @@ function Sample({ k, compact }: { k: number; compact: boolean }) {
   )
 }
 
-export function Layer({ sectionRef, paged = false }: { sectionRef: RefObject<HTMLElement | null>; paged?: boolean }) {
+export function Layer(props: { sectionRef: RefObject<HTMLElement | null>; paged?: boolean }) {
+  return useIsCompact() ? <LayerPhone sectionRef={props.sectionRef} /> : <LayerGrid {...props} />
+}
+
+/** the grounds of the three windows on a phone: yellow, black, warm white, as the wide screen's blocks trade them */
+const PHONE_GROUND: Ground[] = ['yellow', 'black', 'light']
+
+/**
+ * The layer on a phone: not the wide screen's boxes opening and closing about a crossing, but each block a window,
+ * framed in hairlines, read down the page at the finger's own speed. Its number and what it is in small capitals over
+ * a ruled line; its name in plain weight; and under them the panes: the floor sample, its own 3D, across the top;
+ * the photograph and the one line that matters beside each other under it. Nothing else: the wide screen's longer
+ * sentence stays there.
+ */
+function LayerPhone({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
+  return (
+    <section ref={sectionRef} id="layer" className="lw" aria-labelledby="ffl-title">
+      <h2 id="ffl-title" className="visually-hidden">
+        The layer between the slab and the screed
+      </h2>
+      {BLOCKS.map((v, i) => (
+        <article key={v.id} className={`lw__block on-${PHONE_GROUND[i]}`} data-screen={PHONE_GROUND[i]} aria-labelledby={`ffl-${v.id}`}>
+          <p className="lw__num">
+            <span className="num">0{i + 1} /</span>
+            <span>{v.label || 'With your premix'}</span>
+          </p>
+          <h3 id={`ffl-${v.id}`} className="lw__name">
+            {v.name}
+          </h3>
+          <div className="lw__panes">
+            <div className="lw__pane lw__pane--3d">
+              <Sample k={i} compact />
+            </div>
+            <figure className="lw__pane lw__pane--photo">
+              <img src={v.photo.src} alt={v.photo.alt} loading="lazy" width={640} height={480} />
+            </figure>
+            <p className="lw__pane lw__pane--line">{v.line}</p>
+          </div>
+        </article>
+      ))}
+    </section>
+  )
+}
+
+function LayerGrid({ sectionRef, paged = false }: { sectionRef: RefObject<HTMLElement | null>; paged?: boolean }) {
   const compact = useIsCompact()
   const layouts = compact ? NARROW : WIDE
   const layer = useRef<HTMLElement>(null)

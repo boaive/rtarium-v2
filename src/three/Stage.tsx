@@ -168,7 +168,7 @@ export function Stage() {
  * Lends the stage to an element: while it holds the middle of the screen the stage shows `pose()`,
  * or, for a chapter scrubbed sideways, the mesh between two of its steps (`blend()`).
  */
-export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => PoseId, blend?: () => Blend) {
+export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => PoseId, blend?: () => Blend, opts: { box?: boolean } = {}) {
   const getter = useRef(pose)
   getter.current = pose
   const blender = useRef(blend)
@@ -176,12 +176,12 @@ export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => P
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const region: Region = { el, pose: () => getter.current(), blend: blender.current ? () => blender.current!() : undefined }
+    const region: Region = { el, pose: () => getter.current(), blend: blender.current ? () => blender.current!() : undefined, box: opts.box }
     stage.regions.add(region)
     return () => {
       stage.regions.delete(region)
     }
-  }, [ref])
+  }, [ref, opts.box])
 }
 
 /**
@@ -193,7 +193,7 @@ export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => P
  * the ground rather than chips). `span`: a dimension line from this
  * point to another anchor, with its value beside it.
  */
-export function StageLabel({ anchor, children, side = 'right', callout, column, columnAt, span, note = false, wideOnly = false }: { anchor: string; children: ReactNode; side?: 'right' | 'left'; callout?: [number, number]; column?: number; columnAt?: string; span?: string; note?: boolean; wideOnly?: boolean }) {
+export function StageLabel({ anchor, children, side = 'right', callout, column, columnAt, span, note = false, wideOnly = false, className = '' }: { anchor: string; children: ReactNode; side?: 'right' | 'left'; callout?: [number, number]; column?: number; columnAt?: string; span?: string; note?: boolean; wideOnly?: boolean; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null)
   useEffect(() => {
     const el = ref.current
@@ -219,7 +219,7 @@ export function StageLabel({ anchor, children, side = 'right', callout, column, 
     return (
       <span
         ref={ref}
-        className={`pin pin--callout ${column !== undefined || columnAt ? 'pin--column' : ''} ${note ? 'pin--note' : ''} ${wideOnly ? 'pin--wide-only' : ''}`}
+        className={`pin pin--callout ${column !== undefined || columnAt ? 'pin--column' : ''} ${note ? 'pin--note' : ''} ${wideOnly ? 'pin--wide-only' : ''} ${className}`}
         style={{ opacity: 0 }}
         data-dx={dx}
         data-dy={dy}

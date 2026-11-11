@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import '../../facade/overview.css'
+import '../../facade/overview-mobile.css'
 import '../../facade/unitized.css'
 import '../flooring.css'
 import { useIsCompact } from '../../lib/motion'
@@ -35,8 +36,8 @@ function heroShots(compact: boolean): [Shot, Shot] {
   const k = compact ? 1.7 : 1
   const f = (a: [number, number], b: [number, number]): [number, number] => (compact ? b : a)
   return [
-    { target: [0.02, -0.02, 0], dist: (compact ? 2.6 : 1.74) * k, azim: 36, elev: 26, frame: f([0.7, 0.52], [0.5, 0.4]) },
-    { target: [0.02, -0.02, 0], dist: (compact ? 2.2 : 1.48) * k, azim: 52, elev: 38, frame: f([0.68, 0.38], [0.5, 0.3]) },
+    { target: [0.02, -0.02, 0], dist: (compact ? 2.6 : 1.74) * k, azim: 36, elev: 26, frame: f([0.7, 0.52], [0.5, 0.48]) },
+    { target: [0.02, -0.02, 0], dist: (compact ? 2.2 : 1.48) * k, azim: 52, elev: 38, frame: f([0.68, 0.38], [0.5, 0.4]) },
   ]
 }
 

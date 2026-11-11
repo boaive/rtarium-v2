@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type RefObject } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { Chapter, Statement, useScreen, type Step } from '../components/Chapter'
 import { useInView } from '../facade/Story'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
@@ -43,35 +43,54 @@ const SPAN = 0.36
  * as the page scrolls (mobile.css).
  */
 function Cards({ list }: { list: RefObject<HTMLOListElement | null> }) {
+  /*
+   * A deck, all three on one screen: the ones behind tucked up under the one in front, their numbers and their
+   * strengths still showing; a tap on one tucked behind brings it to the front. The front card is read in full.
+   */
+  const [front, setFront] = useState(ROWS.length - 1)
+  const order = [...ROWS.keys()].filter((i) => i !== front).concat(front)
   return (
     <>
       <p className="vs__word">RTARIUM</p>
-      <ol ref={list} className="vs">
-        {ROWS.map((r, i) => (
-          <li key={r.name} className="vs__card" style={{ '--i': i } as CSSProperties}>
-            <div className="vs__top">
-              <span className="vs__count num">
-                <b>0{i + 1}</b> / 0{ROWS.length}
-              </span>
-              <img className="vs__mark" src="/brand/rtarium-emblem.png" alt="" width={256} height={256} loading="lazy" decoding="async" />
-            </div>
-            <p className="vs__strength">{STRENGTHS[i]}</p>
-            <dl className="vs__other">
-              <div className="vs__pair vs__pair--name">
-                <dt>Reinforcement</dt>
-                <dd className="vs__name">{r.name}</dd>
+      <ol ref={list} className="vs vs--deck">
+        {order.map((i, pos) => {
+          const r = ROWS[i]
+          const isFront = i === front
+          return (
+            <li
+              key={r.name}
+              className={`vs__card ${isFront ? 'is-front' : 'is-tucked'}`}
+              style={{ '--i': i, '--pos': pos } as CSSProperties}
+              onClick={isFront ? undefined : () => setFront(i)}
+              onKeyDown={isFront ? undefined : (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setFront(i))}
+              role={isFront ? undefined : 'button'}
+              tabIndex={isFront ? undefined : 0}
+              aria-label={isFront ? undefined : `${STRENGTHS[i]} Show this card`}
+            >
+              <div className="vs__top">
+                <span className="vs__count num">
+                  <b>0{i + 1}</b> / 0{ROWS.length}
+                </span>
+                <img className="vs__mark" src="/brand/rtarium-emblem.png" alt="" width={256} height={256} loading="lazy" decoding="async" />
               </div>
-              <div className="vs__pair vs__pair--weak">
-                <dt className="vs__hidden">Its weakness</dt>
-                <dd className="vs__weak">{r.weak}</dd>
-              </div>
-              <div className="vs__pair vs__pair--what">
-                <dt className="vs__hidden">What it is</dt>
-                <dd className="vs__what">{r.what}</dd>
-              </div>
-            </dl>
-          </li>
-        ))}
+              <p className="vs__strength">{STRENGTHS[i]}</p>
+              <dl className="vs__other" aria-hidden={!isFront}>
+                <div className="vs__pair vs__pair--name">
+                  <dt>Reinforcement</dt>
+                  <dd className="vs__name">{r.name}</dd>
+                </div>
+                <div className="vs__pair vs__pair--weak">
+                  <dt className="vs__hidden">Its weakness</dt>
+                  <dd className="vs__weak">{r.weak}</dd>
+                </div>
+                <div className="vs__pair vs__pair--what">
+                  <dt className="vs__hidden">What it is</dt>
+                  <dd className="vs__what">{r.what}</dd>
+                </div>
+              </dl>
+            </li>
+          )
+        })}
       </ol>
     </>
   )
@@ -95,6 +114,34 @@ function Replaces() {
   useMarkIn(cards, '.vs__card', compact)
   // the band plays when it is itself on screen, not when the table above it is
   const [band, bandIn] = useInView<HTMLDivElement>('0px 0px -8% 0px')
+
+  // a phone: the section holds still (pinned, minimal.css) while the scroll brings the second card and then the third up
+  // over the first, `--deck` 0 to 2 across the run; then the page goes on
+  useEffect(() => {
+    const el = section.current
+    const deck = cards.current
+    if (!compact || !el || !deck) return
+    const still = prefersReducedMotion()
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      const run = Math.max(1, r.height - window.innerHeight)
+      const p = still ? 1 : Math.min(1, Math.max(0, -r.top / run))
+      deck.style.setProperty('--deck', (p * 2).toFixed(4))
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [compact])
 
   // the rows with the scroll, no easing of their own: the page's glide (Lenis) is what makes it smooth
   useEffect(() => {

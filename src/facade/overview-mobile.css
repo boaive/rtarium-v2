@@ -1,0 +1,235 @@
+/*
+ * Façade & Cladding, the overview, on a phone (the compact query the 3D frames its phone views by: lib/motion.ts).
+ * Loads after overview.css and overrides only where the phone composition changes.
+ *
+ *   the opening   the page's name a ruled kicker under the header; the statement the largest type on the screen, set
+ *                 heavy and flush left at the foot, its words rising one by one
+ *   the systems   the three models on a strip that holds under the header; the systems as cards that come up and
+ *                 stack beneath it, the card on top lit yellow along with its model (Overview reads which)
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  /* ---- the opening ---- */
+
+  .fco-head {
+    top: calc(var(--nav-h) + clamp(30px, 5.5svh, 48px));
+    gap: clamp(14px, 2.2svh, 18px);
+  }
+  /* what the page is, a plain line under the kicker */
+  .fco-head__kind {
+    max-width: 22em;
+    font-size: clamp(0.95rem, 4.1vw, 1.05rem);
+    font-weight: 400;
+    line-height: 1.45;
+  }
+  /* the name as a kicker, a rule drawn out after it to the edge of the column */
+  .fco-head__name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  .fco-head__name::before {
+    content: '';
+    flex: none;
+    width: 7px;
+    height: 7px;
+    background: currentColor;
+  }
+  .fco-head__name::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.35;
+    transform-origin: left;
+    animation: fco-rule 1.4s var(--ease-out) 0.5s both;
+  }
+  /* the statement: the heaviest, largest thing on the screen, flush left at the foot over the panel */
+  .fco-hero__copy {
+    bottom: calc(clamp(26px, 5svh, 44px) + env(safe-area-inset-bottom, 0px));
+  }
+  .fco-mega {
+    font-size: clamp(2.5rem, 12.6vw, 3.9rem);
+    font-weight: 800;
+    letter-spacing: -0.055em;
+    line-height: 0.94;
+    text-wrap: balance;
+  }
+  /* a line running down at the right of the statement: there is more below */
+  .fco-cue {
+    display: block;
+    right: var(--gutter);
+    bottom: calc(clamp(26px, 5svh, 44px) + env(safe-area-inset-bottom, 0px) + 4px);
+    width: 1.5px;
+    height: 46px;
+    overflow: hidden;
+    font-size: 0;
+    background: rgb(8 8 8 / 0.18);
+    color: transparent;
+  }
+  .fco-cue::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--black);
+    transform: translateY(-100%);
+    animation: fco-drop 2s var(--ease-in-out) 1.6s infinite;
+  }
+
+  /* ---- the systems: the models hold under the header, the cards stack beneath them ---- */
+
+  .fct {
+    --strip: clamp(150px, 26svh, 240px);
+  }
+  .fct__inner {
+    min-height: 0;
+    padding-top: calc(var(--nav-h) + clamp(18px, 3.4svh, 30px));
+  }
+  .fct__head {
+    padding-bottom: clamp(16px, 3svh, 24px);
+  }
+  .fct__title {
+    font-size: clamp(2.3rem, 11vw, 3.4rem);
+  }
+  .fct__stage {
+    display: block;
+  }
+  .fct__canvas {
+    position: sticky;
+    top: var(--nav-h);
+    z-index: 1;
+    height: var(--strip);
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+  }
+  .fct__cols {
+    display: grid;
+    gap: 14px;
+    min-height: 0;
+    margin: 0;
+    padding: 14px 12px 34svh;
+  }
+  /* a card each, holding a little lower than the one before so the edges of those under it show */
+  .fct-col {
+    position: sticky;
+    top: calc(var(--nav-h) + var(--strip) + 12px + var(--i) * 12px);
+    z-index: 2;
+    --bg: var(--black);
+    --fg: var(--yellow);
+    --fg-2: var(--on-dark-2);
+    justify-content: flex-start;
+    min-height: clamp(250px, 40svh, 340px);
+    padding: clamp(20px, 5.6vw, 26px);
+    border: 0;
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--fg);
+    box-shadow:
+      0 -16px 30px -20px rgb(8 8 8 / 0.5),
+      0 24px 40px -30px rgb(8 8 8 / 0.6);
+    transition:
+      background-color 0.6s var(--ease-out),
+      color 0.6s var(--ease-out),
+      transform 0.6s var(--ease-out);
+  }
+  .fct-col:last-child {
+    border: 0;
+  }
+  /* the card on top of the stack: yellow, its model lit above it */
+  .fct-col.is-hover {
+    --bg: var(--yellow);
+    --fg: var(--black);
+    --fg-2: var(--on-yellow-2);
+  }
+  .fct-col.is-hover .fct-col__line {
+    color: var(--fg-2);
+  }
+  .fct-col__text {
+    flex: 1;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 10px;
+    width: 100%;
+  }
+  /* the number large and quiet in the card's corner, cut in the name's face */
+  .fct-col__num {
+    justify-self: stretch;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-family: var(--font-name);
+    font-size: 2.6rem;
+    font-weight: 860;
+    font-stretch: 150%;
+    letter-spacing: -0.02em;
+    line-height: 0.8;
+    color: var(--fg);
+    opacity: 0.9;
+  }
+  .fct-col__num::after {
+    content: 'System';
+    padding-top: 2px;
+    font-family: var(--font);
+    font-size: 0.66rem;
+    font-weight: 800;
+    font-stretch: 100%;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--fg-2);
+  }
+  .fct-col__name {
+    margin-top: clamp(14px, 3svh, 26px);
+    font-size: clamp(1.75rem, 8.4vw, 2.4rem);
+    letter-spacing: -0.045em;
+    line-height: 0.98;
+  }
+  .fct-col__line {
+    max-width: 22rem;
+    font-size: clamp(0.98rem, 4.2vw, 1.08rem);
+  }
+  /* the way in runs the width of the card, under the thumb */
+  .fct-col__go {
+    align-self: end;
+    justify-self: stretch;
+    margin-top: var(--s-3);
+    min-height: 54px;
+  }
+  .fct-col__go .fc-go__label {
+    flex: 1;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .fct-col__go:active .fc-go__cell {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes fco-rule {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes fco-drop {
+  0% {
+    transform: translateY(-100%);
+  }
+  55%,
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fco-head__name::after,
+  .fco-cue::before {
+    animation: none;
+  }
+  .fco-cue::before {
+    transform: none;
+  }
+}
