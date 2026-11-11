@@ -127,14 +127,20 @@ const POINTS = [
   { anchor: 'tour-face-b', name: 'Lower basalt face' },
 ]
 
-/** how far into its white screen a phone's tour hands over to About (screens), and how long About takes to come out of it (ms) */
-const HANDOFF = { at: PHONE_SCREENS - 1 - 0.08, fade: 620 }
+/**
+ * A phone's hand-over from the white to About: how far into its white screen it starts (screens); how long the page is
+ * held on About under the curtain at least, how long a fling must have been quiet before it is let go, and the most it
+ * is held (ms); how long About takes to come out of the white (ms); and the same hold and quiet in frames too, so a
+ * slow frame never ends the hold early
+ */
+const HANDOFF = { at: PHONE_SCREENS - 1 - 0.08, hold: 280, quiet: 140, most: 2400, fade: 620, frames: 18, quietFrames: 8 }
 
 /**
- * A phone's tour ends in the white, and About does not scroll up into it: once the white has the screen (going down),
- * a warm-white curtain holds it, the page is set on About's first view at once (the jump ends any fling, so it lands
- * there exactly), and the curtain clears, so About comes out of the white. From there the page scrolls as any page
- * does; going back up, the page scrolls back through the white into the cavity.
+ * A phone's tour ends in the white, and About does not scroll up into it: once the page crosses into the white going
+ * down (however fast), a warm-white curtain holds the screen and the page is set on About's first view. A fling still
+ * running is held there under the curtain (put back each frame it pushes the page on) until it has died out, so even a
+ * hard flick lands on About's first view, never past it; then the curtain clears and About comes out of the white.
+ * From there the page scrolls as any page does; going back up, it scrolls back through the white into the cavity.
  */
 function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObject<HTMLDivElement | null>, phone: boolean) {
   useEffect(() => {
@@ -142,38 +148,79 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
     const veil = curtain.current
     if (!phone || !el || !veil) return
     let lastY = window.scrollY
+    let lastAt = -el.getBoundingClientRect().top / window.innerHeight
     /** handed over, until the page is back above the white */
     let done = false
     let clear = 0
+    let pin = 0
+    /** where the page is held while the curtain is up, and when a fling last pushed it off */
+    const held = { target: 0, moved: 0 }
+    /** a fling (or a finger) still pushing the page on: put back on About's first view, out of sight under the curtain */
+    const putBack = () => {
+      if (Math.abs(window.scrollY - held.target) <= 1) return
+      window.scrollTo({ top: held.target, behavior: 'instant' as ScrollBehavior })
+      held.moved = performance.now()
+    }
+    const land = (target: number) => {
+      const start = performance.now()
+      held.target = target
+      held.moved = start
+      let frames = 0
+      let quiet = 0
+      /** the push the last frame knew of */
+      let seen = start
+      const hold = () => {
+        const now = performance.now()
+        putBack()
+        lastY = window.scrollY
+        frames++
+        // (a frame after a push, put back here or by a scroll event since the last frame, is not a quiet one)
+        if (held.moved !== seen) {
+          seen = held.moved
+          quiet = 0
+        } else quiet++
+        const settled = now - start >= HANDOFF.hold && now - held.moved >= HANDOFF.quiet && frames >= HANDOFF.frames && quiet >= HANDOFF.quietFrames
+        if (!settled && now - start < HANDOFF.most) {
+          pin = requestAnimationFrame(hold)
+          return
+        }
+        pin = 0
+        // still now: the curtain clears, and About comes out of the white
+        veil.classList.add('is-clearing')
+        veil.classList.remove('is-on')
+        window.clearTimeout(clear)
+        clear = window.setTimeout(() => veil.classList.remove('is-clearing'), prefersReducedMotion() ? 0 : HANDOFF.fade)
+      }
+      pin = requestAnimationFrame(hold)
+    }
     const onScroll = () => {
+      // (held under the curtain: every push of a fling is put back at once)
+      if (pin) return putBack()
       const y = window.scrollY
       const down = y > lastY
       lastY = y
       const vh = window.innerHeight
       const at = -el.getBoundingClientRect().top / vh
+      const from = lastAt
+      lastAt = at
       if (at < HANDOFF.at - 0.4) done = false
-      if (done || !down || at < HANDOFF.at || at >= PHONE_SCREENS) return
+      // crossing into the white going down, from the tour (a hard flick may cross it, and even About's top, in one go)
+      if (done || !down || from >= HANDOFF.at || at < HANDOFF.at) return
       done = true
       // the curtain, at once: the screen is already the white it is
       veil.classList.remove('is-clearing')
       veil.classList.add('is-on')
-      // the browser's own jump, which also ends a fling still running (so it lands there exactly)
-      window.scrollTo({ top: el.offsetTop + PHONE_SCREENS * vh, behavior: 'instant' as ScrollBehavior })
+      const target = el.offsetTop + PHONE_SCREENS * vh
+      window.scrollTo({ top: target, behavior: 'instant' as ScrollBehavior })
       lastY = window.scrollY
-      requestAnimationFrame(() => {
-        // About has laid out under the curtain: it clears, and About comes out of the white
-        requestAnimationFrame(() => {
-          veil.classList.add('is-clearing')
-          veil.classList.remove('is-on')
-          window.clearTimeout(clear)
-          clear = window.setTimeout(() => veil.classList.remove('is-clearing'), prefersReducedMotion() ? 0 : HANDOFF.fade)
-        })
-      })
+      lastAt = PHONE_SCREENS
+      land(target)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       window.removeEventListener('scroll', onScroll)
       window.clearTimeout(clear)
+      cancelAnimationFrame(pin)
     }
   }, [section, curtain, phone])
 }
