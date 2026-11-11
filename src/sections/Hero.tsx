@@ -5,7 +5,7 @@ import { PHONE_POINTS, tourWash } from '../three/poses'
 import { Lines } from '../components/Chapter'
 import { Link } from '../lib/router'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
-import { scrollToY } from '../lib/scroll'
+import { scrollToY, setTouchGlide } from '../lib/scroll'
 
 /** the screens of the opening tour: the piece, the mesh built out, the cavity, the light */
 const SCREENS = 4
@@ -133,7 +133,7 @@ const POINTS = [
  * is held (ms); how long About takes to come out of the white (ms); and the same hold and quiet in frames too, so a
  * slow frame never ends the hold early
  */
-const HANDOFF = { at: PHONE_SCREENS - 1 - 0.08, hold: 280, quiet: 140, most: 2400, fade: 620, frames: 18, quietFrames: 8 }
+const HANDOFF = { at: PHONE_SCREENS - 1 - 0.08, hold: 90, quiet: 70, most: 2400, fade: 360, frames: 6, quietFrames: 4 }
 
 /**
  * A phone's tour ends in the white, and About does not scroll up into it: once the page crosses into the white going
@@ -227,6 +227,24 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
   }, [section, curtain, phone])
 }
 
+/**
+ * A phone's swipes below the tour (About on) glide by a held reach, so a hard flick moves the page a part on, never
+ * through half of it (lib/scroll, setTouchGlide); in the tour the page scrolls natively, with the finger. Decided as
+ * each touch begins.
+ */
+function useSwipeReach(section: RefObject<HTMLElement | null>, phone: boolean) {
+  useEffect(() => {
+    const el = section.current
+    if (!phone || !el) return
+    const decide = () => setTouchGlide(window.scrollY >= el.offsetTop + PHONE_SCREENS * window.innerHeight - 2)
+    window.addEventListener('touchstart', decide, { capture: true, passive: true })
+    return () => {
+      window.removeEventListener('touchstart', decide, { capture: true })
+      setTouchGlide(false)
+    }
+  }, [section, phone])
+}
+
 export function Hero() {
   const section = useRef<HTMLElement>(null)
   const open = useRef<HTMLDivElement>(null)
@@ -238,6 +256,7 @@ export function Hero() {
   useTour(section, setAt, compact)
   const curtain = useRef<HTMLDivElement>(null)
   useWhiteHandoff(section, curtain, compact)
+  useSwipeReach(section, compact)
 
   // the scroll cue starts the tour: one screen down
   const start = () => {

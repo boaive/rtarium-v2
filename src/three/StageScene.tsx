@@ -55,6 +55,8 @@ const PARALLAX = { dist: 0.14, elev: 5, azim: 12 }
 const SWAY_PERIOD = 16
 /** how fast a view in a box turns, steadily, in degrees a second (once round in a minute) */
 const BOX_TURN = 6
+/** a phone's card most in view turns slowly, on and on (deg/s); the rest hold where they are */
+const CARD_TURN = 2.5
 /** the settle as it is woven: starting height (m), spring stiffness and damping (a small bounce, then still) */
 const DROP = { height: 0.05, k: 70, c: 7.5, tilt: 0.3 }
 /** the opening piece is woven out from its middle: when it starts and how long it takes (s) */
@@ -297,6 +299,8 @@ export function StageScene({ compact, reduced }: Props) {
   const sigIn = useRef('')
   const sigLast = useRef<number[]>([])
   const still = useRef(0)
+  /** the press field still moving (a card pressed, springing back): no frame is skipped */
+  const pressLive = useRef(false)
 
   const press = useMemo(() => new PressField(96, 96), [])
   useEffect(() => {
@@ -320,8 +324,8 @@ export function StageScene({ compact, reduced }: Props) {
   useEffect(() => {
     gl.setClearColor(0x000000, 0)
     gl.autoClear = false
-    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop, POSES, POUR_OUT, ANCHORS, gl, yarn, camera: cameraNow }
-  }, [gl, scene, yarn, cameraNow])
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop, POSES, POUR_OUT, ANCHORS, gl, yarn, camera: cameraNow, press }
+  }, [gl, scene, yarn, cameraNow, press])
 
   const lineMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#fdd001', toneMapped: false }), [])
   const inkLineMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#080808', toneMapped: false }), [])
@@ -438,6 +442,19 @@ export function StageScene({ compact, reduced }: Props) {
       }, (INTRO.delay + INTRO.duration) * 1000)
     }
     const since = (now - started.current) / 1000
+    // a phone's cards: only the one most in view turns (slowly, CARD_TURN); the rest hold where they are
+    let turning: Region | null = null
+    if (compact) {
+      let most = 0
+      for (const d of drawn) {
+        if (!d.r.box) continue
+        const seen = Math.min(d.bottom, vh) - Math.max(d.top, 0)
+        if (seen > most) {
+          most = seen
+          turning = d.r
+        }
+      }
+    }
     // ---- a phone: a frame that would show the same picture as the last one is not drawn --------
     // What the picture is made from (where each screen is, the tour, the drag) is compared with the last frame; once it
     // has not changed and the last frames drew the same thing (every movement settled), the canvas keeps its picture
@@ -450,10 +467,10 @@ export function StageScene({ compact, reduced }: Props) {
         // (a card's picture does not change as it scrolls, only with its size: it scrolls with the page in its own canvas)
         const place = d.r.box ? `${(b?.height ?? 0).toFixed(1)}` : `${d.top.toFixed(1)},${d.bottom.toFixed(1)}`
         // (a card in the hand changes with it)
-        const held = d.r.turn ? `${d.r.turn.yaw.toFixed(4)}${d.r.turn.dragging ? 'h' : ''}` : ''
+        const held = d.r.turn ? `${d.r.turn.yaw.toFixed(4)}${d.r.turn.dragging ? 'h' : ''}${d.r.turn.touch?.down ? `t${d.r.turn.touch.x.toFixed(3)},${d.r.turn.touch.y.toFixed(3)}` : ''}` : ''
         key += `|${d.id},${held},${place},${b ? `${b.left.toFixed(1)},${b.width.toFixed(1)}` : ''},${bl ? `${bl.a},${bl.b},${bl.t.toFixed(4)}` : ''}`
       }
-      const idle = key === sigIn.current && still.current >= 2 && since > INTRO.delay + INTRO.duration + 1.5 && !stage.inspect
+      const idle = key === sigIn.current && still.current >= 2 && since > INTRO.delay + INTRO.duration + 1.5 && !stage.inspect && !pressLive.current
       if (key !== sigIn.current) still.current = 0
       sigIn.current = key
       if (idle) return
@@ -570,7 +587,7 @@ export function StageScene({ compact, reduced }: Props) {
       const turn = pose.spin || (r.box ? (import.meta.env.DEV && (window as unknown as { __boxTurn?: number }).__boxTurn) || BOX_TURN : 0)
       // a phone's figure stands still in its pose: no turn, no rock (it read as a wobble in the hand); it moves only with
       // the page, and the phone draws nothing while the page is still
-      if (compact && r.box && !pose.spin) c.spin = 0
+      if (compact && r.box && !pose.spin) c.spin = reduced || r !== turning ? c.spin : (c.spin + CARD_TURN * dt) % 360
       else c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
       // (a phone's views never sway on their own: the mesh moves only when the visitor scrolls or turns it)
       const sway = reduced || r.box || compact ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
@@ -705,7 +722,7 @@ export function StageScene({ compact, reduced }: Props) {
       u.uFaceColor.value.copy(v.face)
       u.uPileColor.value.copy(v.pile)
       // (a phone has no cursor to press the sheet: its vertices skip the press field's three reads)
-      u.uFlex.value = compact ? 0 : f.flex
+      u.uFlex.value = compact && !r.box ? 0 : f.flex
       // the opening's press reads as a hollow in the mesh, not a light
       u.uPressGlow.value = hero ? 0.12 : 0.5
       if (tile.current) {
@@ -848,6 +865,14 @@ export function StageScene({ compact, reduced }: Props) {
           const radius = hero && stage.tour > 0.6 ? CURSOR.radius * 1.5 : CURSOR.radius
           press.press(hit.x / SHEET + 0.5, hit.z / SHEET + 0.5, CURSOR.depth, (radius / SHEET) * press.cols)
         }
+      }
+      // a finger on a phone's card presses its sheet there (the card's own ray, across the card), and it springs back
+      const touch = bx && r.turn?.touch?.down ? r.turn.touch : null
+      if (touch && pose.press && !reduced && f.flex > 0.001 && tile.current) {
+        ray.setFromCamera(ndc.set(touch.x, -touch.y), camera)
+        ray.ray.applyMatrix4(toLocal.copy(tile.current.matrixWorld).invert())
+        if (ray.ray.intersectPlane(plane, hit) && Math.abs(hit.x) < (f.winX / 2) * PITCH && Math.abs(hit.z) < (f.winZ / 2) * PITCH)
+          press.press(hit.x / SHEET + 0.5, hit.z / SHEET + 0.5, CURSOR.depth, (CURSOR.radius * 1.3 / SHEET) * press.cols)
       }
       // "Elastic modulus" under the cursor: the sheet is struck in the middle and springs straight back
       if (inspect === 'modulus' && now - f.knockAt > 1300) {
@@ -1030,7 +1055,8 @@ export function StageScene({ compact, reduced }: Props) {
     }
 
     // the press field is shared: advance it once a frame while any view is pressing
-    if (flexing && press.step(dt)) press.upload()
+    pressLive.current = flexing && press.step(dt)
+    if (pressLive.current) press.upload()
   }, 1)
 
   const half = 0.005

@@ -264,9 +264,47 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
   // (in development ?films shows the films, to check them)
   const filmed = Boolean(LOOPS[step.pose]) && (failed || (import.meta.env.DEV && new URLSearchParams(window.location.search).has('films')))
   // pressed and held, the card's mesh turns in the hand (its own, eased back to its pose once let go: StageScene)
-  const [turn] = useState<Turn>(() => ({ yaw: 0, pitch: 0, dragging: false }))
+  const [turn] = useState<Turn>(() => ({ yaw: 0, pitch: 0, dragging: false, touch: { x: 0, y: 0, down: false } }))
   useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true, turn })
   useOrbitDrag(filmed ? none : box, turn)
+  // a finger on the card presses the sheet where it is, as the cursor does on a wide screen (StageScene, where the
+  // figure's pose takes a press); it springs back once the finger lifts or goes off to scroll
+  useEffect(() => {
+    const el = box.current
+    const t = turn.touch
+    if (filmed || !el || !t) return
+    let id = -1
+    const at = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect()
+      t.x = ((e.clientX - r.left) / r.width) * 2 - 1
+      t.y = ((e.clientY - r.top) / r.height) * 2 - 1
+    }
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      id = e.pointerId
+      at(e)
+      t.down = true
+    }
+    const move = (e: PointerEvent) => {
+      if (e.pointerId === id && t.down) at(e)
+    }
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== id) return
+      id = -1
+      t.down = false
+    }
+    el.addEventListener('pointerdown', down)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+    return () => {
+      el.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      t.down = false
+    }
+  }, [filmed, turn])
   useEffect(() => {
     const el = row.current
     if (!el) return

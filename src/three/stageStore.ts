@@ -29,6 +29,8 @@ export interface Turn {
   yaw: number
   pitch: number
   dragging: boolean
+  /** a finger on a phone's card (-1..1 across it, y down): it presses the sheet there, which springs back once it lifts */
+  touch?: { x: number; y: number; down: boolean }
 }
 
 export interface Region {
