@@ -292,7 +292,9 @@ function pagedZones(tour: HTMLElement): Zone[] {
   const zones: Zone[] = [{ stops: [...Array.from({ length: PHONE_SCREENS - 1 }, (_, k) => Math.round(tour.offsetTop + k * sh)), aboutTop], after: null, tour: true }]
   for (const p of document.querySelectorAll<HTMLElement>('[data-swipe-stops]')) {
     const top = p.getBoundingClientRect().top + window.scrollY
-    const run = Math.max(1, p.offsetHeight - vh)
+    // (its run: what its pinned panel, `data-swipe-pin`, stands still through)
+    const pin = p.querySelector<HTMLElement>('[data-swipe-pin]')
+    const run = Math.max(1, p.offsetHeight - (pin?.offsetHeight ?? vh))
     const stops = (p.dataset.swipeStops ?? '')
       .split(',')
       .map(Number)

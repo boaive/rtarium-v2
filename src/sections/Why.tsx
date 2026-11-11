@@ -128,7 +128,11 @@ function Replaces() {
     const read = () => {
       raf = 0
       const r = el.getBoundingClientRect()
-      const run = Math.max(1, r.height - window.innerHeight)
+      // (the run is what the pinned panel stands still through: the section less the panel, which is as tall as the screen
+      // gets; less the window instead, which is shorter while the address bar shows, the third card came in only once the
+      // panel had begun to leave)
+      const pin = el.querySelector<HTMLElement>('[data-swipe-pin]')
+      const run = Math.max(1, r.height - (pin?.offsetHeight ?? window.innerHeight))
       const p = still ? 1 : Math.min(1, Math.max(0, -r.top / run))
       deck.style.setProperty('--deck', (p * 2).toFixed(4))
     }
@@ -179,7 +183,7 @@ function Replaces() {
 
   return (
     <section id="replaces" ref={section} className="ledger on-light" data-screen="light" data-flow={compact ? '' : undefined} data-swipe-stops={compact ? DECK_STOPS : undefined} aria-labelledby="replaces-title">
-      <div ref={ref} className={`ledger__in ${inView ? 'is-in' : ''}`}>
+      <div ref={ref} className={`ledger__in ${inView ? 'is-in' : ''}`} data-swipe-pin="">
         <h2 id="replaces-title" className="ledger__title">
           One mesh in place of three compromises.
         </h2>
