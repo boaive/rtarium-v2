@@ -24,6 +24,13 @@ export type PoseId =
   | 'xray'
   | 'none'
 
+/** a mesh turned by hand: how far (rad), and whether a finger or the mouse holds it now */
+export interface Turn {
+  yaw: number
+  pitch: number
+  dragging: boolean
+}
+
 export interface Region {
   el: HTMLElement
   pose: () => PoseId
@@ -37,6 +44,8 @@ export interface Region {
    * the mesh centred in it, as wide in it as it is on the screen
    */
   box?: boolean
+  /** a phone's card turned by hand (press and hold): its own, apart from the opening's (`stage.orbit`) */
+  turn?: Turn
 }
 
 export interface Blend {

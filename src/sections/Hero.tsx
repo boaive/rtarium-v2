@@ -127,6 +127,57 @@ const POINTS = [
   { anchor: 'tour-face-b', name: 'Lower basalt face' },
 ]
 
+/** how far into its white screen a phone's tour hands over to About (screens), and how long About takes to come out of it (ms) */
+const HANDOFF = { at: PHONE_SCREENS - 1 - 0.08, fade: 620 }
+
+/**
+ * A phone's tour ends in the white, and About does not scroll up into it: once the white has the screen (going down),
+ * a warm-white curtain holds it, the page is set on About's first view at once (the jump ends any fling, so it lands
+ * there exactly), and the curtain clears, so About comes out of the white. From there the page scrolls as any page
+ * does; going back up, the page scrolls back through the white into the cavity.
+ */
+function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObject<HTMLDivElement | null>, phone: boolean) {
+  useEffect(() => {
+    const el = section.current
+    const veil = curtain.current
+    if (!phone || !el || !veil) return
+    let lastY = window.scrollY
+    /** handed over, until the page is back above the white */
+    let done = false
+    let clear = 0
+    const onScroll = () => {
+      const y = window.scrollY
+      const down = y > lastY
+      lastY = y
+      const vh = window.innerHeight
+      const at = -el.getBoundingClientRect().top / vh
+      if (at < HANDOFF.at - 0.4) done = false
+      if (done || !down || at < HANDOFF.at || at >= PHONE_SCREENS) return
+      done = true
+      // the curtain, at once: the screen is already the white it is
+      veil.classList.remove('is-clearing')
+      veil.classList.add('is-on')
+      // the browser's own jump, which also ends a fling still running (so it lands there exactly)
+      window.scrollTo({ top: el.offsetTop + PHONE_SCREENS * vh, behavior: 'instant' as ScrollBehavior })
+      lastY = window.scrollY
+      requestAnimationFrame(() => {
+        // About has laid out under the curtain: it clears, and About comes out of the white
+        requestAnimationFrame(() => {
+          veil.classList.add('is-clearing')
+          veil.classList.remove('is-on')
+          window.clearTimeout(clear)
+          clear = window.setTimeout(() => veil.classList.remove('is-clearing'), prefersReducedMotion() ? 0 : HANDOFF.fade)
+        })
+      })
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.clearTimeout(clear)
+    }
+  }, [section, curtain, phone])
+}
+
 export function Hero() {
   const section = useRef<HTMLElement>(null)
   const open = useRef<HTMLDivElement>(null)
@@ -136,6 +187,8 @@ export function Hero() {
   useOrbitDrag(open)
   const compact = useIsCompact()
   useTour(section, setAt, compact)
+  const curtain = useRef<HTMLDivElement>(null)
+  useWhiteHandoff(section, curtain, compact)
 
   // the scroll cue starts the tour: one screen down
   const start = () => {
@@ -206,6 +259,8 @@ export function Hero() {
         </StageLabel>
       ))}
       <CavityDimension />
+      {/* a phone's hand-over from the white to About (useWhiteHandoff) */}
+      {compact && <div ref={curtain} className="hero__curtain" aria-hidden="true" />}
     </>
   )
 }

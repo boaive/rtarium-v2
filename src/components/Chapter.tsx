@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { refreshGround, useStageRegion } from '../three/Stage'
-import { setShared, useStageValue, type Ground, type PoseId } from '../three/stageStore'
+import { refreshGround, useOrbitDrag, useStageRegion } from '../three/Stage'
+import { setShared, useStageValue, type Ground, type PoseId, type Turn } from '../three/stageStore'
 import { POSES } from '../three/poses'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY } from '../lib/scroll'
@@ -263,7 +263,10 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
   // its film stands in only where there is no 3D (no WebGL, or the scene failed), in place of a still
   // (in development ?films shows the films, to check them)
   const filmed = Boolean(LOOPS[step.pose]) && (failed || (import.meta.env.DEV && new URLSearchParams(window.location.search).has('films')))
-  useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true })
+  // pressed and held, the card's mesh turns in the hand (its own, eased back to its pose once let go: StageScene)
+  const [turn] = useState<Turn>(() => ({ yaw: 0, pitch: 0, dragging: false }))
+  useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true, turn })
+  useOrbitDrag(filmed ? none : box, turn)
   useEffect(() => {
     const el = row.current
     if (!el) return

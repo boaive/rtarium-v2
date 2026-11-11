@@ -222,6 +222,13 @@
     height: 100%;
     pointer-events: none;
   }
+  /* a card's mesh turns when pressed and held (Chapter's Row): a swipe still scrolls, and nothing selects or opens a menu */
+  .eb-fig__view {
+    touch-action: pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
   .eb-fig__still {
     position: absolute;
     inset: 0;

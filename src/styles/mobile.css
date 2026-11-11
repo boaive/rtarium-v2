@@ -40,6 +40,27 @@
   .hero__scroll {
     filter: none;
   }
+  /* a phone's tour hands over to About from its white (Hero's useWhiteHandoff): a warm-white curtain over the page,
+     under the header, shown at once and cleared slowly, so About comes out of the white */
+  .hero__curtain {
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    background: var(--white);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .hero__curtain.is-on {
+    opacity: 1;
+  }
+  .hero__curtain.is-clearing {
+    transition: opacity 0.62s cubic-bezier(0.33, 0, 0.2, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__curtain.is-clearing {
+      transition: none;
+    }
+  }
   /* the mesh is turned by pressing and holding it: no text selection or the phone's own menu in the way */
   .hero__screen--open {
     -webkit-touch-callout: none;

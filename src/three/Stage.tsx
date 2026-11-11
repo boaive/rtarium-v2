@@ -2,7 +2,7 @@ import { Component, Suspense, useEffect, useRef, useState, type ReactNode, type 
 import { Canvas } from '@react-three/fiber'
 import { PerformanceMonitor } from '@react-three/drei'
 import { StageScene } from './StageScene'
-import { setShared, stage, useStageValue, type Blend, type PoseId, type Region } from './stageStore'
+import { setShared, stage, useStageValue, type Blend, type PoseId, type Region, type Turn } from './stageStore'
 import { useIsCompact, useReducedMotion } from '../lib/motion'
 
 let webgl: boolean | null = null
@@ -171,7 +171,7 @@ export function Stage() {
  * Lends the stage to an element: while it holds the middle of the screen the stage shows `pose()`,
  * or, for a chapter scrubbed sideways, the mesh between two of its steps (`blend()`).
  */
-export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => PoseId, blend?: () => Blend, opts: { box?: boolean } = {}) {
+export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => PoseId, blend?: () => Blend, opts: { box?: boolean; turn?: Turn } = {}) {
   const getter = useRef(pose)
   getter.current = pose
   const blender = useRef(blend)
@@ -179,12 +179,12 @@ export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => P
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const region: Region = { el, pose: () => getter.current(), blend: blender.current ? () => blender.current!() : undefined, box: opts.box }
+    const region: Region = { el, pose: () => getter.current(), blend: blender.current ? () => blender.current!() : undefined, box: opts.box, turn: opts.turn }
     stage.regions.add(region)
     return () => {
       stage.regions.delete(region)
     }
-  }, [ref, opts.box])
+  }, [ref, opts.box, opts.turn])
 }
 
 /**
@@ -267,9 +267,9 @@ const HOLD = { ms: 320, slop: 9 }
  * Drag-to-turn on an element. A mouse takes the mesh as soon as it is pressed. A finger takes it only by pressing and
  * holding still (HOLD): a tap, or a swipe that sets off at once, is the page's (it scrolls, the mesh never turns); once
  * held, the finger turns the mesh, sideways, until it lifts, and the page stays put meanwhile (Hero's swipes wait on
- * `stage.orbit.dragging`).
+ * the target's `dragging`). A phone's cards pass their own target, so each turns alone.
  */
-export function useOrbitDrag(ref: RefObject<HTMLElement | null>) {
+export function useOrbitDrag(ref: RefObject<HTMLElement | null>, target: Turn = stage.orbit) {
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -277,14 +277,14 @@ export function useOrbitDrag(ref: RefObject<HTMLElement | null>) {
     const interactive = (t: EventTarget | null) => Boolean((t as HTMLElement | null)?.closest?.('a, button, input, select'))
     const take = () => {
       pr.held = true
-      stage.orbit.dragging = true
+      target.dragging = true
       el.classList.add('is-dragging')
     }
     const release = () => {
       window.clearTimeout(pr.timer)
       pr.id = -1
       pr.held = false
-      stage.orbit.dragging = false
+      target.dragging = false
       el.classList.remove('is-dragging')
     }
     const down = (e: PointerEvent) => {
@@ -313,8 +313,8 @@ export function useOrbitDrag(ref: RefObject<HTMLElement | null>) {
       const dy = e.clientY - pr.y
       pr.x = e.clientX
       pr.y = e.clientY
-      stage.orbit.yaw -= dx * 0.006
-      if (e.pointerType !== 'touch') stage.orbit.pitch = Math.min(0.7, Math.max(-0.4, stage.orbit.pitch + (dy / window.innerHeight) * 1.8))
+      target.yaw -= dx * 0.006
+      if (e.pointerType !== 'touch') target.pitch = Math.min(0.7, Math.max(-0.4, target.pitch + (dy / window.innerHeight) * 1.8))
     }
     const end = (e: PointerEvent) => {
       if (e.pointerId !== pr.id) return
@@ -337,5 +337,5 @@ export function useOrbitDrag(ref: RefObject<HTMLElement | null>) {
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
     }
-  }, [ref])
+  }, [ref, target])
 }

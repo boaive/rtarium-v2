@@ -101,6 +101,12 @@ const rects = new Map<Region, DOMRect>()
 /** a phone's idle check: the drag, as text; and what this frame drew, view after view */
 const ob0 = (o: { yaw: number; pitch: number; dragging: boolean }) => `${o.yaw.toFixed(4)},${o.pitch.toFixed(4)},${o.dragging}`
 const sigNow: number[] = []
+/**
+ * The screen a card's view is framed against: the tallest it has been at this width. A phone's address bar slides in
+ * and out as the page goes back and forth, changing the screen's height each time; framed against that, a card's mesh
+ * zoomed and shifted in its frame with every move. A new width (the phone turned) starts it over.
+ */
+const steady = { w: 0, h: 0 }
 
 /** the region across the middle of the screen, else the most visible one */
 function activeRegion(vh: number) {
@@ -443,7 +449,9 @@ export function StageScene({ compact, reduced }: Props) {
         const bl = d.r.blend?.()
         // (a card's picture does not change as it scrolls, only with its size: it scrolls with the page in its own canvas)
         const place = d.r.box ? `${(b?.height ?? 0).toFixed(1)}` : `${d.top.toFixed(1)},${d.bottom.toFixed(1)}`
-        key += `|${d.id},${place},${b ? `${b.left.toFixed(1)},${b.width.toFixed(1)}` : ''},${bl ? `${bl.a},${bl.b},${bl.t.toFixed(4)}` : ''}`
+        // (a card in the hand changes with it)
+        const held = d.r.turn ? `${d.r.turn.yaw.toFixed(4)}${d.r.turn.dragging ? 'h' : ''}` : ''
+        key += `|${d.id},${held},${place},${b ? `${b.left.toFixed(1)},${b.width.toFixed(1)}` : ''},${bl ? `${bl.a},${bl.b},${bl.t.toFixed(4)}` : ''}`
       }
       const idle = key === sigIn.current && still.current >= 2 && since > INTRO.delay + INTRO.duration + 1.5 && !stage.inspect
       if (key !== sigIn.current) still.current = 0
@@ -537,7 +545,9 @@ export function StageScene({ compact, reduced }: Props) {
 
       // ---- camera: the view travels with its panel and turns a little as the panel passes -------
       // (a phone's opening follows the finger's native scroll closely: the tour value is already smoothed in Hero)
-      const k = reduced ? 1e4 : hero ? (compact ? 26 : 9) : bl ? SCRUB : GLIDE
+      // (a phone's card is set in its framing at once: it once glided there from the screen's framing each time it came
+      // on screen, and slid in its frame as the page went back and forth)
+      const k = reduced || (compact && r.box) ? 1e4 : hero ? (compact ? 26 : 9) : bl ? SCRUB : GLIDE
       // narrower landscape windows: stand back so the mesh keeps clear of the copy beside it;
       // stacked layout on a screen that is not tall: smaller, and up into the space above the copy
       const squat = compact ? clamp01((vw / vh - 0.6) / 0.45) : 0
@@ -564,7 +574,10 @@ export function StageScene({ compact, reduced }: Props) {
       else c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
       // (a phone's views never sway on their own: the mesh moves only when the visitor scrolls or turns it)
       const sway = reduced || r.box || compact ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
-      const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0)
+      // a card turned by hand: it follows the finger, and once let go it eases back to its pose
+      const hand = r.turn
+      if (hand && !hand.dragging && hand.yaw !== 0) hand.yaw = Math.abs(hand.yaw) < 1e-4 ? 0 : damp(hand.yaw, 0, 2.2, dt)
+      const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0) + (hand?.yaw ?? 0)
       // the opening's tour goes down to eye level between the faces; elsewhere the camera stays above
       const elev = THREE.MathUtils.clamp(c.elev * DEG + (hero ? orbit.current.pitch : 0), hero ? -0.3 : 0.05, 1.45)
       vPos.set(Math.cos(elev) * Math.sin(azim), Math.sin(elev), Math.cos(elev) * Math.cos(azim)).multiplyScalar(c.dist).add(c.tgt)
@@ -577,7 +590,11 @@ export function StageScene({ compact, reduced }: Props) {
       const panelTop = hero ? Math.min(0, view.bottom - vh) : view.top
       if (bx) {
         camera.aspect = bx.width / bx.height
-        camera.fov = (2 * Math.atan(Math.tan((c.fov * DEG) / 2) * (vw / vh) * (bx.height / bx.width))) / DEG
+        if (steady.w !== vw) steady.h = 0
+        steady.w = vw
+        steady.h = Math.max(steady.h, vh)
+        const screenH = compact ? steady.h : vh
+        camera.fov = (2 * Math.atan(Math.tan((c.fov * DEG) / 2) * (vw / screenH) * (bx.height / bx.width))) / DEG
         camera.setViewOffset(bx.width, bx.height, bx.width / 2 - c.fx * bx.width, bx.height / 2 - c.fy * bx.height, bx.width, bx.height)
       } else {
         camera.aspect = vw / vh
