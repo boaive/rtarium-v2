@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type Ref } from 'react'
+import { useCallback, useEffect, useRef, useState, type MutableRefObject, type Ref } from 'react'
 import { Statement } from './Chapter'
 import { FallingText } from './FallingText'
 import { useInView } from '../facade/Story'
+import { prefersReducedMotion } from '../lib/motion'
 
 /**
  * A page's one sentence, alone on a black screen: the homepage's challenge, the same on every page that
@@ -66,9 +67,30 @@ function Answered({ text, then, label }: { text: string; then: string; label: st
 
 export function Say({ text, then, kicker, label, sectionRef }: { text: string; then?: string; kicker?: string; label: string; sectionRef?: Ref<HTMLElement> }) {
   const [ref, inView] = useInView<HTMLDivElement>('0px 0px -30% 0px')
+  const held = useRef<HTMLElement | null>(null)
+  const setSection = useCallback(
+    (el: HTMLElement | null) => {
+      held.current = el
+      if (typeof sectionRef === 'function') sectionRef(el)
+      else if (sectionRef) (sectionRef as MutableRefObject<HTMLElement | null>).current = el
+    },
+    [sectionRef],
+  )
+  // while its words are arriving the page does not step on past it, or back: a scroll then waits for the sentence (the
+  // steps' hold, `data-busy`); as long as the words take, by the screen's own timing (story.css: 0.2 s, 95 ms a word, 0.62 s each)
+  useEffect(() => {
+    const el = held.current
+    if (!el || !inView || then || prefersReducedMotion()) return
+    el.setAttribute('data-busy', '')
+    const id = window.setTimeout(() => el.removeAttribute('data-busy'), 200 + (text.split(' ').length - 1) * 95 + 620)
+    return () => {
+      window.clearTimeout(id)
+      el.removeAttribute('data-busy')
+    }
+  }, [inView, text, then])
   if (then) return <Answered text={text} then={then} label={label} />
   return (
-    <section ref={sectionRef} className="say on-black" aria-label={label}>
+    <section ref={setSection} className="say on-black" aria-label={label}>
       <div ref={ref} className={`say__in ${inView ? 'is-in' : ''}`}>
         {kicker && <p className="say__kicker">{kicker}</p>}
         <Statement text={text} />

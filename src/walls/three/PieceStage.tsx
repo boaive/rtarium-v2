@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { MovingKeyLight } from '../../facade/three/Stage3D'
@@ -125,7 +125,9 @@ const VIEW = {
 /** the floor, under the foot of the layer that reaches lowest */
 const FLOOR_Y = -0.34
 
-export function PieceStage({ t, bus, room, focus, live }: { t: Progress; bus: LabelBus; room: { current: Room }; focus: { current: string | null }; live: { current: boolean } }) {
+/** (drawn again only when its own things change: its section draws itself again for each part picked, and the piece is
+ * large; everything it shows it reads from `t`, `focus` and the room every frame) */
+export const PieceStage = memo(function PieceStage({ t, bus, room, focus, live }: { t: Progress; bus: LabelBus; room: { current: Room }; focus: { current: string | null }; live: { current: boolean } }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
@@ -209,4 +211,4 @@ export function PieceStage({ t, bus, room, focus, live }: { t: Progress; bus: La
       </group>
     </group>
   )
-}
+})

@@ -3,7 +3,7 @@ import { useIsCompact } from '../../lib/motion'
 import { Words } from '../Story'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
 import { createBus, type Shot } from '../three/kit'
-import { ScrubRig, mixShot } from '../three/ScrubRig'
+import { HERO_TURN, ScrubRig, mixShot } from '../three/ScrubRig'
 import { FollowScroll, useScrollProgress } from '../progress'
 import { ScrollCue } from '../../components/ScrollCue'
 import { HERO_FOCUS, HERO_TARGET, HeroWall } from '../three/rain/HeroWall'
@@ -25,8 +25,9 @@ function shots(compact: boolean): [Shot, Shot] {
         { target: HERO_TARGET, dist: 30, azim: 48, elev: 12, frame: [0.5, 0.34] },
       ]
     : [
-        { target: HERO_TARGET, dist: 25, azim: 36, elev: 6, frame: [0.7, 0.53] },
-        { target: HERO_TARGET, dist: 22.5, azim: 48, elev: 12, frame: [0.7, 0.47] },
+        // (every opening's place and size: see the Façade overview's heroShots)
+        { target: HERO_TARGET, dist: 31.1, azim: 36, elev: 6, frame: [0.661, 0.56] },
+        { target: HERO_TARGET, dist: 27.97, azim: 48, elev: 12, frame: [0.661, 0.5] },
       ]
 }
 
@@ -52,7 +53,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
     <section ref={sectionRef} className="fu-hero on-yellow" aria-labelledby="fr-title">
       <div className="fu-hero__stage">
         <Stage3D shadows keyLight={false} fallback={<img className="fu-still" src="/img/facade/panel-face.webp" alt="" />}>
-          <ScrubRig progress={progress} shotAt={shotAt} sway={1.2} live={live} aspect={compact ? 0.56 : 1.6} />
+          <ScrubRig progress={progress} shotAt={shotAt} sway={1.2} live={live} aspect={compact ? 0.56 : 1.6} turn={HERO_TURN} />
           <MovingKeyLight focus={HERO_TARGET} reach={7} offset={[-8, 11, 8]} />
           <HeroWall bus={bus} play focus={focus} />
           <FollowScroll progress={progress} />

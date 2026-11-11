@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
-import { MeshField, useCell, useYarnMaterial } from '../../three/mesh/MeshField'
+import { MeshField, PITCH, useCell, useYarnMaterial } from '../../three/mesh/MeshField'
 import { Anchor } from '../../facade/three/Stage3D'
 import type { LabelBus } from '../../facade/three/kit'
 import { merge } from '../../facade/three/unit/parts'
@@ -84,6 +84,230 @@ export function Rtarium({ t, nx, ny, light = false, onMaterial }: { t: 6 | 15; n
       <MeshField cell={cell} nx={nx} nz={ny} material={yarn.material} chunk={10} lodDistance={0.5} farDistance={1.5} culling={false} />
     </group>
   )
+}
+
+/** one period of the mesh, as `RtariumSheet` draws it (px a side), and how far round a cell its neighbours are drawn with it */
+const SHEET_PX = 128
+const SHEET_REACH = 7
+/** how far the view may turn from the one the sheet was drawn for before it is drawn again (radians) */
+const SHEET_TURN = 0.006
+const yarnColours = (light: boolean) => ({ face: light ? '#e2c597' : '#a07a55', pile: light ? '#9c7a55' : '#4a3322' })
+/** four samples a pixel, in a turned grid (px), as the canvas's own multisampling takes four of the model's */
+const SHEET_FRAGMENT = /* glsl */ `
+#ifdef USE_MAP
+  vec2 rtDx = dFdx( vMapUv );
+  vec2 rtDy = dFdy( vMapUv );
+  vec4 rtSum = vec4( 0.0 );
+  vec4 rtS;
+  rtS = texture2D( map, vMapUv - 0.125 * rtDx - 0.375 * rtDy ); rtSum += vec4( rtS.rgb * rtS.a, rtS.a );
+  rtS = texture2D( map, vMapUv + 0.375 * rtDx - 0.125 * rtDy ); rtSum += vec4( rtS.rgb * rtS.a, rtS.a );
+  rtS = texture2D( map, vMapUv + 0.125 * rtDx + 0.375 * rtDy ); rtSum += vec4( rtS.rgb * rtS.a, rtS.a );
+  rtS = texture2D( map, vMapUv - 0.375 * rtDx + 0.125 * rtDy ); rtSum += vec4( rtS.rgb * rtS.a, rtS.a );
+  diffuseColor *= rtSum.a > 0.0001 ? vec4( rtSum.rgb / rtSum.a, rtSum.a * 0.25 ) : vec4( 0.0 );
+#endif
+`
+
+/**
+ * RTARIUM over a whole panel seen from across a room (the panels' burst), drawn as the model would be at a fraction of its
+ * cost. At that distance a 12 mm cell is about two pixels: what reads as mesh is the model's own yarn caught four times a
+ * pixel by the canvas's multisampling, and the model drew 45,000 cells a sheet (twelve million triangles every frame, two
+ * sheets in the SIP panel), so the burst stuttered as it opened. Here one period of the real model (the cell among its
+ * neighbours, the sheet's full depth, stretched as the sheet is) is drawn into a texture just as it is seen from where the
+ * camera stands, by the scene's own lights and reflections: each point of the sheet's middle plane is given what the eye
+ * sees along its line of sight through the yarn. The plane takes it, `nx` × `ny` times, four samples a pixel, as the canvas
+ * takes four of the model's. It is drawn again whenever the view turns (a small draw: a few hundred cells into 128 px).
+ * Placed and turned as `Rtarium` is; its material fades as the yarn's does.
+ */
+export function RtariumSheet({ t, nx, ny, light = false, onMaterial }: { t: 6 | 15; nx: number; ny: number; light?: boolean; onMaterial?: (m: THREE.Material) => void }) {
+  const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
+  const invalidate = useThree((s) => s.invalidate)
+  const cell = useCell(t)
+  const yarn = useYarnMaterial({ lite: true })
+  const sheet = useRef<THREE.Group>(null)
+  /** its two halves, the one nearer the eye and the one beyond the middle, each its texture and its plane */
+  const halves = useMemo(
+    () =>
+      ([1, -1] as const).map((half) => {
+        const target = new THREE.WebGLRenderTarget(SHEET_PX, SHEET_PX, { generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: true })
+        target.texture.wrapS = target.texture.wrapT = THREE.RepeatWrapping
+        target.texture.repeat.set(nx, ny)
+        const material = new THREE.MeshBasicMaterial({ map: target.texture, transparent: true, depthWrite: false, side: THREE.DoubleSide })
+        material.onBeforeCompile = (shader) => {
+          shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', SHEET_FRAGMENT)
+        }
+        material.customProgramCacheKey = () => 'rtarium-sheet-4x'
+        return { half, target, material }
+      }),
+    [nx, ny],
+  )
+  const plane = useMemo(() => new THREE.PlaneGeometry(nx * PITCH, ny * PITCH).rotateX(-Math.PI / 2), [nx, ny])
+  const bake = useMemo(() => sheetBaker(cell.far, yarn.material, nx), [cell, yarn, nx])
+  /** where the halves' planes lie, either side of the middle, out towards the faces: what the mesh holds at its middle (its
+   * GRP rods) stands between them, seen through the yarn in front of it, as in the model */
+  const out = useMemo(() => {
+    if (!cell.far.boundingBox) cell.far.computeBoundingBox()
+    const b = cell.far.boundingBox!
+    return 0.6 * Math.max(-b.min.y, b.max.y)
+  }, [cell])
+  const faces = useRef<(THREE.Mesh | null)[]>([])
+  const up = useMemo(() => new THREE.Vector3(), [])
+  useEffect(
+    () => () => {
+      for (const h of halves) {
+        h.target.dispose()
+        h.material.dispose()
+      }
+      plane.dispose()
+      bake.dispose()
+    },
+    [halves, plane, bake],
+  )
+  useEffect(() => {
+    for (const h of halves) onMaterial?.(h.material)
+  }, [onMaterial, halves])
+  useEffect(() => {
+    const u = yarn.uniforms
+    const c = yarnColours(light)
+    u.uFaceColor.value.set(c.face)
+    u.uPileColor.value.set(c.pile)
+    u.uWin.value.set(4096, 4096)
+    u.uAoStrength.value = light ? 0.5 : 0.9
+  }, [yarn, light])
+  // drawn for the view it is seen from: first once the studio's reflections are in, then whenever the view turns
+  const seen = useRef<THREE.Vector3 | null>(null)
+  const look = useMemo(() => new THREE.Vector3(), [])
+  useFrame(({ camera }) => {
+    const g = sheet.current
+    if (!g || !scene.environment || !halves[0].material.visible) return
+    g.updateWorldMatrix(true, false)
+    look.setFromMatrixPosition(g.matrixWorld).sub(camera.position).normalize()
+    if (seen.current && seen.current.angleTo(look) < SHEET_TURN) return
+    ;(seen.current ??= new THREE.Vector3()).copy(look)
+    // (the sheet's face, its +y, in the world: the near half's plane goes on the side of the middle the eye is on)
+    up.set(0, 1, 0).transformDirection(g.matrixWorld)
+    const toward = up.dot(look) > 0 ? -1 : 1
+    halves.forEach((h, k) => {
+      bake.draw(gl, scene, g, look, h.target, yarnColours(light).face, h.half)
+      const f = faces.current[k]
+      if (f) f.position.y = toward * h.half * out
+    })
+    invalidate()
+  })
+  return (
+    <group rotation={[Math.PI / 2, 0, 0]}>
+      <group ref={sheet}>
+        {halves.map((h, k) => (
+          <mesh key={h.half} ref={(el) => void (faces.current[k] = el)} geometry={plane} material={h.material} />
+        ))}
+      </group>
+    </group>
+  )
+}
+
+/**
+ * What draws a sheet's period: the cell and its neighbours `SHEET_REACH` round (a line of sight through the sheet's depth
+ * crosses several cells), the scene's lights copied into a scene of its own, and a camera whose projection takes each point
+ * of the sheet to the point of its middle plane on the same line of sight, in cells, one period across the picture.
+ */
+function sheetBaker(geo: THREE.BufferGeometry, yarn: THREE.Material, nx: number) {
+  const scene = new THREE.Scene()
+  const root = new THREE.Group()
+  root.matrixAutoUpdate = false
+  scene.add(root)
+  const n = 2 * SHEET_REACH + 1
+  const tile = new THREE.InstancedMesh(geo, yarn, n * n)
+  const m = new THREE.Matrix4()
+  // (the cells stand where the sheet's own do, a whole number of pitches from its first)
+  const x0 = -(nx / 2 - Math.floor(nx / 2)) * PITCH
+  let k = 0
+  for (let i = -SHEET_REACH; i <= SHEET_REACH; i++) for (let j = -SHEET_REACH; j <= SHEET_REACH; j++) tile.setMatrixAt(k++, m.makeTranslation(x0 + i * PITCH, 0, j * PITCH))
+  tile.instanceMatrix.needsUpdate = true
+  tile.frustumCulled = false
+  root.add(tile)
+  const cam = new THREE.OrthographicCamera()
+  scene.add(cam)
+  const lights: THREE.Light[] = []
+  const v = new THREE.Vector3()
+  const w = new THREE.Vector3()
+  const ex = new THREE.Vector3()
+  const ez = new THREE.Vector3()
+  const nrm = new THREE.Vector3()
+  const rx = new THREE.Vector3()
+  const rz = new THREE.Vector3()
+  const ru = new THREE.Vector3()
+  const rv = new THREE.Vector3()
+  const clip = new THREE.Matrix4()
+  const before = new THREE.Color()
+  const cut = new THREE.Plane()
+  return {
+    draw(gl: THREE.WebGLRenderer, from: THREE.Scene, sheet: THREE.Object3D, d: THREE.Vector3, target: THREE.WebGLRenderTarget, clear: string, half: 1 | -1) {
+      // the scene's light, as it falls where the sheet stands
+      scene.environment = from.environment
+      scene.environmentIntensity = from.environmentIntensity
+      scene.environmentRotation.copy(from.environmentRotation)
+      for (const l of lights) scene.remove(l)
+      lights.length = 0
+      from.traverse((o) => {
+        if ((o as THREE.AmbientLight).isAmbientLight) {
+          const l = o as THREE.AmbientLight
+          lights.push(new THREE.AmbientLight(l.color, l.intensity))
+        } else if ((o as THREE.DirectionalLight).isDirectionalLight) {
+          const l = o as THREE.DirectionalLight
+          const c = new THREE.DirectionalLight(l.color, l.intensity)
+          // (a directional light is only its direction: from its target to it)
+          c.position.copy(l.getWorldPosition(v).sub(l.target.getWorldPosition(w)))
+          lights.push(c)
+        }
+      })
+      for (const l of lights) scene.add(l)
+      // the tile turned and stretched as the sheet is in the world (its place left out: only its turn and stretch matter)
+      root.matrix.copy(sheet.matrixWorld).setPosition(0, 0, 0)
+      root.matrixWorldNeedsUpdate = true
+      // the sheet's own axes in the world: across it (x) and along it (z), a pitch's worth each, and its face
+      ex.set(1, 0, 0).applyMatrix4(root.matrix)
+      ez.set(0, 0, 1).applyMatrix4(root.matrix)
+      nrm.crossVectors(ez, ex).normalize()
+      const dn = d.dot(nrm)
+      if (Math.abs(dn) < 0.05) return
+      // a point q is seen at q - (q.n / d.n) d on the middle plane, = a ex + b ez: across the picture u = a / pitch, up it
+      // v = -b / pitch (as the plane takes its texture), and into it along the line of sight
+      rx.copy(ex).addScaledVector(nrm, -d.dot(ex) / dn)
+      rz.copy(ez).addScaledVector(nrm, -d.dot(ez) / dn)
+      const gxx = ex.dot(ex)
+      const gxz = ex.dot(ez)
+      const gzz = ez.dot(ez)
+      const det = gxx * gzz - gxz * gxz
+      ru.copy(rx).multiplyScalar(gzz / det).addScaledVector(rz, -gxz / det).multiplyScalar(2 / PITCH)
+      rv.copy(rx).multiplyScalar(-gxz / det).addScaledVector(rz, gxx / det).multiplyScalar(-2 / PITCH)
+      const deep = 0.25
+      clip.set(ru.x, ru.y, ru.z, -1, rv.x, rv.y, rv.z, -1, d.x / deep, d.y / deep, d.z / deep, 0, 0, 0, 0, 1)
+      // looking along the line of sight (so the yarn is lit and reflects as it is seen), the projection undoing the turn
+      cam.position.set(0, 0, 0)
+      cam.lookAt(d)
+      cam.updateMatrixWorld(true)
+      cam.projectionMatrix.multiplyMatrices(clip, cam.matrixWorld)
+      cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert()
+      scene.updateMatrixWorld(true)
+      // only the half of its depth nearer the eye (half 1) or the half beyond its middle (-1): the rods it holds stand between
+      cut.normal.copy(nrm).multiplyScalar(dn > 0 ? -half : half)
+      cut.constant = 0
+      yarn.clippingPlanes = [cut]
+      const was = { target: gl.getRenderTarget(), alpha: gl.getClearAlpha(), clipping: gl.localClippingEnabled }
+      gl.getClearColor(before)
+      gl.localClippingEnabled = true
+      gl.setRenderTarget(target)
+      gl.setClearColor(clear, 0)
+      gl.clear(true, true, false)
+      gl.render(scene, cam)
+      gl.setRenderTarget(was.target)
+      gl.setClearColor(before, was.alpha)
+      gl.localClippingEnabled = was.clipping
+    },
+    dispose() {
+      tile.dispose()
+    },
+  }
 }
 
 export interface PanelIds {

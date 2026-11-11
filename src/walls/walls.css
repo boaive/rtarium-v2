@@ -630,56 +630,7 @@ html.sheet-open {
   width: min(100%, 520px);
   margin-top: clamp(14px, 2.6vh, 28px);
 }
-/* the figures, as Home's thickness options: a label, and one bar of cells the width of the table */
-.wp-figs {
-  display: grid;
-  gap: 8px;
-}
-.wp-figs__label {
-  font-size: var(--t-micro);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgb(8 8 8 / 0.7);
-}
-.wp-figs__row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 0;
-  padding: 0;
-  box-shadow: inset 0 0 0 1px rgb(8 8 8 / 0.55);
-}
-.wp-figs__cell {
-  display: grid;
-  align-content: start;
-  gap: 1px;
-  padding: clamp(6px, 1vh, 10px) 12px;
-  border-left: 1px solid rgb(8 8 8 / 0.3);
-}
-.wp-figs__cell:first-child {
-  border-left: 0;
-}
-.wp-figs__cell dd {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.15;
-}
-.wp-figs__cell small {
-  font-size: 0.7em;
-  font-weight: 600;
-  opacity: 0.75;
-}
-.wp-figs__cell dt {
-  font-size: var(--t-micro);
-  font-weight: 600;
-  line-height: 1.3;
-  color: rgb(8 8 8 / 0.7);
-}
-/* the way to the technical sheet: Home's bar, black on the yellow, the width of the table */
+/* the way to the technical sheet (every figure is there): Home's bar, black on the yellow, the width of the words */
 .wp-panels__more.explore {
   width: 100%;
   height: clamp(42px, 6vh, 50px);
@@ -693,14 +644,10 @@ html.sheet-open {
 .wp-panels__more .explore__cell {
   width: clamp(42px, 6vh, 50px);
 }
-/* a short screen (a laptop's): the rows closer, the figures without their label, so the eight parts of the SIP panel
-   and its figures stand clear of the bar */
+/* a short screen (a laptop's): the rows closer, so the eight parts of the SIP panel stand clear of the bar */
 @media (max-height: 820px) {
   .wp-lines .wp-line__btn {
     padding-block: 5px;
-  }
-  .wp-figs__label {
-    display: none;
   }
   .wp-panels__foot {
     gap: 10px;
@@ -1200,6 +1147,20 @@ html.sheet-open {
 /* the hint at the box's foot, now its parts are on the bar under it */
 .wp-panels .fu-sheet__hint {
   bottom: var(--pad);
+}
+/* the numbers on the burst, in their rows over and under it: their leaders fine, so they never cross the panel loudly;
+   each picks its part, as its cell on the bar does */
+.wp-panels .fc-pin__lead {
+  height: 1px;
+  opacity: 0.75;
+}
+.wp-panels .fc-pin--balloon .fc-pin__tag {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.wp-panels .fc-pin--balloon .fc-pin__tag:hover {
+  outline: 1.5px solid var(--yellow);
+  outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) {
   .wp-word,

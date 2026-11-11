@@ -67,12 +67,13 @@ export function StepBar({
   onSkip,
   hint,
   hints,
+  pick = false,
 }: {
   label: string
   names: string[]
   step: number
   onGo: (k: number) => void
-  cellRef: (k: number, el: HTMLLIElement | null) => void
+  cellRef?: (k: number, el: HTMLLIElement | null) => void
   /** whether the bar offers the way past its section (a section with no run to skip goes without) */
   skip?: boolean
   /** where Skip goes, for a bar that stands outside its section (Home's, fixed to the screen) */
@@ -83,6 +84,8 @@ export function StepBar({
   /** `run`, for a section that plays with the scroll: the word over its bar read off its cells, to scroll at its
    * start, before anything has played, and to pick a step once its last has played out */
   hints?: 'run'
+  /** a bar of things to pick from, not steps: every cell open, the one picked (`step`) filled, picked again to let go */
+  pick?: boolean
 }) {
   const list = useRef<HTMLOListElement>(null)
   const [read, setRead] = useState<Hint | null>(null)
@@ -104,12 +107,25 @@ export function StepBar({
   const shown = hint ?? (hints === 'run' ? read : null)
 
   return (
-    <nav className={`fu-bar ${shown?.icon === 'pick' ? 'has-hint' : ''}`} aria-label={label}>
+    <nav className={`fu-bar ${shown?.icon === 'pick' ? 'has-hint' : ''} ${pick ? 'fu-bar--pick' : ''}`} aria-label={label}>
       {shown && <HintTag key={shown.text} hint={shown} className="fu-bar__hint" />}
       <ol ref={list} className="fu-bar__list">
         {names.map((name, k) => (
-          <li key={name} ref={(el) => cellRef(k, el)} className="fu-bar__cell" style={{ '--k': k } as CSSProperties} data-state={k < step ? 'past' : k === step ? 'now' : 'next'}>
-            <button type="button" className="fu-bar__btn" aria-current={k === step ? 'step' : undefined} title={name} onClick={() => onGo(k)}>
+          <li
+            key={name}
+            ref={(el) => cellRef?.(k, el)}
+            className="fu-bar__cell"
+            style={{ '--k': k, ...(pick ? { '--f': k === step ? 1 : 0 } : {}) } as CSSProperties}
+            data-state={pick ? (k === step ? 'now' : 'next') : k < step ? 'past' : k === step ? 'now' : 'next'}
+          >
+            <button
+              type="button"
+              className="fu-bar__btn"
+              aria-current={!pick && k === step ? 'step' : undefined}
+              aria-pressed={pick ? k === step : undefined}
+              title={name}
+              onClick={() => onGo(k)}
+            >
               {[false, true].map((fill) => (
                 <span key={String(fill)} className={`fu-bar__face ${fill ? 'fu-bar__face--fill' : ''}`} aria-hidden={fill || undefined}>
                   <span className="num">0{k + 1}</span>

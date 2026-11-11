@@ -28,9 +28,11 @@ function shots(compact: boolean): [Shot, Shot, Shot] {
         { target: HERO_END, dist: 2.6, azim: 80, elev: 18, frame: [0.6, 0.5] },
       ]
     : [
-        { target: HERO_TARGET, dist: 5.9, azim: 44, elev: 27, frame: [0.67, 0.49] },
-        { target: HERO_TARGET, dist: 5.4, azim: 52, elev: 33, frame: [0.67, 0.44] },
-        { target: HERO_END, dist: 2.7, azim: 76, elev: 16, frame: [0.72, 0.56] },
+        // (every opening's place and size: see the Façade overview's heroShots)
+        { target: HERO_TARGET, dist: 8.06, azim: 44, elev: 27, frame: [0.637, 0.53] },
+        { target: HERO_TARGET, dist: 7.37, azim: 52, elev: 33, frame: [0.637, 0.48] },
+        // (in on the far end, the panel still kept to the same place and height)
+        { target: HERO_END, dist: 4.39, azim: 76, elev: 16, frame: [0.718, 0.647] },
       ]
 }
 

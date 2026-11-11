@@ -1,4 +1,4 @@
-import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Component, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer } from '@react-three/drei'
@@ -95,6 +95,7 @@ export function Stage3D({
   className = '',
   shadows = false,
   keyLight = true,
+  sharp = false,
 }: {
   children: ReactNode
   fallback?: ReactNode
@@ -103,6 +104,8 @@ export function Stage3D({
   shadows?: boolean
   /** the fixed key light; a scene that moves its key light with the camera brings its own */
   keyLight?: boolean
+  /** always drawn at full sharpness, never at fewer pixels while it moves (a scene light enough to keep up: the panels' burst) */
+  sharp?: boolean
 }) {
   const host = useRef<HTMLDivElement>(null)
   const [near, setNear] = useState(false)
@@ -177,7 +180,7 @@ export function Stage3D({
                 <Suspense fallback={null}>
                   <Lights keyLight={keyLight} />
                   <Settle />
-                  <Pace full={dpr} />
+                  {!sharp && <Pace full={dpr} />}
                   {children}
                   <Warm />
                 </Suspense>
@@ -266,9 +269,18 @@ function Warm() {
   useEffect(() => {
     let live = true
     const id = requestAnimationFrame(() => {
-      gl.compileAsync(scene, camera)
-        .then(() => live && invalidate())
-        .catch(() => {})
+      // (three compiles only what is visible: everything hidden for now is shown for the call, which gathers what it will
+      // compile at once, and hidden again, so nothing compiles, and stalls, the first time it is shown)
+      const hidden: THREE.Object3D[] = []
+      scene.traverse((o) => {
+        if (!o.visible) {
+          hidden.push(o)
+          o.visible = true
+        }
+      })
+      const done = gl.compileAsync(scene, camera)
+      for (const o of hidden) o.visible = false
+      done.then(() => live && invalidate()).catch(() => {})
     })
     return () => {
       live = false
@@ -278,8 +290,13 @@ function Warm() {
   return null
 }
 
-/** daylight from above and the side, and soft studio panels for the metals to reflect (the homepage's set) */
-function Lights({ keyLight }: { keyLight: boolean }) {
+/**
+ * daylight from above and the side, and soft studio panels for the metals to reflect (the homepage's set). Drawn again
+ * only if its own setting changes: drei's Environment makes its reflections over (six views and their blurs) every time it
+ * is drawn, and a page that draws its stage again on each step (a part picked, a scene going on) would make them over each
+ * time, a stall each.
+ */
+const Lights = memo(function Lights({ keyLight }: { keyLight: boolean }) {
   return (
     <>
       <ambientLight intensity={0.22} />
@@ -297,7 +314,7 @@ function Lights({ keyLight }: { keyLight: boolean }) {
       </Environment>
     </>
   )
-}
+})
 
 /** the key light: daylight from high on the left, in front */
 export const KEY = { offset: [-6, 9, 7] as [number, number, number], intensity: 2.1, color: '#fff6e8' }
@@ -423,8 +440,12 @@ const gone = new WeakMap<HTMLElement, number>()
  * from an edge keeps its leader on it; `bottom` keeps labels clear of what owns the foot of the
  * screen (a step bar), `top` of what owns its head (the header, unless the stage is a box of its
  * own). One going out keeps to its point while it fades.
+ *
+ * With `rows` (numbered balloons on an exploded model) the balloons keep off the model: those set above their point
+ * (`dy` < 0) stand in one row along the top, the others in one row along the foot, each over or under its point as
+ * near as it can be, never closer to the next than `rows` px, its leader straight to its point.
  */
-export function LabelProjector({ bus, bottom = EDGE, top: head }: { bus: LabelBus; bottom?: number; top?: number }) {
+export function LabelProjector({ bus, bottom = EDGE, top: head, rows }: { bus: LabelBus; bottom?: number; top?: number; rows?: number }) {
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
   useFrame(() => {
@@ -433,6 +454,7 @@ export function LabelProjector({ bus, bottom = EDGE, top: head }: { bus: LabelBu
     // the camera's new position and last frame's turn, and jumps about while the camera swings
     camera.updateMatrixWorld()
     const now = performance.now()
+    const lined: { x: number; y: number; up: boolean; t: NonNullable<ReturnType<typeof tags.get>> }[] = []
     for (const [id, el] of bus.els) {
       const a = bus.anchors.get(bus.alias.get(id) ?? id)
       const want = bus.shown.has(id)
@@ -455,6 +477,11 @@ export function LabelProjector({ bus, bottom = EDGE, top: head }: { bus: LabelBu
         t = { tag, lead: el.querySelector<HTMLElement>('.fc-pin__lead'), w: tag.offsetWidth, h: tag.offsetHeight, dx: parseFloat(tag.style.left) || 0, dy: parseFloat(tag.style.top) || 0, sx: 0, sy: 0 }
         if (t.w) tags.set(el, t)
       }
+      if (rows) {
+        // (one going out fades where it stood: the rows are laid out by those shown)
+        if (want) lined.push({ x, y, up: t.dy < 0, t })
+        continue
+      }
       const left = t.tag.classList.contains('fc-pin__tag--left')
       const x0 = x + t.dx - (left ? t.w : 0)
       const sx = x0 < EDGE ? EDGE - x0 : x0 + t.w > size.width - EDGE ? size.width - EDGE - (x0 + t.w) : 0
@@ -471,6 +498,35 @@ export function LabelProjector({ bus, bottom = EDGE, top: head }: { bus: LabelBu
         t.lead.style.transform = `rotate(${((Math.atan2(ly, lx) * 180) / Math.PI).toFixed(2)}deg)`
         t.sx = sx
         t.sy = sy
+      }
+    }
+    if (rows) {
+      const top = head ?? Math.min(TOP, size.height * 0.2)
+      for (const up of [true, false]) {
+        const row = lined.filter((l) => l.up === up).sort((a, b) => a.x - b.x)
+        if (!row.length) continue
+        // each over its point, pushed apart from the left, then back in from the right edge
+        const cx = row.map((l) => l.x)
+        for (let k = 1; k < cx.length; k++) cx[k] = Math.max(cx[k], cx[k - 1] + rows)
+        const w = row[row.length - 1].t.w
+        const over = cx[cx.length - 1] + w / 2 - (size.width - EDGE)
+        if (over > 0) for (let k = cx.length - 1; k >= 0; k--) cx[k] = k === cx.length - 1 ? cx[k] - over : Math.min(cx[k], cx[k + 1] - rows)
+        // the row over the model a short leader above its highest point (never over the head of the box); the one under
+        // it at the foot of the box
+        const high = Math.min(...row.map((l) => l.y))
+        row.forEach((l, k) => {
+          const h = l.t.h
+          const cy = up ? Math.max(top + h / 2, high - 46) : size.height - bottom - h / 2
+          const lx = cx[k] - l.x
+          const ly = cy - l.y
+          // (a balloon stands 2 px left of its left edge, centred on its top: see .fc-pin--balloon)
+          l.t.tag.style.left = `${(lx - l.t.w / 2 + 2).toFixed(1)}px`
+          l.t.tag.style.top = `${ly.toFixed(1)}px`
+          if (l.t.lead) {
+            l.t.lead.style.width = `${Math.hypot(lx, ly).toFixed(1)}px`
+            l.t.lead.style.transform = `rotate(${((Math.atan2(ly, lx) * 180) / Math.PI).toFixed(2)}deg)`
+          }
+        })
       }
     }
     // after the scenes (-2) and the camera (-1); a positive priority would take over rendering
@@ -514,6 +570,7 @@ export function Labels({ bus, labels, shown, focus }: { bus: LabelBus; labels: L
             className={`fc-pin ${l.text === null ? 'fc-pin--balloon' : ''} ${l.wide ? 'fc-pin--wide' : ''} ${focus && focus === l.id ? 'is-focus' : ''} ${focus && focus !== l.id ? 'is-dim' : ''}`}
             style={l.delay ? ({ '--d': `${l.delay}ms` } as CSSProperties) : undefined}
             data-on="0"
+            data-label={l.id}
           >
             <span className="fc-pin__lead" style={{ width: len, transform: `rotate(${angle}deg)` }} />
             <span className={`fc-pin__tag ${l.dx < 0 ? 'fc-pin__tag--left' : ''}`} style={{ left: l.dx, top: l.dy } as CSSProperties}>
