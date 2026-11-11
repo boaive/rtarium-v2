@@ -43,3 +43,8 @@ Desktop.ini
 mobile conversion/
 .playwright-mcp/
 *.zip
+
+# Cloudflare Wrangler: local state and local secrets
+.wrangler/
+.dev.vars
+.dev.vars.*

@@ -1,0 +1,57 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rtarium",
+  "account_id": "68e936a18438dd5323c5109b13b8ef19",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  // the Postgres driver needs Node's net/tls APIs
+  "compatibility_flags": ["nodejs_compat"],
+
+  // the site: the built pages in dist/, one index.html per route, the app's own 404 page for anything else.
+  // Only /api/* runs the Worker first; every other request is served straight from the assets.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // AWS RDS PostgreSQL through Hyperdrive (caching off: email statuses must always be read fresh)
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "aaa3c9e47fa34cc0840a428cd1199bb0" }],
+
+  // email jobs: the form puts them on the queue, the same Worker consumes them; after 5 failed tries a job goes to the
+  // dead-letter queue and is marked failed in the database
+  "queues": {
+    "producers": [{ "binding": "EMAIL_QUEUE", "queue": "rtarium-email" }],
+    "consumers": [
+      {
+        "queue": "rtarium-email",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 5,
+        "dead_letter_queue": "rtarium-email-dlq"
+      }
+    ]
+  },
+
+  // Cloudflare Email Service. The client notification can only ever go to info@rtarium.com; the visitor confirmation can
+  // only ever be sent from enquiries@rtarium.com.
+  "send_email": [
+    { "name": "CLIENT_MAIL", "destination_address": "info@rtarium.com" },
+    { "name": "VISITOR_MAIL", "allowed_sender_addresses": ["enquiries@rtarium.com"] }
+  ],
+
+  // at most 5 enquiries a minute from one IP address (per Cloudflare location)
+  "ratelimits": [{ "name": "CONTACT_LIMIT", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }],
+
+  // every 5 minutes: put any email job that is stuck back on the queue
+  "triggers": { "crons": ["*/5 * * * *"] },
+
+  "vars": {
+    "FROM_ADDRESS": "enquiries@rtarium.com",
+    "CLIENT_ADDRESS": "info@rtarium.com"
+  },
+  // secret, set with `npx wrangler secret put TURNSTILE_SECRET_KEY` (never in this file): TURNSTILE_SECRET_KEY
+
+  "observability": { "enabled": true }
+}

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
 import { EMAIL_RE, ENQUIRY_FIELDS, INTERESTS, type Enquiry } from '../content/enquiry'
+import { TURNSTILE_SITE_KEY } from '../content/site'
+import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 
 /**
  * The contact page, kept simple: on the left a photograph of the mesh, full-bleed and darkened, and over it from its top
@@ -9,8 +11,8 @@ import { EMAIL_RE, ENQUIRY_FIELDS, INTERESTS, type Enquiry } from '../content/en
  * each, the label on the left and the line to write on the right (what it is about as four quiet buttons, two by two, a
  * dot each that fills when chosen), what is wrong said under it; and the way on, drawn in line: back, next, and at the
  * last, send. The slogan comes in as the façade's closing card's words do, under a block of its own colour that runs
- * across it and off; the rest rises after, and each step's rows rise in as it opens. Sent to /api/contact, which mails it
- * on numbered field by field with a PDF of it. A hidden field catches bots.
+ * across it and off; the rest rises after, and each step's rows rise in as it opens. Sent to /api/contact (worker/), which
+ * saves it and emails it on, numbered field by field. Cloudflare Turnstile on the last step, and a hidden field, catch bots.
  */
 
 type Key = keyof Enquiry
@@ -79,6 +81,9 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
   const [step, setStep] = useState(0)
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [wrong, setWrong] = useState<Partial<Record<Key, string>>>({})
+  /** Turnstile's one-use token, once the check has passed; and the widget, to reset it after a failed send */
+  const [token, setToken] = useState('')
+  const verify = useRef<TurnstileHandle | null>(null)
   /** moved on or back by the visitor (not the page's first showing): the step's first field takes the cursor */
   const moved = useRef(false)
   const last = step === STEPS.length - 1
@@ -148,13 +153,30 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
         setStep(s)
         return
       }
+    if (!token) {
+      setState({ kind: 'error', text: 'Please wait for the verification check below to finish, then send.' })
+      return
+    }
     setState({ kind: 'sending' })
+    // a token is good for one try: whatever happens, the next try needs a fresh one
+    const fresh = () => {
+      setToken('')
+      verify.current?.reset()
+    }
     try {
-      const r = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...v, website: trap }) })
+      const r = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...v, website: trap, turnstileToken: token }),
+      })
       const out = (await r.json().catch(() => ({}))) as { ok?: boolean; ref?: string; error?: string }
       if (r.ok && out.ok) setState({ kind: 'sent', ref: out.ref })
-      else setState({ kind: 'error', text: out.error ?? 'The enquiry could not be sent. Please try again.' })
+      else {
+        fresh()
+        setState({ kind: 'error', text: out.error ?? 'The enquiry could not be sent. Please try again.' })
+      }
     } catch {
+      fresh()
       setState({ kind: 'error', text: 'No connection. Please try again.' })
     }
   }
@@ -309,6 +331,19 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
             <div ref={rows} key={step} className="ct-rows">
               {STEPS[step].keys.map((k, i) => row(k, i))}
             </div>
+
+            {/* the last step: Cloudflare's check that a person is sending it */}
+            {last && (
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                handle={verify}
+                onToken={(t) => {
+                  setToken(t)
+                  if (state.kind === 'error') setState({ kind: 'idle' })
+                }}
+                onExpire={() => setToken('')}
+              />
+            )}
 
             {/* for bots only: a person never sees it */}
             <label className="ct-trap" aria-hidden="true">

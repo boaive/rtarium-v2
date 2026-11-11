@@ -16,6 +16,13 @@ export const SITE = {
 
 export const contactConfigured = () => Boolean(SITE.contact.email || SITE.contact.phone)
 
+/**
+ * Cloudflare Turnstile's site key for the contact form (public: it is meant to be in the page; its secret lives only in
+ * the Worker). While developing, Cloudflare's test key, which always passes, so the form works on localhost.
+ */
+export const TURNSTILE_SITE_KEY: string =
+  import.meta.env.VITE_TURNSTILE_SITE_KEY || (import.meta.env.DEV ? '1x00000000000000000000AA' : '0x4AAAAAAF81S59VTqixzZll')
+
 /** `?review` in the address shows the open questions beside flagged figures. */
 export const REVIEW_MODE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('review')
 
