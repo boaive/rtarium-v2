@@ -260,50 +260,53 @@ export function usePointerTracking() {
   }, [])
 }
 
-/** Drag-to-turn on an element. Touch: horizontal drags turn the mesh, vertical ones scroll the page. */
+/** The press a finger holds still for before it takes the mesh (ms), and how far it may drift meanwhile (px) */
+const HOLD = { ms: 320, slop: 9 }
+
+/**
+ * Drag-to-turn on an element. A mouse takes the mesh as soon as it is pressed. A finger takes it only by pressing and
+ * holding still (HOLD): a tap, or a swipe that sets off at once, is the page's (it scrolls, the mesh never turns); once
+ * held, the finger turns the mesh, sideways, until it lifts, and the page stays put meanwhile (Hero's swipes wait on
+ * `stage.orbit.dragging`).
+ */
 export function useOrbitDrag(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    /**
-     * `axis` (a finger only): undecided (0) until it has gone 10 px; then sideways (1), which turns the mesh, or up and
-     * down (-1), a swipe through the page, which never turns it (not even by the little a thumb drifts sideways on its way)
-     */
-    const pr = { id: -1, x: 0, y: 0, sx: 0, sy: 0, axis: 0 }
+    const pr = { id: -1, x: 0, y: 0, sx: 0, sy: 0, held: false, timer: 0 }
     const interactive = (t: EventTarget | null) => Boolean((t as HTMLElement | null)?.closest?.('a, button, input, select'))
+    const take = () => {
+      pr.held = true
+      stage.orbit.dragging = true
+      el.classList.add('is-dragging')
+    }
     const release = () => {
+      window.clearTimeout(pr.timer)
       pr.id = -1
+      pr.held = false
       stage.orbit.dragging = false
       el.classList.remove('is-dragging')
     }
     const down = (e: PointerEvent) => {
       if ((e.pointerType === 'mouse' && e.button !== 0) || interactive(e.target)) return
+      release()
       pr.id = e.pointerId
       pr.x = pr.sx = e.clientX
       pr.y = pr.sy = e.clientY
-      pr.axis = e.pointerType === 'touch' ? 0 : 1
-      // (a mouse holds the mesh at once; a finger only once it is known to be going sideways)
-      if (pr.axis === 1) {
-        stage.orbit.dragging = true
-        el.classList.add('is-dragging')
-      }
+      if (e.pointerType !== 'touch') take()
+      else
+        pr.timer = window.setTimeout(() => {
+          if (pr.id !== e.pointerId) return
+          take()
+          // (a short tick where the phone can: the mesh is in hand)
+          navigator.vibrate?.(8)
+        }, HOLD.ms)
     }
     const move = (e: PointerEvent) => {
       if (e.pointerId !== pr.id) return
-      if (pr.axis === 0) {
-        const tx = e.clientX - pr.sx
-        const ty = e.clientY - pr.sy
-        if (Math.hypot(tx, ty) < 10) return
-        if (Math.abs(tx) > Math.abs(ty) * 1.3) {
-          pr.axis = 1
-          pr.x = e.clientX
-          pr.y = e.clientY
-          stage.orbit.dragging = true
-          el.classList.add('is-dragging')
-        } else {
-          pr.axis = -1
-          release()
-        }
+      if (!pr.held) {
+        // moving before the hold: a swipe or a scroll, the page's own
+        if (Math.hypot(e.clientX - pr.sx, e.clientY - pr.sy) > HOLD.slop) release()
         return
       }
       const dx = e.clientX - pr.x
@@ -317,12 +320,19 @@ export function useOrbitDrag(ref: RefObject<HTMLElement | null>) {
       if (e.pointerId !== pr.id) return
       release()
     }
+    // (a long press would otherwise open the phone's own menu over the mesh)
+    const menu = (e: Event) => {
+      if (pr.held || pr.id !== -1) e.preventDefault()
+    }
     el.addEventListener('pointerdown', down)
+    el.addEventListener('contextmenu', menu)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
     return () => {
+      release()
       el.removeEventListener('pointerdown', down)
+      el.removeEventListener('contextmenu', menu)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)

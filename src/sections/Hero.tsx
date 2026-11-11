@@ -182,6 +182,12 @@ function useTourSwipes(section: RefObject<HTMLElement | null>, phone: boolean) {
       }
     }
     const move = (e: TouchEvent) => {
+      // a finger pressed and held on the mesh is turning it (useOrbitDrag): the page holds still under it
+      if (stage.orbit.dragging) {
+        g.decided = true
+        if (e.cancelable) e.preventDefault()
+        return
+      }
       if (g.taken) {
         if (e.cancelable) e.preventDefault()
         return

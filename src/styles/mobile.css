@@ -40,6 +40,12 @@
   .hero__scroll {
     filter: none;
   }
+  /* the mesh is turned by pressing and holding it: no text selection or the phone's own menu in the way */
+  .hero__screen--open {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
   .hero__title .lines__line:first-child {
     font-size: clamp(1.45rem, 6.6vw, 2.2rem);
   }
