@@ -40,6 +40,14 @@
   .hero__scroll {
     filter: none;
   }
+  /* what it is and the way to the team leave with the first fifth of the first swipe, never lingering at the foot of the
+     next screen */
+  .hero__screen--open.is-active .hero__sub {
+    opacity: clamp(0, calc(1 - var(--p, 0) * 5), 1);
+    transition:
+      transform 0.6s var(--ease-out),
+      visibility 0s linear 0s;
+  }
   /* a phone's tour hands over to About from its white (Hero's useWhiteHandoff): a warm-white curtain over the page,
      under the header, shown at once and cleared slowly, so About comes out of the white */
   .hero__curtain {

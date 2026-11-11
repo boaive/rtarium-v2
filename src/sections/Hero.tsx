@@ -5,7 +5,7 @@ import { PHONE_POINTS, tourWash } from '../three/poses'
 import { Lines } from '../components/Chapter'
 import { Link } from '../lib/router'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
-import { scrollToY, setTouchGlide } from '../lib/scroll'
+import { scrollToY, setAsideSmoothScroll } from '../lib/scroll'
 
 /** the screens of the opening tour: the piece, the mesh built out, the cavity, the light */
 const SCREENS = 4
@@ -36,6 +36,8 @@ function phoneTour(s: number) {
   }
   return PHONE_KEYS[PHONE_KEYS.length - 1][1]
 }
+/** the height of one of a phone's tour screens (all alike, the section their stack) */
+const screenH = (el: HTMLElement) => el.offsetHeight / PHONE_SCREENS
 /** on a phone, how far on along the cavity the camera has gone, a step for each point after the first (0..2) */
 const phoneDive = (s: number) => Math.min(2, Math.max(0, s - FIRST_POINT))
 
@@ -73,7 +75,9 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
       const vh = window.innerHeight
       // one screen more than it has: leaving the light, the tour carries on into About's first view
       const screens = phone ? PHONE_SCREENS : SCREENS
-      const at = Math.min(screens, Math.max(0, -r.top / vh))
+      // (a phone's tour is measured by its own screens, as tall as the screen with its address bar showing: measured by
+      // the window, which grows as the bar slides away, the page at rest on a screen would read as part way to it)
+      const at = Math.min(screens, Math.max(0, -r.top / (phone ? screenH(el) : vh)))
       const target = phone ? phoneTour(at) : at
       // (a phone scrolls natively, the finger's own pace: the tour keeps up with it, a hair behind to smooth the steps)
       p = p < 0 || prefersReducedMotion() ? target : damp(p, target, phone ? 30 : 10, dt)
@@ -133,11 +137,11 @@ const POINTS = [
  * is held (ms); how long About takes to come out of the white (ms); and the same hold and quiet in frames too, so a
  * slow frame never ends the hold early
  */
-const HANDOFF = { at: PHONE_SCREENS - 1 - 0.08, hold: 90, quiet: 70, most: 2400, fade: 360, frames: 6, quietFrames: 4 }
+const HANDOFF = { at: PHONE_SCREENS - 1 + 0.04, hold: 90, quiet: 70, most: 2400, fade: 360, frames: 6, quietFrames: 4 }
 
 /**
- * A phone's tour ends in the white, and About does not scroll up into it: once the page crosses into the white going
- * down (however fast), a warm-white curtain holds the screen and the page is set on About's first view. A fling still
+ * A phone's tour ends in the white, and About does not scroll up into it: the white is a stop of its own (useSwipePager),
+ * and once the page goes on down from it (however fast), a warm-white curtain holds the screen and the page is set on About's first view. A fling still
  * running is held there under the curtain (put back each frame it pushes the page on) until it has died out, so even a
  * hard flick lands on About's first view, never past it; then the curtain clears and About comes out of the white.
  * From there the page scrolls as any page does; going back up, it scrolls back through the white into the cavity.
@@ -148,7 +152,7 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
     const veil = curtain.current
     if (!phone || !el || !veil) return
     let lastY = window.scrollY
-    let lastAt = -el.getBoundingClientRect().top / window.innerHeight
+    let lastAt = -el.getBoundingClientRect().top / screenH(el)
     /** handed over, until the page is back above the white */
     let done = false
     let clear = 0
@@ -199,20 +203,21 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
       const y = window.scrollY
       const down = y > lastY
       lastY = y
-      const vh = window.innerHeight
-      const at = -el.getBoundingClientRect().top / vh
+      const at = -el.getBoundingClientRect().top / screenH(el)
       const from = lastAt
       lastAt = at
-      if (at < HANDOFF.at - 0.4) done = false
+      // (back up on the white, or above it: the next swipe down from it hands over again)
+      if (at <= PHONE_SCREENS - 0.5) done = false
       // crossing into the white going down, from the tour's last part (a hard flick may cross it, and even About's top,
       // in one go); a jump from elsewhere (a link in the menu, the page opened on a chapter) is never caught
       if (done || !down || from >= HANDOFF.at || at < HANDOFF.at) return
       if (from < HANDOFF.at - 3 || at > PHONE_SCREENS + 2) return
       done = true
+      stage.heldAt = performance.now()
       // the curtain, at once: the screen is already the white it is
       veil.classList.remove('is-clearing')
       veil.classList.add('is-on')
-      const target = el.offsetTop + PHONE_SCREENS * vh
+      const target = el.offsetTop + el.offsetHeight
       window.scrollTo({ top: target, behavior: 'instant' as ScrollBehavior })
       lastY = window.scrollY
       lastAt = PHONE_SCREENS
@@ -227,20 +232,104 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
   }, [section, curtain, phone])
 }
 
+/** what a phone's page stops on, a swipe at a time, after the tour's screens: About and each part after it, each section */
+const STOP_PARTS = '#main > section, #main .eb-row, footer'
 /**
- * A phone's swipes below the tour (About on) glide by a held reach, so a hard flick moves the page a part on, never
- * through half of it (lib/scroll, setTouchGlide); in the tour the page scrolls natively, with the finger. Decided as
- * each touch begins.
+ * A phone's swipe: how far the finger must go (share of the screen), or how fast (px/ms), to move on a stop; stops
+ * nearer each other than `near` (share of a screen) are one; a stretch longer than `long` between two stops gets stops
+ * `step` apart in it, so every swipe goes about as far
  */
-function useSwipeReach(section: RefObject<HTMLElement | null>, phone: boolean) {
+const SWIPE = { reach: 0.06, flick: 0.45, near: 0.4, long: 1.25, step: 0.9 }
+
+/** where a phone's Home stops, top to bottom (px): the tour's seven screens, the white the last, then the parts after */
+function swipeStops(tour: HTMLElement) {
+  const vh = window.innerHeight
+  const sh = screenH(tour)
+  const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
+  const ys = Array.from({ length: PHONE_SCREENS }, (_, k) => Math.round(tour.offsetTop + k * sh))
+  for (const p of document.querySelectorAll<HTMLElement>(STOP_PARTS)) {
+    if (p === tour || tour.contains(p)) continue
+    // (a part comes to rest just under the header, its number in view)
+    ys.push(Math.round(p.getBoundingClientRect().top + window.scrollY - (p.classList.contains('eb-row') ? navH : 0)))
+  }
+  ys.sort((a, b) => a - b)
+  const max = document.documentElement.scrollHeight - vh
+  const kept: number[] = []
+  for (const y of ys) if (!kept.length || y - kept[kept.length - 1] >= vh * SWIPE.near) kept.push(y)
+  const all: number[] = []
+  kept.forEach((y, i) => {
+    all.push(y)
+    const next = kept[i + 1] ?? max
+    for (let at = y + vh * SWIPE.step; next - y > vh * SWIPE.long && next - at > vh * SWIPE.near; at += vh * SWIPE.step) all.push(Math.round(at))
+  })
+  if (max - all[all.length - 1] > vh * SWIPE.near) all.push(max)
+  return all.map((y) => Math.min(max, y)).filter((y, i, a) => i === 0 || y > a[i - 1])
+}
+
+/**
+ * A phone's Home goes a stop a swipe, everywhere alike: while the finger is down the page is the browser's own and
+ * follows it exactly; once it lets go, the page goes on to the next stop that way (never past it, however hard the
+ * flick), or back to the stop it set off from if the swipe was a small one, in the browser's own smooth scroll (run off
+ * the page's thread, so it keeps its pace while the 3D draws). The stops: the tour's seven screens, the white the last
+ * (from it, About comes out of the white: useWhiteHandoff), then About and each of its parts, and so on down. A touch
+ * that took a mesh in hand, or that the white handed over to About, is left alone.
+ */
+function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean) {
   useEffect(() => {
     const el = section.current
-    if (!phone || !el) return
-    const decide = () => setTouchGlide(window.scrollY >= el.offsetTop + PHONE_SCREENS * window.innerHeight - 2)
-    window.addEventListener('touchstart', decide, { capture: true, passive: true })
+    if (!phone || !el || prefersReducedMotion()) return
+    // (the smooth scroll set aside: written a frame behind the page, it would pull at the page's own glides)
+    const bringBack = setAsideSmoothScroll()
+    const touch = { y: 0, x: 0, t: 0, at: 0, base: 0, multi: false }
+    let stops: number[] = []
+    /** where the last glide was going, and when it set off */
+    let aim: number | null = null
+    let aimAt = 0
+    const nearest = (y: number) => stops.reduce((a, s) => (Math.abs(s - y) < Math.abs(a - y) ? s : a), stops[0] ?? 0)
+    const start = (e: TouchEvent) => {
+      touch.multi = e.touches.length !== 1
+      const t = e.touches[0]
+      if (!t) return
+      touch.y = t.clientY
+      touch.x = t.clientX
+      touch.t = e.timeStamp
+      touch.at = performance.now()
+      stops = swipeStops(el)
+      // (a swipe during a glide sets off from where that glide was going)
+      touch.base = aim !== null && performance.now() - aimAt < 900 ? aim : nearest(window.scrollY)
+    }
+    const end = (e: TouchEvent) => {
+      const t = e.changedTouches[0]
+      if (touch.multi || !t || !stops.length) return
+      // a mesh taken in hand, or the white handing over to About, during this touch: not a swipe of the page
+      if (stage.heldAt >= touch.at) return
+      const dy = touch.y - t.clientY
+      const dx = touch.x - t.clientX
+      if (Math.abs(dx) > Math.abs(dy)) return
+      const vh = window.innerHeight
+      const speed = Math.abs(dy) / Math.max(1, e.timeStamp - touch.t)
+      const dir = Math.abs(dy) > vh * SWIPE.reach || (speed > SWIPE.flick && Math.abs(dy) > 12) ? Math.sign(dy) : 0
+      const y = window.scrollY
+      const i = stops.indexOf(touch.base)
+      let to = nearest(y)
+      if (dir > 0) {
+        // the next stop on from where the swipe set off; past it already (a long drag), the next past where the page is
+        const next = stops[Math.min(stops.length - 1, i + 1)]
+        to = y > next + 4 ? (stops.find((s) => s > y + 4) ?? stops[stops.length - 1]) : next
+      } else if (dir < 0) {
+        const prev = stops[Math.max(0, i - 1)]
+        to = y < prev - 4 ? ([...stops].reverse().find((s) => s < y - 4) ?? stops[0]) : prev
+      }
+      aim = to
+      aimAt = performance.now()
+      window.scrollTo({ top: to, behavior: 'smooth' })
+    }
+    window.addEventListener('touchstart', start, { passive: true })
+    window.addEventListener('touchend', end, { passive: true })
     return () => {
-      window.removeEventListener('touchstart', decide, { capture: true })
-      setTouchGlide(false)
+      window.removeEventListener('touchstart', start)
+      window.removeEventListener('touchend', end)
+      bringBack()
     }
   }, [section, phone])
 }
@@ -256,7 +345,7 @@ export function Hero() {
   useTour(section, setAt, compact)
   const curtain = useRef<HTMLDivElement>(null)
   useWhiteHandoff(section, curtain, compact)
-  useSwipeReach(section, compact)
+  useSwipePager(section, compact)
 
   // the scroll cue starts the tour: one screen down
   const start = () => {

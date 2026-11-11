@@ -67,6 +67,9 @@ export const stage = {
   flat: 0,
   /** drag rotation, written by the pointer handlers */
   orbit: { yaw: 0, pitch: 0, dragging: false },
+  /** when a finger last took a mesh in hand (press and hold), or the tour last handed over to About (ms): a phone's swipe
+   * pager leaves that touch alone */
+  heldAt: -1e9,
   /** cursor, -1..1 over the window, and when it last moved (ms) */
   pointer: { x: 0, y: 0, at: -1e9 },
   /** DOM labels pinned to points of the model, keyed by anchor id */

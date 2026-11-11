@@ -277,6 +277,7 @@ export function useOrbitDrag(ref: RefObject<HTMLElement | null>, target: Turn = 
     const interactive = (t: EventTarget | null) => Boolean((t as HTMLElement | null)?.closest?.('a, button, input, select'))
     const take = () => {
       pr.held = true
+      stage.heldAt = performance.now()
       target.dragging = true
       el.classList.add('is-dragging')
     }

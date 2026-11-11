@@ -15,35 +15,21 @@ let lenis: Lenis | null = null
 const WHEEL = 1
 const LERP = 0.13
 
-/**
- * A phone's swipe below the opening tour (`setTouchGlide`): the page follows the finger exactly, and once it lets go
- * glides on by at most `reach` of a screen, easing out at `lerp` a frame, so a hard flick moves the page a part on,
- * never through half of it
- */
-const TOUCH = { lerp: 0.09, reach: 0.9 }
-
 export function startSmoothScroll() {
   if (lenis || prefersReducedMotion()) return
-  const l = new Lenis({ lerp: LERP, wheelMultiplier: WHEEL, smoothWheel: true, autoRaf: true, syncTouchLerp: TOUCH.lerp })
-  // a swipe's glide once the finger has let go (Lenis' touch inertia: the one move it makes at TOUCH.lerp), held to its reach
-  const scrollTo = l.scrollTo.bind(l)
-  l.scrollTo = ((target: number | string | HTMLElement, opts?: Parameters<Lenis['scrollTo']>[1]) => {
-    if (typeof target === 'number' && l.options.syncTouch && opts?.programmatic === false && opts.lerp === TOUCH.lerp) {
-      const reach = window.innerHeight * TOUCH.reach
-      const from = l.animatedScroll
-      target = Math.min(from + reach, Math.max(from - reach, target))
-    }
-    return scrollTo(target, opts)
-  }) as Lenis['scrollTo']
-  lenis = l
+  lenis = new Lenis({ lerp: LERP, wheelMultiplier: WHEEL, smoothWheel: true, autoRaf: true })
 }
 
 /**
- * Whether a swipe is the page's own (false: the browser scrolls natively, as the opening tour does) or glides by a held
- * reach (true: below the tour on a phone, TOUCH). Set as each touch begins, never in the middle of one.
+ * Lenis set aside while a page moves by the browser's own scrolling alone (a phone's Home: Hero's useSwipePager, whose
+ * glides are the browser's smooth scroll) and brought back after: it writes its own scroll position a frame behind the
+ * page's, which would pull at those glides. Returns what brings it back.
  */
-export function setTouchGlide(on: boolean) {
-  if (lenis && lenis.options.syncTouch !== on) (lenis.options as { syncTouch: boolean }).syncTouch = on
+export function setAsideSmoothScroll() {
+  if (!lenis) return () => {}
+  lenis.destroy()
+  lenis = null
+  return () => startSmoothScroll()
 }
 
 /** the page's jumps (`scrollToY` at once), counted: a step's goal from before one is no longer where the page is going */

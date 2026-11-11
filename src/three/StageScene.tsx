@@ -57,6 +57,10 @@ const SWAY_PERIOD = 16
 const BOX_TURN = 6
 /** a phone's card most in view turns slowly, on and on (deg/s); the rest hold where they are */
 const CARD_TURN = 2.5
+/** a phone's opening piece turns slowly while the page rests on it (deg/s); as the tour sets off it eases back to its pose */
+const OPEN_TURN = 4
+/** a finger on a phone's card: a small, gentle dent (a share of the cursor's depth, and of its reach) */
+const FINGER = { depth: 0.35, radius: 0.5 }
 /** the settle as it is woven: starting height (m), spring stiffness and damping (a small bounce, then still) */
 const DROP = { height: 0.05, k: 70, c: 7.5, tilt: 0.3 }
 /** the opening piece is woven out from its middle: when it starts and how long it takes (s) */
@@ -432,6 +436,30 @@ export function StageScene({ compact, reduced }: Props) {
         scene.add(probe)
         gl.compile(scene, camera)
         scene.remove(probe)
+        // and every part of the sheet is sent to the phone's GPU now, in each of its three cell details, drawn once out of
+        // sight: the first time a part came into view as the mesh was built out, its upload stalled a frame or two, and
+        // the mesh seemed to jump from a gap to the whole sheet
+        if (field.current) {
+          const chunks = field.current.children as THREE.InstancedMesh[]
+          const kept = chunks.map((m) => ({ visible: m.visible, geometry: m.geometry, culled: m.frustumCulled }))
+          gl.setScissorTest(true)
+          gl.setScissor(0, 0, 1, 1)
+          for (const geo of [cell.hi, cell.lo, cell.far]) {
+            for (const m of chunks) {
+              m.visible = true
+              m.frustumCulled = false
+              m.geometry = geo
+            }
+            gl.render(scene, camera)
+          }
+          chunks.forEach((m, i) => {
+            m.visible = kept[i].visible
+            m.geometry = kept[i].geometry
+            m.frustumCulled = kept[i].culled
+          })
+          gl.setScissorTest(false)
+          gl.clear()
+        }
       }
       // once the opening is under way, the programs of everything still hidden (concrete, mortar,
       // the drawing lines) compile in parallel, so nothing stalls the first time it appears
@@ -588,6 +616,8 @@ export function StageScene({ compact, reduced }: Props) {
       // a phone's figure stands still in its pose: no turn, no rock (it read as a wobble in the hand); it moves only with
       // the page, and the phone draws nothing while the page is still
       if (compact && r.box && !pose.spin) c.spin = reduced || r !== turning ? c.spin : (c.spin + CARD_TURN * dt) % 360
+      // a phone's opening piece turns slowly while the page rests on it, and eases back to its pose as the tour sets off
+      else if (compact && hero) c.spin = reduced ? 0 : stage.tour < 0.08 ? (c.spin + OPEN_TURN * dt) % 360 : dampAngle(c.spin, 0, 2.4, dt)
       else c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
       // (a phone's views never sway on their own: the mesh moves only when the visitor scrolls or turns it)
       const sway = reduced || r.box || compact ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
@@ -733,9 +763,10 @@ export function StageScene({ compact, reduced }: Props) {
         tile.current.updateMatrixWorld()
       }
       // each chunk's detail for this view's camera (two views in a transition each get their own)
-      // (a phone's opening piece and its cards keep their full cells: the first is the first thing seen, and a card is
-      // drawn only when its picture changes, so neither costs much, and both stay crisp)
-      ;(field.current?.userData.lod as ((cam: THREE.Camera, farMul?: number) => void) | undefined)?.(camera, compact && ((hero && stage.tour < 0.6) || r.box) ? 4 : 1)
+      // (a phone's cards keep their full cells: a card is drawn only when its picture changes, so it costs little; the
+      // opening piece keeps them too, the first thing seen, and gives them up gradually as the mesh is built out, far
+      // parts first, never all at once)
+      ;(field.current?.userData.lod as ((cam: THREE.Camera, farMul?: number) => void) | undefined)?.(camera, compact && r.box ? 4 : compact && hero ? lerp(4, 1, smoothstep(0.15, 1, stage.tour)) : 1)
       if (axes.current) {
         axes.current.visible = f.axes > 0.01
         // X, then Y, then Z grow one after the other
@@ -872,7 +903,7 @@ export function StageScene({ compact, reduced }: Props) {
         ray.setFromCamera(ndc.set(touch.x, -touch.y), camera)
         ray.ray.applyMatrix4(toLocal.copy(tile.current.matrixWorld).invert())
         if (ray.ray.intersectPlane(plane, hit) && Math.abs(hit.x) < (f.winX / 2) * PITCH && Math.abs(hit.z) < (f.winZ / 2) * PITCH)
-          press.press(hit.x / SHEET + 0.5, hit.z / SHEET + 0.5, CURSOR.depth, (CURSOR.radius * 1.3 / SHEET) * press.cols)
+          press.press(hit.x / SHEET + 0.5, hit.z / SHEET + 0.5, CURSOR.depth * FINGER.depth, ((CURSOR.radius * FINGER.radius) / SHEET) * press.cols)
       }
       // "Elastic modulus" under the cursor: the sheet is struck in the middle and springs straight back
       if (inspect === 'modulus' && now - f.knockAt > 1300) {
