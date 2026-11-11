@@ -188,7 +188,10 @@
  * headings stay in view as tabs (positions set in stack.ts). The colours are set per ground.
  */
 .fu-deck {
-  --tab: clamp(50px, 6.6vh, 64px);
+  /* (the box measures itself, so its tabs are sized to it: on a short screen, or zoomed in, the tabs grow smaller
+     rather than the newest card shrinking below its own heading and line; at most 6.6vh, as tall screens have them) */
+  container-type: size;
+  --tab: clamp(30px, min(max(50px, 6.6vh), (100cqh - 96px) / var(--n)), 64px);
   /* how much a covered card shrinks back for each card that lies on it */
   --shrink: 0.03;
   --n: 6;
@@ -221,6 +224,8 @@
   height: calc(100% - (var(--n) - 1) * var(--tab));
   box-sizing: border-box;
   border: var(--edge) solid var(--card-edge);
+  /* (browsers without color-mix: the card's own colour) */
+  background: var(--card);
   background: color-mix(in srgb, var(--ground) calc(var(--depth) * var(--recede)), var(--card));
   color: var(--card-ink);
   box-shadow: var(--lift);
