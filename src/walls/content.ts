@@ -33,6 +33,7 @@ export const PAIRED = {
   name: 'SIP insulated panel',
   kind: 'Stay-in-place',
   thick: 100,
+  usp: 'Insulated at the core. Two thin concrete leaves, RTARIUM in each. Stay-in-place. Custom lengths.',
   width: 600,
   length: 5.8,
   /** the client's layout, outside in */

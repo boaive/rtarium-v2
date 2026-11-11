@@ -1185,12 +1185,12 @@
 .fu-more {
   padding-top: var(--nav-h);
 }
-.fu-more__grid {
+.fu-more .fu-more__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   border-top: 1px solid var(--line);
 }
-.fu-more__head {
+.fu-more .fu-more__head {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1198,10 +1198,10 @@
   padding: clamp(56px, 10vh, 112px) var(--gutter) clamp(28px, 5vh, 52px);
   border-right: 1px solid var(--line);
 }
-.fu-more__title {
+.fu-more .fu-more__title {
   font-size: clamp(2rem, min(3.3vw, 6vh), 3.6rem);
 }
-.fu-more__overview {
+.fu-more .fu-more__overview {
   align-self: flex-start;
   font-size: var(--t-small);
   font-weight: 700;
@@ -1209,11 +1209,11 @@
   text-underline-offset: 0.22em;
   text-decoration-thickness: 1.5px;
 }
-.fu-more__overview:focus-visible {
+.fu-more .fu-more__overview:focus-visible {
   outline: 2px solid var(--black);
   outline-offset: 4px;
 }
-.fu-more__cols {
+.fu-more .fu-more__cols {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   min-height: max(480px, calc(100svh - var(--nav-h) - 1px));
 }
@@ -1431,17 +1431,17 @@
   .fu-more {
     padding-top: 0;
   }
-  .fu-more__grid,
+  .fu-more .fu-more__grid,
   .fu-more--all .fu-more__grid,
   .fu-more--all .fu-more__cols {
     grid-template-columns: minmax(0, 1fr);
   }
-  .fu-more__head {
+  .fu-more .fu-more__head {
     padding-top: 56px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
-  .fu-more__cols {
+  .fu-more .fu-more__cols {
     grid-template-columns: minmax(0, 1fr);
     min-height: clamp(480px, 66svh, 720px);
   }

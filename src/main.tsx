@@ -11,6 +11,7 @@ import './styles/pages.css'
 import './styles/mobile.css'
 import { App } from './App'
 import { startSmoothScroll } from './lib/scroll'
+import { runOpener } from './opener'
 
 startSmoothScroll()
 
@@ -19,3 +20,6 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+// the opening: the emblem fills as the page loads, then opens onto it
+runOpener()

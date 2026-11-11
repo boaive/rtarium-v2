@@ -68,8 +68,10 @@ const LABELS: LabelSpec[] = [
   { id: 'side', anchor: 'b-side', text: '12 mm', dx: 56, dy: 52 },
 ]
 
-/** screens of scroll for each answer: the last has the panel to grow and cast */
-const STRETCH = [1.3, 1.6, 1.3, 1.4, 1.3, 2]
+/** screens of scroll for each answer: the last has the panel to grow and cast (grown by 0.82 of it: no dead scroll after) */
+const STRETCH = [1.3, 1.6, 1.3, 1.4, 1.3, 1.7]
+/** where the last answer has played out, as a share of its stretch: the panel at its full height */
+const LAST_AT = 0.88
 const RUN = STRETCH.reduce((a, b) => a + b, 0)
 const START = STRETCH.map((_, k) => STRETCH.slice(0, k).reduce((a, b) => a + b, 0))
 const N = ANSWERS.length
@@ -94,7 +96,7 @@ function wordsAt(k: number, t: number) {
 function goToAnswer(k: number) {
   const el = document.getElementById('bridge')
   if (!el) return
-  const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.76)
+  const s = START[k] + STRETCH[k] * (k === N - 1 ? LAST_AT : 0.76)
   scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight)
 }
 
@@ -129,7 +131,7 @@ export function Bridge() {
 
   // left as the slab to slab's build is, by the page's stepper (usePageSteps): plays with the scroll going down, never
   // back, its bar playing it to a step; done where its last step has played out
-  const done = (START[N - 1] + STRETCH[N - 1] * 0.9) / RUN
+  const done = (START[N - 1] + STRETCH[N - 1] * LAST_AT) / RUN
 
   useEffect(() => {
     const el = section.current
@@ -158,7 +160,7 @@ export function Bridge() {
         // the bar: the current cell fills as its answer plays; a passed one closes to its number
         const c = cells.current[k]
         if (c) {
-          c.style.setProperty('--f', Math.min(1, Math.max(0, f / (k === N - 1 ? 0.9 : 0.76))).toFixed(4))
+          c.style.setProperty('--f', Math.min(1, Math.max(0, f / (k === N - 1 ? 0.84 : 0.76))).toFixed(4))
           c.style.setProperty('--c', (k < N - 1 ? smooth(0.86, 1, f) : 0).toFixed(4))
         }
       })
@@ -201,7 +203,7 @@ export function Bridge() {
     // of its own, as the slab to slab's bar plays to its step; `move`: the page goes straight there first
     let seeking = false
     let seekRaf = 0
-    const seek = (to: number, at?: number) => {
+    const seek = (to: number, at?: number, quick = false) => {
       cancelAnimationFrame(seekRaf)
       // (a step of the bar plays in full, from its own start: `at`)
       const from = at ?? (p < 0 ? to : p)
@@ -210,12 +212,13 @@ export function Bridge() {
         apply()
         return
       }
-      const time = Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from)) * 1000
+      // (quick: the last of a step the scroll has all but played, finished in about the time a scroll settles)
+      const time = (quick ? Math.min(0.6, 0.25 + 1.5 * Math.abs(to - from)) : Math.min(4.2, 1.6 + 1.4 * Math.abs(to - from))) * 1000
       const start = performance.now()
       seeking = true
       const frame = (at: number) => {
         const u = Math.min(1, Math.max(0, (at - start) / time))
-        p = from + (to - from) * (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
+        p = from + (to - from) * (quick ? 1 - Math.pow(1 - u, 3) : u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2)
         apply()
         if (u < 1) seekRaf = requestAnimationFrame(frame)
         else {
@@ -227,9 +230,11 @@ export function Bridge() {
     }
     const show = (e: Event) => {
       const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
-      const s = START[k] + STRETCH[k] * (k === N - 1 ? 0.9 : 0.76)
+      const s = START[k] + STRETCH[k] * (k === N - 1 ? LAST_AT : 0.76)
       if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
-      seek(answerAt(s), k)
+      // (without `move`, the stepper is saying the scroll has played it to its end: it is eased on from where it stands,
+      // never played again from its start)
+      seek(answerAt(s), move === undefined ? undefined : k, move === undefined)
     }
     const kick = () => {
       if (!raf) {

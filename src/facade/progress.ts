@@ -171,7 +171,7 @@ export const smooth = (a: number, b: number, v: number) => {
  * Seconds one scroll takes from a block of a box story to the next, the one closing and the next opening on the way:
  * the same for every story told in these boxes (the façade's, the wall panels', the flooring layer's)
  */
-export const STORY_STEP = 0.9
+export const STORY_STEP = 1.05
 
 /**
  * Where the page rests in a section told in listings (the rainscreen barrier's grammar), for the page's one scroll a
@@ -308,7 +308,7 @@ export function useRunSection(section: RefObject<HTMLElement | null>, done: numb
           }
           return null
         },
-        time: (screens) => Math.min(1.6, STORY_STEP + 0.35 * Math.max(0, screens - 1)),
+        time: (screens) => Math.min(1.9, STORY_STEP + 0.35 * Math.max(0, screens - 1)),
       },
     )
     return () => {

@@ -6,7 +6,7 @@
 export const INTERESTS = ['Façade & Cladding', 'Advanced Flooring', 'Wall Panels', 'Something else'] as const
 
 export interface EnquiryField {
-  key: 'name' | 'company' | 'email' | 'phone' | 'interest' | 'location' | 'message'
+  key: 'name' | 'company' | 'email' | 'phone' | 'interest' | 'message'
   label: string
   required?: boolean
   /** the longest it may be */
@@ -19,7 +19,6 @@ export const ENQUIRY_FIELDS: EnquiryField[] = [
   { key: 'phone', label: 'Phone', max: 40 },
   { key: 'company', label: 'Company', max: 160 },
   { key: 'interest', label: 'Interested in', required: true, max: 60 },
-  { key: 'location', label: 'Project location', max: 160 },
   { key: 'message', label: 'Message', required: true, max: 4000 },
 ]
 

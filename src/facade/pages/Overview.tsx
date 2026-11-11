@@ -32,8 +32,8 @@ function heroShots(compact: boolean): [Shot, Shot] {
   const k = compact ? 1.7 : 1
   const f = (a: [number, number], b: [number, number]): [number, number] => (compact ? b : a)
   return [
-    { target: [0.02, -0.02, 0], dist: 1.72 * k, azim: 42, elev: 9, frame: f([0.68, 0.54], [0.5, 0.4]) },
-    { target: [0.02, -0.02, 0], dist: 1.45 * k, azim: 58, elev: 22, frame: f([0.67, 0.38], [0.5, 0.3]) },
+    { target: [0.02, -0.02, 0], dist: (compact ? 1.72 : 1.42) * k, azim: 42, elev: 9, frame: f([0.69, 0.54], [0.5, 0.4]) },
+    { target: [0.02, -0.02, 0], dist: (compact ? 1.45 : 1.2) * k, azim: 58, elev: 22, frame: f([0.68, 0.38], [0.5, 0.3]) },
   ]
 }
 
@@ -83,6 +83,8 @@ export default function Overview() {
     const sections: [HTMLElement, Ground][] = [
       [hero.current!, 'yellow'],
       [story.current!, 'yellow'],
+      // RTARIUM's closing card, a full screen: the header's words over its black
+      ...((c) => (c ? [[c, 'black'] as [HTMLElement, Ground]] : []))(story.current?.querySelector<HTMLElement>('.fs-block--last')),
       [systems.current!, 'light'],
       ...(footer ? [[footer, 'yellow'] as [HTMLElement, Ground]] : []),
     ]
@@ -128,6 +130,7 @@ export default function Overview() {
           <h1 id="fco-title" className="fco-head__name">
             Façade & Cladding
           </h1>
+          <p className="fco-head__kind">Thin concrete façade panels, reinforced with RTARIUM’s 3D basalt mesh.</p>
         </header>
         <div className="fco-hero__copy">
           <Words as="p" className="fco-mega" lines={['Concrete façades,', 're-engineered.']} />

@@ -12,7 +12,7 @@ import { Answers } from './Answers'
 import { Say } from '../components/Say'
 import { Panels } from './Panels'
 import { Streams } from './Streams'
-import { SOLID } from './content'
+import { PAIRED, SOLID } from './content'
 
 /**
  * Wall Panels: one page, one continuous scroll, the grounds taking turns as on the other pages:
@@ -22,8 +22,9 @@ import { SOLID } from './content'
  *                  panel, each struck as it goes, then RTARIUM's own layout (concrete muscle, cladding speed)
  *   the answers    yellow, pinned: the client's six points over one scene of panels between two columns
  *   solid panel    black: its promise, the site's statement
- *   the panels     yellow, pinned: two bursts, one after the other, in a studio box: the solid panel, then the same
- *                  panel taking its core and opening as the SIP panel; each one's parts in a table to click
+ *   solid parts    yellow, pinned, in a studio box: the solid panel opening, its parts a step each on the bar
+ *   SIP panel      black: its promise
+ *   SIP parts      yellow, pinned: the solid panel taking its core and opening as the SIP panel, its parts the same way
  *   streams        warm white: choose a stream; its building drawn as the panels go on; its case study
  *
  * Everything on the page moves with the scroll; only the 3D has motion of its own, in time.
@@ -86,7 +87,13 @@ export default function WallPanels() {
         <Say kicker={SOLID.name} label={SOLID.name} text={SOLID.usp} />
       </div>
       <div className="fu" data-ground="yellow">
-        <Panels />
+        <Panels which={30} />
+      </div>
+      <div className="fu" data-ground="black">
+        <Say kicker={PAIRED.name} label={PAIRED.name} text={PAIRED.usp} />
+      </div>
+      <div className="fu" data-ground="yellow">
+        <Panels which={100} />
       </div>
       <div className="fu" data-ground="light">
         <Streams />

@@ -33,27 +33,41 @@ export function scrollToY(y: number, immediate = false) {
 }
 
 /** seconds one step of `stepScreens` takes */
-const STEP_TIME = 1
+const STEP_TIME = 1.1
 /** the share of a step after which the next may start: by then the page is all but there, and only easing in */
 const STEP_HELD = 0.62
+/** the same for a step that plays something out: its last stretch only settles, and the next may take over from it */
+const PLAY_HELD = 0.82
+/** the share of a step after which a new scroll the same way is kept, and taken the moment the step lets go */
+const QUEUE_FROM = 0.2
 /** ms after turning back in which it may not turn again: what is left of the last swipe's momentum */
 const TURN_HELD = 300
 /** ms without a wheel event that end a gesture */
 const GESTURE_GAP = 140
 /** how far a slow trackpad drag has to go before it counts as a step */
 const NUDGE = 24
+/** how much scroll the other way, as a fresh gesture, turns a step round: a real notch or swipe back, never the flick
+ * of a swipe's end or a wheel settling (px) */
+const TURN_NUDGE = 80
 /** ms the page has to rest before it is brought to the nearest screen */
 const SETTLE = 250
 /** stops closer than this share of a screen are one stop */
 const SAME_STOP = 0.15
+/** how near the end of a free stretch a scroll may come to rest before the page takes it the rest of the way (screens) */
+const NEAR_END = 0.4
+/** how far one scroll goes through Home's tour, a notch or a swipe however hard (screens), and in what time (s) */
+const TOUR_STEP = 0.6
+const TOUR_TIME = 1.05
+/** how far before the end of Home's tour its white begins (screens): a scroll into it carries on to the next screen */
+const TOUR_WHITE = 1.75
 
-/** answers at once, and comes to rest softly: a swipe should move the page as the fingers move */
-const easeStep = (t: number) => 1 - Math.pow(1 - t, 3)
 
 /** seconds the page takes to play on by itself from the end of a free run to the next screen */
 const AUTO_TIME = 2.2
 /** carries on from the glide without a jolt, gathers pace, and comes to rest softly */
 const easeAuto = (t: number) => t * (0.6 + t * (1.8 - 1.4 * t))
+/** a step that plays something out: moves the moment the wheel turns, never a pause before it, and settles softly */
+const easePlay = (t: number) => t * (2 - t)
 
 /**
  * every place the page may rest: each screen of each section, the end of a section taller than its screens, and the
@@ -192,6 +206,12 @@ export function stepScreens(
 
   /** the jumps there had been when `goal` was set */
   let goalJumps = 0
+  /** where a scroll through Home's tour is gliding to, while it does */
+  let tourAim: number | null = null
+  /** when the step under way began and how long it takes (ms), and a new scroll kept for when it lets go (its way, or 0) */
+  let stepAt = 0
+  let stepMs = 0
+  let queued = 0
   /** where the page is going: the step's goal while it glides there, unless the page has been jumped since (a section
    * taking it straight on to where it was left), else where it is */
   const going = () => (glide.isScrolling && goal !== null && goalJumps === jumps ? goal : window.scrollY)
@@ -213,10 +233,33 @@ export function stepScreens(
     const given = typeof opts.time === 'function' ? opts.time(screens, y) : opts.time
     const played = auto || given !== undefined
     const time = auto ? AUTO_TIME : (given ?? (screens > 1.3 ? STEP_TIME * 1.45 : STEP_TIME))
-    glide.scrollTo(y, { duration: time, easing: played ? easeAuto : easeStep, force: true })
+    glide.scrollTo(y, { duration: time, easing: auto ? easeAuto : easePlay, force: true })
     clearTimeout(timer)
-    // a step that plays something out is played to its end before the next may start: nothing cuts it short
-    timer = window.setTimeout(() => (moving = false), time * 1000 * (played ? 1 : STEP_HELD))
+    stepAt = performance.now()
+    stepMs = time * 1000
+    queued = 0
+    // a step that plays something out is played all but to its end before the next may start; a new scroll that came in
+    // on the way (the same way) is taken the moment it lets go, so a page never sits waiting for the scroll to be repeated
+    timer = window.setTimeout(
+      () => {
+        moving = false
+        const q = queued
+        queued = 0
+        if (q) {
+          spent = true
+          sum = 0
+          // (landed in a free stretch: on through it the same way as any scroll there, never across it whole)
+          // (where the step is landing, not where the glide is this moment, a pixel or two short of it)
+          const at = going()
+          const run = freeRun(q, at)
+          if (run) {
+            tourAim = null
+            freeStep(q, run, at)
+          } else step(q)
+        }
+      },
+      time * 1000 * (auto ? 1 : played ? PLAY_HELD : STEP_HELD),
+    )
   }
   const step = (dir: number) => {
     const stops = dir < 0 && opts.back ? opts.back() : stopsOf()
@@ -225,6 +268,25 @@ export function stepScreens(
     if (to !== undefined) moveTo(to)
   }
 
+  /** the free stretch (a section that plays with the scroll) the page is in, going that way, if any */
+  const freeRun = (dir: number, at: number) =>
+    opts.free?.(dir).find(([a, b]) => (dir > 0 ? at >= a - 4 && at < b - 4 : at > a + 4 && at <= b + 4))
+  /** one scroll through a free stretch: the same way on whatever the scroll (a slow notch or a hard swipe alike, never
+   * flown through by one swipe), gliding there, from where the last was going; near its end, onto its end */
+  const freeStep = (dir: number, run: [number, number], at: number) => {
+    const end = dir > 0 ? run[1] : run[0]
+    const to = (tourAim ?? at) + dir * window.innerHeight * TOUR_STEP
+    if (dir > 0 ? to >= end - window.innerHeight * 0.15 : to <= end + window.innerHeight * 0.15) {
+      tourAim = null
+      spent = true
+      landed = true
+      sum = 0
+      moveTo(end)
+      return
+    }
+    tourAim = to
+    glide.scrollTo(to, { duration: TOUR_TIME, easing: easePlay, force: true })
+  }
   const wheel = (e: WheelEvent) => {
     if (e.ctrlKey || glide.isStopped || (e.target as Element | null)?.closest?.('[data-lenis-prevent]')) return
     const d = e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? window.innerHeight : 1)
@@ -248,8 +310,56 @@ export function stepScreens(
       landed = false
     }
     // a wheel still spinning when the free run plays on by itself is the same spin, however hard: it ends there. In a
-    // section whose steps play out, the next step takes a new scroll after a pause, never the tail of the last one
-    const again = strong && !landed && opts.time === undefined
+    // section whose steps play out, a new notch once the step has landed is a new scroll (the tail of a swipe only ever
+    // dies away, so it never is)
+    const again = strong && !landed && (opts.time === undefined || !moving)
+    // Home's tour (the page's free run, not a section's steps): every scroll goes the same way on, a slow notch or a hard
+    // swipe alike, gliding there; the next notch or swipe goes on from where the last was going, and one that would
+    // reach the end of the tour lands on the screen after it
+    if (!own && !moving) {
+      const { lo } = zone()
+      if (!glide.isScrolling) tourAim = null
+      // gliding on through the white to the screen after the tour: the rest of this scroll is spent on the way, and a
+      // new one goes on from that screen, as from any
+      if (tourAim !== null && tourAim >= lo - 4 && dir > 0 && lo > 0 && lo < Infinity) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (fresh) {
+          const n = stopsOf().find((s) => s > lo + 4)
+          tourAim = null
+          spent = true
+          landed = true
+          sum = 0
+          if (n !== undefined) moveTo(n)
+        }
+        return
+      }
+      const at = tourAim ?? window.scrollY
+      if (lo > 0 && lo < Infinity && (dir > 0 ? at < lo - 4 : at <= lo + 4 && at > 4)) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (!fresh) return
+        // a screen of the tour a scroll: on to the next of its views (its words, the labels inside the mesh), never left
+        // between two
+        const vh = window.innerHeight
+        const to = (dir > 0 ? Math.floor(at / vh + 0.1) + 1 : Math.ceil(at / vh - 0.1) - 1) * vh
+        // (into the white at the tour's end: from there the page plays on by itself to the screen after it)
+        // (the same glide as the way back up through it, mirrored)
+        if (dir > 0 && to >= lo - window.innerHeight * TOUR_WHITE) {
+          const next = stopsOf().find((s) => s >= lo - 4)
+          if (next === undefined) return
+          tourAim = next
+          glide.scrollTo(next, { duration: AUTO_TIME * 0.75, easing: easeAuto, force: true })
+          return
+        }
+        // (back up out of the white, or from the screen after it: through it to the tour's last words, the same way)
+        const white = lo - window.innerHeight * TOUR_WHITE
+        const back = dir < 0 && at > white + 4
+        tourAim = back ? Math.min(to, lo - window.innerHeight * 2) : Math.max(0, to)
+        glide.scrollTo(tourAim, { duration: back ? AUTO_TIME * 0.75 : TOUR_TIME, easing: back ? easeAuto : easePlay, force: true })
+        return
+      }
+    }
     if (!moving) {
       const { lo, hi, auto } = zone()
       const at = going()
@@ -264,8 +374,9 @@ export function stepScreens(
         spent = true
         landed = true
         sum = 0
-        const next = auto ? stopsOf().find((s) => s > lo + 4) : lo
-        if (next !== undefined) moveTo(next, auto)
+        // (a free run that ends on a screen of its own lands on it: Home's tour, at About)
+        const next = auto ? stopsOf().find((s) => s >= lo - 4) : lo
+        if (next !== undefined) moveTo(next, auto && next > lo + 4)
         return
       }
       // below the steps, going up: the same, the other way, onto the last stop
@@ -280,21 +391,15 @@ export function stepScreens(
         moveTo(hi)
         return
       }
-      // through a free stretch: the wheel glides as on any page, and the page lands on the end it gets to
-      if (opts.free) {
-        const run = opts.free(dir).find(([a, b]) => (dir > 0 ? at >= a - 4 && at < b - 4 : at > a + 4 && at <= b + 4))
-        if (run) {
-          goal = null
-          const end = dir > 0 ? run[1] : run[0]
-          if (dir > 0 ? glide.targetScroll + d * WHEEL < end : glide.targetScroll + d * WHEEL > end) return
-          e.preventDefault()
-          e.stopPropagation()
-          spent = true
-          landed = true
-          sum = 0
-          moveTo(end)
-          return
-        }
+      // through a free stretch: every scroll the same way on through it (a new notch or swipe, never the tail of one)
+      const run = freeRun(dir, at)
+      if (run) {
+        goal = null
+        e.preventDefault()
+        e.stopPropagation()
+        if (!glide.isScrolling) tourAim = null
+        if (fresh || strong) freeStep(dir, run, at)
+        return
       }
       // going up at or above the first stop, or down at or below the last (a new swipe, not the tail of the step
       // that landed there): free. A section's steps never touch a scroll well outside it, going away from it (a
@@ -316,8 +421,13 @@ export function stepScreens(
     e.stopPropagation()
     if (moving) {
       // turned round on the way: straight back to the screen it left
-      if (dir === goingDir) turn = 0
-      else if (e.timeStamp - turnedAt > TURN_HELD && Math.abs((turn += d)) >= NUDGE) {
+      if (dir === goingDir) {
+        turn = 0
+        // a new scroll the same way, well on into the step (a fresh notch or swipe, never the tail of this one): kept, and
+        // taken as soon as the step lets go
+        if ((fresh || strong) && performance.now() - stepAt >= stepMs * QUEUE_FROM) queued = dir
+      } else if (e.timeStamp - turnedAt > TURN_HELD && Math.abs((turn = (fresh ? 0 : turn) + d)) >= TURN_NUDGE) {
+        queued = 0
         const back = origin
         const away = goal ?? back
         turnedAt = e.timeStamp
@@ -373,8 +483,13 @@ export function stepScreens(
       // and so it does in a section that is read at its own pace (`data-flow`: on a phone, the table of what RTARIUM
       // replaces, the applications and the long footer), once it holds the middle of the screen
       if (inFlow()) return
-      // and so it does in a free stretch: its run is the scroll itself, and stops where it is let go
-      if (opts.free?.(0).some(([a, b]) => y > a + 4 && y < b - 4)) return
+      // and so it does in a free stretch: its run is the scroll itself, and stops where it is let go; save just short of
+      // its end, where it is taken the rest of the way (else the next scroll would go only that far, and stop)
+      const run = opts.free?.(0).find(([a, b]) => y > a + 4 && y < b - 4)
+      if (run) {
+        if (run[1] - y < window.innerHeight * NEAR_END) moveTo(run[1])
+        return
+      }
       const stops = stopsOf()
       if (!stops.length) return
       const near = stops.reduce((a, b) => (Math.abs(b - y) < Math.abs(a - y) ? b : a))

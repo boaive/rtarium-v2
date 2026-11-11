@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { APPLICATIONS, SITE, contactConfigured } from '../content/site'
 import { Link } from '../lib/router'
 import { Contact } from './ContactForm'
+import { setShared } from '../three/stageStore'
 
 /**
  * Destinations the homepage links to that are outside this build. Each says plainly that its full
@@ -46,27 +47,49 @@ export function ContactPage() {
   useEffect(() => {
     document.title = 'Contact · RTARIUM by HEMISPHERE ONE'
   }, [])
+  // the header takes the ground of whatever is under it, read on every scroll: the form's warm white (the header's words
+  // stand over the form's half), the footer's yellow
+  useEffect(() => {
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const page = document.querySelector<HTMLElement>('.contact')
+      const footer = document.querySelector<HTMLElement>('.footer')
+      let ground: 'light' | 'yellow' = 'light'
+      for (const [el, g] of [[page, 'light'], [footer, 'yellow']] as const) {
+        const r = el?.getBoundingClientRect()
+        if (r && r.top <= 40 && r.bottom > 40) ground = g
+      }
+      setShared({ ground })
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    // (after the app's own reset of the header for a new page)
+    on()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [])
   return (
     <Contact
       labelledBy="page-title"
-      intro={
-        <>
-          <h1 id="page-title" className="contact__title">
-            Contact
-          </h1>
-          <p className="contact__lede">Tell us about the project, the building, its floor or its walls, and we will come back to you.</p>
-          {contactConfigured() ? (
-            <ul className="page__points contact__points">
-              {SITE.contact.email && (
-                <li>
-                  <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
-                </li>
-              )}
-              {SITE.contact.phone && <li>{SITE.contact.phone}</li>}
-              {SITE.contact.address && <li>{SITE.contact.address}</li>}
-            </ul>
-          ) : null}
-        </>
+      points={
+        contactConfigured() ? (
+          <ul className="contact__points">
+            {SITE.contact.email && (
+              <li>
+                <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
+              </li>
+            )}
+            {SITE.contact.phone && <li>{SITE.contact.phone}</li>}
+            {SITE.contact.address && <li>{SITE.contact.address}</li>}
+          </ul>
+        ) : null
       }
     />
   )

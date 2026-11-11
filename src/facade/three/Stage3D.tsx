@@ -5,6 +5,7 @@ import { Environment, Lightformer } from '@react-three/drei'
 import { hasWebGL2 } from '../../three/Stage'
 import { prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { approach, type LabelBus, type Shot } from './kit'
+import { builds, opening } from '../../lib/builds'
 
 class Boundary extends Component<{ children: ReactNode; onFail: () => void }, { failed: boolean }> {
   state = { failed: false }
@@ -40,32 +41,42 @@ export function holdPump() {
     if (!held) window.setTimeout(pump, 400)
   }
 }
-const idle = (f: () => void) => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 200))
+const idle = (f: () => void) => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(f, { timeout: 500 }) : setTimeout(f, 100))
+/** while the opening shows, nothing scrolls: every canvas is built then, back to back, the opening waiting for them */
+const count = () => void (builds.waiting = waiting.length + (pumping ? 1 : 0))
 function pump() {
+  count()
   if (pumping || held || !waiting.length) return
   pumping = true
-  idle(() => {
+  count()
+  const fast = opening()
+  ;(fast ? (f: () => void) => window.setTimeout(f, 0) : idle)(() => {
     waiting.sort((a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top)
     const next = waiting.shift()
     next?.make()
-    // a breath between canvases, so building one never crowds the next or the visitor's scroll
-    window.setTimeout(() => {
-      pumping = false
-      pump()
-    }, 350)
+    // a breath between canvases, so building one never crowds the next or the visitor's scroll (a short one while the
+    // opening shows: there is no scroll to crowd)
+    window.setTimeout(
+      () => {
+        pumping = false
+        pump()
+      },
+      fast ? 120 : 160,
+    )
   })
 }
 /** a moment after the first canvas asks (not the page's load event, which its photographs and footage hold back) */
 let settled = false
 const pending: (() => void)[] = []
 function whenSettled(f: () => void) {
-  if (settled) return f()
+  // (while the opening shows, at once)
+  if (settled || opening()) return f()
   pending.push(f)
   if (pending.length === 1)
     window.setTimeout(() => {
       settled = true
       pending.splice(0).forEach((g) => g())
-    }, 1800)
+    }, 600)
 }
 
 /**
@@ -143,6 +154,7 @@ export function Stage3D({
       if (queued) {
         const i = waiting.indexOf(entry)
         if (i >= 0) waiting.splice(i, 1)
+        count()
       }
     }
   }, [near, compact])
@@ -165,6 +177,7 @@ export function Stage3D({
                 <Suspense fallback={null}>
                   <Lights keyLight={keyLight} />
                   <Settle />
+                  <Pace full={dpr} />
                   {children}
                   <Warm />
                 </Suspense>
@@ -190,6 +203,52 @@ function Settle() {
       left.current--
       invalidate()
     }
+  })
+  return null
+}
+
+/**
+ * The scene's sharpness kept to what the graphics card can draw in time: while it moves and its frames come too slowly
+ * (a dense mesh, its shadows), it is drawn at fewer pixels, a little softer but smooth; once it has been still a moment
+ * it is drawn once more at full sharpness. A scene that keeps up is never touched.
+ */
+const SLOW = 1 / 40
+const LEAST_DPR = 0.6
+function Pace({ full }: { full: number }) {
+  const gl = useThree((s) => s.gl)
+  const size = useThree((s) => s.size)
+  const invalidate = useThree((s) => s.invalidate)
+  const dpr = useRef(full)
+  const slow = useRef(0)
+  const timer = useRef(0)
+  /** sharp again asked for: done at the start of the next frame, as it is drawn */
+  const restore = useRef(false)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  // (the canvas resized at the start of a frame, before it is drawn: never a frame drawn at the old size, or a blank one)
+  const apply = (d: number) => {
+    dpr.current = d
+    gl.setPixelRatio(d)
+    gl.setSize(size.width, size.height, false)
+  }
+  useFrame((_, delta) => {
+    if (restore.current) {
+      restore.current = false
+      if (dpr.current < full) apply(full)
+    }
+    // (a frame after a pause is not a slow one: the first of a run of frames carries the pause before it)
+    if (delta > 0.25) return
+    slow.current = delta > SLOW ? slow.current + 1 : Math.max(0, slow.current - 1)
+    if (slow.current >= 4 && dpr.current > LEAST_DPR) {
+      slow.current = 0
+      apply(Math.max(LEAST_DPR, dpr.current * 0.8))
+    }
+    // still a moment: sharp again
+    window.clearTimeout(timer.current)
+    if (dpr.current < full)
+      timer.current = window.setTimeout(() => {
+        restore.current = true
+        invalidate()
+      }, 400)
   })
   return null
 }

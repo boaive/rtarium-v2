@@ -79,8 +79,8 @@ export function HeroWall({ bus, play, focus }: { bus: LabelBus; play: boolean; f
   const release = useRef<(() => void) | null>(null)
   useEffect(() => {
     release.current = holdPump()
-    // never hold for long, whatever happens to the opening
-    const id = window.setTimeout(() => release.current?.(), 9000)
+    // never hold for long, whatever happens to the opening: the sections under it need their scenes ready
+    const id = window.setTimeout(() => release.current?.(), 1200)
     return () => {
       window.clearTimeout(id)
       release.current?.()
