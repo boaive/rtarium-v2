@@ -40,6 +40,13 @@
   .hero__scroll {
     filter: none;
   }
+  /* the 3D is as tall as the screen gets (its address bar slid away), always: sized to the window, it stopped short of
+     the foot as the bar slid away (a band of bare ground, the mesh moved up), and was redrawn at a new size each time */
+  .stage {
+    bottom: auto;
+    height: 100vh;
+    height: 100lvh;
+  }
   /* what it is and the way to the team leave with the first fifth of the first swipe, never lingering at the foot of the
      next screen */
   .hero__screen--open.is-active .hero__sub {
