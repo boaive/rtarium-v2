@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { MeshField, PITCH, cellUrl, useCell, useYarnMaterial } from './mesh/MeshField'
 import { PressField } from './mesh/flex'
-import { ANCHORS, FIELD, HALF, POSES, TOUR_LABELS, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
+import { ANCHORS, FIELD, HALF, POSES, PHONE_POINTS, TOUR_DIVE, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
 import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
 import { THICKNESS_OPTIONS } from '../content/technical'
 import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
@@ -53,6 +53,8 @@ const SCRUB = 8
 /** a view's motion with its panel: farther (fraction), lower (deg) and turned (deg) at one screen away */
 const PARALLAX = { dist: 0.14, elev: 5, azim: 12 }
 const SWAY_PERIOD = 16
+/** how fast a view in a box turns, steadily, in degrees a second (once round in a minute) */
+const BOX_TURN = 6
 /** the settle as it is woven: starting height (m), spring stiffness and damping (a small bounce, then still) */
 const DROP = { height: 0.05, k: 70, c: 7.5, tilt: 0.3 }
 /** the opening piece is woven out from its middle: when it starts and how long it takes (s) */
@@ -463,9 +465,16 @@ export function StageScene({ compact, reduced }: Props) {
       // screen) carries no labels, which would stand over the rows below it
       if (hero && compact && stage.tour > 2.5) pose.labels = []
       // and in the cavity it names its points one at a time, a screen each (Hero counts them): never with the words
-      else if (hero && compact) pose.labels = stage.tourPoints ? TOUR_LABELS.slice(0, stage.tourPoints) : []
+      // and in the cavity it names its points one at a time, a screen each (Hero counts them), each alone, the camera a
+      // step further along the cavity for each: never with the words
+      else if (hero && compact) {
+        pose.labels = stage.tourPoints ? [PHONE_POINTS[stage.tourPoints - 1]] : []
+        // (until the white has taken the screen, where the camera is brought out to the mesh)
+        if (stage.tourDive && stage.tour < 2.56) pose.tgt = [pose.tgt[0], pose.tgt[1], pose.tgt[2] - stage.tourDive * TOUR_DIVE]
+      }
       // where the panel is: -1 entering from below, 0 in place, 1 leaving above (the opening runs its own tour)
-      const o = hero || reduced ? 0 : THREE.MathUtils.clamp(-view.top / vh, -1, 1)
+      // (a view in a box holds still as its box scrolls: it turns on its own, steadily, as a looping film does)
+      const o = hero || reduced || r.box ? 0 : THREE.MathUtils.clamp(-view.top / vh, -1, 1)
       let v = views.current.get(r)
       if (!v) {
         v = newView(pose, compact, o)
@@ -504,8 +513,10 @@ export function StageScene({ compact, reduced }: Props) {
       const frame = r.box ? CENTRE : compact ? pose.frameCompact : pose.frame
       c.fx = damp(c.fx, frame[0], k, dt)
       c.fy = damp(c.fy, lerp(frame[1], Math.min(frame[1], 0.27), squat), k, dt)
-      c.spin = reduced ? 0 : pose.spin ? (c.spin + pose.spin * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
-      const sway = reduced ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
+      // a view in a box never sways back and forth: it turns round one way at an even pace, on and on
+      const turn = pose.spin || (r.box ? BOX_TURN : 0)
+      c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
+      const sway = reduced || r.box ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
       const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0)
       // the opening's tour goes down to eye level between the faces; elsewhere the camera stays above
       const elev = THREE.MathUtils.clamp(c.elev * DEG + (hero ? orbit.current.pitch : 0), hero ? -0.3 : 0.05, 1.45)
@@ -792,7 +803,8 @@ export function StageScene({ compact, reduced }: Props) {
 
       // ---- labels pinned to this view's sheet -------------------------------------------------
       // the opening's callouts wait until the piece has been woven
-      const settled = (Math.abs(c.dist - dist) < dist * 0.08 || reduced) && (!hero || intro > 0.96)
+      // (and a phone's point in the cavity once the camera has come to it: never sliding in with the camera)
+      const settled = (Math.abs(c.dist - dist) < dist * 0.08 || reduced) && (!hero || intro > 0.96) && (!hero || !compact || !stage.tourPoints || (Math.abs(c.tgt.z - pose.tgt[2]) < 0.004 && Math.abs(c.elev - pose.elev) < 1.5))
       if (!settled) continue
       const zone = compact ? pose.labelZoneCompact : pose.labelZone
       const shown = inspect === 'width' ? [...pose.labels, 'dim-width'] : inspect === 'elongation' ? [...pose.labels, 'strain'] : pose.labels

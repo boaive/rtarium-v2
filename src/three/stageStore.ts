@@ -66,6 +66,8 @@ export const stage = {
   wash: 0,
   /** on a phone, how many of the cavity's points are named (0..3): one more at each of its own screens */
   tourPoints: 0,
+  /** on a phone, how far on along the cavity the camera has gone for its points (0..2, a point a step) */
+  tourDive: 0,
   /** the Tech Space figure under the cursor or focused, if any */
   inspect: null as Inspect | null,
 }

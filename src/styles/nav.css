@@ -326,13 +326,9 @@
   transform: none;
   transition: transform 0.8s var(--ease-out) calc(0.3s + var(--i) * 0.05s);
 }
-/* the section the reader is in: a square of yellow before its name */
-.menu__item.is-here .menu__link::before {
-  content: '';
-  flex: none;
-  width: 9px;
-  height: 9px;
-  background: var(--yellow);
+/* the page the reader is on: its name in yellow, no mark before it (the rest stand in white) */
+.menu__item.is-page > .menu__row .menu__link {
+  color: var(--yellow);
 }
 .menu__link:focus-visible {
   outline: 2px solid var(--yellow);
@@ -418,10 +414,12 @@
   flex: none;
   transition: transform var(--d-mid) var(--ease-out);
 }
-.menu__sub a[aria-current],
+.menu__sub a[aria-current] {
+  color: var(--yellow);
+}
 .menu__sub a:hover,
 .menu__sub a:active {
-  color: var(--yellow);
+  color: var(--white);
 }
 .menu__sub a[aria-current] {
   font-weight: 600;
@@ -462,4 +460,150 @@
 .nav.is-open .nav__menu-icon i:last-child {
   width: 22px;
   transform: translateY(-3.25px) rotate(-45deg);
+}
+
+/*
+ * ---- a phone's header: one bar the width of the screen ------------------------------------------------------------------
+ * The name on the left, set straight on the ground (no capsule), and three plain lines on the right (no plate, no cell).
+ * At the top of a page the bar is clear; once the page moves under it, it frosts over: the ground's colour, a little
+ * see-through, the page blurred behind it, a hairline at its foot. It stays as it is reading down and up (it never draws in).
+ */
+.brand__rt--ink,
+.nav__menu-mid {
+  display: none;
+}
+@media (max-width: 860px) {
+  .nav__bar {
+    position: relative;
+    transition:
+      background-color var(--d-mid) var(--ease-out),
+      box-shadow var(--d-mid) var(--ease-out);
+  }
+  .nav__bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--nav-bg, var(--white));
+    opacity: 0;
+    box-shadow: 0 1px 0 rgb(8 8 8 / 0.1);
+    transition: opacity var(--d-mid) var(--ease-out);
+  }
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .nav__bar::before {
+      background: color-mix(in srgb, var(--nav-bg, var(--white)) 80%, transparent);
+      -webkit-backdrop-filter: blur(12px) saturate(1.4);
+      backdrop-filter: blur(12px) saturate(1.4);
+    }
+  }
+  .nav.on-black .nav__bar::before {
+    box-shadow: 0 1px 0 rgb(253 208 1 / 0.16);
+  }
+  .nav.is-scrolled:not(.is-open) .nav__bar::before {
+    opacity: 1;
+  }
+
+  /* the name alone, straight on the ground, in the ink of its ground (white on black, black on light and yellow) */
+  .nav__home,
+  .nav.is-tucked .nav__home,
+  .nav.on-black .nav__home {
+    margin-left: 0;
+    padding: 6px 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    transform: none;
+  }
+  .nav__home:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .brand,
+  .nav.is-tucked .brand {
+    gap: 0;
+  }
+  .brand__by {
+    display: none;
+  }
+  .brand__clip,
+  .nav.is-tucked .brand__clip {
+    max-width: none;
+  }
+  .brand__rt {
+    height: 18px;
+  }
+  .nav.on-light .brand__rt,
+  .nav.on-yellow .brand__rt {
+    display: none;
+  }
+  .nav.on-light .brand__rt--ink,
+  .nav.on-yellow .brand__rt--ink {
+    display: block;
+  }
+  /* (on yellow its yellow emblem would go: the whole name in black) */
+  .nav.on-yellow .brand__rt--ink {
+    filter: brightness(0);
+  }
+  .nav.is-open .brand__rt {
+    display: block;
+  }
+  .nav.is-open .brand__rt--ink {
+    display: none;
+  }
+
+  /* three plain lines, the ink of the ground */
+  .nav__menu,
+  .nav.is-tucked .nav__menu {
+    gap: 0;
+    width: 44px;
+    margin-right: -10px;
+    padding: 0;
+    justify-content: center;
+    background: transparent;
+    box-shadow: none;
+  }
+  .nav__menu-text,
+  .nav__ring,
+  .nav.is-tucked .nav__ring {
+    display: none;
+  }
+  .nav__menu-cell,
+  .nav.is-open .nav__menu-cell {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    color: var(--ink);
+  }
+  .nav.is-open .nav__menu-cell {
+    color: var(--white);
+  }
+  .nav__menu-icon,
+  .nav.is-open .nav__menu-icon {
+    gap: 5px;
+    width: 22px;
+  }
+  .nav__menu-icon i,
+  .nav.is-open .nav__menu-icon i,
+  .nav__menu-icon i:last-child {
+    display: block;
+    width: 22px;
+    height: 1.5px;
+    justify-self: stretch;
+    background: currentColor;
+    transition:
+      transform 0.45s cubic-bezier(0.7, 0, 0.2, 1),
+      opacity 0.25s var(--ease-out);
+  }
+  .nav.is-open .nav__menu-icon i:first-child,
+  .nav__menu[aria-expanded='true'] .nav__menu-icon i:first-child {
+    transform: translateY(6.5px) rotate(45deg);
+  }
+  .nav.is-open .nav__menu-icon i:last-child,
+  .nav__menu[aria-expanded='true'] .nav__menu-icon i:last-child {
+    width: 22px;
+    transform: translateY(-6.5px) rotate(-45deg);
+  }
+  .nav__menu[aria-expanded='true'] .nav__menu-mid {
+    opacity: 0;
+  }
 }

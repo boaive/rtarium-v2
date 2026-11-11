@@ -133,6 +133,11 @@ export const ANCHORS: Record<string, [number, number, number]> = {
   'tour-face-a': [0, 0.004, 0.018],
   'tour-fibres': [-0.003, 0, 0.021],
   'tour-face-b': [0, -0.004, 0.018],
+  // a phone's cavity names them one at a time, the camera a step further in for each (TOUR_DIVE): the same points, each
+  // that much further along the cavity (a whole number of cells, so each stays on its yarn)
+  'tour-p1': [0, 0.004, 0.018],
+  'tour-p2': [-0.003, 0, 0.021 - 0.036],
+  'tour-p3': [0, -0.004, 0.018 - 0.072],
   // the cast panel at the close of "In concrete": the mortar between the yarns, a yarn of the upper
   // face, the side of the slab
   'pour-cavity': [-0.08, 0.0042, -0.066],
@@ -416,6 +421,9 @@ function tourKeys(): TourKey[] {
 }
 
 export const TOUR_LABELS = ['tour-face-a', 'tour-fibres', 'tour-face-b', 'tour-gap']
+/** a phone's cavity points, one to a screen, and how far on along the cavity the camera goes for each (three cells) */
+export const PHONE_POINTS = ['tour-p1', 'tour-p2', 'tour-p3']
+export const TOUR_DIVE = 0.036
 /** how far into white light the tour has gone (0..1): the ground washes to warm white with it, and back to yellow on the way into About */
 export const tourWash = (p: number) => smoothstep(2.08, 2.5, p) * (1 - smoothstep(2.66, 3, p))
 /** in the cavity, as it starts to wash into the white: the visitor scrolls the tour this far, and from here it plays itself on into About */

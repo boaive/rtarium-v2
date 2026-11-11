@@ -72,6 +72,11 @@
 .stage canvas {
   display: block;
 }
+/* (nothing in it takes a tap or a click: its canvas, set to take them by the 3D library, would else lie over the
+   buttons of a phone's rows, whose figures it draws in) */
+.stage * {
+  pointer-events: none !important;
+}
 
 /* labels pinned to the model */
 .pin {

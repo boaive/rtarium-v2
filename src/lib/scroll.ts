@@ -195,6 +195,8 @@ export function stepScreens(
   let timer = 0
   let settle = 0
   let touching = false
+  /** a swipe's notch is being read (`touchMove`) */
+  let swiped = false
   let last = -Infinity
   let lastSize = 0
   let lastDir = 0
@@ -303,7 +305,8 @@ export function stepScreens(
     const size = Math.abs(d)
     const dir = Math.sign(d)
     // momentum only ever dies away; a new notch or swipe comes in as strong as the last, or stronger
-    const fresh = e.timeStamp - last > GESTURE_GAP || (dir !== lastDir && size >= 8)
+    // (a swipe is one notch, read once as it starts: always a scroll of its own, however soon after the last)
+    const fresh = swiped || e.timeStamp - last > GESTURE_GAP || (dir !== lastDir && size >= 8)
     const gap = e.timeStamp - last
     const strong = (size >= 60 && size >= lastSize && gap > 24) || (size >= 30 && size > lastSize * 2)
     last = e.timeStamp
@@ -556,7 +559,9 @@ export function stepScreens(
       preventDefault: () => void (held = true),
       stopPropagation: () => {},
     } as unknown as WheelEvent
+    swiped = true
     wheel(notch)
+    swiped = false
     if (held) {
       finger.taken = true
       if (e.cancelable) e.preventDefault()

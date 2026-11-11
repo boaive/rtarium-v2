@@ -21,6 +21,9 @@
     --eb-fg2: var(--on-light-2);
     --eb-rule: rgb(8 8 8 / 0.14);
     position: relative;
+    /* (its own ground, carried with it: one coming up never shows on the colour of the one going, as the screen's
+       ground only turns once it holds the middle; the 3D of its figures is drawn over the page, so it shows on it) */
+    background: var(--eb-bg);
     color: var(--eb-fg);
     --fg: var(--eb-fg);
     --fg-2: var(--eb-fg2);
@@ -256,6 +259,119 @@
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--eb-fg);
+  }
+
+  /*
+   * About: each part a screen of its own, a swipe each (Hero's swipes step on through them): the heading and the first
+   * part share the first screen, the next ones clear the bar at the top, and the figure takes whatever room is left
+   */
+  #about,
+  #innovation {
+    --about-head: calc(var(--nav-h) + 78px);
+  }
+  #about .eb__head,
+  #innovation .eb__head {
+    box-sizing: border-box;
+    height: var(--about-head);
+    padding-top: calc(var(--nav-h) + 22px);
+    padding-bottom: 14px;
+  }
+  #about .eb__title,
+  #innovation .eb__title {
+    font-size: clamp(1.7rem, 7.6vw, 2.2rem);
+  }
+  #about .eb-row,
+  #innovation .eb-row {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    padding-top: var(--nav-h);
+    padding-bottom: clamp(14px, 2.6svh, 24px);
+  }
+  #about .eb-row:first-of-type,
+  #innovation .eb-row:first-of-type {
+    height: calc(100svh - var(--about-head));
+    padding-top: 0;
+  }
+  #about .eb-row__num,
+  #innovation .eb-row__num {
+    margin-bottom: clamp(10px, 2svh, 20px);
+    padding-block: 10px;
+  }
+  #about .eb-row .lead,
+  #innovation .eb-row .lead {
+    font-size: clamp(0.86rem, 3.7vw, 0.98rem);
+    line-height: 1.45;
+  }
+  #about .eb-row .chain__step,
+  #innovation .eb-row .chain__step {
+    font-size: 0.86rem;
+  }
+  #about .eb-row .pourfilm,
+  #innovation .eb-row .pourfilm,
+  #about .eb-row.is-seen .pourfilm,
+  #innovation .eb-row.is-seen .pourfilm {
+    flex: none;
+    margin: clamp(10px, 2svh, 18px) 0 0;
+  }
+  #about .pourfilm__frame,
+  #innovation .pourfilm__frame {
+    aspect-ratio: 16 / 7;
+  }
+  #about .eb-fig,
+  #innovation .eb-fig {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+    margin-top: clamp(12px, 2.4svh, 24px);
+  }
+  #about .eb-fig__view,
+  #innovation .eb-fig__view {
+    flex: 1 1 0;
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+
+  /*
+   * Tech Space: one screen on black, no heading (the line says it): the words under the header, then the system pulled
+   * apart, centred in the room left under them; a swipe in, a swipe on (Hero's swipes step through it)
+   */
+  #tech .eb__head,
+  #tech .eb-row__num,
+  #tech .eb-row__label {
+    display: none;
+  }
+  #tech .eb-row {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    padding-top: calc(var(--nav-h) + clamp(10px, 2svh, 20px));
+    padding-bottom: clamp(14px, 2.6svh, 24px);
+    border-bottom: 0;
+  }
+  #tech .eb-row .copy {
+    gap: 12px;
+  }
+  #tech .eb-fig {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    margin-top: clamp(12px, 2.4svh, 24px);
+  }
+  #tech .eb-fig__view {
+    flex: 1 1 0;
+    min-height: 0;
+    aspect-ratio: auto;
+    box-shadow: none;
+  }
+  #tech .eb-fig__tick,
+  #tech .eb-fig__block {
+    display: none;
   }
 
   /* ---- Tech Space as a row: the thickness as hairline cells, the data sheet outlined, every figure a quiet link ---- */
@@ -955,10 +1071,14 @@
 
   /* ---- the challenge: a plain sentence, flush left, not a shout ------------------------------------------------- */
 
+  /* (on its own black, as on a wide screen: its words are yellow) */
+  .scene--challenge {
+    background: var(--black);
+  }
   .scene--challenge .copy--full {
-    justify-items: start;
+    justify-items: center;
     align-content: center;
-    text-align: left;
+    text-align: center;
   }
   .scene--challenge .statement {
     max-width: 15em;

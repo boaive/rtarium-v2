@@ -233,7 +233,7 @@ export function TechSpace() {
 
   return (
     <>
-      {compact ? <Rows id="tech" title="Tech Space" steps={phone} ground="yellow" /> : <Chapter id="tech" title="Tech Space" steps={steps} className="chapter--tech" />}
+      {compact ? <Rows id="tech" title="Tech Space" steps={phone} ground="black" /> : <Chapter id="tech" title="Tech Space" steps={steps} className="chapter--tech" />}
       <FiguresSheet dialog={dialog} />
       <StageLabel anchor="slab-top">Concrete</StageLabel>
       <StageLabel anchor="slab-mesh">RTARIUM mesh</StageLabel>
