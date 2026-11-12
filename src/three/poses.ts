@@ -165,12 +165,12 @@ export const POSES: Record<PoseId, Pose> = {
     elev: 41,
     azim: 36,
     dist: 0.53,
-    // phones: the whole piece on the screen at every angle of its slow turn (its diagonal across, with a margin each side)
-    distCompact: 1.32,
+    // phones: the piece large on the screen, its corners kept clear of the sides through its slow turn
+    distCompact: 1.2,
     fov: 30,
     frame: [0.71, 0.7],
-    // phones: centred across the screen, and in the middle of the room between the way to the team and Scroll to explore
-    frameCompact: [0.5, 0.64],
+    // phones: centred across the screen, low in the room between the way to the team and Scroll to explore
+    frameCompact: [0.5, 0.7],
     sway: 4,
     press: true,
     win: [18, 12],
