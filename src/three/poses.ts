@@ -419,7 +419,7 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   // RTARIUM: in close and low on the sheet's front edge, its upper face, the fibres looping between and its lower face
   // all in view, the edge running a little uphill across the card; Flat mesh takes the lower face and the fibres away
   // and leaves the camera where it is
-  shear: card('shear', { tgt: [0, -0.002, 0.058], elev: 9, azim: 14, dist: 0.12, distCompact: 0.12, frameBox: [0.5, 0.55], win: [14, 14], fog: [6, 8], shadow: 1, shearPlane: false }),
+  shear: card('shear', { tgt: [0, -0.002, 0.058], elev: 9, azim: 14, dist: 0.12, distCompact: 0.12, frameBox: [0.5, 0.55], win: [14, 14], fog: [6, 8], shadow: 1, shearPlane: false, spin: 2 }),
   // a small rectangle of it from above, close (some five strands across), turning about its own middle: no corner of it
   // ever reaches the words over it
   mineral: card('mineral', { tgt: [0, 0, 0], elev: 48, azim: -8, dist: 0.2, distCompact: 0.2, fov: 38, frameBox: [0.5, 0.64], win: [6, 9], fog: [6, 8], shadow: 1, spin: 2 }),

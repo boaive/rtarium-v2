@@ -1,28 +1,39 @@
-import { Suspense, lazy, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { APPLICATIONS } from '../content/site'
 import { Link } from '../lib/router'
 import { useScreen } from '../components/Chapter'
-import { useIsCompact } from '../lib/motion'
+import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { useMarkIn } from '../lib/reveal'
-import { PhonePick } from '../facade/PhonePick'
+import { Arrow } from '../facade/Shell'
+import '../facade/overview.css'
+import '../facade/unitized/more-cards.css'
 
 const AppModel = lazy(() => import('./AppModel'))
 
+/** a swipe moves the row on a card if it goes this far (a share of a card) or this fast (px/ms); a glide's length (ms) */
+const SWIPE = { reach: 0.14, flick: 0.35, glide: 560 }
+const mod = (a: number, n: number) => ((a % n) + n) % n
+
 /**
- * A phone's applications, set as the façade pages' "Three ways onto a building": the heading over a hairline, one
- * application's 3D model at a time, large (its photograph until the model has come), and under it the same picker (its number and name; which of three, back and
- * on; its line and the way in). A sideways swipe across the picture or the words moves one along.
+ * A phone's applications, laid out as the façade pages' "Three ways onto a building" (facade/unitized/More: MoreCards,
+ * its styles too): the heading over a hairline, then a card an application in a row that goes round, swiped sideways a
+ * card at a time, the next showing at the edge; each card its application's own model in 3D (AppModel: the one its page
+ * opens on), its number and name at the foot and a round black button with a yellow arrow, the way in; dashes under the
+ * row say which is in front. The models are made as the section comes near (`data-stage-ahead`).
  */
 function PhoneApplications() {
-  const ref = useRef<HTMLElement>(null)
-  const stage = useRef<HTMLDivElement>(null)
-  const [at, setAt] = useState(0)
-  // the models come once the section is near (their own chunk), play while it is on the screen, and draw only then
+  const section = useRef<HTMLElement>(null)
+  const rail = useRef<HTMLDivElement>(null)
+  const cards = useRef<(HTMLLIElement | null)[]>([])
+  const n = APPLICATIONS.length
+  const [front, setFront] = useState(0)
+  const pos = useRef(0)
+  const anim = useRef(0)
   const [near, setNear] = useState(false)
   const [play, setPlay] = useState(false)
   const live = useRef(false)
   useEffect(() => {
-    const el = ref.current
+    const el = section.current
     if (!el) return
     const ahead = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: '100% 0px' })
     const seen = new IntersectionObserver(([e]) => {
@@ -36,24 +47,163 @@ function PhoneApplications() {
       seen.disconnect()
     }
   }, [])
-  useScreen(ref, 'applications', 'light')
-  const a = APPLICATIONS[at]
+  useScreen(section, 'applications', 'light')
+
+  const step = useCallback(() => {
+    const r = rail.current
+    const w = cards.current[0]?.offsetWidth ?? 0
+    return w + (r ? parseFloat(getComputedStyle(r).getPropertyValue('--ways-gap')) || 0 : 0)
+  }, [])
+  const place = useCallback(() => {
+    const s = step()
+    const lo = -1
+    cards.current.forEach((c, i) => {
+      if (!c) return
+      const o = mod(i - pos.current - lo, n) + lo
+      c.style.transform = `translate3d(${(o * s).toFixed(1)}px, 0, 0)`
+      c.style.opacity = String(Math.min(1, Math.max(0, (o - lo) / 0.5)))
+    })
+    setFront(mod(Math.round(pos.current), n))
+  }, [n, step])
+  const glide = useCallback(
+    (to: number) => {
+      cancelAnimationFrame(anim.current)
+      const from = pos.current
+      const end = () => {
+        pos.current = mod(to, n)
+        place()
+      }
+      if (prefersReducedMotion() || Math.abs(to - from) < 1e-3) return end()
+      const t0 = performance.now()
+      const ms = SWIPE.glide * Math.min(1.6, Math.max(0.6, Math.abs(to - from)))
+      const frame = (now: number) => {
+        const t = Math.min(1, (now - t0) / ms)
+        pos.current = from + (to - from) * (1 - Math.pow(1 - t, 3))
+        place()
+        if (t < 1) anim.current = requestAnimationFrame(frame)
+        else end()
+      }
+      anim.current = requestAnimationFrame(frame)
+    },
+    [n, place],
+  )
+  const show = useCallback(
+    (i: number) => {
+      const base = Math.round(pos.current)
+      let d = mod(i - base, n)
+      if (d > n / 2) d -= n
+      glide(base + d)
+    },
+    [n, glide],
+  )
+  useLayoutEffect(() => {
+    place()
+    const r = rail.current
+    if (!r) return
+    const ro = new ResizeObserver(() => place())
+    ro.observe(r)
+    return () => ro.disconnect()
+  }, [place])
+  // a sideways drag moves the row with the finger; an upright one is the page's scroll (touch-action: pan-y)
+  useEffect(() => {
+    const r = rail.current
+    if (!r) return
+    const g = { id: -1, x: 0, y: 0, t: 0, from: 0, on: false, moved: 0 }
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      cancelAnimationFrame(anim.current)
+      Object.assign(g, { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, from: pos.current, on: false, moved: 0 })
+    }
+    const move = (e: PointerEvent) => {
+      if (e.pointerId !== g.id) return
+      const dx = e.clientX - g.x
+      const dy = e.clientY - g.y
+      if (!g.on) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
+          g.id = -1
+          return glide(Math.round(pos.current))
+        }
+        if (Math.abs(dx) < 8) return
+        g.on = true
+        try {
+          r.setPointerCapture(e.pointerId)
+        } catch {
+          /* */
+        }
+      }
+      g.moved = Math.abs(dx)
+      pos.current = g.from - dx / Math.max(1, step())
+      place()
+    }
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== g.id) return
+      g.id = -1
+      const dx = e.clientX - g.x
+      const fast = Math.abs(dx) / Math.max(1, e.timeStamp - g.t) > SWIPE.flick
+      const base = Math.round(g.from)
+      glide(g.on && (Math.abs(dx) > step() * SWIPE.reach || fast) ? base - Math.sign(dx) : base)
+    }
+    const cancel = (e: PointerEvent) => {
+      if (e.pointerId !== g.id) return
+      g.id = -1
+      glide(Math.round(pos.current))
+    }
+    const click = (e: MouseEvent) => {
+      if (g.moved <= 8) return
+      e.preventDefault()
+      e.stopPropagation()
+      g.moved = 0
+    }
+    r.addEventListener('pointerdown', down)
+    r.addEventListener('pointermove', move)
+    r.addEventListener('pointerup', up)
+    r.addEventListener('pointercancel', cancel)
+    r.addEventListener('click', click, true)
+    return () => {
+      cancelAnimationFrame(anim.current)
+      r.removeEventListener('pointerdown', down)
+      r.removeEventListener('pointermove', move)
+      r.removeEventListener('pointerup', up)
+      r.removeEventListener('pointercancel', cancel)
+      r.removeEventListener('click', click, true)
+    }
+  }, [glide, place, step])
+
   return (
-    <section id="applications" ref={ref} className="apps apps--pick" aria-labelledby="apps-title" data-screen="light" data-flow="">
-      <header className="apps__head">
-        <h2 id="apps-title" className="apps__title">
-          Built into three applications.
-        </h2>
-      </header>
-      <div ref={stage} className="apps__stage">
-        <div className="apps__model" role="img" aria-label={a.image.alt}>
-          {near && (
-            <Suspense fallback={<img className="apps__still" src={a.image.src} alt="" style={{ objectPosition: a.image.position }} />}>
-              <AppModel id={a.id} play={play} live={live} still={a.image.src} />
-            </Suspense>
-          )}
+    <section id="applications" ref={section} className="ways ways--apps on-light" data-stage-ahead="" data-screen="light" data-flow="" aria-labelledby="apps-title">
+      <div className="ways__in fc-reveal is-in">
+        <header className="ways__head">
+          <h2 id="apps-title" className="ways__title">
+            Built into three applications.
+          </h2>
+        </header>
+        <div ref={rail} className="ways__rail" role="group" aria-roledescription="carousel" aria-label="The three applications">
+          <ol className="ways__track">
+            {APPLICATIONS.map((a, i) => (
+              <li key={a.id} ref={(el) => void (cards.current[i] = el)} className={`ways__card ${front === i ? 'is-front' : ''}`} onFocus={() => front !== i && show(i)}>
+                <div className="ways__model" aria-hidden="true">
+                  {near && (
+                    <Suspense fallback={<img className="ways__still" src={a.image.src} alt="" style={{ objectPosition: a.image.position }} />}>
+                      <AppModel id={a.id} play={play} live={live} still={a.image.src} />
+                    </Suspense>
+                  )}
+                </div>
+                <p className="ways__count num">
+                  0{i + 1} / 0{n}
+                </p>
+                <h3 className="ways__name">{a.title}</h3>
+                <Link to={a.path} className="ways__go" aria-label={`Explore ${a.title}`} draggable={false}>
+                  <Arrow />
+                </Link>
+              </li>
+            ))}
+          </ol>
         </div>
-        <PhonePick items={APPLICATIONS.map((x, i) => ({ n: i + 1, title: x.title, line: x.points.join(' · '), path: x.path }))} at={at} onPick={setAt} swipeRef={stage} />
+        <div className="ways__dots">
+          {APPLICATIONS.map((a, i) => (
+            <button key={a.id} type="button" className="ways__dot" aria-label={`Show ${a.title}`} aria-current={front === i} onClick={() => show(i)} />
+          ))}
+        </div>
       </div>
     </section>
   )

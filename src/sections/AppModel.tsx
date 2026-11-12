@@ -19,8 +19,8 @@ const FIT = 0.62
 /** each page's opening shot on a phone (its first, before the scroll moves it), brought in for this shorter canvas */
 const SHOTS: Record<string, Shot> = {
   facade: { target: [0.02, -0.02, 0], dist: 1.72 * 1.7 * FIT * 1.12, azim: 42, elev: 14, frame: [0.56, 0.5] },
-  flooring: { target: [0.02, -0.02, 0], dist: 2.6 * 1.7 * FIT * 0.85, azim: 36, elev: 26, frame: [0.5, 0.5] },
-  walls: { target: HERO_TARGET, dist: 10.4 * FIT, azim: 44, elev: 28, frame: [0.5, 0.5] },
+  flooring: { target: [0.02, -0.02, 0], dist: 2.6 * 1.7 * FIT, azim: 36, elev: 26, frame: [0.5, 0.5] },
+  walls: { target: HERO_TARGET, dist: 10.4 * FIT * 1.7, azim: 44, elev: 28, frame: [0.5, 0.5] },
 }
 const noPhase = () => {}
 

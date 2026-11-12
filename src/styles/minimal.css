@@ -1478,6 +1478,19 @@
     clip-path: inset(0);
   }
 
+  /* Home's applications as the façade's cards (Applications: PhoneApplications): the model's canvas fills its part of the card */
+  #applications.ways {
+    position: relative;
+    z-index: 1;
+  }
+  #applications .ways__model .fc-canvas {
+    position: absolute;
+    inset: 0;
+  }
+  #applications .ways__model canvas {
+    display: block;
+  }
+
   /* ---- the header: one bar of smoked glass across the screen, the name and the menu on it, on every ground ---- */
   :root .nav .nav__bar {
     position: relative;
