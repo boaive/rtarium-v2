@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { MeshField, PITCH, cellUrl, useCell, useYarnMaterial } from './mesh/MeshField'
 import { PressField } from './mesh/flex'
-import { ANCHORS, CAVITY_Z, FIELD, HALF, POSES, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
+import { ANCHORS, CAVITY_Z, FIELD, HALF, PHONE_CARD, POSES, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
 import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
 import { THICKNESS_OPTIONS } from '../content/technical'
 import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
@@ -55,13 +55,14 @@ const PARALLAX = { dist: 0.14, elev: 5, azim: 12 }
 const SWAY_PERIOD = 16
 /** how fast a view in a box turns, steadily, in degrees a second (once round in a minute) */
 const BOX_TURN = 6
-/** a phone's card most in view sways gently either side of its pose, never right round: how far (deg) and how slowly (s
-    a sway there and back); the rest hold where they are */
-const CARD_SWAY = { deg: 12, period: 9 }
-/** how long the page rests after it has moved before a card sways again (ms): the idle check's key reads the same, so
-    the frames that start it are drawn */
-const CARD_REST = 300
-/** a phone's opening piece turns slowly while the page rests on it (deg/s); as the tour sets off it eases back to its pose */
+/** a phone's opening piece, tipped off the level about its own x and z (deg): a slant, not lying flat */
+const PHONE_SLANT: [number, number] = [-14, 20]
+/**
+ * a phone's opening piece turns slowly, one way, while the page rests on it (deg/s). Swiped on, it holds where it had
+ * turned to while the mesh is built out round it (it once swung all the way back to its pose there, up to half a turn in
+ * a moment: a whip that read as a twitch), and squares up only on the way down into the cavity, to the nearest quarter
+ * turn: by then the sheet is built out square, the same at every quarter, so the most it moves is an eighth.
+ */
 const OPEN_TURN = 4
 /** a finger on a phone's card: a small, gentle dent (a share of the cursor's depth, and of its reach) */
 const FINGER = { depth: 0.35, radius: 0.5 }
@@ -311,18 +312,8 @@ export function StageScene({ compact, reduced }: Props) {
   const still = useRef(0)
   /** the press field still moving (a card pressed, springing back): no frame is skipped */
   const pressLive = useRef(false)
-  /** when the page last moved (ms): a phone's card turns only with the page at rest */
-  const movedAt = useRef(-1e9)
-  /** how far through its sway a phone's card has come (s): it advances only while that card sways */
-  const cardPhase = useRef(0)
   /** a phone's opening piece: how far it had turned (deg, -180..180) as the tour set off */
   const openSpin = useRef(0)
-  // (only the page moving holds the cards still: a finger resting on one, or pressing it, leaves it swaying)
-  useEffect(() => {
-    const on = () => void (movedAt.current = performance.now())
-    window.addEventListener('scroll', on, { passive: true })
-    return () => window.removeEventListener('scroll', on)
-  }, [])
 
   const press = useMemo(() => new PressField(96, 96), [])
   useEffect(() => {
@@ -530,8 +521,8 @@ export function StageScene({ compact, reduced }: Props) {
     // has not changed and the last frames drew the same thing (every movement settled), the canvas keeps its picture
     // and the phone's GPU rests until the visitor moves the page again
     if (compact) {
-      // (the page coming to rest lets a card set off turning again)
-      let key = `${now - movedAt.current < CARD_REST},${vw},${vh},${gl.getPixelRatio()},${stage.tour},${stage.tourDive},${stage.flat},${thickness},${stage.inspect},${ob0(stage.orbit)}`
+      // (a card that turns changes its picture every frame: what it draws differs, so it is never skipped)
+      let key = `${vw},${vh},${gl.getPixelRatio()},${stage.tour},${stage.tourDive},${stage.flat},${thickness},${stage.inspect},${ob0(stage.orbit)}`
       for (const d of drawn) {
         const b = rects.get(d.r)
         const bl = d.r.blend?.()
@@ -597,7 +588,7 @@ export function StageScene({ compact, reduced }: Props) {
       const { r, id } = view
       const hero = id === 'hero'
       const bl = hero ? undefined : r.blend?.()
-      let pose: Pose = hero ? tourPose(reduced ? (stage.tour > 2.5 ? 3 : Math.min(stage.tour, 1)) : stage.tour, tourScratch) : bl ? blendPose(POSES[bl.a], POSES[bl.b], bl.t, blendScratch) : POSES[id]
+      let pose: Pose = hero ? tourPose(reduced ? (stage.tour > 2.5 ? 3 : Math.min(stage.tour, 1)) : stage.tour, tourScratch) : bl ? blendPose(POSES[bl.a], POSES[bl.b], bl.t, blendScratch) : (compact && r.box && PHONE_CARD[id]) || POSES[id]
       // on a phone the opening names nothing: the camera goes down between the faces and flies on along the cavity, at an
       // even pace, into the white (Hero says how far it has gone: tourDive, m), and About comes out of the white
       if (hero && compact) {
@@ -605,6 +596,10 @@ export function StageScene({ compact, reduced }: Props) {
         // (until the white has taken the screen, where the camera is brought out to the mesh)
         // (and with reduced motion the tour holds on the mesh built out: no flight)
         if (!reduced && stage.tourDive && stage.tour < 2.56) pose.tgt = [pose.tgt[0], pose.tgt[1], Math.min(pose.tgt[2], CAVITY_Z - stage.tourDive)]
+        // the opening piece held at a slant off the level (a phone's own: a wide screen keeps its pose), settling flat as
+        // the mesh is built out
+        const level = 1 - smoothstep(0, 0.7, stage.tour)
+        pose.tilt = [PHONE_SLANT[0] * level, PHONE_SLANT[1] * level]
       }
       // where the panel is: -1 entering from below, 0 in place, 1 leaving above (the opening runs its own tour)
       // (a view in a box holds still as its box scrolls: it turns on its own, steadily, as a looping film does)
@@ -658,11 +653,10 @@ export function StageScene({ compact, reduced }: Props) {
       // the page, and the phone draws nothing while the page is still
       // (and only while the page is at rest: turning, it is drawn and copied into its card every frame, a weight on a
       // phone's frames that showed as a hitch while the page glided, and as it came to rest on About)
-      if (compact && r.box && !pose.spin) {
-        if (!reduced && r === turning && now - movedAt.current >= CARD_REST) {
-          cardPhase.current += dt
-          c.spin = CARD_SWAY.deg * Math.sin((cardPhase.current * Math.PI * 2) / CARD_SWAY.period)
-        }
+      // a phone's card: the one most in view turns one way at its own slow pace (PHONE_CARD), never back and forth, and
+      // nothing stops it, the page scrolling or a finger on it; one with no turn holds its pose
+      if (compact && r.box) {
+        if (!reduced && pose.spin && r === turning) c.spin = (c.spin + pose.spin * dt) % 360
       }
       // a phone's opening piece turns slowly while the page rests on it, and eases back to its pose as the tour sets off
       // (unwound with the tour itself, all of it by the time the mesh built out is reached: eased on a clock of its own, it
@@ -672,7 +666,10 @@ export function StageScene({ compact, reduced }: Props) {
         else if (stage.tour < 0.08) {
           c.spin = (c.spin + OPEN_TURN * dt) % 360
           openSpin.current = ((c.spin % 360) + 540) % 360 - 180
-        } else c.spin = openSpin.current * (1 - smoothstep(0.08, 0.85, stage.tour))
+        } else {
+          const square = 90 * Math.round(openSpin.current / 90)
+          c.spin = lerp(openSpin.current, square, smoothstep(1, 1.6, stage.tour))
+        }
       }
       else c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
       // (a phone's views never sway on their own: the mesh moves only when the visitor scrolls or turns it)

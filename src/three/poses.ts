@@ -168,7 +168,7 @@ export const POSES: Record<PoseId, Pose> = {
     azim: 36,
     dist: 0.53,
     // phones: the piece large on the screen, its corners kept clear of the sides through its slow turn
-    distCompact: 1.2,
+    distCompact: 1.28,
     fov: 30,
     frame: [0.71, 0.7],
     // phones: centred across the screen, low in the room between the way to the team and Scroll to explore
@@ -394,6 +394,27 @@ export const POUR_OUT: Pose = {
   sway: 2,
   labels: POUR_LABELS,
   labelZone: [0.02, 0.4, 0.98, 0.95],
+}
+
+/**
+ * A phone's cards (About and Innovation, a screen each): a piece of the sheet whole in its card, clear of its edges at
+ * every angle of its turn, never pressed by a finger. `spin` (deg/s): the card most in view turns one way, very slowly,
+ * on and on (scrolling or a finger on it never stops it); none: it holds its pose.
+ */
+const card = (id: PoseId, o: Partial<Pose>): Pose => ({ ...POSES[id], press: false, sway: 0, spin: 0, labels: [], ...o })
+export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
+  // a small piece, low, so its two faces and the fibres between them read
+  structure: card('structure', { tgt: [0, 0, 0], elev: 19, azim: 40, dist: 0.62, distCompact: 0.62, fov: 30, frameBox: [0.5, 0.52], win: [6, 6], fog: [0.5, 1.4], shadow: 1, spin: 3 }),
+  // a broader piece from higher, so the weave of the rovings reads; low in its card
+  material: card('material', { tgt: [0, 0, 0], elev: 34, azim: -24, dist: 1.05, distCompact: 1.05, fov: 30, frameBox: [0.5, 0.6], win: [10, 10], fog: [0.8, 2.2], shadow: 1, spin: 3 }),
+  // close on the mortar running in, held still
+  pour: card('pour', {}),
+  // at a slant, held still, the arrows growing from its corner once it is reached
+  depth: card('depth', { elev: 36, azim: 58, distCompact: 1.25, fog: [0.9, 2.2], frameBox: [0.55, 0.56] }),
+  // the piece whole in its card, as the others, the plane drawn through it
+  shear: card('shear', { tgt: [0, 0, 0], elev: 24, azim: 26, dist: 0.95, distCompact: 0.95, frameBox: [0.5, 0.55], win: [10, 10], fog: [0.7, 2], shadow: 1 }),
+  // stood back from the fibre, whole in its card, turning very slowly
+  mineral: card('mineral', { tgt: [0, 0, 0], elev: 32, dist: 0.5, distCompact: 0.5, frameBox: [0.5, 0.55], win: [5, 5], fog: [0.35, 1.1], shadow: 1, spin: 2 }),
 }
 
 /* ---- the opening tour -------------------------------------------------------------------------- */
