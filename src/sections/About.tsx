@@ -25,10 +25,6 @@ const steps: Step[] = [
         <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
           Two basalt mesh faces, connected by vertical fibres to form a 3D structure.
         </p>
-        <p className="figure rv" style={{ '--i': 4 } as CSSProperties}>
-          <span className="figure__label">Thickness options</span>
-          <span className="figure__value num">3 / 6 / 10 / 15 mm</span>
-        </p>
       </div>
     ),
   },
