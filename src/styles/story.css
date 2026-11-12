@@ -559,7 +559,8 @@
   font-size: var(--t-small);
   font-weight: 600;
 }
-.figure__chips {
+.figure__chips,
+.pournotes {
   display: none;
 }
 .figure__value {

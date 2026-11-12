@@ -383,7 +383,8 @@ export const POUR_OUT: Pose = {
   elev: 30,
   azim: -20,
   dist: 0.72,
-  distCompact: 0.7,
+  // (a phone's card stands closer: the block fills its box)
+  distCompact: 0.46,
   frame: [0.46, 0.665],
   frameCompact: [0.5, 0.71],
   fog: [1, 2],

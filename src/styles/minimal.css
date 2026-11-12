@@ -416,6 +416,45 @@
     font-weight: 600;
     text-align: center;
   }
+  /* In concrete: the panel's notes as a list under the words, and its figure taller than the others */
+  #about .pournotes {
+    display: grid;
+    gap: 8px;
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  #about .pournotes__item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: baseline;
+    padding: 11px 14px;
+    border: 1px solid rgb(8 8 8 / 0.12);
+    border-radius: 6px;
+    background: rgb(255 255 255 / 0.45);
+  }
+  #about .pournotes__num {
+    grid-row: span 2;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--eb-fg2);
+  }
+  #about .pournotes__name {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  #about .pournotes__text {
+    font-size: 0.9rem;
+    color: var(--on-light-2);
+  }
+  :root #about #about-flow .eb-fig__view {
+    aspect-ratio: 1 / 1.05;
+  }
+
   /* the mesh with no frame, across the full width */
   :root :is(#about, #innovation) .eb-fig {
     margin-inline: calc(-1 * var(--gutter));
