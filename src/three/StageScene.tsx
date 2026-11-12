@@ -440,11 +440,14 @@ export function StageScene({ compact, reduced }: Props) {
       // a phone's solid yarn (no discards) compiles with the rest before the first frame, never mid-scroll the first time
       // a chunk takes it (a moment in the scene, out of sight, so it is built for the scene's own fog and light)
       if (compact) {
-        const probe = new THREE.Mesh(cell.lo, yarn.getSolid())
+        // (an instanced one, as the sheet's parts are: a plain mesh compiled another program, and the sheet's own was still
+        // compiled the first time a part took the solid yarn, mid-swipe, a frame of a tenth of a second)
+        const probe = new THREE.InstancedMesh(cell.lo, yarn.getSolid(), 1)
+        probe.setMatrixAt(0, new THREE.Matrix4())
+        probe.frustumCulled = false
         probe.position.y = -100
         scene.add(probe)
         gl.compile(scene, camera)
-        scene.remove(probe)
         // and every part of the sheet is sent to the phone's GPU now, in each of its three cell details, drawn once out of
         // sight: the first time a part came into view as the mesh was built out, its upload stalled a frame or two, and
         // the mesh seemed to jump from a gap to the whole sheet
@@ -461,7 +464,14 @@ export function StageScene({ compact, reduced }: Props) {
             }
             gl.render(scene, camera)
           }
+          // (and once in the solid yarn: a driver may only finish a program the first time it draws with it, and the
+          // first draw of the solid yarn came mid-swipe, as the mesh was built out, a frame of a tenth of a second)
+          const solid = yarn.getSolid()
+          const cut = chunks.map((m) => m.material)
+          for (const m of chunks) m.material = solid
+          gl.render(scene, camera)
           chunks.forEach((m, i) => {
+            m.material = cut[i]
             m.visible = kept[i].visible
             m.geometry = kept[i].geometry
             m.frustumCulled = kept[i].culled
@@ -469,6 +479,7 @@ export function StageScene({ compact, reduced }: Props) {
           gl.setScissorTest(false)
           gl.clear()
         }
+        scene.remove(probe)
       }
       // once the opening is under way, the programs of everything still hidden (concrete, mortar,
       // the drawing lines) compile in parallel, so nothing stalls the first time it appears

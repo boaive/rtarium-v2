@@ -267,6 +267,8 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
  * long the page must have been still before a page left between two stops is brought to the nearer (ms)
  */
 const SWIPE = { reach: 0.06, flick: 0.45, settle: 140 }
+/** a glide's length (ms): a screen's, more for each screen past the first, and the most */
+const GLIDE_MS = { screen: 640, more: 240, most: 1100 }
 
 /**
  * A stretch of a phone's Home that goes a stop a swipe: its stops, top to bottom (px), and where a swipe on out of its
@@ -338,10 +340,30 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     /** where the last glide was going, and when it set off */
     let aim: number | null = null
     let aimAt = 0
+    /*
+     * The glide to a stop: away at once and settling softly (an expo ease-out, as a smooth-scroll's), stepped frame by
+     * frame with the 3D, so the mesh and the page move as one. (The browser's own smooth scroll set off slowly and ran on
+     * a track of its own: on a phone, drawing the 3D at fewer frames than the page scrolled, the mesh trailed the page.)
+     * A finger on the screen stops it where it is; the white handing over to About takes it from there.
+     */
+    let anim = 0
     const glide = (to: number) => {
       aim = to
       aimAt = performance.now()
-      window.scrollTo({ top: to, behavior: 'smooth' })
+      cancelAnimationFrame(anim)
+      const from = window.scrollY
+      const far = to - from
+      if (Math.abs(far) < 1) return
+      const ms = Math.min(GLIDE_MS.most, GLIDE_MS.screen + Math.max(0, Math.abs(far) / window.innerHeight - 1) * GLIDE_MS.more)
+      const t0 = performance.now()
+      const frame = (now: number) => {
+        if (touch.down || stage.heldAt > t0) return
+        const t = Math.min(1, (now - t0) / ms)
+        const eased = t >= 1 ? 1 : 1 - Math.pow(2, -10 * t)
+        window.scrollTo({ top: from + far * eased, behavior: 'instant' as ScrollBehavior })
+        if (t < 1) anim = requestAnimationFrame(frame)
+      }
+      anim = requestAnimationFrame(frame)
     }
     const gliding = () => aim !== null && performance.now() - aimAt < 1200 && Math.abs(window.scrollY - aim) > 2
     const start = (e: TouchEvent) => {
@@ -475,6 +497,7 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     return () => {
       window.clearTimeout(quiet)
       window.removeEventListener('wheel', wheel)
+      cancelAnimationFrame(anim)
       window.removeEventListener('touchstart', start)
       window.removeEventListener('touchend', end)
       window.removeEventListener('touchcancel', cancel)
