@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { Lines, Track, type Step } from '../components/Chapter'
 import { VideoLoop } from '../components/Media'
 import { StageLabel } from '../three/Stage'
+import { useIsCompact } from '../lib/motion'
 
 const MAKING = ['Basalt rock', 'Melted', 'Drawn into filaments', 'Woven into the mesh']
 
@@ -11,6 +12,24 @@ const NOTES = [
   { anchor: 'pour-mesh', name: 'Locking mesh', text: 'Held in three dimensions.' },
   { anchor: 'pour-matrix', name: 'Concrete matrix', text: 'Cast round both faces.' },
 ]
+
+/** the production footage beside "In concrete": the wide screen only (a phone shows the mesh alone) */
+function PourFilm({ active }: { active: boolean }) {
+  const compact = useIsCompact()
+  if (compact) return null
+  return (
+    <figure className="pourfilm" aria-hidden={!active}>
+      <div className="pourfilm__frame">
+        {active ? (
+          <VideoLoop src="/video/mortar-flow-wide.mp4" small="/video/mortar-flow-wide-m.mp4" poster="/video/mortar-flow-wide.jpg" label="Mortar flowing into the RTARIUM mesh, close up" className="pourfilm__video" />
+        ) : (
+          <img className="pourfilm__poster" src="/video/mortar-flow-wide.jpg" alt="" loading="lazy" decoding="async" />
+        )}
+      </div>
+      <figcaption className="caption">Footage from the RTARIUM production shoot.</figcaption>
+    </figure>
+  )
+}
 
 const steps: Step[] = [
   {
@@ -67,16 +86,7 @@ const steps: Step[] = [
     // top right, and the panel takes its notes
     render: (active) => (
       <>
-        <figure className="pourfilm" aria-hidden={!active}>
-          <div className="pourfilm__frame">
-            {active ? (
-              <VideoLoop src="/video/mortar-flow-wide.mp4" small="/video/mortar-flow-wide-m.mp4" poster="/video/mortar-flow-wide.jpg" label="Mortar flowing into the RTARIUM mesh, close up" className="pourfilm__video" />
-            ) : (
-              <img className="pourfilm__poster" src="/video/mortar-flow-wide.jpg" alt="" loading="lazy" decoding="async" />
-            )}
-          </div>
-          <figcaption className="caption">Footage from the RTARIUM production shoot.</figcaption>
-        </figure>
+        <PourFilm active={active} />
         <div className="copy copy--pour">
           <Lines lines={['Concrete flows in.', 'The mesh is locked.']} />
         </div>

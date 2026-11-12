@@ -71,13 +71,16 @@
     padding: 0 var(--gutter) clamp(40px, 8svh, 64px);
     border-bottom: 1px solid var(--eb-rule);
   }
+  /* the step's name heads its row, on the bar between hairlines */
   .eb-row__num {
     margin: 0 calc(-1 * var(--gutter)) clamp(18px, 3svh, 26px);
     padding: 14px var(--gutter);
     border-bottom: 1px solid var(--eb-rule);
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1.2;
+    text-transform: uppercase;
   }
   /* Innovation's steps are headed by their own names: the label would only repeat them */
   #innovation .eb-row__label {

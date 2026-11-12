@@ -172,10 +172,9 @@ export function Rows({ id, title, steps, ground = 'light' }: { id: string; title
     <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground}>
       <header className="eb__head">
         <p className="eb__title">{title}</p>
-        {steps.length > 1 && <p className="eb__count num">{two(steps.length)} parts</p>}
       </header>
       {steps.map((s, i) => (
-        <Row key={s.id} chapter={id} title={title} step={s} index={i} ground={ground} />
+        <Row key={s.id} chapter={id} step={s} index={i} ground={ground} />
       ))}
     </section>
   )
@@ -255,7 +254,7 @@ function Loop({ pose }: { pose: PoseId }) {
   )
 }
 
-function Row({ chapter, title, step, index, ground }: { chapter: string; title: string; step: Step; index: number; ground: Ground }) {
+function Row({ chapter, step, index, ground }: { chapter: string; step: Step; index: number; ground: Ground }) {
   const row = useRef<HTMLElement>(null)
   const box = useRef<HTMLDivElement>(null)
   const none = useRef<HTMLDivElement>(null)
@@ -322,22 +321,16 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
   const still = failed ? STILLS[step.pose] : undefined
   return (
     <article ref={row} id={`${chapter}-${step.id}`} className={`eb-row scene scene--${step.id} on-${ground} ${active ? 'is-active' : seen ? 'is-seen' : ''}`}>
-      <p className="eb-row__num num">{two(index + 1)} /</p>
-      <h3 className="eb-row__label">{step.label}</h3>
+      <h3 className="eb-row__num">{step.label}</h3>
       <div className="eb-row__copy">{step.render(active)}</div>
       <figure className="eb-fig">
         <div ref={box} className="eb-fig__view" data-screen={ground}>
           {/* the 3D is drawn into the card's own canvas (StageScene), so it scrolls with the card */}
           {filmed ? <Loop pose={step.pose} /> : still ? <img className="eb-fig__still" src={still} alt="" /> : <canvas className="eb-fig__canvas" aria-hidden="true" />}
-          {!filmed && !still && <TouchHint id="hold-card" when={active} icon="hold" text="Hold and drag to turn" className="eb-fig__hint" />}
+          {!filmed && !still && <TouchHint id="hold-card" when={active} icon="hold" text="Drag to turn" className="eb-fig__hint" />}
           <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
           <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
         </div>
-        <figcaption className="eb-fig__block">
-          <span className="eb-fig__name">{title}</span>
-          <span>Fig. {two(index + 1)}</span>
-          <span>{step.label}</span>
-        </figcaption>
       </figure>
     </article>
   )
