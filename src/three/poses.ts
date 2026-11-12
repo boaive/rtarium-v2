@@ -415,11 +415,17 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   // (the whiteboard: a broad sheet across the lower screen, at an angle, the X, Y and Z arrows standing out of it)
   depth: card('depth', { tgt: [0.012, 0.012, 0.02], elev: 26, azim: 36, distCompact: 0.4, win: [18, 18], fog: [0.36, 0.8], frameBox: [0.42, 0.6], spin: 2 }),
   // low on its front edge, so its thickness (the two faces and the fibres between them) shows along the foot
-  shear: card('shear', { tgt: [0, -0.002, 0.05], elev: 17, azim: 30, dist: 0.18, distCompact: 0.18, frameBox: [0.5, 0.6], win: [18, 18], fog: [0.2, 0.55], shadow: 1, spin: 2 }),
-  // a short sheet inclined some 30 degrees, seen low from its edge: the edge and its thickness pushed forward, the face
-  // running away up the card; turning very slowly
-  mineral: card('mineral', { tgt: [0, 0, 0], elev: 14, azim: 24, dist: 0.24, distCompact: 0.24, fov: 34, frameBox: [0.5, 0.45], win: [10, 10], stand: 0.33, fog: [0.22, 0.5], shadow: 0, spin: 2 }),
+  // RTARIUM: in close and low on the sheet's front edge, its upper face, the fibres looping between and its lower face
+  // all in view, the edge running a little uphill across the card (PHONE_SHEAR_FLAT: the flat mesh it is set against)
+  shear: card('shear', { tgt: [0, -0.002, 0.058], elev: 9, azim: 14, dist: 0.12, distCompact: 0.12, frameBox: [0.5, 0.55], win: [14, 14], fog: [0.12, 0.4], shadow: 1 }),
+  // (the sketch) from above, its grid square to the card, its far edge half way down rising a little to the right, the
+  // near part running off the foot
+  mineral: card('mineral', { tgt: [0, 0, 0], elev: 48, azim: -8, dist: 0.24, distCompact: 0.24, fov: 38, frameBox: [0.5, 0.7], win: [12, 12], tilt: [0, 3], fog: [0.3, 0.7], shadow: 1 }),
 }
+
+/** a phone's Monolithic with Flat mesh chosen: the plain grid lying low in the card at a slight slant; choosing RTARIUM,
+    the camera goes in on the edge as the lower face and the fibres grow in under it (StageScene, on `stage.flat`) */
+export const PHONE_SHEAR_FLAT: Pose = card('shear', { tgt: [0, -0.002, 0], elev: 24, azim: 18, dist: 0.32, distCompact: 0.32, frameBox: [0.5, 0.68], win: [14, 14], fog: [0.3, 0.75], shadow: 1 })
 
 /* ---- the opening tour -------------------------------------------------------------------------- */
 

@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { MeshField, PITCH, cellUrl, useCell, useYarnMaterial } from './mesh/MeshField'
 import { PressField } from './mesh/flex'
-import { ANCHORS, CAVITY_Z, FIELD, HALF, PHONE_CARD, POSES, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
+import { ANCHORS, CAVITY_Z, FIELD, HALF, PHONE_CARD, PHONE_SHEAR_FLAT, POSES, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
 import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
 import { THICKNESS_OPTIONS } from '../content/technical'
 import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
@@ -95,6 +95,7 @@ const toLocal = new THREE.Matrix4()
 const tourScratch: Pose = { ...POSES.hero }
 const blendScratch: Pose = { ...POSES.hero }
 const pourScratch: Pose = { ...POSES.hero }
+const shearScratch: Pose = { ...POSES.hero }
 /** seconds the "In concrete" copy's move has played, or null where it has none (a phone, no motion) */
 function pourClock(): number | null {
   const copy = document.querySelector<HTMLElement>('.scene--flow.is-active .copy--pour')
@@ -615,6 +616,9 @@ export function StageScene({ compact, reduced }: Props) {
       }
       const active = r === primary
       const f = v.fx
+      // a phone's Monolithic: the flat mesh low in the card, RTARIUM close on its edge; the camera goes between the two
+      // as the comparison does (f.flat, eased)
+      if (compact && r.box && id === 'shear') pose = blendPose(pose, PHONE_SHEAR_FLAT, f.flat, shearScratch)
       const c = v.cam
 
       // "In concrete" plays in time once reached: the mortar runs in, then the camera stands back
