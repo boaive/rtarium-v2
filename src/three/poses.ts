@@ -408,7 +408,8 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   // turned about the sheet's middle, so whichever way it has turned an edge of it stands in front
   structure: card('structure', { tgt: [0, -0.002, 0], dist: 0.14, frameBox: [0.5, 0.6], spin: 2 }),
   // the rovings close, running away under the words, low in the card
-  material: card('material', { distCompact: 0.17, frameBox: [0.5, 0.64], spin: 2 }),
+  // seen low, on its edge, from another side than Structure; it turns the other way, its near edge moving left to right
+  material: card('material', { elev: 7, azim: 112, distCompact: 0.16, frameBox: [0.5, 0.6], fog: [0.14, 0.5], spin: -2 }),
   // close on the mortar running in, held still
   pour: card('pour', {}),
   // at a slant, held still, the arrows growing from its corner once it is reached

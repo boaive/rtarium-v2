@@ -155,7 +155,6 @@ function Replaces() {
     if (!compact || dealt || !el || !deck) return
     if (prefersReducedMotion()) return setDealt(true)
     let raf = 0
-    let rest = 0
     const measure = () => {
       const r = el.getBoundingClientRect()
       // (the run is what the pinned panel stands still through: the section less the panel, as tall as the screen gets)
@@ -167,16 +166,8 @@ function Replaces() {
       raf = 0
       const { p } = measure()
       deck.style.setProperty('--deck', (p * (ROWS.length - 1)).toFixed(4))
-      // all three in: the deck closes up once the page has come to rest on it (closed up while the glide to the third card
-      // was still running, the glide went on in the page's old measure, past Innovation's first part)
-      window.clearTimeout(rest)
-      if (p >= 0.999)
-        rest = window.setTimeout(() => {
-          const m = measure()
-          if (m.p < 0.999) return
-          closing.current = { run: m.run, top: m.r.top }
-          setDealt(true)
-        }, 260)
+      // (the deck stays with the scroll both ways, never closed up: closing up to one screen moved the page under the
+      // finger, a twitch, and left the way back up through it unlike the way down; a card a swipe either way)
     }
     const on = () => {
       if (!raf) raf = requestAnimationFrame(read)
@@ -186,7 +177,6 @@ function Replaces() {
     window.addEventListener('resize', on)
     return () => {
       cancelAnimationFrame(raf)
-      window.clearTimeout(rest)
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', on)
     }
@@ -238,9 +228,7 @@ function Replaces() {
       className={`ledger on-light ${compact && dealt ? 'is-dealt' : ''}`}
       data-screen="light"
       data-flow={compact ? '' : undefined}
-      // (stacked, the deck is still a stop of its own, the whole stack held on the screen: the swipe on from it goes to
-      // Innovation's first part, never flung on past it)
-      data-swipe-stops={compact ? (dealt ? '0' : DECK_STOPS) : undefined}
+      data-swipe-stops={compact ? DECK_STOPS : undefined}
       aria-labelledby="replaces-title"
     >
       <div ref={ref} className={`ledger__in ${inView ? 'is-in' : ''}`} data-swipe-pin="">

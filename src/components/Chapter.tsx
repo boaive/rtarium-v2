@@ -169,7 +169,8 @@ export function Rows({ id, title, steps, ground = 'light' }: { id: string; title
   // holding the middle of the screen, read on every scroll as the other sections are, the header takes this ground
   useScreen(section, id, ground)
   return (
-    <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground}>
+    // (About's and Innovation's parts go a part a swipe, both ways: Hero's useSwipePager, `data-swipe-rows`)
+    <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground} data-swipe-rows={id === 'about' || id === 'innovation' ? '' : undefined}>
       <header className="eb__head">
         <p className="eb__title">{title}</p>
       </header>

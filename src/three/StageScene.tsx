@@ -642,6 +642,14 @@ export function StageScene({ compact, reduced }: Props) {
       const short = compact ? clamp01((vw / vh - 0.5) / 0.08) : 0
       const fit = r.box ? 1 : compact ? (1 + squat * 0.85) * (1 + short * 0.2) : Math.max(1, 1.5 / (vw / vh))
       const dist = (compact ? (pose.distCompact ?? pose.dist) : pose.dist) * fit * (1 + Math.abs(o) * PARALLAX.dist)
+      // (a phone's opening: the tour's way down into the cavity and on along it is turned with the piece, a quarter turn or
+      // more, so the camera flies on the way it looks, forward into the next section, never sideways across the mesh)
+      if (hero && compact && c.spin) {
+        const a = c.spin * DEG
+        const x = pose.tgt[0]
+        const z = pose.tgt[2]
+        pose.tgt = [x * Math.cos(a) + z * Math.sin(a), pose.tgt[1], -x * Math.sin(a) + z * Math.cos(a)]
+      }
       dampVec(c.tgt, pose.tgt[0], pose.tgt[1], pose.tgt[2], k, dt)
       c.elev = damp(c.elev, pose.elev - o * PARALLAX.elev, k, dt)
       c.azim = dampAngle(c.azim, pose.azim + o * PARALLAX.azim, k, dt)

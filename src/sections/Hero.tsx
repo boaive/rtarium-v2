@@ -301,8 +301,15 @@ function pagedZones(tour: HTMLElement): Zone[] {
   const aboutTop = Math.round(tour.offsetTop + tour.offsetHeight)
   // (the flight and the white are no stops: from the line one swipe flies through them to About)
   const zones: Zone[] = [{ stops: [...PHONE_STOPS.map((k) => Math.round(tour.offsetTop + k * sh)), aboutTop], after: null, tour: true }]
-  for (const p of document.querySelectorAll<HTMLElement>('[data-swipe-stops]')) {
+  for (const p of document.querySelectorAll<HTMLElement>('[data-swipe-stops], [data-swipe-rows]')) {
     const top = p.getBoundingClientRect().top + window.scrollY
+    // a chapter of screen-tall parts: a stop at each part's top, and on out of the last to the section after it
+    if (p.hasAttribute('data-swipe-rows')) {
+      const rows = [...p.querySelectorAll<HTMLElement>('.eb-row')].map((r) => Math.round(r.getBoundingClientRect().top + window.scrollY))
+      if (rows.length) zones.push({ stops: rows, after: Math.round(top + p.offsetHeight) })
+      continue
+    }
+
     // (its run: what its pinned panel, `data-swipe-pin`, stands still through)
     const pin = p.querySelector<HTMLElement>('[data-swipe-pin]')
     const run = Math.max(1, p.offsetHeight - (pin?.offsetHeight ?? vh))
@@ -418,7 +425,8 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       const t = e.changedTouches[0]
       if (turnedBack) {
         turnedBack = false
-        return glide(Math.round(el.offsetTop))
+        // (back to the line it set off from, as a swipe back from About comes out of the white to it)
+        return glide(Math.round(el.offsetTop + PHONE_STOPS[PHONE_STOPS.length - 1] * screenH(el)))
       }
       if (touch.multi || !t || flying) return
       // a mesh taken in hand, or the white handing over to About, during this touch: not a swipe of the page
@@ -439,10 +447,10 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
         // (otherwise the browser's own)
         return
       }
-      step(zone, touch.from, dir)
+      step(zone, touch.from, dir, zones)
     }
     /** a swipe (or a wheel's turn) `dir` from `from` in a paged stretch: on to the stop that way, or back to the one it left */
-    const step = (zone: Zone, from: number, dir: number) => {
+    const step = (zone: Zone, from: number, dir: number, zones: Zone[]) => {
       const { stops } = zone
       const y = window.scrollY
       const i = stops.indexOf(nearestOf(stops, from))
@@ -458,11 +466,14 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       }
       // back up from About's top into the tour: the way down, in reverse (About fades to the white, out of it into the
       // cavity), on up to the opening in one go
-      if (zone.tour && i === stops.length - 1 && back.current) return back.current(stops[0])
-      // back up anywhere in the tour: straight to the opening, never a stop a swipe on the way
-      if (zone.tour) return glide(stops[0])
-      // (back out of the first stop: the page goes on freely)
-      if (i === 0) return
+      if (zone.tour && i === stops.length - 1 && back.current) return back.current(stops[stops.length - 2])
+
+      // back out of the first stop: to the last stop of the stretch that hands on to this one (Innovation's first part back
+      // to the deck stacked whole, as the swipe down came), else the page goes on freely
+      if (i === 0) {
+        const before = zones.find((z) => z !== zone && z.after !== null && Math.abs(z.after - stops[0]) < 4)
+        return before ? glide(before.stops[before.stops.length - 1]) : undefined
+      }
       const prev = stops[i - 1]
       return glide(y < prev - 4 ? ([...stops].reverse().find((s) => s < y - 4) ?? stops[0]) : prev)
     }
@@ -478,8 +489,12 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       if (flying) return e.preventDefault()
       const dir = Math.sign(e.deltaY)
       const from = gliding() && aim !== null ? aim : window.scrollY
-      const zone = zoneAt(pagedZones(el), from, dir)
+      const zones = pagedZones(el)
+      const zone = zoneAt(zones, from, dir)
       if (!zone) return
+      // (back up out of a stretch's first stop with no stretch before it to go to: the wheel scrolls the page freely)
+      const first = Math.abs(nearestOf(zone.stops, from) - zone.stops[0]) < 4
+      if (dir < 0 && first && !zone.tour && !zones.some((z) => z !== zone && z.after !== null && Math.abs(z.after - zone.stops[0]) < 4)) return
       e.preventDefault()
       // a new turn: after a pause, the other way, or (a trackpad's momentum still dying away) one markedly stronger than
       // the tail it lands on, never the tail itself
@@ -490,7 +505,7 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       wheelSeen.size = size
       if (!fresh || performance.now() - stage.heldAt < 400) return
       wheelSeen.freshAt = e.timeStamp
-      step(zone, from, dir)
+      step(zone, from, dir, zones)
     }
     /** a page come to rest inside a paged stretch between two of its stops (a fling run on into it): to the nearer */
     let quiet = 0
@@ -520,7 +535,8 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
         lastY = caught.y
         return
       }
-      if (touch.down || gliding()) return
+      // (a jump of a screen or more at once is a link or the menu, not momentum: never caught)
+      if (touch.down || gliding() || Math.abs(y - was) > window.innerHeight * 0.9) return
       for (const z of pagedZones(el)) {
         if (z.tour) continue
         const first = z.stops[0]
