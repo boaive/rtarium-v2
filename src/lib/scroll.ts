@@ -20,8 +20,30 @@ export function startSmoothScroll() {
   lenis = new Lenis({ lerp: LERP, wheelMultiplier: WHEEL, smoothWheel: true, autoRaf: true })
 }
 
+/**
+ * Lenis set aside while a page moves by the browser's own scrolling alone (a phone's Home: Hero's useSwipePager, whose
+ * glides are the browser's smooth scroll) and brought back after: it writes its own scroll position a frame behind the
+ * page's, which would pull at those glides. Returns what brings it back.
+ */
+export function setAsideSmoothScroll() {
+  if (!lenis) return () => {}
+  lenis.destroy()
+  lenis = null
+  return () => startSmoothScroll()
+}
+
 /** the page's jumps (`scrollToY` at once), counted: a step's goal from before one is no longer where the page is going */
 let jumps = 0
+
+/**
+ * A step of the page by the finger or the wheel (a phone's Home, a view at a time): a quick, even glide that is at once
+ * on its way and settles without a long tail, `seconds` long. Returns how long it takes (s).
+ */
+export function glideToY(y: number, seconds: number) {
+  if (lenis) lenis.scrollTo(y, { duration: seconds, easing: (t) => 1 - Math.pow(1 - t, 2.6), force: true })
+  else window.scrollTo({ top: y, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  return seconds
+}
 
 export function scrollToY(y: number, immediate = false) {
   if (immediate) jumps++
@@ -118,6 +140,19 @@ function footOf(el: HTMLElement, r = el.getBoundingClientRect()) {
 }
 
 /**
+ * a section marked `data-flow` holds the screen (it fills at least half of it, or runs on past its top): the page is
+ * never brought to a screen there, and the reading runs on continuously
+ */
+function inFlow() {
+  const vh = window.innerHeight
+  for (const el of document.querySelectorAll<HTMLElement>('[data-flow]')) {
+    const r = el.getBoundingClientRect()
+    if (r.top < vh * 0.5 && r.bottom > vh * 0.5) return true
+  }
+  return false
+}
+
+/**
  * The foot of the free run. A section marked `data-free-scroll` (the opening tour, whose scroll is the animation) is
  * scrolled through freely, from the top of the page to the end of its run (`footOf`): the wheel glides there as on
  * any page, and once it gets there the page plays on by itself to the next screen, where the steps begin. -Infinity
@@ -182,6 +217,8 @@ export function stepScreens(
   let timer = 0
   let settle = 0
   let touching = false
+  /** a swipe's notch is being read (`touchMove`) */
+  let swiped = false
   let last = -Infinity
   let lastSize = 0
   let lastDir = 0
@@ -290,7 +327,8 @@ export function stepScreens(
     const size = Math.abs(d)
     const dir = Math.sign(d)
     // momentum only ever dies away; a new notch or swipe comes in as strong as the last, or stronger
-    const fresh = e.timeStamp - last > GESTURE_GAP || (dir !== lastDir && size >= 8)
+    // (a swipe is one notch, read once as it starts: always a scroll of its own, however soon after the last)
+    const fresh = swiped || e.timeStamp - last > GESTURE_GAP || (dir !== lastDir && size >= 8)
     const gap = e.timeStamp - last
     const strong = (size >= 60 && size >= lastSize && gap > 24) || (size >= 30 && size > lastSize * 2)
     last = e.timeStamp
@@ -472,6 +510,9 @@ export function stepScreens(
       // outside the steps the page rests wherever it is let go
       const { lo, hi } = zone()
       if (y < lo - 4 || y > hi + 4) return
+      // and so it does in a section that is read at its own pace (`data-flow`: on a phone, the table of what RTARIUM
+      // replaces, the applications and the long footer), once it holds the middle of the screen
+      if (inFlow()) return
       // and so it does in a free stretch: its run is the scroll itself, and stops where it is let go; save just short of
       // its end, where it is taken the rest of the way (else the next scroll would go only that far, and stop)
       const run = opts.free?.(0).find(([a, b]) => y > a + 4 && y < b - 4)
@@ -485,18 +526,81 @@ export function stepScreens(
       if (Math.abs(near - y) > 1) moveTo(near)
     }, SETTLE)
   }
-  const touchOn = () => {
+  /*
+   * A finger, as the wheel: each swipe up or down is one notch, taken by the same rules as the wheel's (`wheel`). Where
+   * the page steps, the swipe plays one step and the page itself does not follow the finger (one swipe, one step, as
+   * one scroll is on a desk); where it runs free, the swipe scrolls the page as any swipe does. A sideways swipe is left
+   * alone (a stepped section takes it as back and on: StepBar).
+   */
+  const finger = { x: 0, y: 0, decided: true, taken: false }
+  const touchOn = (e: TouchEvent) => {
     touching = true
+    const t = e.touches[0]
+    finger.decided = e.touches.length !== 1
+    finger.taken = false
+    if (t) {
+      finger.x = t.clientX
+      finger.y = t.clientY
+    }
+  }
+  const touchMove = (e: TouchEvent) => {
+    if (finger.taken) {
+      if (e.cancelable) e.preventDefault()
+      return
+    }
+    const t = e.touches[0]
+    if (finger.decided || !t) return
+    const dy = finger.y - t.clientY
+    const dx = finger.x - t.clientX
+    if (Math.abs(dy) < 10 && Math.abs(dx) < 10) return
+    finger.decided = true
+    if (Math.abs(dx) > Math.abs(dy)) return
+    // a section that steps through its parts (it carries a step bar) is stepped by a sideways swipe (StepBar): an
+    // upright swipe there goes past it whole, on to the next section or back to the one before, never through its steps
+    const vh = window.innerHeight
+    const stepped = [...document.querySelectorAll<HTMLElement>('#main section')].find((sec) => {
+      if (!sec.querySelector('.fu-bar')) return false
+      const r = sec.getBoundingClientRect()
+      return r.top <= vh * 0.5 && r.bottom > vh * 0.5
+    })
+    if (stepped) {
+      const r = stepped.getBoundingClientRect()
+      const top = r.top + window.scrollY
+      finger.taken = true
+      if (e.cancelable) e.preventDefault()
+      moveTo(Math.round(dy > 0 ? top + r.height : Math.max(0, top - vh)))
+      return
+    }
+    let held = false
+    const notch = {
+      deltaY: Math.sign(dy) * 120,
+      deltaMode: 0,
+      timeStamp: e.timeStamp,
+      ctrlKey: false,
+      target: e.target,
+      preventDefault: () => void (held = true),
+      stopPropagation: () => {},
+    } as unknown as WheelEvent
+    swiped = true
+    wheel(notch)
+    swiped = false
+    if (held) {
+      finger.taken = true
+      if (e.cancelable) e.preventDefault()
+    }
   }
   const touchOff = () => {
     touching = false
-    rest()
+    // a swipe the steps took has played its step: the page is already on its way to where it should rest
+    if (!finger.taken) rest()
+    finger.taken = false
   }
 
   window.addEventListener('wheel', wheel, { capture: true, passive: false })
   window.addEventListener('keydown', keys)
   window.addEventListener('scroll', rest, { passive: true })
   window.addEventListener('touchstart', touchOn, { passive: true })
+  window.addEventListener('touchmove', touchMove, { passive: false })
   window.addEventListener('touchend', touchOff, { passive: true })
   window.addEventListener('touchcancel', touchOff, { passive: true })
   rest()
@@ -507,6 +611,7 @@ export function stepScreens(
     window.removeEventListener('keydown', keys)
     window.removeEventListener('scroll', rest)
     window.removeEventListener('touchstart', touchOn)
+    window.removeEventListener('touchmove', touchMove)
     window.removeEventListener('touchend', touchOff)
     window.removeEventListener('touchcancel', touchOff)
   }

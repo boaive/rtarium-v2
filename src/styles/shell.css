@@ -72,6 +72,11 @@
 .stage canvas {
   display: block;
 }
+/* (nothing in it takes a tap or a click: its canvas, set to take them by the 3D library, would else lie over the
+   buttons of a phone's rows, whose figures it draws in) */
+.stage * {
+  pointer-events: none !important;
+}
 
 /* labels pinned to the model */
 .pin {
@@ -578,52 +583,7 @@ html[data-ground='black'] .pin__text {
 .nav__menu[aria-expanded='true'] .nav__menu-icon i:last-child {
   transform: translateY(-3.5px) rotate(-45deg);
 }
-.menu {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  display: grid;
-  align-content: center;
-  gap: var(--s-7);
-  padding: var(--nav-h) var(--gutter) var(--s-7);
-  background: var(--black);
-  color: var(--yellow);
-}
-.menu[hidden] {
-  display: none;
-}
-.menu__list a {
-  display: block;
-  padding: 6px 0;
-  font-size: clamp(2.2rem, 9vw, 3.4rem);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
-  text-decoration: none;
-}
-.menu__list--small a {
-  font-size: 1.15rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--on-dark-2);
-}
-/* Home's chapters, set small under it */
-.menu__chapters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px var(--s-5);
-  margin: 2px 0 var(--s-3);
-}
-.menu__list .menu__chapters a {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  padding: 0;
-  font-size: 1.05rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--on-dark-2);
-}
+/* the menu behind the button (phones and tablets): see nav.css */
 
 @media (max-width: 1200px) {
   .nav__main {

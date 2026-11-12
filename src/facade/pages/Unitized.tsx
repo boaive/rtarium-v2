@@ -3,6 +3,7 @@ import '../unitized.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../Shell'
 import { usePageSteps } from '../pageSteps'
+import { useIsCompact } from '../../lib/motion'
 import { Hero } from '../unitized/Hero'
 import { Layers } from '../unitized/Layers'
 import { Hang } from '../unitized/Hang'
@@ -27,6 +28,8 @@ import { More } from '../unitized/More'
  */
 /** the sections whose run plays with the scroll itself, left to the scroll: the answers */
 const FREE = ['answers']
+/** a phone: the hanging, too, plays with the scroll (Hang) */
+const FREE_PHONE = ['answers', 'hang']
 
 export default function Unitized() {
   usePageMeta(
@@ -65,7 +68,7 @@ export default function Unitized() {
   }, [])
 
   // one scroll, one step, the whole page through (usePageSteps), the answers playing with the scroll
-  usePageSteps(FREE)
+  usePageSteps(useIsCompact() ? FREE_PHONE : FREE)
 
   return (
     <FacadePage>

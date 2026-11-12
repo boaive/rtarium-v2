@@ -24,6 +24,15 @@ export type PoseId =
   | 'xray'
   | 'none'
 
+/** a mesh turned by hand: how far (rad), and whether a finger or the mouse holds it now */
+export interface Turn {
+  yaw: number
+  pitch: number
+  dragging: boolean
+  /** a finger on a phone's card (-1..1 across it, y down): it presses the sheet there, which springs back once it lifts */
+  touch?: { x: number; y: number; down: boolean }
+}
+
 export interface Region {
   el: HTMLElement
   pose: () => PoseId
@@ -32,6 +41,13 @@ export interface Region {
    * grounds `ga` and `gb` (the edge between them at `1 - t` of the width). `pose()` then names the nearer one.
    */
   blend?: () => Blend
+  /**
+   * The view is drawn inside the element's own box (a framed figure in the page) rather than across the screen:
+   * the mesh centred in it, as wide in it as it is on the screen
+   */
+  box?: boolean
+  /** a phone's card turned by hand (press and hold): its own, apart from the opening's (`stage.orbit`) */
+  turn?: Turn
 }
 
 export interface Blend {
@@ -51,6 +67,9 @@ export const stage = {
   flat: 0,
   /** drag rotation, written by the pointer handlers */
   orbit: { yaw: 0, pitch: 0, dragging: false },
+  /** when a finger last took a mesh in hand (press and hold), or the tour last handed over to About (ms): a phone's swipe
+   * pager leaves that touch alone */
+  heldAt: -1e9,
   /** cursor, -1..1 over the window, and when it last moved (ms) */
   pointer: { x: 0, y: 0, at: -1e9 },
   /** DOM labels pinned to points of the model, keyed by anchor id */
@@ -59,6 +78,10 @@ export const stage = {
   tour: 0,
   /** how far the tour has gone into white light (0..1); the ground and the fog wash to warm white */
   wash: 0,
+  /** on a phone, how many of the cavity's points are named (0..3): one more at each of its own screens */
+  tourPoints: 0,
+  /** on a phone, how far on along the cavity the camera has gone for its points (0..2, a point a step) */
+  tourDive: 0,
   /** the Tech Space figure under the cursor or focused, if any */
   inspect: null as Inspect | null,
 }

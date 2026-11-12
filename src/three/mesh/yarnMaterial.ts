@@ -278,8 +278,25 @@ export function createYarnUniforms(): YarnUniforms {
   }
 }
 
+/**
+ * The fragment's discards (the build's dither, a part faded out) left out: for cells wholly built with every part shown,
+ * which they would never discard anyway. A shader that can discard costs a phone's GPU dearly: it can no longer skip
+ * the yarns hidden behind others before shading them, and through the mesh most are hidden behind others.
+ */
+const FRAGMENT_COLOR_SOLID = FRAGMENT_COLOR.split('\n')
+  .filter((l) => !l.includes('discard'))
+  .join('\n')
+
 export function createYarnMaterial(opts: YarnMaterialOptions) {
   const uniforms = createYarnUniforms()
+  const material = makeYarnMaterial(opts, uniforms, true)
+  /** the same look on the same uniforms, never discarding (see FRAGMENT_COLOR_SOLID); built on first use */
+  let solid: THREE.MeshPhysicalMaterial | null = null
+  const getSolid = () => (solid ??= makeYarnMaterial(opts, uniforms, false))
+  return { ...makeDepth(uniforms), material, uniforms, getSolid }
+}
+
+function makeYarnMaterial(opts: YarnMaterialOptions, uniforms: YarnUniforms, cut: boolean) {
   const { map, normalMap, roughnessMap } = opts.textures
 
   const material = new THREE.MeshPhysicalMaterial({
@@ -301,7 +318,7 @@ export function createYarnMaterial(opts: YarnMaterialOptions) {
       .replace('#include <begin_vertex>', `#include <begin_vertex>\n${VERTEX_POSITION}`)
     let fragment = shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${FRAGMENT_PARS}`)
-      .replace('#include <color_fragment>', `#include <color_fragment>\n${FRAGMENT_COLOR}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>\n${cut ? FRAGMENT_COLOR : FRAGMENT_COLOR_SOLID}`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>\n${FRAGMENT_ROUGHNESS}`)
       .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>\n${FRAGMENT_METALNESS}`)
       .replace('#include <aomap_fragment>', `#include <aomap_fragment>\n${FRAGMENT_AO}`)
@@ -319,8 +336,11 @@ export function createYarnMaterial(opts: YarnMaterialOptions) {
     }
     shader.fragmentShader = fragment
   }
-  material.customProgramCacheKey = () => `rtarium-v3-yarn-${opts.lite ? 'lite' : 'full'}`
+  material.customProgramCacheKey = () => `rtarium-v3-yarn-${opts.lite ? 'lite' : 'full'}${cut ? '' : '-solid'}`
+  return material
+}
 
+function makeDepth(uniforms: YarnUniforms) {
   // shadow pass with the same deformation and part visibility
   const depthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking })
   depthMaterial.onBeforeCompile = (shader) => {
@@ -340,8 +360,7 @@ export function createYarnMaterial(opts: YarnMaterialOptions) {
       )
   }
   depthMaterial.customProgramCacheKey = () => 'rtarium-v3-yarn-depth'
-
-  return { material, depthMaterial, uniforms }
+  return { depthMaterial }
 }
 
 export function prepareYarnTextures(t: YarnTextures, anisotropy: number) {

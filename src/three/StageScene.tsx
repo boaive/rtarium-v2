@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { MeshField, PITCH, cellUrl, useCell, useYarnMaterial } from './mesh/MeshField'
 import { PressField } from './mesh/flex'
-import { ANCHORS, FIELD, HALF, POSES, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
+import { ANCHORS, FIELD, HALF, POSES, PHONE_POINTS, TOUR_DIVE, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
 import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
 import { THICKNESS_OPTIONS } from '../content/technical'
 import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
@@ -53,6 +53,14 @@ const SCRUB = 8
 /** a view's motion with its panel: farther (fraction), lower (deg) and turned (deg) at one screen away */
 const PARALLAX = { dist: 0.14, elev: 5, azim: 12 }
 const SWAY_PERIOD = 16
+/** how fast a view in a box turns, steadily, in degrees a second (once round in a minute) */
+const BOX_TURN = 6
+/** a phone's card most in view turns slowly, on and on (deg/s); the rest hold where they are */
+const CARD_TURN = 2.5
+/** a phone's opening piece turns slowly while the page rests on it (deg/s); as the tour sets off it eases back to its pose */
+const OPEN_TURN = 4
+/** a finger on a phone's card: a small, gentle dent (a share of the cursor's depth, and of its reach) */
+const FINGER = { depth: 0.35, radius: 0.5 }
 /** the settle as it is woven: starting height (m), spring stiffness and damping (a small bounce, then still) */
 const DROP = { height: 0.05, k: 70, c: 7.5, tilt: 0.3 }
 /** the opening piece is woven out from its middle: when it starts and how long it takes (s) */
@@ -91,9 +99,22 @@ function pourClock(): number | null {
 /** whether an element the notes stand in line with is still on its way: they wait for it to arrive */
 const moving = (el: Element | null) => !!el && el.getAnimations().some((a) => a.playState === 'running' && (a as CSSAnimation).animationName === 'pour-copy')
 const fogTarget = new THREE.Color()
+/** where a view in a box stands in it: the middle */
+const CENTRE: [number, number] = [0.5, 0.5]
 const anchorPt: [number, number, number] = [0, 0, 0]
 /** where each screen is this frame: read once, used by the choice of the active screen and by the views */
 const rects = new Map<Region, DOMRect>()
+/** what each phone card's own canvas holds (its view's figures, as the idle check takes them) */
+const cardSigs = new WeakMap<Region, number[]>()
+/** a phone's idle check: the drag, as text; and what this frame drew, view after view */
+const ob0 = (o: { yaw: number; pitch: number; dragging: boolean }) => `${o.yaw.toFixed(4)},${o.pitch.toFixed(4)},${o.dragging}`
+const sigNow: number[] = []
+/**
+ * The screen a card's view is framed against: the tallest it has been at this width. A phone's address bar slides in
+ * and out as the page goes back and forth, changing the screen's height each time; framed against that, a card's mesh
+ * zoomed and shifted in its frame with every move. A new width (the phone turned) starts it over.
+ */
+const steady = { w: 0, h: 0 }
 
 /** the region across the middle of the screen, else the most visible one */
 function activeRegion(vh: number) {
@@ -250,9 +271,11 @@ function newView(pose: Pose, compact: boolean, o: number): View {
 export function StageScene({ compact, reduced }: Props) {
   const thickness = useStageValue('thickness')
   const cell = useCell(thickness)
-  const yarn = useYarnMaterial({ lite: compact })
+  // (a phone: less texture filtering, see useYarnMaterial)
+  const yarn = useYarnMaterial({ lite: compact, anisotropy: compact ? 2 : 8 })
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
+  const cameraNow = useThree((s) => s.camera)
 
   const keyLight = useRef<THREE.DirectionalLight>(null)
   const rimLight = useRef<THREE.DirectionalLight>(null)
@@ -278,6 +301,19 @@ export function StageScene({ compact, reduced }: Props) {
   const orbit = useRef({ yaw: 0, pitch: 0 })
   const drop = useRef({ y: DROP.height, v: 0, tilt: DROP.tilt, vt: 0 })
   const cleared = useRef(false)
+  /** a phone's idle check: what the last frame was made from, what it drew, and how many frames in a row drew the same */
+  const sigIn = useRef('')
+  const sigLast = useRef<number[]>([])
+  const still = useRef(0)
+  /** the press field still moving (a card pressed, springing back): no frame is skipped */
+  const pressLive = useRef(false)
+  /** when the page last moved (ms): a phone's card turns only with the page at rest */
+  const movedAt = useRef(-1e9)
+  useEffect(() => {
+    const on = () => void (movedAt.current = performance.now())
+    window.addEventListener('scroll', on, { passive: true })
+    return () => window.removeEventListener('scroll', on)
+  }, [])
 
   const press = useMemo(() => new PressField(96, 96), [])
   useEffect(() => {
@@ -301,8 +337,8 @@ export function StageScene({ compact, reduced }: Props) {
   useEffect(() => {
     gl.setClearColor(0x000000, 0)
     gl.autoClear = false
-    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop, POSES, POUR_OUT, ANCHORS }
-  }, [gl, scene])
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop, POSES, POUR_OUT, ANCHORS, gl, yarn, camera: cameraNow, press }
+  }, [gl, scene, yarn, cameraNow, press])
 
   const lineMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#fdd001', toneMapped: false }), [])
   const inkLineMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#080808', toneMapped: false }), [])
@@ -367,7 +403,9 @@ export function StageScene({ compact, reduced }: Props) {
     // the screens in the viewport that have something to draw, each with where it is. Leaving the
     // cast, the opening holds the whole screen until its camera has come out as About's first
     // view; only then does About draw its own, from the same pose, so the two meet without a cut
-    const handing = !reduced && stage.tour > 3.002 && stage.tour < 3.995
+    // (on a phone About is rows of framed figures, not a screen the opening can turn into: there the opening keeps to
+    // its own section and leaves with its last screen, never drawn over the rows)
+    const handing = !reduced && !compact && stage.tour > 3.002 && stage.tour < 3.995
     const drawn: { r: Region; id: PoseId; top: number; bottom: number }[] = []
     for (const r of stage.regions) {
       const id = r.pose()
@@ -377,9 +415,13 @@ export function StageScene({ compact, reduced }: Props) {
         continue
       }
       const b = rects.get(r)
-      if (!b || b.bottom <= 0 || b.top >= vh || b.width < 2) continue
+      // (a phone's card is drawn into its own canvas, so it is drawn a little before it reaches the screen: ready on arrival)
+      const ahead = compact && r.box ? vh * 0.5 : 0
+      if (!b || b.bottom <= -ahead || b.top >= vh + ahead || b.width < 2) continue
       drawn.push({ r, id, top: b.top, bottom: b.bottom })
     }
+    // (a phone's cards first: each borrows the corner of the canvas to draw in, and gives it back clear before the rest)
+    if (compact) drawn.sort((a, b) => Number(!!b.r.box) - Number(!!a.r.box))
     for (const r of views.current.keys()) if (!drawn.some((d) => d.r === r)) views.current.delete(r)
 
     gl.setScissorTest(false)
@@ -395,6 +437,39 @@ export function StageScene({ compact, reduced }: Props) {
     if (!started.current) {
       started.current = now
       setShared({ ready: true })
+      // a phone's solid yarn (no discards) compiles with the rest before the first frame, never mid-scroll the first time
+      // a chunk takes it (a moment in the scene, out of sight, so it is built for the scene's own fog and light)
+      if (compact) {
+        const probe = new THREE.Mesh(cell.lo, yarn.getSolid())
+        probe.position.y = -100
+        scene.add(probe)
+        gl.compile(scene, camera)
+        scene.remove(probe)
+        // and every part of the sheet is sent to the phone's GPU now, in each of its three cell details, drawn once out of
+        // sight: the first time a part came into view as the mesh was built out, its upload stalled a frame or two, and
+        // the mesh seemed to jump from a gap to the whole sheet
+        if (field.current) {
+          const chunks = field.current.children as THREE.InstancedMesh[]
+          const kept = chunks.map((m) => ({ visible: m.visible, geometry: m.geometry, culled: m.frustumCulled }))
+          gl.setScissorTest(true)
+          gl.setScissor(0, 0, 1, 1)
+          for (const geo of [cell.hi, cell.lo, cell.far]) {
+            for (const m of chunks) {
+              m.visible = true
+              m.frustumCulled = false
+              m.geometry = geo
+            }
+            gl.render(scene, camera)
+          }
+          chunks.forEach((m, i) => {
+            m.visible = kept[i].visible
+            m.geometry = kept[i].geometry
+            m.frustumCulled = kept[i].culled
+          })
+          gl.setScissorTest(false)
+          gl.clear()
+        }
+      }
       // once the opening is under way, the programs of everything still hidden (concrete, mortar,
       // the drawing lines) compile in parallel, so nothing stalls the first time it appears
       warmup.current = window.setTimeout(() => {
@@ -404,6 +479,41 @@ export function StageScene({ compact, reduced }: Props) {
       }, (INTRO.delay + INTRO.duration) * 1000)
     }
     const since = (now - started.current) / 1000
+    // a phone's cards: only the one most in view turns (slowly, CARD_TURN); the rest hold where they are
+    let turning: Region | null = null
+    if (compact) {
+      let most = 0
+      for (const d of drawn) {
+        if (!d.r.box) continue
+        const seen = Math.min(d.bottom, vh) - Math.max(d.top, 0)
+        if (seen > most) {
+          most = seen
+          turning = d.r
+        }
+      }
+    }
+    // ---- a phone: a frame that would show the same picture as the last one is not drawn --------
+    // What the picture is made from (where each screen is, the tour, the drag) is compared with the last frame; once it
+    // has not changed and the last frames drew the same thing (every movement settled), the canvas keeps its picture
+    // and the phone's GPU rests until the visitor moves the page again
+    if (compact) {
+      // (the page coming to rest lets a card set off turning again)
+      let key = `${now - movedAt.current < 220},${vw},${vh},${gl.getPixelRatio()},${stage.tour},${stage.tourDive},${stage.tourPoints},${stage.flat},${thickness},${stage.inspect},${ob0(stage.orbit)}`
+      for (const d of drawn) {
+        const b = rects.get(d.r)
+        const bl = d.r.blend?.()
+        // (a card's picture does not change as it scrolls, only with its size: it scrolls with the page in its own canvas)
+        const place = d.r.box ? `${(b?.height ?? 0).toFixed(1)}` : `${d.top.toFixed(1)},${d.bottom.toFixed(1)}`
+        // (a card in the hand changes with it)
+        const held = d.r.turn ? `${d.r.turn.yaw.toFixed(4)}${d.r.turn.dragging ? 'h' : ''}${d.r.turn.touch?.down ? `t${d.r.turn.touch.x.toFixed(3)},${d.r.turn.touch.y.toFixed(3)}` : ''}` : ''
+        key += `|${d.id},${held},${place},${b ? `${b.left.toFixed(1)},${b.width.toFixed(1)}` : ''},${bl ? `${bl.a},${bl.b},${bl.t.toFixed(4)}` : ''}`
+      }
+      const idle = key === sigIn.current && still.current >= 2 && since > INTRO.delay + INTRO.duration + 1.5 && !stage.inspect && !pressLive.current
+      if (key !== sigIn.current) still.current = 0
+      sigIn.current = key
+      if (idle) return
+    }
+    sigNow.length = 0
     gl.clear()
     const rv = reduced ? 1 : clamp01(since / 1.6)
     // the opening piece is woven out from its middle
@@ -455,8 +565,20 @@ export function StageScene({ compact, reduced }: Props) {
       const hero = id === 'hero'
       const bl = hero ? undefined : r.blend?.()
       let pose: Pose = hero ? tourPose(reduced ? (stage.tour > 2.5 ? 3 : Math.min(stage.tour, 1)) : stage.tour, tourScratch) : bl ? blendPose(POSES[bl.a], POSES[bl.b], bl.t, blendScratch) : POSES[id]
+      // on a phone the opening names only the faces in the cavity; the close of the tour (About's first view on a wide
+      // screen) carries no labels, which would stand over the rows below it
+      if (hero && compact && stage.tour > 2.5) pose.labels = []
+      // and in the cavity it names its points one at a time, a screen each (Hero counts them): never with the words
+      // and in the cavity it names its points one at a time, a screen each (Hero counts them), each alone, the camera a
+      // step further along the cavity for each: never with the words
+      else if (hero && compact) {
+        pose.labels = stage.tourPoints ? [PHONE_POINTS[stage.tourPoints - 1]] : []
+        // (until the white has taken the screen, where the camera is brought out to the mesh)
+        if (stage.tourDive && stage.tour < 2.56) pose.tgt = [pose.tgt[0], pose.tgt[1], pose.tgt[2] - stage.tourDive * TOUR_DIVE]
+      }
       // where the panel is: -1 entering from below, 0 in place, 1 leaving above (the opening runs its own tour)
-      const o = hero || reduced ? 0 : THREE.MathUtils.clamp(-view.top / vh, -1, 1)
+      // (a view in a box holds still as its box scrolls: it turns on its own, steadily, as a looping film does)
+      const o = hero || reduced || r.box ? 0 : THREE.MathUtils.clamp(-view.top / vh, -1, 1)
       let v = views.current.get(r)
       if (!v) {
         v = newView(pose, compact, o)
@@ -477,34 +599,69 @@ export function StageScene({ compact, reduced }: Props) {
       } else f.pour = -0.25
 
       // ---- camera: the view travels with its panel and turns a little as the panel passes -------
-      const k = reduced ? 1e4 : hero ? 9 : bl ? SCRUB : GLIDE
+      // (a phone's opening follows the finger's native scroll closely: the tour value is already smoothed in Hero)
+      // (a phone's card is set in its framing at once: it once glided there from the screen's framing each time it came
+      // on screen, and slid in its frame as the page went back and forth)
+      const k = reduced || (compact && r.box) ? 1e4 : hero ? (compact ? 26 : 9) : bl ? SCRUB : GLIDE
       // narrower landscape windows: stand back so the mesh keeps clear of the copy beside it;
       // stacked layout on a screen that is not tall: smaller, and up into the space above the copy
       const squat = compact ? clamp01((vw / vh - 0.6) / 0.45) : 0
-      const fit = compact ? 1 + squat * 0.85 : Math.max(1, 1.5 / (vw / vh))
+      // a phone that is short for its width (16:9, or its browser bars showing) has less height between the copy
+      // above and below the model: the model stands a little further back
+      const short = compact ? clamp01((vw / vh - 0.5) / 0.08) : 0
+      const fit = r.box ? 1 : compact ? (1 + squat * 0.85) * (1 + short * 0.2) : Math.max(1, 1.5 / (vw / vh))
       const dist = (compact ? (pose.distCompact ?? pose.dist) : pose.dist) * fit * (1 + Math.abs(o) * PARALLAX.dist)
       dampVec(c.tgt, pose.tgt[0], pose.tgt[1], pose.tgt[2], k, dt)
       c.elev = damp(c.elev, pose.elev - o * PARALLAX.elev, k, dt)
       c.azim = dampAngle(c.azim, pose.azim + o * PARALLAX.azim, k, dt)
       c.dist = damp(c.dist, dist, k, dt)
       c.fov = damp(c.fov, pose.fov, k, dt)
-      const frame = compact ? pose.frameCompact : pose.frame
+      // a view in a box is centred in it
+      const frame = r.box ? CENTRE : compact ? pose.frameCompact : pose.frame
       c.fx = damp(c.fx, frame[0], k, dt)
       c.fy = damp(c.fy, lerp(frame[1], Math.min(frame[1], 0.27), squat), k, dt)
-      c.spin = reduced ? 0 : pose.spin ? (c.spin + pose.spin * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
-      const sway = reduced ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
-      const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0)
+      // a view in a box never sways back and forth: it turns round one way at an even pace, on and on
+      // (in development a recording of a box's loop may turn it faster: window.__boxTurn)
+      const turn = pose.spin || (r.box ? (import.meta.env.DEV && (window as unknown as { __boxTurn?: number }).__boxTurn) || BOX_TURN : 0)
+      // a phone's figure stands still in its pose: no turn, no rock (it read as a wobble in the hand); it moves only with
+      // the page, and the phone draws nothing while the page is still
+      // (and only while the page is at rest: turning, it is drawn and copied into its card every frame, a weight on a
+      // phone's frames that showed as a hitch while the page glided, and as it came to rest on About)
+      if (compact && r.box && !pose.spin) c.spin = reduced || r !== turning || now - movedAt.current < 220 ? c.spin : (c.spin + CARD_TURN * dt) % 360
+      // a phone's opening piece turns slowly while the page rests on it, and eases back to its pose as the tour sets off
+      else if (compact && hero) c.spin = reduced ? 0 : stage.tour < 0.08 ? (c.spin + OPEN_TURN * dt) % 360 : dampAngle(c.spin, 0, 2.4, dt)
+      else c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)
+      // (a phone's views never sway on their own: the mesh moves only when the visitor scrolls or turns it)
+      const sway = reduced || r.box || compact ? 0 : pose.sway * Math.sin((since * Math.PI * 2) / SWAY_PERIOD)
+      // a card turned by hand: it follows the finger, and once let go it eases back to its pose
+      const hand = r.turn
+      if (hand && !hand.dragging && hand.yaw !== 0) hand.yaw = Math.abs(hand.yaw) < 1e-4 ? 0 : damp(hand.yaw, 0, 2.2, dt)
+      const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0) + (hand?.yaw ?? 0)
       // the opening's tour goes down to eye level between the faces; elsewhere the camera stays above
       const elev = THREE.MathUtils.clamp(c.elev * DEG + (hero ? orbit.current.pitch : 0), hero ? -0.3 : 0.05, 1.45)
       vPos.set(Math.cos(elev) * Math.sin(azim), Math.sin(elev), Math.cos(elev) * Math.cos(azim)).multiplyScalar(c.dist).add(c.tgt)
       camera.position.copy(vPos)
       camera.up.set(0, 1, 0)
       camera.lookAt(c.tgt)
-      camera.fov = c.fov
-      // the frame is measured from the panel's top, so the mesh moves with the panel; the opening
-      // stays put through its tour and leaves with its last screen
+      // a view in a box: the camera sees the box as its whole screen, its field widened or narrowed so the mesh
+      // takes the same share of the box's width as it would of the screen's
+      const bx = r.box ? rects.get(r) : undefined
       const panelTop = hero ? Math.min(0, view.bottom - vh) : view.top
-      camera.setViewOffset(vw, vh, vw / 2 - c.fx * vw, vh / 2 - c.fy * vh - panelTop, vw, vh)
+      if (bx) {
+        camera.aspect = bx.width / bx.height
+        if (steady.w !== vw) steady.h = 0
+        steady.w = vw
+        steady.h = Math.max(steady.h, vh)
+        const screenH = compact ? steady.h : vh
+        camera.fov = (2 * Math.atan(Math.tan((c.fov * DEG) / 2) * (vw / screenH) * (bx.height / bx.width))) / DEG
+        camera.setViewOffset(bx.width, bx.height, bx.width / 2 - c.fx * bx.width, bx.height / 2 - c.fy * bx.height, bx.width, bx.height)
+      } else {
+        camera.aspect = vw / vh
+        camera.fov = c.fov
+        // the frame is measured from the panel's top, so the mesh moves with the panel; the opening
+        // stays put through its tour and leaves with its last screen
+        camera.setViewOffset(vw, vh, vw / 2 - c.fx * vw, vh / 2 - c.fy * vh - panelTop, vw, vh)
+      }
       camera.updateProjectionMatrix()
       camera.updateMatrixWorld()
       scene.environmentRotation.y = azim
@@ -548,8 +705,11 @@ export function StageScene({ compact, reduced }: Props) {
       f.xray = damp(f.xray, pose.xray, mk, dt)
       dampColor(v.face, LOOK[pose.look].face, mk, dt)
       dampColor(v.pile, LOOK[pose.look].pile, mk, dt)
-      v.fog[0] = damp(v.fog[0], pose.fog[0], k, dt)
-      v.fog[1] = damp(v.fog[1], pose.fog[1], k, dt)
+      // a phone stands further back than a wide screen (`distCompact`, and `fit` on a short phone): the fall-off into the
+      // ground moves back with the camera, so the mesh keeps the depth of colour it has on a wide screen rather than fading
+      const fogFit = compact ? fit * ((pose.distCompact ?? pose.dist) / pose.dist) : 1
+      v.fog[0] = damp(v.fog[0], pose.fog[0] * fogFit, k, dt)
+      v.fog[1] = damp(v.fog[1], pose.fog[1] * fogFit, k, dt)
 
       // sequences that play once the screen is reached: the axes grow, the slabs close in
       const ek = reduced ? 1e4 : 3.4
@@ -581,6 +741,20 @@ export function StageScene({ compact, reduced }: Props) {
           const near = m.userData.near as [number, number] | undefined
           if (near) m.visible = near[0] < f.winX / 2 + 0.5 && near[1] < f.winZ / 2 + 0.5
         }
+        // a phone: a chunk wholly built, with every part of the mesh shown, takes the yarn that never discards (the GPU
+        // then skips the yarns hidden behind others); one still being woven on, or trimmed, keeps the one that can
+        if (compact) {
+          const whole = v.vis.x >= 0.999 && v.vis.y * (1 - f.flat) >= 0.999 && v.vis.z * (1 - f.flat) >= 0.999
+          const solid = yarn.getSolid()
+          for (const m of field.current.children) {
+            const far = m.userData.far as [number, number] | undefined
+            const mesh = m as THREE.InstancedMesh
+            // (built far enough in that none of its cells is still dissolving or being laid: the build's 0.9)
+            const built = whole && !!far && far[0] <= f.winX / 2 - f.band * 0.9 && far[1] <= f.winZ / 2 - f.band * 0.9
+            const want = built ? solid : (m.userData.cut as THREE.Material)
+            if (want && mesh.material !== want) mesh.material = want
+          }
+        }
       }
       u.uPartDim.value.copy(v.dim)
       u.uPartVis.value.set(v.vis.x, v.vis.y * (1 - f.flat), v.vis.z * (1 - f.flat))
@@ -589,7 +763,8 @@ export function StageScene({ compact, reduced }: Props) {
       u.uXray.value = f.xray
       u.uFaceColor.value.copy(v.face)
       u.uPileColor.value.copy(v.pile)
-      u.uFlex.value = f.flex
+      // (a phone has no cursor to press the sheet: its vertices skip the press field's three reads)
+      u.uFlex.value = compact && !r.box ? 0 : f.flex
       // the opening's press reads as a hollow in the mesh, not a light
       u.uPressGlow.value = hero ? 0.12 : 0.5
       if (tile.current) {
@@ -600,7 +775,10 @@ export function StageScene({ compact, reduced }: Props) {
         tile.current.updateMatrixWorld()
       }
       // each chunk's detail for this view's camera (two views in a transition each get their own)
-      ;(field.current?.userData.lod as ((cam: THREE.Camera) => void) | undefined)?.(camera)
+      // (a phone's cards keep their full cells: a card is drawn only when its picture changes, so it costs little; the
+      // opening piece keeps them too, the first thing seen, and gives them up gradually as the mesh is built out, far
+      // parts first, never all at once)
+      ;(field.current?.userData.lod as ((cam: THREE.Camera, farMul?: number) => void) | undefined)?.(camera, compact && r.box ? 4 : compact && hero ? lerp(4, 1, smoothstep(0.15, 1, stage.tour)) : 1)
       if (axes.current) {
         axes.current.visible = f.axes > 0.01
         // X, then Y, then Z grow one after the other
@@ -731,10 +909,82 @@ export function StageScene({ compact, reduced }: Props) {
           press.press(hit.x / SHEET + 0.5, hit.z / SHEET + 0.5, CURSOR.depth, (radius / SHEET) * press.cols)
         }
       }
+      // a finger on a phone's card presses its sheet there (the card's own ray, across the card), and it springs back
+      const touch = bx && r.turn?.touch?.down ? r.turn.touch : null
+      if (touch && pose.press && !reduced && f.flex > 0.001 && tile.current) {
+        ray.setFromCamera(ndc.set(touch.x, -touch.y), camera)
+        ray.ray.applyMatrix4(toLocal.copy(tile.current.matrixWorld).invert())
+        if (ray.ray.intersectPlane(plane, hit) && Math.abs(hit.x) < (f.winX / 2) * PITCH && Math.abs(hit.z) < (f.winZ / 2) * PITCH)
+          press.press(hit.x / SHEET + 0.5, hit.z / SHEET + 0.5, CURSOR.depth * FINGER.depth, ((CURSOR.radius * FINGER.radius) / SHEET) * press.cols)
+      }
       // "Elastic modulus" under the cursor: the sheet is struck in the middle and springs straight back
       if (inspect === 'modulus' && now - f.knockAt > 1300) {
         f.knockAt = now
         press.press(0.5, 0.5, 0.009, (0.05 / SHEET) * press.cols)
+      }
+
+      // ---- a phone: the chunks wholly inside the fog are not drawn -------------------------------
+      // past the fog's far end the mesh is the ground's own colour, so they cannot be seen; between the faces most of the
+      // sheet is that far, and in the white all of it is (measured as the fog is, by depth in front of the camera)
+      if (compact && field.current) {
+        const fogFar = v.fog[1]
+        for (const m of field.current.children) {
+          const sphere = (m as THREE.InstancedMesh).boundingSphere
+          if (!m.visible || !sphere) continue
+          vA.copy(sphere.center).applyMatrix4(m.matrixWorld).applyMatrix4(camera.matrixWorldInverse)
+          if (-vA.z - sphere.radius * f.stretch > fogFar) m.visible = false
+        }
+      }
+
+      // (what this view draws, for a phone's comparison with the next frame)
+      const sig = (a: number, b: number) => {
+        sigNow.push(...camera.matrixWorld.elements, ...camera.projectionMatrix.elements, a, b, f.winX, f.winZ, f.band, f.weaveX, f.weaveZ, f.explode, f.xray, f.flex, f.axes, f.shear, f.dim, f.widthDim, f.slabs, f.gap, f.pour, f.shadow)
+        sigNow.push(...v.dim.toArray(), ...v.vis.toArray(), ...v.glow.toArray(), ...v.face.toArray(), ...v.pile.toArray(), ...v.fogColor.toArray(), v.fog[0], v.fog[1])
+        sigNow.push(mortar.current?.visible ? since : 0, concrete.opacity, mortarU.uFront.value, catcherMat.opacity, gl.toneMappingExposure, scene.environmentIntensity, keyLight.current?.intensity ?? 0)
+        if (tile.current) sigNow.push(tile.current.position.y, tile.current.rotation.x, tile.current.rotation.z, tile.current.scale.x)
+      }
+
+      // ---- a phone's card: drawn into its own canvas, which scrolls with the card ----------------
+      // The fixed canvas is drawn a frame behind a finger's native scroll, so a card's mesh drawn on it trails its frame
+      // and wobbles against it. Instead the card is drawn in the canvas's lower corner, copied into the card's own canvas
+      // and the corner cleared: the picture then moves with the page as an image does, and is drawn again only when it
+      // changes (nothing to draw while the page only scrolls)
+      const own = compact && bx ? r.el.querySelector<HTMLCanvasElement>('canvas.eb-fig__canvas') : null
+      if (own && bx) {
+        const pr = gl.getPixelRatio()
+        const w = Math.min(vw, bx.width)
+        const h = Math.min(vh, bx.height)
+        const pw = Math.round(w * pr)
+        const ph = Math.round(h * pr)
+        // a card whose picture is the one it already holds is not drawn again (another card turning, say)
+        const from = sigNow.length
+        sig(-1, w * 1e4 + h)
+        const mine = sigNow.slice(from)
+        const had = cardSigs.get(r)
+        if (had && own.width === pw && own.height === ph && had.length === mine.length && mine.every((x, i) => Math.abs(x - had[i]) <= 1e-6 + Math.abs(x) * 1e-5)) {
+          gl.setViewport(0, 0, vw, vh)
+          camera.aspect = vw / vh
+          continue
+        }
+        cardSigs.set(r, mine)
+        gl.setScissorTest(true)
+        gl.setViewport(0, 0, w, h)
+        gl.setScissor(0, 0, w, h)
+        gl.clear()
+        gl.render(scene, camera)
+        if (own.width !== pw || own.height !== ph) {
+          own.width = pw
+          own.height = ph
+        }
+        const ctx = own.getContext('2d')
+        if (ctx) {
+          ctx.clearRect(0, 0, pw, ph)
+          ctx.drawImage(gl.domElement, 0, gl.domElement.height - ph, pw, ph, 0, 0, pw, ph)
+        }
+        gl.clear()
+        gl.setViewport(0, 0, vw, vh)
+        camera.aspect = vw / vh
+        continue
       }
 
       // ---- draw this view inside its own panel ------------------------------------------------
@@ -747,13 +997,35 @@ export function StageScene({ compact, reduced }: Props) {
       const s1 = y1 < vh ? Math.max(0, Math.floor(y1 * pr) - 1) : ch
       if (s1 <= s0) continue
       gl.setScissorTest(true)
-      gl.setScissor(0, (ch - s1) / pr, vw, (s1 - s0) / pr)
+      if (bx) {
+        // only inside the box, and only the part of it on the screen
+        const x0 = Math.max(0, bx.left)
+        const x1 = Math.min(vw, bx.right)
+        if (x1 <= x0) continue
+        gl.setViewport(bx.left, vh - bx.bottom, bx.width, bx.height)
+        gl.setScissor(x0, (ch - s1) / pr, x1 - x0, (s1 - s0) / pr)
+      } else gl.setScissor(0, (ch - s1) / pr, vw, (s1 - s0) / pr)
+      // (in development, recording a box's loop: the box painted in its ground, as the page under it would show)
+      const recBg = import.meta.env.DEV && bx ? (window as unknown as { __recBg?: string }).__recBg : undefined
+      if (recBg) {
+        gl.setClearColor(recBg, 1)
+        gl.clearColor()
+        gl.setClearColor(0x000000, 0)
+      }
       gl.clearDepth()
+      if (compact) sig(s0, s1)
       gl.render(scene, camera)
+      if (bx) {
+        gl.setViewport(0, 0, vw, vh)
+        camera.aspect = vw / vh
+        // a framed figure carries no labels: the copy beside it says what it shows
+        continue
+      }
 
       // ---- labels pinned to this view's sheet -------------------------------------------------
       // the opening's callouts wait until the piece has been woven
-      const settled = (Math.abs(c.dist - dist) < dist * 0.08 || reduced) && (!hero || intro > 0.96)
+      // (and a phone's point in the cavity once the camera has come to it: never sliding in with the camera)
+      const settled = (Math.abs(c.dist - dist) < dist * 0.08 || reduced) && (!hero || intro > 0.96) && (!hero || !compact || !stage.tourPoints || (Math.abs(c.tgt.z - pose.tgt[2]) < 0.004 && Math.abs(c.elev - pose.elev) < 1.5))
       if (!settled) continue
       const zone = compact ? pose.labelZoneCompact : pose.labelZone
       const shown = inspect === 'width' ? [...pose.labels, 'dim-width'] : inspect === 'elongation' ? [...pose.labels, 'strain'] : pose.labels
@@ -814,6 +1086,11 @@ export function StageScene({ compact, reduced }: Props) {
           const side = clear(own) ? own : clear(-own) ? -own : 0
           if (!side) continue
           el.classList.toggle('pin--flip', side !== own)
+        } else if (compact) {
+          // on a phone the label goes to whichever side its words fit on, not by a desktop margin
+          // (its words are measured once: read every frame, the width would force a layout each time)
+          const w = Number((el.dataset.w ??= String((el.querySelector('.pin__text') as HTMLElement | null)?.offsetWidth ?? 0)))
+          el.classList.toggle('pin--swap', el.classList.contains('pin--left') ? x - 12 - w < 8 : x + 12 + w > vw - 8)
         } else el.classList.toggle('pin--swap', el.classList.contains('pin--left') ? x < 200 : x > vw - 200)
         placed.add(anchor)
         el.style.opacity = '1'
@@ -822,9 +1099,17 @@ export function StageScene({ compact, reduced }: Props) {
     }
     gl.setScissorTest(false)
     for (const [anchor, el] of stage.labels) if (!placed.has(anchor) && el.style.opacity !== '0') el.style.opacity = '0'
+    // a phone: the same picture as the frame before (to well under a pixel)? one more frame alike and the next ones rest
+    if (compact) {
+      const prev = sigLast.current
+      const same = prev.length === sigNow.length && sigNow.every((x, i) => Math.abs(x - prev[i]) <= 1e-6 + Math.abs(x) * 1e-5)
+      still.current = same ? still.current + 1 : 0
+      sigLast.current = sigNow.slice()
+    }
 
     // the press field is shared: advance it once a frame while any view is pressing
-    if (flexing && press.step(dt)) press.upload()
+    pressLive.current = flexing && press.step(dt)
+    if (pressLive.current) press.upload()
   }, 1)
 
   const half = 0.005
@@ -842,7 +1127,10 @@ export function StageScene({ compact, reduced }: Props) {
           depthMaterial={yarn.depthMaterial}
           chunk={6}
           lodDistance={compact ? 0.16 : 0.3}
-          farDistance={0.9}
+          // a phone: the cells farther off (most of the sheet once it is built out, and the cavity beyond the first few
+          // rows) take the light cell; on a phone's screen a cell that far is a few pixels across, and the light cell has
+          // a third of the triangles (a sheet of 1600 cells goes from over a million to about half that)
+          farDistance={compact ? 0.5 : 0.9}
           shadows={!compact}
           reach={0.04}
           autoLod={false}

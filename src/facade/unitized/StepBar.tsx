@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { scrollToY } from '../../lib/scroll'
+import { useIsCompact } from '../../lib/motion'
 
 /**
  * The bar along the foot of a pinned section (EnduroSat's phase bar), shared by every step-through: a
@@ -105,6 +106,49 @@ export function StepBar({
     return () => watch.disconnect()
   }, [hints])
   const shown = hint ?? (hints === 'run' ? read : null)
+
+  /*
+   * On a phone the bar is hidden (a hairline down the right edge stands for it: ScrollLine), and its section is
+   * stepped through by a sideways swipe across it as well as by the scroll: left for the next step, right for the one
+   * before, each pressed as the bar's own cell would be. An upright swipe scrolls the page as ever.
+   */
+  const compact = useIsCompact()
+  const latest = useRef({ step, n: names.length })
+  latest.current = { step, n: names.length }
+  useEffect(() => {
+    const section = list.current?.closest('section')
+    if (!compact || !section) return
+    const g = { id: -1, x: 0, y: 0 }
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse' || (e.target as HTMLElement | null)?.closest?.('a, button')) return
+      g.id = e.pointerId
+      g.x = e.clientX
+      g.y = e.clientY
+    }
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== g.id) return
+      g.id = -1
+      const dx = e.clientX - g.x
+      const dy = e.clientY - g.y
+      if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.3) return
+      const { step: k, n } = latest.current
+      const to = Math.min(n - 1, Math.max(0, k + (dx < 0 ? 1 : -1)))
+      // pressed as its cell would be, so it goes the way a click on the bar goes (a page's stepper takes it there,
+      // back or on: usePageSteps)
+      if (to !== k) list.current?.children[to]?.querySelector<HTMLButtonElement>('.fu-bar__btn')?.click()
+    }
+    const cancel = (e: PointerEvent) => {
+      if (e.pointerId === g.id) g.id = -1
+    }
+    section.addEventListener('pointerdown', down)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    return () => {
+      section.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+    }
+  }, [compact])
 
   return (
     <nav className={`fu-bar ${shown?.icon === 'pick' ? 'has-hint' : ''} ${pick ? 'fu-bar--pick' : ''}`} aria-label={label}>

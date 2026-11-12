@@ -1466,3 +1466,86 @@
     transition: none;
   }
 }
+
+/* the layer's line: a phone's alone (see below) */
+.fu-sheet__line {
+  display: none;
+}
+
+/*
+ * Six layers on a phone: one full screen, the unit alone on black, put together as the page scrolls (a swipe up a
+ * layer on, a sideways swipe the same), nothing over it but the words for the layer that is in: its number and name at
+ * the top, under the header, and what it does at the foot, over the six thin lines that fill as the layers come in.
+ * No cards, no tags on the unit, no arrows or hint: a clean window.
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fu-layers {
+    background: var(--black);
+  }
+  .fu-layers .fu-layers__pin {
+    display: block;
+    padding: 0;
+  }
+  .fu-layers .fu-layers__copy {
+    display: none;
+  }
+  .fu-layers .fu-sheet {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+  .fu-layers .fu-sheet__box {
+    --k: 1 !important;
+    height: 100%;
+    touch-action: pan-y;
+  }
+  .fu-layers .fu-box__clip {
+    clip-path: none;
+    background: radial-gradient(130% 80% at 50% 46%, #1e1e1d 0%, #141414 55%, #0d0d0d 100%);
+  }
+  .fu-layers .fu-sheet__view {
+    --pad: var(--gutter);
+  }
+  .fu-layers .fc-labels,
+  .fu-layers .fu-sheet__steps,
+  .fu-layers .fu-sheet__hint,
+  .fu-layers .fu-box__dot {
+    display: none;
+  }
+  /* the details: the number and name at the top, under the header; the line at the foot, over the track */
+  .fu-layers .fu-sheet__now {
+    position: absolute;
+    inset: calc(var(--nav-h) + clamp(14px, 3svh, 28px)) var(--gutter) calc(var(--pad) + 34px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+    font-size: var(--t-small);
+  }
+  .fu-layers .fu-sheet__now .num {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--yellow);
+  }
+  .fu-layers .fu-sheet__name {
+    font-size: clamp(1.6rem, 7.4vw, 2.2rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    color: var(--yellow);
+  }
+  .fu-layers .fu-sheet__line {
+    display: block;
+    margin-top: auto;
+    max-width: 26rem;
+    font-size: clamp(0.95rem, 4vw, 1.05rem);
+    font-weight: 400;
+    line-height: 1.45;
+    letter-spacing: 0;
+    color: rgb(242 240 233 / 0.82);
+  }
+  .fu-layers .fu-track {
+    bottom: clamp(16px, 3svh, 28px);
+  }
+}

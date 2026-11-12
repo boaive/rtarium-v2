@@ -8,6 +8,7 @@ import { FACADE, SYSTEMS, type SystemId } from '../content'
 import { Stage3D } from '../three/Stage3D'
 import { SystemsTrio } from '../three/SystemsTrio'
 import { useLive } from './live'
+import { PhonePick } from '../PhonePick'
 
 /**
  * Two more ways onto a building, in the overview's own systems block (`fct`): the heading and the way
@@ -28,6 +29,10 @@ export function More({ current = 'unitized', id, sectionRef }: { current?: Syste
   const section = sectionRef ?? own
   const live = useLive(section)
   const [hover, setHover] = useState<number | null>(null)
+  // a phone: one chosen at a time, its model lit, picked by its number or a swipe (PhonePick)
+  const compact = useIsCompact()
+  const [chosen, setChosen] = useState(0)
+  const stage = useRef<HTMLDivElement>(null)
   // each model takes more of its column than it would of the overview's old band of three; two to a band the most (a
   // phone keeps its own share)
   const fill = useIsCompact() ? undefined : all ? 0.62 : 0.7
@@ -43,10 +48,15 @@ export function More({ current = 'unitized', id, sectionRef }: { current?: Syste
             </Link>
           )}
         </header>
-        <div className="fct__stage fu-more__stage">
+        <div ref={stage} className="fct__stage fu-more__stage">
           <div className="fct__canvas" aria-hidden="true">
             <Stage3D shadows keyLight={false} fallback={<img className="fu-still" src="/img/facade/panel-ivory.webp" alt="" />}>
-              <SystemsTrio play={inView} hover={hover} live={live} pick={pick} fill={fill} headroom={0.13} />
+              {compact ? (
+                // a phone: the chosen one alone, large in the middle, rising in each time another is chosen
+                <SystemsTrio key={chosen} play={inView} hover={0} live={live} pick={[pick[Math.min(chosen, pick.length - 1)]]} headroom={0.13} />
+              ) : (
+                <SystemsTrio play={inView} hover={hover} live={live} pick={pick} fill={fill} headroom={0.13} />
+              )}
             </Stage3D>
           </div>
           <ol className="fct__cols fu-more__cols">
@@ -76,6 +86,9 @@ export function More({ current = 'unitized', id, sectionRef }: { current?: Syste
               )
             })}
           </ol>
+          {compact && (
+            <PhonePick items={pick.map((n) => ({ n: n + 1, title: SYSTEMS[n].title, line: SYSTEMS[n].short, path: SYSTEMS[n].path }))} at={Math.min(chosen, pick.length - 1)} onPick={setChosen} swipeRef={stage} />
+          )}
         </div>
       </div>
     </section>
