@@ -1059,7 +1059,19 @@ export function StageScene({ compact, reduced }: Props) {
           if (moving(line)) continue
           const at = line?.getBoundingClientRect()
           const words = at ? (el.querySelector<HTMLElement>('.pin__tag')?.offsetWidth ?? 0) : 0
-          const colX = at ? (x > at.left + words ? at.left + words + 18 : at.left - 18) : (compact ? Math.min(Number(el.dataset.col), 0.5) + 0.22 : Number(el.dataset.col)) * vw
+          let colX = at ? (x > at.left + words ? at.left + words + 18 : at.left - 18) : Number(el.dataset.col) * vw
+          // a phone: no column; the label goes to whichever side of its point has the room for it, a short leader off
+          // the point, and never past the screen's edge (to a set column, the wider capitals ran off the left edge)
+          if (!at && compact) {
+            const w = el.querySelector<HTMLElement>('.pin__tag')?.offsetWidth ?? 0
+            const off = 16
+            const edge = 8
+            const roomRight = vw - edge - (x + off)
+            const roomLeft = x - off - edge
+            // (to the right: the tag starts at the column; to the left: it ends there)
+            const toRight = roomRight >= w || (roomLeft < w && roomRight >= roomLeft)
+            colX = toRight ? Math.max(x + 1, Math.min(x + off, vw - edge - w)) : Math.min(x - 1, Math.max(x - off, edge + w))
+          }
           const dx = colX - x
           const lead = el.querySelector<HTMLElement>('.pin__lead')
           const tag = el.querySelector<HTMLElement>('.pin__tag')
