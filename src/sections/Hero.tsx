@@ -383,9 +383,23 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       anim = requestAnimationFrame(frame)
     }
     const gliding = () => flying || (aim !== null && performance.now() < aimUntil && Math.abs(window.scrollY - aim) > 2)
-    /** (a finger dragging during the flight would pull the page against it: the page is the flight's) */
+    /** the flight was turned back by the finger: once it lifts, the page goes back to the opening */
+    let turnedBack = false
+    /**
+     * (a finger dragging on during the flight would pull the page against it: the page is the flight's; but one drawn
+     * back up turns it round at once, never a lock: the flight stops where it is and, the finger lifted, the page goes back
+     * up to the opening)
+     */
     const hold = (e: TouchEvent) => {
-      if (flying && e.cancelable) e.preventDefault()
+      if (!flying) return
+      const t = e.touches[0]
+      if (t && t.clientY - touch.y > 24) {
+        cancelAnimationFrame(anim)
+        flying = false
+        turnedBack = true
+        return
+      }
+      if (e.cancelable) e.preventDefault()
     }
     const start = (e: TouchEvent) => {
       touch.multi = e.touches.length !== 1
@@ -402,6 +416,10 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     const end = (e: TouchEvent) => {
       touch.down = false
       const t = e.changedTouches[0]
+      if (turnedBack) {
+        turnedBack = false
+        return glide(Math.round(el.offsetTop))
+      }
       if (touch.multi || !t || flying) return
       // a mesh taken in hand, or the white handing over to About, during this touch: not a swipe of the page
       if (stage.heldAt >= touch.at) return
@@ -438,8 +456,11 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
         const next = stops[i + 1]
         return glide(y > next + 4 ? (stops.find((s) => s > y + 4) ?? stops[stops.length - 1]) : next)
       }
-      // back up from About's top into the tour: the way down, in reverse (About fades to the white, out of it into the cavity)
-      if (zone.tour && i === stops.length - 1 && back.current) return back.current(stops[i - 1])
+      // back up from About's top into the tour: the way down, in reverse (About fades to the white, out of it into the
+      // cavity), on up to the opening in one go
+      if (zone.tour && i === stops.length - 1 && back.current) return back.current(stops[0])
+      // back up anywhere in the tour: straight to the opening, never a stop a swipe on the way
+      if (zone.tour) return glide(stops[0])
       // (back out of the first stop: the page goes on freely)
       if (i === 0) return
       const prev = stops[i - 1]

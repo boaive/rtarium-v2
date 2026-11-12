@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { APPLICATIONS } from '../content/site'
 import { Link } from '../lib/router'
 import { useScreen } from '../components/Chapter'
@@ -6,15 +6,36 @@ import { useIsCompact } from '../lib/motion'
 import { useMarkIn } from '../lib/reveal'
 import { PhonePick } from '../facade/PhonePick'
 
+const AppModel = lazy(() => import('./AppModel'))
+
 /**
  * A phone's applications, set as the façade pages' "Three ways onto a building": the heading over a hairline, one
- * application's picture at a time, large, and under it the same picker (its number and name; which of three, back and
+ * application's 3D model at a time, large (its photograph until the model has come), and under it the same picker (its number and name; which of three, back and
  * on; its line and the way in). A sideways swipe across the picture or the words moves one along.
  */
 function PhoneApplications() {
   const ref = useRef<HTMLElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const [at, setAt] = useState(0)
+  // the models come once the section is near (their own chunk), play while it is on the screen, and draw only then
+  const [near, setNear] = useState(false)
+  const [play, setPlay] = useState(false)
+  const live = useRef(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ahead = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: '100% 0px' })
+    const seen = new IntersectionObserver(([e]) => {
+      live.current = e.isIntersecting
+      if (e.isIntersecting) setPlay(true)
+    })
+    ahead.observe(el)
+    seen.observe(el)
+    return () => {
+      ahead.disconnect()
+      seen.disconnect()
+    }
+  }, [])
   useScreen(ref, 'applications', 'light')
   const a = APPLICATIONS[at]
   return (
@@ -25,7 +46,13 @@ function PhoneApplications() {
         </h2>
       </header>
       <div ref={stage} className="apps__stage">
-        <img key={a.id} className="apps__pic" src={a.image.src} alt={a.image.alt} loading="lazy" decoding="async" style={{ objectPosition: a.image.position }} />
+        <div className="apps__model" role="img" aria-label={a.image.alt}>
+          {near && (
+            <Suspense fallback={<img className="apps__still" src={a.image.src} alt="" style={{ objectPosition: a.image.position }} />}>
+              <AppModel id={a.id} play={play} live={live} still={a.image.src} />
+            </Suspense>
+          )}
+        </div>
         <PhonePick items={APPLICATIONS.map((x, i) => ({ n: i + 1, title: x.title, line: x.points.join(' · '), path: x.path }))} at={at} onPick={setAt} swipeRef={stage} />
       </div>
     </section>

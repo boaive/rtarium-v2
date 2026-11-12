@@ -418,8 +418,7 @@
   }
   /*
    * one part, one whole screen: its bar clear of the header, the words, and the mesh taking all the room left down to
-   * the screen's foot (as tall as the screen gets with its address bar slid away, the foot kept to the part seen with
-   * the bar showing: --bar, mobile.css)
+   * the screen's foot (as tall as the screen gets with its address bar slid away, on every phone)
    */
   :root :is(#about, #innovation) .eb-row,
   :root :is(#about, #innovation) .eb-row:first-of-type {
@@ -428,7 +427,9 @@
     flex-direction: column;
     height: 100lvh;
     padding-top: var(--nav-h);
-    padding-bottom: calc(clamp(14px, 2.6svh, 24px) + var(--bar, 0px));
+    /* (the mesh runs to the foot: kept clear of the address bar, it left a bare band there once the bar slid away; with
+       the bar showing, only the mesh's lowest edge is behind it) */
+    padding-bottom: 0;
   }
   :root :is(#about, #innovation) .eb-row .eb-fig {
     display: flex;
@@ -1369,15 +1370,25 @@
     padding-top: clamp(22px, 4svh, 36px);
     touch-action: pan-y;
   }
-  /* (the picture takes the room the words leave, whatever its own size: the picker under it never moves) */
-  .apps__pic {
-    display: block;
+  /* (the model takes the room the words leave, whatever it is: the picker under it never moves) */
+  .apps__model {
+    position: relative;
     flex: 1 1 0;
+    min-height: clamp(260px, 40svh, 420px);
+  }
+  .apps__model .fc-canvas {
+    position: absolute;
+    inset: 0;
+  }
+  .apps__model canvas {
+    display: block;
+  }
+  .apps__still {
+    position: absolute;
+    inset: 0 var(--gutter);
     width: calc(100% - 2 * var(--gutter));
-    min-height: clamp(220px, 34svh, 360px);
-    margin: 0 var(--gutter);
+    height: 100%;
     object-fit: cover;
-    animation: pick-in 0.55s var(--ease-out) both;
   }
 
   /* ---- applications: Enerblock's solution rows, the picture framed under the words ---------------------------- */
