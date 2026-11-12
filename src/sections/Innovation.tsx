@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Lines, Track, type Step } from '../components/Chapter'
+import { FLAT_EVENT, Lines, Track, type Step } from '../components/Chapter'
 import { StageLabel } from '../three/Stage'
 import { stage } from '../three/stageStore'
 import { prefersReducedMotion } from '../lib/motion'
@@ -9,7 +9,12 @@ import { prefersReducedMotion } from '../lib/motion'
  * first, then RTARIUM's second face and fibres grow in across it. The visitor can switch back.
  */
 function ShearCompare({ active }: { active: boolean }) {
-  const [flat, setFlat] = useState(false)
+  const [flat, setShown] = useState(false)
+  // (said to the phone's film of it, too: Chapter's Loop)
+  const setFlat = (f: boolean) => {
+    setShown(f)
+    window.dispatchEvent(new CustomEvent(FLAT_EVENT, { detail: f }))
+  }
   useEffect(() => {
     if (!active) {
       stage.flat = 0
@@ -97,7 +102,7 @@ const steps: Step[] = [
 export function Innovation() {
   return (
     <>
-      <Track id="innovation" title="Innovation" steps={steps} />
+      <Track id="innovation" title="Innovation" steps={steps} phoneGround="yellow" />
       <StageLabel anchor="axis-x">X</StageLabel>
       <StageLabel anchor="axis-y">Y</StageLabel>
       <StageLabel anchor="axis-z">Z, through the depth</StageLabel>

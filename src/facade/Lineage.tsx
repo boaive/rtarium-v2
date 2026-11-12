@@ -372,7 +372,72 @@ function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: Line
  * (the last is RTARIUM), its own model for the panel's box and its own words; the boxes, the rows and
  * the motion are the same.
  */
-export function Lineage({
+type LineageProps = Parameters<typeof LineageGrid>[0]
+
+export function Lineage(props: LineageProps) {
+  return useIsCompact() ? <LineagePhone {...props} /> : <LineageGrid {...props} />
+}
+
+/** the grounds of the windows on a phone, in turn: yellow, black, warm white */
+const PHONE_GROUND: Ground[] = ['yellow', 'black', 'light']
+
+/**
+ * The story on a phone: not the wide screen's boxes opening and closing about a crossing, but each version a window
+ * one screen tall, read down the page. Its number and what it is in small capitals over a ruled line; its name; the
+ * panel, its own 3D, in a pane that takes the middle of the screen; and at its foot the photograph (or the story's
+ * second model) beside the one line that matters: why it is replaced, or, for RTARIUM, what it is and where it leads.
+ */
+function LineagePhone({ sectionRef, versions = VERSIONS, panel = (k, compact) => <Panel k={k} compact={compact} />, words = FACADE_WORDS, id = 'lineage', second }: LineageProps) {
+  const n = versions.length
+  return (
+    <section ref={sectionRef} id={id} className="lw lw--screens" aria-label={words.title}>
+      {versions.map((v, i) => {
+        const ground = PHONE_GROUND[i % PHONE_GROUND.length]
+        const line = v.claim ?? v.replaced ?? v.used ?? v.line ?? ''
+        // a story's second model, where it has one for this version; otherwise its photograph
+        const model = second?.(i, true) ?? null
+        return (
+          <article key={v.id} className={`lw__block on-${ground}`} data-screen={ground} aria-labelledby={`fs-${v.id}`}>
+            <p className="lw__num">
+              <span className="num">
+                0{i + 1} / 0{n}
+              </span>
+              <span>{v.full}</span>
+            </p>
+            <h3 id={`fs-${v.id}`} className="lw__name">
+              {v.name}
+            </h3>
+            <div className="lw__panes">
+              <div className="lw__pane lw__pane--3d">{panel(i, true)}</div>
+              {model ? (
+                <div className="lw__pane lw__pane--photo">{model}</div>
+              ) : (
+                v.photo && (
+                  <figure className="lw__pane lw__pane--photo">
+                    <img src={v.photo.src} alt={v.photo.alt} loading="lazy" width={640} height={480} style={v.photo.pos ? { objectPosition: v.photo.pos } : undefined} />
+                  </figure>
+                )
+              )}
+              <div className="lw__pane lw__pane--line">
+                <p>{line}</p>
+                {v.more && (
+                  <a className="lw__more" href={v.more.to}>
+                    {v.more.label}
+                    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                      <path d="M8 2.5v10M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </div>
+          </article>
+        )
+      })}
+    </section>
+  )
+}
+
+function LineageGrid({
   sectionRef,
   versions = VERSIONS,
   panel = (k, compact) => <Panel k={k} compact={compact} />,

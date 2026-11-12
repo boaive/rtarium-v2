@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview", "--", "--port", "4180", "--strictPort"],
       "port": 4180
+    },
+    {
+      "name": "rtarium-v2-phone",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview", "--", "--host", "0.0.0.0", "--port", "4190", "--strictPort"],
+      "port": 4190
     }
   ]
 }

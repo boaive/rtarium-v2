@@ -90,6 +90,8 @@ export function Layers() {
   const cards = useRef<(HTMLLIElement | null)[]>([])
   const count = useRef<HTMLSpanElement>(null)
   const current = useRef<HTMLSpanElement>(null)
+  /** what the layer in does, in a line (a phone shows it at the foot of the screen) */
+  const line = useRef<HTMLSpanElement>(null)
   const track = useRef<(HTMLLIElement | null)[]>([])
   const back = useRef<HTMLButtonElement>(null)
   const on = useRef<HTMLButtonElement>(null)
@@ -126,8 +128,10 @@ export function Layers() {
         shown = now
         const n = now === 'all' ? 'One unit' : latest < 0 ? '' : `${String(NUMBER[BUILD[latest]]).padStart(2, '0')} / 06`
         const name = now === 'all' ? 'Six layers, closed' : latest < 0 ? '' : now === 'panel-mesh' ? 'RTARIUM, before the concrete' : LAYER_NAME[BUILD[latest]]
+        const said = now === 'all' ? 'Six layers in one unit, hung from slab to slab.' : latest < 0 ? '' : now === 'panel-mesh' ? 'The RTARIUM textile, before its concrete is cast round it.' : LAYER_LINE[BUILD[latest]]
         if (count.current) count.current.textContent = n
         if (current.current) current.current.textContent = name
+        if (line.current) line.current.textContent = said
       }
     }
     paint()
@@ -155,6 +159,40 @@ export function Layers() {
     aim.current = { p: to, t: performance.now() }
     scrollToY(yAt(to))
   }
+
+  // a phone: a sideways swipe across the unit takes it a layer on (to the left) or back (to the right)
+  const stepRef = useRef(step)
+  stepRef.current = step
+  useEffect(() => {
+    const el = box.current
+    if (!compact || !el) return
+    const g = { id: -1, x: 0, y: 0 }
+    const down = (e: globalThis.PointerEvent) => {
+      if (e.pointerType === 'mouse') return
+      g.id = e.pointerId
+      g.x = e.clientX
+      g.y = e.clientY
+    }
+    const up = (e: globalThis.PointerEvent) => {
+      if (e.pointerId !== g.id) return
+      g.id = -1
+      const dx = e.clientX - g.x
+      const dy = e.clientY - g.y
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.3) return
+      stepRef.current(dx < 0 ? 1 : -1)
+    }
+    const cancel = (e: globalThis.PointerEvent) => {
+      if (e.pointerId === g.id) g.id = -1
+    }
+    el.addEventListener('pointerdown', down)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    return () => {
+      el.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+    }
+  }, [compact])
 
   const point = (l: Layer) => ({
     onPointerEnter: (e: PointerEvent) => e.pointerType === 'mouse' && setFocus(l),
@@ -229,6 +267,7 @@ export function Layers() {
               <p className="fu-sheet__now" aria-live="polite">
                 <span ref={count} className="num" />
                 <span ref={current} className="fu-sheet__name" />
+                <span ref={line} className="fu-sheet__line" />
               </p>
 
               {/* a layer back or on: the page scrolls there */}

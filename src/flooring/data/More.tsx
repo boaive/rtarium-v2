@@ -7,6 +7,8 @@ import { Stage3D } from '../../facade/three/Stage3D'
 import { useLive } from '../../facade/unitized/live'
 import { FLOORING, FLOORING_APPS, type FlooringAppId } from '../content'
 import { FlooringTrio } from '../three/FlooringTrio'
+import { PhonePick } from '../../facade/PhonePick'
+import { useIsCompact } from '../../lib/motion'
 
 /**
  * Two more ways onto a floor, in the Façade system pages' close (`fu-more`, the overview's `fct`
@@ -23,6 +25,10 @@ export function More({ current, id, sectionRef }: { current: FlooringAppId | nul
   const section = sectionRef ?? own
   const live = useLive(section)
   const [hover, setHover] = useState<number | null>(null)
+  // a phone: one chosen at a time, its floor lit, picked by its number or a swipe (PhonePick)
+  const compact = useIsCompact()
+  const [chosen, setChosen] = useState(0)
+  const stage = useRef<HTMLDivElement>(null)
 
   return (
     <section ref={section} id={id} className={`fct fu-more ${all ? 'fu-more--all' : ''} on-light`} aria-labelledby="fdc-more-title">
@@ -35,10 +41,15 @@ export function More({ current, id, sectionRef }: { current: FlooringAppId | nul
             </Link>
           )}
         </header>
-        <div className="fct__stage fu-more__stage">
+        <div ref={stage} className="fct__stage fu-more__stage">
           <div className="fct__canvas" aria-hidden="true">
             <Stage3D shadows keyLight={false} fallback={<img className="fu-still" src="/img/flooring/dc-site-strip.webp" alt="" />}>
-              <FlooringTrio play={inView} hover={hover} live={live} pick={pick} />
+              {compact ? (
+                // a phone: the chosen one alone, large in the middle, rising in each time another is chosen
+                <FlooringTrio key={chosen} play={inView} hover={0} live={live} pick={[pick[Math.min(chosen, pick.length - 1)]]} />
+              ) : (
+                <FlooringTrio play={inView} hover={hover} live={live} pick={pick} />
+              )}
             </Stage3D>
           </div>
           <ol className="fct__cols fu-more__cols">
@@ -68,6 +79,9 @@ export function More({ current, id, sectionRef }: { current: FlooringAppId | nul
               )
             })}
           </ol>
+          {compact && (
+            <PhonePick items={pick.map((n) => ({ n: n + 1, title: FLOORING_APPS[n].title, line: FLOORING_APPS[n].line, path: FLOORING_APPS[n].path }))} at={Math.min(chosen, pick.length - 1)} onPick={setChosen} swipeRef={stage} />
+          )}
         </div>
       </div>
     </section>

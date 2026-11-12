@@ -3,7 +3,8 @@ import { useIsCompact } from '../../lib/motion'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
 import { createBus } from '../three/kit'
 import { ScrubRig } from '../three/ScrubRig'
-import { FollowScroll, smooth, usePlay } from '../progress'
+import { FollowScroll, smooth, usePlay, useScrollProgress } from '../progress'
+import { scrollToY } from '../../lib/scroll'
 import { HANG, HangScene, hangShot } from '../three/unit/HangScene'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
@@ -32,12 +33,18 @@ const LABELS: LabelSpec[] = [
 ]
 /** seconds for the whole sequence, played on one scroll once the section is on screen (as the warehouse's frame to floor) */
 const PLAY = 12
+/** a phone: no film played by itself, the scene follows the scroll over this many screens */
+const PHONE_RUN = 5
 
 export function Hang() {
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const stage = useRef<HTMLDivElement>(null)
-  const [progress, seek] = usePlay(section, PLAY)
+  // a wide screen plays it in time once it is there; a phone scrolls through it, the scene at the finger's pace
+  const none = useRef<HTMLElement>(null)
+  const [played, seek] = usePlay(compact ? none : section, PLAY)
+  const [scrolled] = useScrollProgress(compact ? section : none, 1, 'run')
+  const progress = compact ? scrolled : played
   const bus = useMemo(createBus, [])
   const live = useLive(stage)
   const settle = useRef(0)
@@ -68,13 +75,18 @@ export function Hang() {
     return () => void progress.listeners.delete(paint)
   }, [progress])
 
-  const go = (p: number, from?: number) => seek(p, from)
+  /** a step of the bar: played to on a wide screen; on a phone the page scrolls to its point of the run */
+  const go = (p: number, from?: number) => {
+    const el = section.current
+    if (!compact) return seek(p, from)
+    if (el) scrollToY(el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * p)
+  }
   /** where each step of the bar takes you: each part made solid, the joints made, the block drawn, the unit set, the façade up */
   const holds = [HANG.bracket[1], HANG.barrier[1], HANG.drop[1], HANG.stack[1], HANG.crane[1], HANG.lift[1], HANG.fill + 0.04].map((p) => p + 0.012)
 
 
   return (
-    <section ref={section} id="hang" className="fu-hang on-light" aria-labelledby="fu-hang-title" style={{ '--run': 1 } as CSSProperties}>
+    <section ref={section} id="hang" className="fu-hang on-light" aria-labelledby="fu-hang-title" style={{ '--run': compact ? PHONE_RUN : 1 } as CSSProperties}>
       <div className="fu-hang__pin">
         <h2 id="fu-hang-title" className="fu-hang__title">
           Hang. Seal. Join. Done.

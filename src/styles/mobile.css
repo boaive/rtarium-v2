@@ -1,0 +1,1071 @@
+/*
+ * Phones: the homepage recomposed for a tall, narrow screen, and the footer set as a long-form page foot.
+ *
+ * Everything here is under the compact query the 3D stage frames its phone views by (COMPACT_QUERY in
+ * lib/motion.ts: max-width 860px, or a portrait window), so where the copy goes and where the model is
+ * framed (frameCompact / distCompact in three/poses.ts) are decided together. Nothing here applies to a
+ * landscape window wider than 860px: the desktop compositions are left exactly as they are.
+ *
+ * It loads after the other stylesheets and overrides their phone rules where the composition changes.
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  /* every screen's copy hangs just under the header; the model has the middle of the screen */
+  .scene {
+    --top: calc(var(--nav-h) + clamp(14px, 2.6svh, 26px));
+  }
+
+  /* ---- the opening: the name under the header, the mesh in the middle, what it is and the way on at the foot ---- */
+
+  .hero__copy {
+    top: calc(var(--nav-h) + clamp(14px, 2.8svh, 30px));
+    bottom: calc(clamp(22px, 4.4svh, 40px) + env(safe-area-inset-bottom, 0px));
+    left: var(--gutter);
+    right: var(--gutter);
+    align-content: space-between;
+    gap: var(--s-5);
+    padding: 0;
+    background: none;
+    border-top: 0;
+    /* the empty middle is the mesh's: a drag across it turns the piece */
+    pointer-events: none;
+  }
+  .hero__title,
+  .hero__sub {
+    pointer-events: auto;
+  }
+  /* as the tour starts the headline drifts and fades into the mesh without the blur: a blur that changes every frame
+     repaints the type every frame, over a canvas that is drawing too, and a phone stutters under it */
+  .hero__title .lines__line,
+  .hero__sub,
+  .hero__scroll {
+    filter: none;
+  }
+  /* the 3D is as tall as the screen gets (its address bar slid away), always: sized to the window, it stopped short of
+     the foot as the bar slid away (a band of bare ground, the mesh moved up), and was redrawn at a new size each time */
+  .stage {
+    bottom: auto;
+    height: 100vh;
+    height: 100lvh;
+  }
+  /*
+   * One screen is the whole screen, on every phone: as tall as the screen gets with its address bar slid away (lvh).
+   * Sized to the screen with the bar showing (svh), each came up short once the bar slid away, the next one showing
+   * at its foot. What stands at a screen's foot keeps to the part of it seen with the bar showing (--bar: the bar's
+   * height, 0 where there is none). (:root: over the rules of these further down)
+   */
+  :root {
+    --bar: calc(100lvh - 100svh);
+  }
+  :root .scene,
+  :root .hero__screen,
+  :root .track,
+  :root .track__pin,
+  :root #replaces .ledger__in {
+    height: 100lvh;
+  }
+  :root #about .eb-row,
+  :root #innovation .eb-row,
+  :root #tech .eb-row {
+    height: 100lvh;
+    padding-bottom: calc(clamp(14px, 2.6svh, 24px) + var(--bar));
+  }
+  :root #about .eb-row:first-of-type,
+  :root #innovation .eb-row:first-of-type {
+    height: calc(100lvh - var(--about-head));
+  }
+  /*
+   * ---- A sideways chapter on a phone (Innovation), set as the Facade pages set their steps: which of how many, small,
+   * over the title at the top; the title plain in the ground's ink; what it says, and its controls, at the foot over a
+   * line of a segment a step; the 3D between. A soft plate of the ground behind the words, top and foot, where the mesh
+   * runs under them. ----
+   */
+  :root .track {
+    --psteps-h: 24px;
+    --count-h: 20px;
+    --steps-top: calc(var(--nav-h) + clamp(14px, 2.6svh, 26px));
+    --steps-foot: calc(var(--psteps-h) + 18px + env(safe-area-inset-bottom, 0px) + var(--bar));
+  }
+  :root .track .copy {
+    top: calc(var(--steps-top) + var(--count-h) + 8px);
+    bottom: var(--steps-foot);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-3);
+    padding: 0 var(--gutter);
+    border: 0;
+    background: none;
+    text-align: left;
+    pointer-events: none;
+  }
+  :root .track .copy > * {
+    pointer-events: auto;
+  }
+  :root .track .copy::before {
+    display: none;
+  }
+  :root .track .copy .lines {
+    position: relative;
+  }
+  :root .track .lines--slab .lines__line {
+    padding: 0;
+    background: none;
+    color: var(--slab-bg);
+  }
+  :root .track .copy .lead {
+    position: relative;
+    margin-top: auto;
+    max-width: 30rem;
+    font-size: clamp(0.98rem, 4.2vw, 1.12rem);
+    line-height: 1.42;
+  }
+  :root .track .copy .lines::before,
+  :root .track .copy .lead::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    left: calc(-1 * var(--gutter));
+    right: calc(-1 * var(--gutter));
+    pointer-events: none;
+  }
+  :root .track .copy .lines::before {
+    top: calc(-1 * (var(--steps-top) + var(--count-h) + 8px));
+    bottom: -28px;
+    background: linear-gradient(to bottom, var(--ground-c) calc(100% - 28px), transparent);
+  }
+  :root .track .copy .lead::before {
+    top: -32px;
+    bottom: calc(-1 * (var(--steps-foot) + 40px));
+    background: linear-gradient(to top, var(--ground-c) calc(100% - 32px), transparent);
+  }
+  .psteps__count {
+    position: absolute;
+    z-index: 4;
+    top: var(--steps-top);
+    left: var(--gutter);
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    line-height: var(--count-h);
+    font-variant-numeric: tabular-nums;
+    color: var(--slab-bg);
+    pointer-events: none;
+  }
+  .psteps__count b {
+    font-weight: 800;
+  }
+  .psteps {
+    position: absolute;
+    z-index: 4;
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px) + var(--bar));
+    color: var(--slab-bg);
+  }
+  .psteps__line {
+    display: flex;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .psteps__line li {
+    flex: 1;
+  }
+  .psteps__line button {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: var(--psteps-h);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+  .psteps__line button::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    margin-top: -1px;
+    background: currentColor;
+    opacity: 0.22;
+    transition: opacity var(--d-mid) var(--ease-out);
+  }
+  .psteps__line button.is-past::after {
+    opacity: 0.5;
+  }
+  .psteps__line button.is-now::after {
+    opacity: 1;
+  }
+
+  /* ---- a word on how a 3D screen is worked (TouchHint): shown once, the first time it is reached ---- */
+  .thint {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    padding: 9px 15px;
+    border-radius: var(--radius-round);
+    background: rgb(8 8 8 / 0.8);
+    color: #f2f0e9;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate3d(-50%, 8px, 0);
+    transition:
+      opacity 0.35s var(--ease-out),
+      transform 0.45s var(--ease-out);
+  }
+  .thint.is-on {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0);
+  }
+  /* (over the 3D, low: clear of its labels and of the words at the foot) */
+  .psteps__hint {
+    top: 78%;
+  }
+  .eb-fig__hint {
+    bottom: 16px;
+  }
+  .thint__dot {
+    animation: thint-swipe 1.6s ease-in-out infinite;
+  }
+  .thint__ring {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: thint-hold 1.4s ease-out infinite;
+  }
+  .thint.is-still .thint__dot,
+  .thint.is-still .thint__ring {
+    animation: none;
+  }
+  @keyframes thint-swipe {
+    0%,
+    100% {
+      transform: translateX(-6px);
+    }
+    50% {
+      transform: translateX(6px);
+    }
+  }
+  @keyframes thint-hold {
+    0% {
+      opacity: 1;
+      transform: scale(0.55);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.15);
+    }
+  }
+  /* what it is and the way to the team leave with the first fifth of the first swipe, never lingering at the foot of the
+     next screen */
+  .hero__screen--open.is-active .hero__sub {
+    opacity: clamp(0, calc(1 - var(--p, 0) * 5), 1);
+    transition:
+      transform 0.6s var(--ease-out),
+      visibility 0s linear 0s;
+  }
+  /* a phone's tour hands over to About from its white (Hero's useWhiteHandoff): a warm-white curtain over the page,
+     under the header, shown at once and cleared slowly, so About comes out of the white */
+  .hero__curtain {
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    background: var(--white);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .hero__curtain.is-on {
+    opacity: 1;
+  }
+  .hero__curtain.is-clearing {
+    transition: opacity 0.22s cubic-bezier(0.33, 0, 0.2, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__curtain.is-clearing {
+      transition: none;
+    }
+  }
+  /* the mesh is turned by pressing and holding it: no text selection or the phone's own menu in the way */
+  .hero__screen--open {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .hero__title .lines__line:first-child {
+    font-size: clamp(1.45rem, 6.6vw, 2.2rem);
+  }
+  .hero__title .lines__line:last-child {
+    font-size: clamp(2.2rem, 11.6vw, 4.4rem);
+  }
+  .hero__sub {
+    justify-items: stretch;
+    gap: clamp(16px, 2.6svh, 24px);
+    max-width: 30rem;
+  }
+  .hero__lede {
+    max-width: 20em;
+    font-size: clamp(1.02rem, 4.4vw, 1.25rem);
+    line-height: 1.36;
+  }
+  /* the way on runs the width of the column, under the thumb */
+  .hero__sub .explore {
+    height: 56px;
+  }
+  .hero__sub .explore__label {
+    flex: 1;
+  }
+  .hero__sub .explore__cell {
+    width: 56px;
+  }
+  /* with no 3D, its picture holds the gap between the name and what it is, never under the words */
+  .hero__still {
+    top: 25%;
+    width: 54%;
+    height: 50%;
+  }
+  /* the headline dissolves into the mesh by fading and drifting only: a blur over moving type costs a phone frames */
+  .hero__title .lines__line,
+  .hero__sub {
+    filter: none;
+  }
+
+  /* ---- the challenge: the sentence alone, centred, with room round it ---- */
+
+  .scene--challenge .copy--full {
+    inset: var(--nav-h) calc(var(--gutter) + clamp(4px, 2.4vw, 16px));
+    justify-items: center;
+    text-align: center;
+  }
+  .scene--challenge .statement {
+    max-width: 13em;
+    font-size: clamp(1.7rem, 7.8vw, 2.6rem);
+    letter-spacing: -0.038em;
+    line-height: 1.1;
+  }
+
+  /* ---- the opening tour: its two lines at the top of the screen, the mesh under them ---- */
+
+  .hero__say--br,
+  .hero__say--tr {
+    top: calc(var(--nav-h) + clamp(14px, 2.6svh, 26px));
+    bottom: auto;
+    left: var(--gutter);
+    right: auto;
+  }
+
+  /* ---- what it replaces: RTARIUM, then a card for each of its strengths set against the compromise it replaces ---- */
+
+  #replaces .ledger__in {
+    display: block;
+    min-height: 0;
+    padding: calc(var(--nav-h) + clamp(18px, 3.4svh, 30px)) var(--gutter) clamp(40px, 7svh, 64px);
+  }
+  #replaces .ledger__title {
+    max-width: 14em;
+    padding: 0;
+    font-size: clamp(1.8rem, 8.4vw, 2.7rem);
+    letter-spacing: -0.045em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  /* the name the width of the column, as the wordmark is set */
+  .vs__word {
+    margin: clamp(16px, 3svh, 26px) 0 clamp(22px, 4svh, 32px) -0.03em;
+    font-family: var(--font-name);
+    font-size: calc((100vw - 2 * var(--gutter)) * 0.137);
+    font-weight: 860;
+    font-stretch: 150%;
+    line-height: 0.84;
+    white-space: nowrap;
+  }
+  .vs {
+    display: grid;
+    gap: clamp(14px, 2.6svh, 20px);
+  }
+  /* the cards stack: each holds under the header as the next comes up over it, the edge of the ones under it showing */
+  .vs__card {
+    position: sticky;
+    top: calc(var(--nav-h) + 8px + var(--i, 0) * 14px);
+    display: grid;
+    gap: clamp(16px, 2.8svh, 22px);
+    padding: clamp(20px, 5.6vw, 28px);
+    border-radius: 10px;
+    background: var(--black);
+    color: var(--yellow);
+    box-shadow:
+      0 -14px 30px -18px rgb(8 8 8 / 0.5),
+      0 24px 40px -30px rgb(8 8 8 / 0.7);
+    opacity: 0;
+    transform: translateY(40px);
+    transition:
+      opacity 0.6s var(--ease-out),
+      transform 0.9s var(--ease-out);
+  }
+  .vs__card.is-in {
+    opacity: 1;
+    transform: none;
+  }
+  .vs__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .vs__count {
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--on-dark-2);
+  }
+  .vs__count b {
+    font-weight: 800;
+    color: var(--yellow);
+  }
+  .vs__mark {
+    width: 30px;
+    height: 30px;
+  }
+  .vs__strength {
+    font-size: clamp(1.9rem, 9vw, 2.6rem);
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+  /* what it replaces: the name struck through, its weakness answering on the right, what it is under them */
+  .vs__other {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'label label'
+      'name weak'
+      'what what';
+    align-items: baseline;
+    gap: 8px var(--s-4);
+    padding-top: clamp(14px, 2.4svh, 18px);
+    border-top: 1px solid rgb(253 208 1 / 0.24);
+  }
+  .vs__pair {
+    display: contents;
+  }
+  .vs__pair--name dt {
+    grid-area: label;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--on-dark-2);
+  }
+  .vs__name {
+    grid-area: name;
+    font-size: clamp(1.05rem, 4.8vw, 1.3rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    white-space: nowrap;
+    color: var(--on-dark-2);
+    /* the strike draws once the card is in */
+    text-decoration-line: line-through;
+    text-decoration-thickness: 2px;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.5s var(--ease-out) 0.5s;
+  }
+  .vs__card.is-in .vs__name {
+    text-decoration-color: currentColor;
+  }
+  .vs__weak {
+    grid-area: weak;
+    font-size: clamp(0.9rem, 4vw, 1.05rem);
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: right;
+    text-wrap: balance;
+  }
+  .vs__what {
+    grid-area: what;
+    font-size: clamp(0.84rem, 3.7vw, 0.95rem);
+    line-height: 1.45;
+    color: var(--on-dark-2);
+  }
+  .vs__hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* ---- About and Innovation: one screen each, a carousel of its steps; the copy at the top, the model under it ---- */
+
+  .track {
+    --carousel-h: calc(76px + env(safe-area-inset-bottom, 0px));
+    height: 100svh;
+  }
+  .track__snap {
+    display: none;
+  }
+  /* a sideways swipe is the carousel's; an upright one scrolls the page */
+  .track__pin {
+    touch-action: pan-y;
+  }
+  .track .scene {
+    --bottom: calc(var(--carousel-h) + 8px);
+  }
+  .track .copy {
+    top: var(--top);
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    gap: var(--s-3);
+    padding: 0 var(--gutter);
+    background: none;
+    border-top: 0;
+  }
+  /* a plate of the step's ground behind the copy, from the top of the screen and fading out just under it: where the
+     mesh runs up behind the words (a short phone), they still read; elsewhere it is the ground itself and unseen */
+  .track .copy {
+    isolation: isolate;
+  }
+  .track .copy::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: calc(-1 * var(--top));
+    left: 0;
+    right: 0;
+    bottom: calc(-1 * clamp(14px, 2.6svh, 24px));
+    background: linear-gradient(to bottom, var(--ground-c) calc(100% - clamp(14px, 2.6svh, 24px)), transparent);
+    pointer-events: none;
+  }
+  .track .copy .lines {
+    padding-top: 0;
+  }
+  .track .lead {
+    max-width: 24rem;
+  }
+  .track .figure {
+    margin-top: 4px;
+  }
+
+
+  /*
+   * The way through the steps: a dock floating over the foot of the screen, cut round like the header, inset from the
+   * edges so the mesh runs on underneath it. Which of how many and the step's name on the left, a dot for each step (the
+   * one shown stretched to a bar) in the middle, back and on at the right. On the first step the way on breathes, so a
+   * first-time reader knows there is more sideways.
+   */
+  .carousel {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 64px;
+    padding: 0 8px 0 20px;
+    border-radius: var(--radius-round);
+    background: color-mix(in srgb, var(--ground-c) 74%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    backdrop-filter: blur(18px) saturate(1.5);
+    box-shadow:
+      inset 0 0 0 1px var(--line),
+      0 18px 40px -22px rgb(8 8 8 / 0.55);
+    color: var(--fg);
+    transition:
+      color var(--d-mid) var(--ease-out),
+      background-color var(--d-mid) var(--ease-out),
+      box-shadow var(--d-mid) var(--ease-out);
+  }
+  .carousel__row {
+    display: contents;
+  }
+  /* which of how many, and under it the step's name, rolling in from below each time it changes */
+  .carousel__count {
+    order: 1;
+    display: grid;
+    flex: 1;
+    gap: 2px;
+    min-width: 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+  .carousel__count .num {
+    letter-spacing: 0.06em;
+    color: var(--fg-2);
+  }
+  .carousel__count b {
+    font-weight: 800;
+    color: var(--fg);
+  }
+  .carousel__name {
+    overflow: hidden;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+    animation: carousel-name 0.6s var(--ease-out) both;
+  }
+  /* the dots: the step shown stretches to a bar, the steps passed stay filled */
+  .carousel__line {
+    order: 2;
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+  }
+  .carousel__line li {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-round);
+    background: var(--line);
+    transition:
+      width 0.6s var(--ease-out),
+      background-color 0.4s var(--ease-out);
+  }
+  .carousel__line li::after {
+    content: none;
+  }
+  .carousel__line .is-past {
+    background: var(--fg-2);
+  }
+  .carousel__line .is-now {
+    width: 22px;
+    background: var(--fg);
+  }
+  .carousel__nav {
+    order: 3;
+    display: flex;
+    flex: none;
+    gap: 6px;
+  }
+  .carousel__btn {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-round);
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--line);
+    color: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      opacity var(--d-fast) var(--ease-out),
+      transform 0.3s var(--ease-out),
+      background-color var(--d-mid) var(--ease-out),
+      color var(--d-mid) var(--ease-out);
+  }
+  .carousel__btn:active:not(:disabled) {
+    transform: scale(0.9);
+  }
+  .carousel__btn--next {
+    background: var(--fg);
+    box-shadow: none;
+    color: var(--ground-c);
+  }
+  .carousel__btn:disabled {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--line);
+    color: inherit;
+    opacity: 0.3;
+    cursor: default;
+  }
+  .carousel__btn svg {
+    transition: transform var(--d-mid) var(--ease-out);
+  }
+  /* on the first step the way on breathes: a ring going out from it, and its arrow nudging on */
+  .carousel.is-first .carousel__btn--next::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 0 var(--fg);
+    animation: carousel-breathe 2.4s var(--ease-out) 1.2s infinite;
+    pointer-events: none;
+  }
+  .carousel.is-first .carousel__btn--next svg {
+    animation: carousel-nudge 2.4s var(--ease-in-out) 1.2s infinite;
+  }
+  .carousel__btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+  @keyframes carousel-breathe {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--fg) 45%, transparent);
+    }
+    70%,
+    100% {
+      box-shadow: 0 0 0 12px color-mix(in srgb, var(--fg) 0%, transparent);
+    }
+  }
+  @keyframes carousel-nudge {
+    0%,
+    40%,
+    100% {
+      transform: none;
+    }
+    20% {
+      transform: translateX(3px);
+    }
+  }
+  @keyframes carousel-name {
+    from {
+      opacity: 0;
+      transform: translateY(0.6em);
+    }
+  }
+
+  /* Material: how it is made, four stations down a line */
+  .copy--band .copy__aside {
+    gap: clamp(14px, 2.4svh, 22px);
+  }
+  .copy--band .chain {
+    grid-template-columns: 1fr;
+    row-gap: 0;
+    margin-left: 5px;
+    border-top: 0;
+    border-left: 1.5px solid currentColor;
+  }
+  .copy--band .chain__step {
+    padding: 5px 0 5px 20px;
+    font-size: clamp(0.95rem, 4.2vw, 1.08rem);
+  }
+  .copy--band .chain__step::before {
+    top: 50%;
+    left: -6.5px;
+    margin-top: -5.5px;
+  }
+
+  /* In concrete: the line at the top, the footage under it, the mesh taking the mortar below */
+  .copy--pour .lines {
+    font-size: clamp(2rem, 9vw, 3.2rem);
+  }
+  .scene--flow .pourfilm,
+  .scene--flow.is-seen .pourfilm {
+    --fw: min(60vw, 22rem);
+    left: var(--gutter);
+    right: auto;
+    top: calc(var(--top) + 2.2 * clamp(2rem, 9vw, 3.2rem) + clamp(20px, 3.4svh, 30px));
+  }
+  .scene--flow.is-active .pourfilm {
+    animation: open-box 0.8s var(--ease-out) 0.6s both;
+  }
+  .scene--flow .pourfilm .caption {
+    text-align: left;
+  }
+
+  /* Monolithic: the comparison under its copy */
+  .scene--shear .toggle {
+    justify-self: start;
+    margin-top: 4px;
+    background: var(--yellow);
+  }
+  .scene--shear .toggle button {
+    min-height: 44px;
+    padding: 0 22px;
+  }
+
+  /* Non-Corrosive: its copy on a band of black across the top, the fibre close up under it */
+  .scene--mineral .copy--foot {
+    top: 0;
+    grid-template-columns: 1fr;
+    padding: var(--top) var(--gutter) clamp(18px, 3svh, 26px);
+    background: var(--black);
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* ---- Tech Space: the title and its line at the top, the system under them, the controls at the foot ---- */
+
+  .chapter--tech .system {
+    bottom: calc(clamp(16px, 3svh, 28px) + env(safe-area-inset-bottom, 0px));
+    display: grid;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+  }
+  .chapter--tech .system .lines {
+    position: static;
+  }
+  .chapter--tech .system__a {
+    grid-row: 1;
+  }
+  .chapter--tech .system__b {
+    grid-row: 2;
+    margin-top: 0.08em;
+  }
+  .chapter--tech .system__more {
+    display: contents;
+  }
+  .chapter--tech .system__more .lead {
+    grid-row: 3;
+    max-width: 24rem;
+    margin-top: clamp(12px, 2svh, 18px);
+  }
+  .chapter--tech .system__thick {
+    grid-row: 5;
+    margin-bottom: clamp(12px, 2svh, 18px);
+  }
+  .chapter--tech .system__cta {
+    grid-row: 6;
+  }
+  .chapter--tech .system__seg-btn {
+    height: 44px;
+    line-height: 44px;
+  }
+  .chapter--tech .system__cta .explore {
+    height: 48px;
+  }
+  .chapter--tech .system__cta .explore__cell {
+    width: 48px;
+  }
+
+  /* ---- applications: the heading on a yellow highlight, the three as cards rising in, one after another ---- */
+
+  .apps {
+    display: block;
+    min-height: 0;
+    padding: calc(var(--nav-h) + clamp(14px, 3svh, 28px)) var(--gutter) clamp(32px, 7svh, 64px);
+  }
+  .apps__head {
+    display: block;
+    margin-bottom: clamp(20px, 3.6svh, 30px);
+  }
+  .apps__title {
+    display: inline;
+    padding: 0.02em 0.14em 0.08em 0.1em;
+    background: var(--yellow);
+    font-size: clamp(2rem, 9.6vw, 3.1rem);
+    line-height: 1.16;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  .apps__row {
+    flex-direction: column;
+    gap: clamp(16px, 3svh, 26px);
+  }
+  /* the three in one continuous run down the page: nothing holds, nothing snaps */
+  .app {
+    flex: none;
+  }
+  .app__link {
+    height: clamp(20rem, 58svh, 34rem);
+    min-height: 0;
+    padding: clamp(18px, 5vw, 26px);
+    border-radius: 10px;
+  }
+  .app__title {
+    font-size: clamp(1.75rem, 8.2vw, 2.4rem);
+  }
+  .app__points span {
+    padding: 5px 9px;
+  }
+  .app__more {
+    min-height: 46px;
+    padding: 0 20px;
+  }
+  /* rising in as each card comes up from the foot of the screen (Applications marks the cards it has seen) */
+  .apps[data-reveal] .app__link {
+    transform: translateY(56px);
+    opacity: 0;
+    transition:
+      transform 0.9s var(--ease-out),
+      opacity 0.6s var(--ease-out);
+  }
+  .apps[data-reveal] .app.is-in .app__link {
+    transform: none;
+    opacity: 1;
+  }
+  .apps[data-reveal] .app__img {
+    transform: scale(1.14);
+    transition: transform 1.6s var(--ease-out);
+  }
+  .apps[data-reveal] .app.is-in .app__img {
+    transform: scale(1.03);
+  }
+  .apps[data-reveal] .app__body > * {
+    transform: translateY(18px);
+    opacity: 0;
+    transition:
+      transform 0.7s var(--ease-out),
+      opacity 0.5s var(--ease-out);
+  }
+  .apps[data-reveal] .app.is-in .app__body > * {
+    transform: none;
+    opacity: 1;
+  }
+  .apps[data-reveal] .app.is-in .app__body > :nth-child(1) {
+    transition-delay: 0.18s;
+  }
+  .apps[data-reveal] .app.is-in .app__body > :nth-child(2) {
+    transition-delay: 0.28s;
+  }
+  .apps[data-reveal] .app.is-in .app__body > :nth-child(3) {
+    transition-delay: 0.38s;
+  }
+
+  /* ---- the footer: a long-form page foot (homepage and every page) ---- */
+
+  .footer__body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0;
+    padding: calc(var(--nav-h) + clamp(28px, 6svh, 56px)) var(--gutter) calc(clamp(22px, 4svh, 34px) + env(safe-area-inset-bottom, 0px));
+  }
+  .footer__top {
+    display: grid;
+    justify-content: stretch;
+    gap: clamp(22px, 4svh, 32px);
+    padding-bottom: clamp(36px, 6svh, 52px);
+  }
+  .footer__line {
+    font-size: clamp(1.6rem, 7.6vw, 2.4rem);
+    line-height: 1.04;
+  }
+  .footer__reach {
+    justify-items: stretch;
+    gap: var(--s-4);
+  }
+  .footer__mail {
+    justify-self: start;
+    font-size: clamp(1.35rem, 6.4vw, 1.9rem);
+  }
+  .footer__cta {
+    justify-content: space-between;
+    width: 100%;
+    min-height: 56px;
+    padding: 0 20px;
+  }
+  /* the site map in two columns, Company and the fine print the full width under them */
+  .footer__map {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: clamp(30px, 5svh, 40px) var(--s-5);
+    padding: clamp(28px, 4.6svh, 36px) 0 clamp(36px, 6svh, 52px);
+    border-top-width: 1px;
+  }
+  .footer__map > div:nth-of-type(3) {
+    grid-column: 1 / -1;
+  }
+  .footer__head {
+    margin-bottom: var(--s-3);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+  }
+  .footer__map li a {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 4px 0;
+    font-size: clamp(1.02rem, 4.6vw, 1.2rem);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .footer__legal {
+    grid-column: 1 / -1;
+    justify-self: start;
+    max-width: 34rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+  .footer__name {
+    gap: var(--s-4);
+    padding-top: clamp(24px, 4svh, 32px);
+    border-top: 1px solid currentColor;
+  }
+  .footer__word {
+    font-size: calc((100vw - 2 * var(--gutter)) * 0.137);
+  }
+  .footer__base {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-3);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+  }
+  .footer__base img {
+    height: 18px;
+  }
+}
+
+/* the narrowest phones: the site map's two columns keep each name on one line */
+@media (max-width: 359px) {
+  .footer__map {
+    column-gap: var(--s-3);
+  }
+  .footer__map li a {
+    font-size: 0.94rem;
+    letter-spacing: -0.02em;
+  }
+  /* each strength on one line in its card */
+  .vs__strength {
+    font-size: 1.55rem;
+  }
+  /* the labels on the model a size smaller, so neighbours keep clear of each other */
+  .pin__text {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+}
+
+/* short phones (an iPhone SE, a phone with its browser bars showing): the controls tighten so the model keeps its room */
+@media (max-width: 860px) and (max-height: 720px) {
+  .chapter--tech .system__seg-btn {
+    height: 40px;
+    line-height: 40px;
+  }
+  .chapter--tech .system__cta {
+    gap: 6px;
+  }
+  .chapter--tech .system__cta .explore {
+    height: 44px;
+  }
+  .chapter--tech .system__cta .explore__cell {
+    width: 44px;
+  }
+  .hero__sub .explore {
+    height: 52px;
+  }
+  .hero__sub .explore__cell {
+    width: 52px;
+  }
+}
+
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  @media (prefers-reduced-motion: reduce) {
+    .apps[data-reveal] .app__link,
+    .apps[data-reveal] .app__body > * {
+      transform: none;
+      opacity: 1;
+      transition: none;
+    }
+    .apps[data-reveal] .app__img {
+      transform: scale(1.03);
+      transition: none;
+    }
+    .vs__card {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+}

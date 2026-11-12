@@ -4,6 +4,7 @@ import { APPLICATIONS, SITE } from '../content/site'
 import { useScrollRead } from './Chapter'
 import { setShared } from '../three/stageStore'
 import { Liquid } from './Liquid'
+import { useIsCompact } from '../lib/motion'
 
 /** The footer's content. `inverse` is the yellow-on-black copy shown only inside the liquid. */
 function FooterContent({ inverse = false }: { inverse?: boolean }) {
@@ -12,12 +13,20 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
     <>
       <div className="footer__top">
         <p className="footer__line">Bring RTARIUM into your next project. Talk to our team about your design, dimensions and reinforcement requirements.</p>
-        <Link to="/contact" className="pill pill--ink footer__cta">
-          Contact HEMISPHERE ONE
-          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            <path d="M4 12 12 4M5.5 4H12v6.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-          </svg>
-        </Link>
+        {/* the email first (the way most clients reach RTARIUM), the contact page under it */}
+        <div className="footer__reach">
+          {SITE.contact.email && (
+            <a href={`mailto:${SITE.contact.email}`} className="footer__mail">
+              {SITE.contact.email}
+            </a>
+          )}
+          <Link to="/contact" className="pill pill--ink footer__cta">
+            Contact HEMISPHERE ONE
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+              <path d="M4 12 12 4M5.5 4H12v6.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </Link>
+        </div>
       </div>
 
       <Map className="footer__map" aria-label={inverse ? undefined : 'Site map'}>
@@ -86,6 +95,8 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
 export function Footer({ screen = false }: { screen?: boolean }) {
   const ref = useRef<HTMLElement>(null)
   const inverse = useRef<HTMLDivElement>(null)
+  // on a phone the footer is a long page foot, read at its own pace: the page is not brought to a screen inside it (lib/scroll.ts)
+  const compact = useIsCompact()
   // the header takes the footer's yellow once it holds the middle of the screen; a page that sets the
   // header's ground from what is under the header itself (data-own-ground) does the footer too
   useScrollRead(ref, (top, vh, height) => {
@@ -93,7 +104,7 @@ export function Footer({ screen = false }: { screen?: boolean }) {
     if (top <= vh * 0.5 && top + height > vh * 0.5) setShared({ chapter: 'footer', step: 0, ground: 'yellow' })
   })
   return (
-    <footer ref={ref} className={`footer ${screen ? 'footer--screen' : ''}`} data-screen="yellow">
+    <footer ref={ref} className={`footer ${screen ? 'footer--screen' : ''}`} data-screen="yellow" data-flow={compact ? '' : undefined}>
       <div className="footer__body">
         <FooterContent />
       </div>

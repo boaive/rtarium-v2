@@ -1,9 +1,11 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { refreshGround, useStageRegion } from '../three/Stage'
-import { setShared, useStageValue, type Ground, type PoseId } from '../three/stageStore'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { refreshGround, useOrbitDrag, useStageRegion } from '../three/Stage'
+import { TouchHint } from './TouchHint'
+import { setShared, useStageValue, type Ground, type PoseId, type Turn } from '../three/stageStore'
 import { POSES } from '../three/poses'
-import { damp, prefersReducedMotion } from '../lib/motion'
+import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY } from '../lib/scroll'
+import { FILM_STEPS, dropFilm, filmReady, seenFilm } from '../lib/films'
 
 /** what a screen shows where its mesh would be when there is no 3D */
 const STILLS: Partial<Record<PoseId, string>> = {
@@ -146,7 +148,202 @@ const DRIFT = 0.28
  * never cuts. A step with nothing to draw (footage) holds the pose before it under its film.
  * Reaching a step plays its sequence in time, as on the vertical chapters.
  */
-export function Track({ id, title, steps, className = '' }: { id: string; title: string; steps: Step[]; className?: string }) {
+export function Track(props: { id: string; title: string; steps: Step[]; className?: string; phoneGround?: Ground; phoneSideways?: boolean }) {
+  const compact = useIsCompact()
+  // (a phone reads a chapter down the page in rows, or, `phoneSideways`, as the wide screen does: one screen, the steps
+  // swiped sideways, its 3D across the screen)
+  if (compact && !props.phoneSideways) return <Rows {...props} ground={props.phoneGround} />
+  return <SideTrack {...props} />
+}
+
+/**
+ * A sideways chapter on a phone, set as Enerblock sets its solutions: read down the page at the finger's own speed, on
+ * warm white, in rows parted by hairlines the width of the screen. Each step a row: its number, its name in small
+ * capitals, the copy in plain weights, and its 3D in a framed figure under it (the stage draws the mesh inside the
+ * figure's box: `useStageRegion` with `box`), a drawing's title block along the figure's foot. The step whose figure
+ * holds the middle of the screen is the one playing.
+ */
+export function Rows({ id, title, steps, ground = 'light' }: { id: string; title: string; steps: Step[]; ground?: Ground }) {
+  CHAPTERS.set(id, { title, labels: steps.map((s) => s.label) })
+  const section = useRef<HTMLElement>(null)
+  // holding the middle of the screen, read on every scroll as the other sections are, the header takes this ground
+  useScreen(section, id, ground)
+  return (
+    <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground}>
+      <header className="eb__head">
+        <p className="eb__title">{title}</p>
+        {steps.length > 1 && <p className="eb__count num">{two(steps.length)} parts</p>}
+      </header>
+      {steps.map((s, i) => (
+        <Row key={s.id} chapter={id} title={title} step={s} index={i} ground={ground} />
+      ))}
+    </section>
+  )
+}
+
+/**
+ * A phone's figures play as films: each pose its loop, recorded from the 3D itself (the mesh turning once round, at an
+ * even pace, on its ground), so the page draws no 3D under its rows as it scrolls. The thin section's loop is the one
+ * of the thickness chosen; Monolithic's, a flat mesh's while the comparison shows one.
+ */
+const LOOPS: Partial<Record<PoseId, string>> = {
+  structure: 'about-structure',
+  material: 'about-material',
+  pour: 'about-pour',
+  depth: 'innovation-depth',
+  shear: 'innovation-shear',
+  mineral: 'innovation-mineral',
+  stack: 'tech-stack',
+}
+/** Monolithic's comparison, said to its loop (Innovation's ShearCompare): a flat mesh shown, or RTARIUM */
+export const FLAT_EVENT = 'rtarium:flat'
+
+function Loop({ pose }: { pose: PoseId }) {
+  const video = useRef<HTMLVideoElement>(null)
+  const thickness = useStageValue('thickness')
+  const [flat, setFlat] = useState(false)
+  const [near, setNear] = useState(false)
+  useEffect(() => {
+    if (pose !== 'shear') return
+    const on = (e: Event) => setFlat(Boolean((e as CustomEvent<boolean>).detail))
+    window.addEventListener(FLAT_EVENT, on)
+    return () => window.removeEventListener(FLAT_EVENT, on)
+  }, [pose])
+  const base = LOOPS[pose]
+  const name = !base ? '' : pose === 'stack' ? `${base}-${thickness}` : pose === 'shear' && flat ? `${base}-flat` : base
+  // loaded once it comes near the screen, playing while it is on it, still while it is not (the film swapped for another
+  // of the same figure, the new one watched in its place)
+  useEffect(() => {
+    const el = video.current
+    if (!el) return
+    el.muted = true
+    seenFilm(el, 0)
+    // near: loaded ahead of the screen
+    const ahead = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: '60% 0px 60% 0px' })
+    ahead.observe(el)
+    // how much of it is on the screen: the one most in view plays
+    const seen = new IntersectionObserver(
+      ([e]) => seenFilm(el, e.intersectionRatio),
+      { threshold: FILM_STEPS },
+    )
+    seen.observe(el)
+    // (a film that comes in while its box is the one in view starts as soon as it can)
+    el.addEventListener('loadeddata', filmReady)
+    return () => {
+      ahead.disconnect()
+      seen.disconnect()
+      el.removeEventListener('loadeddata', filmReady)
+      dropFilm(el)
+    }
+  }, [name])
+  if (!base) return null
+  const src = `/video/loops/${name}.mp4`
+  return (
+    <video
+      key={name}
+      ref={video}
+      className="eb-fig__loop"
+      src={near ? src : undefined}
+      poster={`/video/loops/${name}.jpg`}
+      muted
+      loop
+      playsInline
+      preload={near ? 'auto' : 'none'}
+      aria-hidden="true"
+      disablePictureInPicture
+    />
+  )
+}
+
+function Row({ chapter, title, step, index, ground }: { chapter: string; title: string; step: Step; index: number; ground: Ground }) {
+  const row = useRef<HTMLElement>(null)
+  const box = useRef<HTMLDivElement>(null)
+  const none = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(false)
+  const [seen, setSeen] = useState(false)
+  const failed = useStageValue('failed')
+  // the figure is the live 3D, sharp at any size (only the one most in view turns: StageScene);
+  // its film stands in only where there is no 3D (no WebGL, or the scene failed), in place of a still
+  // (in development ?films shows the films, to check them)
+  const filmed = Boolean(LOOPS[step.pose]) && (failed || (import.meta.env.DEV && new URLSearchParams(window.location.search).has('films')))
+  // pressed and held, the card's mesh turns in the hand (its own, eased back to its pose once let go: StageScene)
+  const [turn] = useState<Turn>(() => ({ yaw: 0, pitch: 0, dragging: false, touch: { x: 0, y: 0, down: false } }))
+  useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true, turn })
+  useOrbitDrag(filmed ? none : box, turn)
+  // a finger on the card presses the sheet where it is, as the cursor does on a wide screen (StageScene, where the
+  // figure's pose takes a press); it springs back once the finger lifts or goes off to scroll
+  useEffect(() => {
+    const el = box.current
+    const t = turn.touch
+    if (filmed || !el || !t) return
+    let id = -1
+    const at = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect()
+      t.x = ((e.clientX - r.left) / r.width) * 2 - 1
+      t.y = ((e.clientY - r.top) / r.height) * 2 - 1
+    }
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      id = e.pointerId
+      at(e)
+      t.down = true
+    }
+    const move = (e: PointerEvent) => {
+      if (e.pointerId === id && t.down) at(e)
+    }
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== id) return
+      id = -1
+      t.down = false
+    }
+    el.addEventListener('pointerdown', down)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+    return () => {
+      el.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      t.down = false
+    }
+  }, [filmed, turn])
+  useEffect(() => {
+    const el = row.current
+    if (!el) return
+    // in play from when the row's middle reaches the screen's lower third until it leaves the upper
+    const io = new IntersectionObserver(([e]) => {
+      setActive(e.isIntersecting)
+      if (e.isIntersecting) setSeen(true)
+    }, { rootMargin: '-30% 0px -30% 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [chapter, index])
+  const still = failed ? STILLS[step.pose] : undefined
+  return (
+    <article ref={row} id={`${chapter}-${step.id}`} className={`eb-row scene scene--${step.id} on-${ground} ${active ? 'is-active' : seen ? 'is-seen' : ''}`}>
+      <p className="eb-row__num num">{two(index + 1)} /</p>
+      <h3 className="eb-row__label">{step.label}</h3>
+      <div className="eb-row__copy">{step.render(active)}</div>
+      <figure className="eb-fig">
+        <div ref={box} className="eb-fig__view" data-screen={ground}>
+          {/* the 3D is drawn into the card's own canvas (StageScene), so it scrolls with the card */}
+          {filmed ? <Loop pose={step.pose} /> : still ? <img className="eb-fig__still" src={still} alt="" /> : <canvas className="eb-fig__canvas" aria-hidden="true" />}
+          {!filmed && !still && <TouchHint id="hold-card" when={active} icon="hold" text="Hold and drag to turn" className="eb-fig__hint" />}
+          <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
+          <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
+        </div>
+        <figcaption className="eb-fig__block">
+          <span className="eb-fig__name">{title}</span>
+          <span>Fig. {two(index + 1)}</span>
+          <span>{step.label}</span>
+        </figcaption>
+      </figure>
+    </article>
+  )
+}
+
+function SideTrack({ id, title, steps, className = '' }: { id: string; title: string; steps: Step[]; className?: string }) {
   const section = useRef<HTMLElement>(null)
   const pin = useRef<HTMLDivElement>(null)
   const slides = useRef<(HTMLDivElement | null)[]>([])
@@ -156,6 +353,24 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
   const [seen, setSeen] = useState(0)
   const failed = useStageValue('failed')
   const n = steps.length
+  /**
+   * On a phone the chapter is one screen and its steps a carousel: the step it shows (`at`) is moved by its
+   * buttons and by a sideways swipe, not by the scroll, and the slides and the mesh travel to it the same way.
+   */
+  const compact = useIsCompact()
+  const at = useRef(0)
+  const [shown, setShown] = useState(0)
+  const kickRef = useRef(() => {})
+  const go = useCallback(
+    (i: number) => {
+      const to = Math.min(n - 1, Math.max(0, i))
+      if (to === at.current) return
+      at.current = to
+      setShown(to)
+      kickRef.current()
+    },
+    [n],
+  )
   CHAPTERS.set(id, { title, labels: steps.map((s) => s.label) })
 
   const meshPose = useMemo(
@@ -182,6 +397,9 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
     let raf = 0
     let last = performance.now()
     let p = -1
+    // a phone: when the last frame came, and the wait for one that has not (see `kick`)
+    let frameAt = performance.now()
+    let starved = 0
     const place = () => {
       slides.current.forEach((slide, i) => {
         if (!slide) return
@@ -212,12 +430,17 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
     }
     const tick = (now: number) => {
       raf = 0
-      const dt = Math.min(0.1, (now - last) / 1000)
+      frameAt = performance.now()
+      const gap = (now - last) / 1000
+      const dt = Math.min(0.1, gap)
       last = now
       const r = el.getBoundingClientRect()
       const vh = window.innerHeight
-      const target = Math.min(n - 1, Math.max(0, -r.top / vh))
-      p = p < 0 || prefersReducedMotion() ? target : damp(p, target, 11, dt)
+      const target = compact ? at.current : Math.min(n - 1, Math.max(0, -r.top / vh))
+      // a phone whose frames come slowly (a preview pane, a device under load) goes straight to the step it was asked
+      // for, rather than crawling there a frame at a time with the ground and the copy behind it
+      const slow = compact && gap > 0.25
+      p = p < 0 || prefersReducedMotion() || slow ? target : damp(p, target, compact ? 7 : 11, dt)
       if (Math.abs(p - target) < 1e-4) p = target
       prog.current = p
       place()
@@ -239,7 +462,20 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
         last = performance.now()
         raf = requestAnimationFrame(tick)
       }
+      // a phone whose page gets no frames (a preview pane, a page held in the background) would leave the carousel, the
+      // ground and the copy where they were: if no frame has come a moment after a tap or a scroll, the step is set
+      // there and then, without one (`tick` sees the long gap and goes straight to it)
+      if (!compact) return
+      window.clearTimeout(starved)
+      starved = window.setTimeout(() => {
+        if (!raf || performance.now() - frameAt < 150) return
+        cancelAnimationFrame(raf)
+        raf = 0
+        last = performance.now() - 1000
+        tick(performance.now())
+      }, 160)
     }
+    kickRef.current = kick
     kick()
     window.addEventListener('scroll', kick, { passive: true })
     window.addEventListener('resize', kick)
@@ -247,8 +483,40 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
       window.removeEventListener('scroll', kick)
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
+      window.clearTimeout(starved)
     }
-  }, [id, n, steps])
+  }, [id, n, steps, compact])
+
+  // a phone: a sideways swipe across the screen takes the carousel a step (a vertical one scrolls the page on)
+  useEffect(() => {
+    const el = pin.current
+    if (!compact || !el) return
+    const g = { id: -1, x: 0, y: 0 }
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse' || (e.target as HTMLElement | null)?.closest?.('a, button')) return
+      g.id = e.pointerId
+      g.x = e.clientX
+      g.y = e.clientY
+    }
+    const up = (e: PointerEvent) => {
+      if (e.pointerId !== g.id) return
+      g.id = -1
+      const dx = e.clientX - g.x
+      const dy = e.clientY - g.y
+      if (Math.abs(dx) > 44 && Math.abs(dx) > Math.abs(dy) * 1.3) go(at.current + (dx < 0 ? 1 : -1))
+    }
+    const cancel = (e: PointerEvent) => {
+      if (e.pointerId === g.id) g.id = -1
+    }
+    el.addEventListener('pointerdown', down)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    return () => {
+      el.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+    }
+  }, [compact, go])
 
   return (
     <section id={id} ref={section} className={`track ${className}`} aria-label={title} style={{ '--steps': n } as CSSProperties}>
@@ -274,8 +542,44 @@ export function Track({ id, title, steps, className = '' }: { id: string; title:
             </div>
           )
         })}
+        {compact && <PhoneSteps steps={steps} at={shown} onGo={go} inView={step >= 0} />}
       </div>
     </section>
+  )
+}
+
+const two = (k: number) => String(k).padStart(2, '0')
+
+/**
+ * A sideways chapter's steps on a phone, as the Façade pages' steps are set: which of how many, small, over the step's
+ * title at the top of the screen, and at its foot a line of a segment each (the one shown drawn in, the ones passed half
+ * drawn), each taking you to its step. The steps are swiped sideways; the first time the chapter is reached a hint says so.
+ */
+function PhoneSteps({ steps, at, onGo, inView }: { steps: Step[]; at: number; onGo: (i: number) => void; inView: boolean }) {
+  const n = steps.length
+  const ground = steps[at].ground
+  return (
+    <>
+      <p className={`psteps__count on-${ground}`} aria-live="polite">
+        <b>{two(at + 1)}</b> / {two(n)}
+      </p>
+      <TouchHint id="swipe-steps" when={inView && at === 0} icon="swipe" text="Swipe for the next" className="psteps__hint" />
+      <nav className={`psteps on-${ground}`} aria-label="Steps">
+        <ol className="psteps__line">
+          {steps.map((s, i) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                className={i === at ? 'is-now' : i < at ? 'is-past' : undefined}
+                onClick={() => onGo(i)}
+                aria-label={`${two(i + 1)}: ${s.label}`}
+                aria-current={i === at ? 'step' : undefined}
+              />
+            </li>
+          ))}
+        </ol>
+      </nav>
+    </>
   )
 }
 

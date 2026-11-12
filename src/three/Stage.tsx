@@ -2,7 +2,7 @@ import { Component, Suspense, useEffect, useRef, useState, type ReactNode, type 
 import { Canvas } from '@react-three/fiber'
 import { PerformanceMonitor } from '@react-three/drei'
 import { StageScene } from './StageScene'
-import { setShared, stage, useStageValue, type Blend, type PoseId, type Region } from './stageStore'
+import { setShared, stage, useStageValue, type Blend, type PoseId, type Region, type Turn } from './stageStore'
 import { useIsCompact, useReducedMotion } from '../lib/motion'
 
 let webgl: boolean | null = null
@@ -134,11 +134,14 @@ export function Stage() {
   const [watch, setWatch] = useState(false)
   useEffect(() => {
     if (!ready) return
-    const id = window.setTimeout(() => setWatch(true), 4000)
+    // (a phone starts watching sooner: one that cannot keep up steps its density down before the visitor has swiped far)
+    const id = window.setTimeout(() => setWatch(true), compact ? 2600 : 4000)
     return () => window.clearTimeout(id)
-  }, [ready])
+  }, [ready, compact])
   const top = Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
-  const dpr = Math.round((1 + (top - 1) * quality) * 100) / 100
+  // (a phone never steps below 1.25: at 1 its fine yarns go soft on a dense screen, and it saves less than it costs)
+  const floor = compact ? Math.min(top, 1.25) : 1
+  const dpr = Math.round((floor + (top - floor) * quality) * 100) / 100
 
   useEffect(() => {
     if (!supported) setShared({ failed: true })
@@ -168,7 +171,7 @@ export function Stage() {
  * Lends the stage to an element: while it holds the middle of the screen the stage shows `pose()`,
  * or, for a chapter scrubbed sideways, the mesh between two of its steps (`blend()`).
  */
-export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => PoseId, blend?: () => Blend) {
+export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => PoseId, blend?: () => Blend, opts: { box?: boolean; turn?: Turn } = {}) {
   const getter = useRef(pose)
   getter.current = pose
   const blender = useRef(blend)
@@ -176,12 +179,12 @@ export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => P
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const region: Region = { el, pose: () => getter.current(), blend: blender.current ? () => blender.current!() : undefined }
+    const region: Region = { el, pose: () => getter.current(), blend: blender.current ? () => blender.current!() : undefined, box: opts.box, turn: opts.turn }
     stage.regions.add(region)
     return () => {
       stage.regions.delete(region)
     }
-  }, [ref])
+  }, [ref, opts.box, opts.turn])
 }
 
 /**
@@ -193,7 +196,7 @@ export function useStageRegion(ref: RefObject<HTMLElement | null>, pose: () => P
  * the ground rather than chips). `span`: a dimension line from this
  * point to another anchor, with its value beside it.
  */
-export function StageLabel({ anchor, children, side = 'right', callout, column, columnAt, span, note = false, wideOnly = false }: { anchor: string; children: ReactNode; side?: 'right' | 'left'; callout?: [number, number]; column?: number; columnAt?: string; span?: string; note?: boolean; wideOnly?: boolean }) {
+export function StageLabel({ anchor, children, side = 'right', callout, column, columnAt, span, note = false, wideOnly = false, className = '' }: { anchor: string; children: ReactNode; side?: 'right' | 'left'; callout?: [number, number]; column?: number; columnAt?: string; span?: string; note?: boolean; wideOnly?: boolean; className?: string }) {
   const ref = useRef<HTMLSpanElement>(null)
   useEffect(() => {
     const el = ref.current
@@ -219,7 +222,7 @@ export function StageLabel({ anchor, children, side = 'right', callout, column, 
     return (
       <span
         ref={ref}
-        className={`pin pin--callout ${column !== undefined || columnAt ? 'pin--column' : ''} ${note ? 'pin--note' : ''} ${wideOnly ? 'pin--wide-only' : ''}`}
+        className={`pin pin--callout ${column !== undefined || columnAt ? 'pin--column' : ''} ${note ? 'pin--note' : ''} ${wideOnly ? 'pin--wide-only' : ''} ${className}`}
         style={{ opacity: 0 }}
         data-dx={dx}
         data-dy={dy}
@@ -257,45 +260,83 @@ export function usePointerTracking() {
   }, [])
 }
 
-/** Drag-to-turn on an element. Touch: horizontal drags turn the mesh, vertical ones scroll the page. */
-export function useOrbitDrag(ref: RefObject<HTMLElement | null>) {
+/** The press a finger holds still for before it takes the mesh (ms), and how far it may drift meanwhile (px) */
+const HOLD = { ms: 320, slop: 9 }
+
+/**
+ * Drag-to-turn on an element. A mouse takes the mesh as soon as it is pressed. A finger takes it only by pressing and
+ * holding still (HOLD): a tap, or a swipe that sets off at once, is the page's (it scrolls, the mesh never turns); once
+ * held, the finger turns the mesh, sideways, until it lifts, and the page stays put meanwhile (Hero's swipes wait on
+ * the target's `dragging`). A phone's cards pass their own target, so each turns alone.
+ */
+export function useOrbitDrag(ref: RefObject<HTMLElement | null>, target: Turn = stage.orbit) {
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const pr = { id: -1, x: 0, y: 0 }
+    const pr = { id: -1, x: 0, y: 0, sx: 0, sy: 0, held: false, timer: 0 }
     const interactive = (t: EventTarget | null) => Boolean((t as HTMLElement | null)?.closest?.('a, button, input, select'))
+    const take = () => {
+      pr.held = true
+      stage.heldAt = performance.now()
+      target.dragging = true
+      el.classList.add('is-dragging')
+    }
+    const release = () => {
+      window.clearTimeout(pr.timer)
+      pr.id = -1
+      pr.held = false
+      target.dragging = false
+      el.classList.remove('is-dragging')
+    }
     const down = (e: PointerEvent) => {
       if ((e.pointerType === 'mouse' && e.button !== 0) || interactive(e.target)) return
+      release()
       pr.id = e.pointerId
-      pr.x = e.clientX
-      pr.y = e.clientY
-      stage.orbit.dragging = true
-      el.classList.add('is-dragging')
+      pr.x = pr.sx = e.clientX
+      pr.y = pr.sy = e.clientY
+      if (e.pointerType !== 'touch') take()
+      else
+        pr.timer = window.setTimeout(() => {
+          if (pr.id !== e.pointerId) return
+          take()
+          // (a short tick where the phone can: the mesh is in hand)
+          navigator.vibrate?.(8)
+        }, HOLD.ms)
     }
     const move = (e: PointerEvent) => {
       if (e.pointerId !== pr.id) return
+      if (!pr.held) {
+        // moving before the hold: a swipe or a scroll, the page's own
+        if (Math.hypot(e.clientX - pr.sx, e.clientY - pr.sy) > HOLD.slop) release()
+        return
+      }
       const dx = e.clientX - pr.x
       const dy = e.clientY - pr.y
       pr.x = e.clientX
       pr.y = e.clientY
-      stage.orbit.yaw -= dx * 0.006
-      if (e.pointerType !== 'touch') stage.orbit.pitch = Math.min(0.7, Math.max(-0.4, stage.orbit.pitch + (dy / window.innerHeight) * 1.8))
+      target.yaw -= dx * 0.006
+      if (e.pointerType !== 'touch') target.pitch = Math.min(0.7, Math.max(-0.4, target.pitch + (dy / window.innerHeight) * 1.8))
     }
     const end = (e: PointerEvent) => {
       if (e.pointerId !== pr.id) return
-      pr.id = -1
-      stage.orbit.dragging = false
-      el.classList.remove('is-dragging')
+      release()
+    }
+    // (a long press would otherwise open the phone's own menu over the mesh)
+    const menu = (e: Event) => {
+      if (pr.held || pr.id !== -1) e.preventDefault()
     }
     el.addEventListener('pointerdown', down)
+    el.addEventListener('contextmenu', menu)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
     return () => {
+      release()
       el.removeEventListener('pointerdown', down)
+      el.removeEventListener('contextmenu', menu)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
     }
-  }, [ref])
+  }, [ref, target])
 }

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
-import { EMAIL_RE, ENQUIRY_FIELDS, INTERESTS, type Enquiry } from '../content/enquiry'
-import { TURNSTILE_SITE_KEY } from '../content/site'
+import { ENQUIRY_FIELDS, INTERESTS, cleanField, enquiryField, fieldProblem, type Enquiry } from '../content/enquiry'
+import { ENQUIRY_ADDRESS, SITE, TURNSTILE_SITE_KEY } from '../content/site'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 
 /**
  * The contact page, kept simple: on the left a photograph of the mesh, full-bleed and darkened, and over it from its top
- * left RTARIUM's slogan large over four lines, its last, RTARIUM, in yellow, and a line on what to tell us; on the right, on warm white, the form alone, in three short steps on the same page: a thin line across its top
+ * left RTARIUM's slogan large over four lines, its last, RTARIUM, in yellow, and under it the first way to reach us, the
+ * email, large in yellow with a copy button (most clients write); on the right, on warm white, the second way, "Or fill
+ * in the enquiry…", over the form, in three short steps on the same page: a thin line across its top
  * filling a third a step, the step's number and name over it; then the step's fields, a row each, a faint hairline over
  * each, the label on the left and the line to write on the right (what it is about as four quiet buttons, two by two, a
  * dot each that fills when chosen), what is wrong said under it; and the way on, drawn in line: back, next, and at the
@@ -34,16 +36,14 @@ const KIND: Partial<Record<Key, { type: string; auto: string; place: string }>> 
   company: { type: 'text', auto: 'organization', place: 'Your company' },
 }
 
-/** what a required field says when it is left empty */
-const NEED: Partial<Record<Key, string>> = {
-  name: 'Enter your name',
-  email: 'Enter your email',
-  interest: 'Choose one',
-  message: 'Tell us a little about it',
-}
+/** a send that has had no answer by then is given up, and the visitor can try again (a repeat is recognised) */
+const SEND_TIMEOUT_MS = 25_000
 
 const two = (n: number) => String(n).padStart(2, '0')
-const field = (k: Key) => ENQUIRY_FIELDS.find((f) => f.key === k)!
+const field = enquiryField
+const stepOf = (k: Key) => STEPS.findIndex((s) => s.keys.includes(k))
+/** every field as it is sent: cleaned the same way the server cleans it */
+const cleaned = (v: Enquiry) => Object.fromEntries(ENQUIRY_FIELDS.map((f) => [f.key, cleanField(f, v[f.key])])) as Enquiry
 
 /** a line revealed by a block of its own colour: the block runs across it, the words come up under it, it runs off */
 function Mask({ k, children }: { k: number; children: ReactNode }) {
@@ -65,6 +65,69 @@ const SLOGAN: [string, string][] = [
   ['', 'outlast.'],
 ]
 
+/** the email first: most clients write rather than fill in a form. The address large, in the brand's yellow, and a
+ * button that copies it (for a computer with no mail program set up) */
+function Reach() {
+  const email = SITE.contact.email
+  const words = useRef<HTMLSpanElement>(null)
+  /** copied; or, where the browser will not let a page copy, the address selected for the visitor to copy */
+  const [copy, setCopy] = useState<'idle' | 'done' | 'select'>('idle')
+  const timer = useRef(0)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  const show = (s: 'done' | 'select') => {
+    setCopy(s)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setCopy('idle'), s === 'done' ? 2400 : 6000)
+  }
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(email)
+      return show('done')
+    } catch {
+      // the clipboard refused (an insecure page, a locked-down browser): select the address instead
+    }
+    const sel = window.getSelection()
+    if (words.current && sel) {
+      const range = document.createRange()
+      range.selectNodeContents(words.current)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    }
+    let ok = false
+    try {
+      ok = document.execCommand('copy')
+    } catch {
+      ok = false
+    }
+    show(ok ? 'done' : 'select')
+  }
+  const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+  if (!email) return null
+  return (
+    <span className="contact__reach ct-rise" style={{ '--d': '0.95s' } as CSSProperties}>
+      <span className="contact__reach-line">Contact us on</span>
+      <a className="contact__mail" href={`mailto:${email}`}>
+        <span ref={words}>{email}</span>
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 12 12 4M5.5 4H12v6.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      </a>
+      <button type="button" className={`contact__copy ${copy === 'done' ? 'is-done' : ''}`} onClick={onCopy}>
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+          {copy === 'done' ? (
+            <path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          ) : (
+            <path d="M5.5 5.5V2.5h8v8h-3M2.5 5.5h8v8h-8z" fill="none" stroke="currentColor" strokeWidth="1.4" />
+          )}
+        </svg>
+        <span aria-live="polite">
+          {copy === 'done' ? 'Copied' : copy === 'select' ? `Selected: press ${mac ? 'Cmd' : 'Ctrl'}+C` : 'Copy address'}
+        </span>
+      </button>
+    </span>
+  )
+}
+
 function ArrowIcon({ back = false }: { back?: boolean }) {
   return (
     <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style={back ? { transform: 'rotate(180deg)' } : undefined}>
@@ -84,6 +147,9 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
   /** Turnstile's one-use token, once the check has passed; and the widget, to reset it after a failed send */
   const [token, setToken] = useState('')
   const verify = useRef<TurnstileHandle | null>(null)
+  /** the check could not load or failed; and a count that, raised, puts up a fresh widget */
+  const [trouble, setTrouble] = useState(false)
+  const [verifyTry, setVerifyTry] = useState(0)
   /** moved on or back by the visitor (not the page's first showing): the step's first field takes the cursor */
   const moved = useRef(false)
   const last = step === STEPS.length - 1
@@ -122,8 +188,11 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
   /** a step's fields, checked: what is wrong with each is said under it, and the first takes the cursor */
   const check = (s: number) => {
     const w: Partial<Record<Key, string>> = {}
-    for (const k of STEPS[s].keys) if (field(k).required && !v[k].trim()) w[k] = NEED[k] ?? 'Needed'
-    if (STEPS[s].keys.includes('email') && v.email.trim() && !EMAIL_RE.test(v.email.trim())) w.email = 'Check the address'
+    for (const k of STEPS[s].keys) {
+      const f = field(k)
+      const p = fieldProblem(f, cleanField(f, v[k]))
+      if (p) w[k] = p
+    }
     setWrong((o) => {
       const next = { ...o }
       for (const k of STEPS[s].keys) next[k] = w[k]
@@ -154,7 +223,12 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
         return
       }
     if (!token) {
-      setState({ kind: 'error', text: 'Please wait for the verification check below to finish, then send.' })
+      setState({
+        kind: 'error',
+        text: trouble
+          ? `The verification check did not load. Try it again below, or write to ${ENQUIRY_ADDRESS}.`
+          : 'Please wait for the verification check below to finish, then send.',
+      })
       return
     }
     setState({ kind: 'sending' })
@@ -163,27 +237,43 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
       setToken('')
       verify.current?.reset()
     }
+    const stop = new AbortController()
+    const late = window.setTimeout(() => stop.abort(), SEND_TIMEOUT_MS)
     try {
       const r = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...v, website: trap, turnstileToken: token }),
+        body: JSON.stringify({ ...cleaned(v), website: trap, turnstileToken: token }),
+        signal: stop.signal,
       })
-      const out = (await r.json().catch(() => ({}))) as { ok?: boolean; ref?: string; error?: string }
+      const out = (await r.json().catch(() => ({}))) as { ok?: boolean; ref?: string; error?: string; field?: string }
       if (r.ok && out.ok) setState({ kind: 'sent', ref: out.ref })
       else {
         fresh()
-        setState({ kind: 'error', text: out.error ?? 'The enquiry could not be sent. Please try again.' })
+        // the server found a field wrong: back to its step, said under it as the form says it
+        const k = ENQUIRY_FIELDS.find((f) => f.key === out.field)?.key
+        if (k && out.error) {
+          setWrong((o) => ({ ...o, [k]: out.error }))
+          moved.current = true
+          setStep(stepOf(k))
+          setState({ kind: 'error', text: `${field(k).label}: ${out.error}.` })
+        } else setState({ kind: 'error', text: out.error ?? 'The enquiry could not be sent. Please try again.' })
       }
     } catch {
       fresh()
-      setState({ kind: 'error', text: 'No connection. Please try again.' })
+      setState({
+        kind: 'error',
+        text: stop.signal.aborted ? 'This is taking too long. Please try again.' : 'No connection. Please try again.',
+      })
+    } finally {
+      window.clearTimeout(late)
     }
   }
 
   const again = () => {
     setV(EMPTY)
     setWrong({})
+    setTrouble(false)
     setStep(0)
     moved.current = true
     setState({ kind: 'idle' })
@@ -260,9 +350,7 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
               </Mask>
             ))}
           </span>
-          <span className="contact__lede ct-rise" style={{ '--d': '1s' } as CSSProperties}>
-            Tell us about your project, and we'll help you find what fits it best.
-          </span>
+          <Reach />
           {points}
         </figcaption>
       </figure>
@@ -307,6 +395,8 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
           </div>
         ) : (
           <form className="ct-form ct-rise" style={{ '--d': '0.3s' } as CSSProperties} onSubmit={submit} noValidate>
+            {/* the second way, after the email beside it */}
+            <p className="ct-alt">Or fill in the enquiry, and we&rsquo;ll contact you soon.</p>
             {/* where the visitor is: the step's number and name, and a thin line filling a third a step */}
             <div className="ct-progress">
               <p className="ct-progress__label" aria-live="polite">
@@ -335,20 +425,55 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
             {/* the last step: Cloudflare's check that a person is sending it */}
             {last && (
               <Turnstile
+                key={verifyTry}
                 siteKey={TURNSTILE_SITE_KEY}
                 handle={verify}
                 onToken={(t) => {
                   setToken(t)
+                  setTrouble(false)
                   if (state.kind === 'error') setState({ kind: 'idle' })
                 }}
                 onExpire={() => setToken('')}
+                onError={() => setTrouble(true)}
               />
             )}
+            {/* the check could not load or failed: what to do, and another way to reach us */}
+            {last && trouble && (
+              <p className="ct-verify-trouble" role="alert">
+                The verification check did not load. Check your connection, or allow challenges.cloudflare.com if a blocker
+                is on, then{' '}
+                <span className="ct-nowrap">
+                  <button
+                    type="button"
+                    className="ct-link"
+                    onClick={() => {
+                      setTrouble(false)
+                      setVerifyTry((n) => n + 1)
+                    }}
+                  >
+                    try again
+                  </button>
+                  .
+                </span>{' '}
+                Or write to us at <a href={`mailto:${ENQUIRY_ADDRESS}`}>{ENQUIRY_ADDRESS}</a>.
+              </p>
+            )}
 
-            {/* for bots only: a person never sees it */}
+            {/* for bots only: a person never sees it. Named so that browsers and password managers leave it alone */}
             <label className="ct-trap" aria-hidden="true">
-              Website
-              <input type="text" name="website" tabIndex={-1} autoComplete="off" value={trap} onChange={(e) => setTrap(e.target.value)} />
+              Leave this empty
+              <input
+                type="text"
+                name="ct-extra"
+                tabIndex={-1}
+                autoComplete="off"
+                data-1p-ignore=""
+                data-lpignore="true"
+                data-bwignore=""
+                data-form-type="other"
+                value={trap}
+                onChange={(e) => setTrap(e.target.value)}
+              />
             </label>
 
             <div className="ct-foot">

@@ -66,12 +66,16 @@ export function burstShot(p: number, compact: boolean): Shot {
   depth *= 1 - close
   const after = smooth(CLOSE[1], 1, p)
   const k = compact ? 1.32 : 1
+  // a phone, upright: the layers, pulled apart, run more towards the camera than across, and it stands further back the
+  // further apart they are, so the whole unit stays in the middle of the screen with room either side
+  const spread = compact ? Math.min(1, depth / ((BUILD.length - 1) * GAP)) : 0
   return {
     target: [U.w / 2 + depth * 0.06, U.h / 2 - 0.12, Z.panel[1] / 2 + depth / 2],
-    dist: (8.9 + depth * 1.3 - close * 0.4) * k,
-    azim: 54 - close * 20 - after * 6,
+    dist: (8.9 + depth * (compact ? 2.0 : 1.3) - close * 0.4) * k,
+    azim: 54 - spread * 34 - close * 20 - after * 6,
     elev: 13 - close * 4,
-    frame: [0.5, 0.52],
+    // (the nearest layers loom largest, on the left: the unit stands a little right of the middle while it is apart)
+    frame: [0.5 + spread * 0.06, 0.52],
   }
 }
 
