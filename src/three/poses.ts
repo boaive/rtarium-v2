@@ -133,11 +133,6 @@ export const ANCHORS: Record<string, [number, number, number]> = {
   'tour-face-a': [0, 0.004, 0.018],
   'tour-fibres': [-0.003, 0, 0.021],
   'tour-face-b': [0, -0.004, 0.018],
-  // a phone's cavity names them one at a time, the camera a step further in for each (TOUR_DIVE): the same points, each
-  // that much further along the cavity (a whole number of cells, so each stays on its yarn)
-  'tour-p1': [0, 0.004, 0.018],
-  'tour-p2': [-0.003, 0, 0.021 - 0.036],
-  'tour-p3': [0, -0.004, 0.018 - 0.072],
   // the cast panel at the close of "In concrete": the mortar between the yarns, a yarn of the upper
   // face, the side of the slab
   'pour-cavity': [-0.08, 0.0042, -0.066],
@@ -170,11 +165,12 @@ export const POSES: Record<PoseId, Pose> = {
     elev: 41,
     azim: 36,
     dist: 0.53,
-    distCompact: 0.84,
+    // phones: the whole piece on the screen at every angle of its slow turn (its diagonal across, with a margin each side)
+    distCompact: 1.32,
     fov: 30,
     frame: [0.71, 0.7],
-    // phones: lower and larger, in the room under the name, what it is and the way to the team, all at the top
-    frameCompact: [0.54, 0.66],
+    // phones: centred across the screen, and in the middle of the room between the way to the team and Scroll to explore
+    frameCompact: [0.5, 0.64],
     sway: 4,
     press: true,
     win: [18, 12],
@@ -398,6 +394,8 @@ type TourKey = Pick<Pose, 'tgt' | 'elev' | 'azim' | 'dist' | 'fov' | 'frame' | '
 
 /** a fog that has swallowed everything: the screen is all ground colour (white, by then) */
 const WHITE_FOG: [number, number] = [0, 0.002]
+/** where the camera looks once it is down between the two faces (2), along the cavity */
+export const CAVITY_Z = -0.07
 
 /**
  * The opening, as the visitor scrolls: 0 the piece lies beside the headline; 1 the mesh has been
@@ -411,7 +409,7 @@ function tourKeys(): TourKey[] {
   return [
     { at: 0, tgt: h0.tgt, elev: h0.elev, azim: h0.azim, dist: h0.dist, distCompact: h0.distCompact ?? h0.dist, fov: h0.fov, frame: h0.frame, frameCompact: h0.frameCompact, fog: h0.fog, win: h0.win },
     { at: 1, tgt: [0, 0, 0], elev: 50, azim: 18, dist: 0.3, distCompact: 0.42, fov: 34, frame: [0.5, 0.5], frameCompact: [0.5, 0.45], fog: [1, 2], win: [FIELD, FIELD] },
-    { at: 2, tgt: [0, 0, -0.07], elev: 0, azim: 0, dist: 0.11, distCompact: 0.11, fov: 66, frame: [0.5, 0.5], frameCompact: [0.5, 0.5], fog: [0.12, 0.45], win: [FIELD, FIELD] },
+    { at: 2, tgt: [0, 0, CAVITY_Z], elev: 0, azim: 0, dist: 0.11, distCompact: 0.11, fov: 66, frame: [0.5, 0.5], frameCompact: [0.5, 0.5], fog: [0.12, 0.45], win: [FIELD, FIELD] },
     { at: 2.5, tgt: [0, 0, -0.2], elev: 0, azim: 0, dist: 0.11, distCompact: 0.11, fov: 70, frame: [0.5, 0.5], frameCompact: [0.5, 0.5], fog: WHITE_FOG, win: [FIELD, FIELD] },
     // in the white the camera is brought to the mesh, unseen; the white clears, close on the yarns
     { at: 2.62, tgt: s.tgt, elev: 34, azim: 30, dist: 0.075, distCompact: 0.1, fov: 30, frame: [0.5, 0.5], frameCompact: [0.5, 0.4], fog: WHITE_FOG, win: [TILE, TILE] },
@@ -421,9 +419,12 @@ function tourKeys(): TourKey[] {
 }
 
 export const TOUR_LABELS = ['tour-face-a', 'tour-fibres', 'tour-face-b', 'tour-gap']
-/** a phone's cavity points, one to a screen, and how far on along the cavity the camera goes for each (three cells) */
-export const PHONE_POINTS = ['tour-p1', 'tour-p2', 'tour-p3']
-export const TOUR_DIVE = 0.036
+/**
+ * a phone's flight through the cavity, no labels: how far along it (m, from CAVITY_Z) the camera has gone by the time
+ * the white has taken the screen, at an even pace (the tour's own move along the cavity into the white is less, and slower
+ * at first: the flight runs ahead of it)
+ */
+export const PHONE_TRAVEL = 0.2
 /** how far into white light the tour has gone (0..1): the ground washes to warm white with it, and back to yellow on the way into About */
 export const tourWash = (p: number) => smoothstep(2.08, 2.5, p) * (1 - smoothstep(2.66, 3, p))
 /** in the cavity, as it starts to wash into the white: the visitor scrolls the tour this far, and from here it plays itself on into About */

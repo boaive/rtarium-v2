@@ -994,57 +994,10 @@
       opacity 0.5s var(--ease-out) 0.1s,
       visibility 0s linear 0s;
   }
-  /* the cavity's line: top left, on the yellow above the mesh, just under the header */
+  /* the cavity's line: centred across the screen, in the middle of the yellow above the mesh (under the header) */
   .hero__say--tr {
-    top: calc(var(--nav-h) + clamp(48px, 9svh, 80px));
-    right: auto;
-    justify-items: start;
-    text-align: left;
+    top: calc(var(--nav-h) + clamp(56px, 12svh, 112px));
     transform: none;
-  }
-  .hero__say--tr .lines {
-    justify-items: start;
-  }
-  /*
-   * The cavity's points, a screen each after its line (the line is gone by then): a ring pulsing on the mesh where
-   * the point is, a fine warm-white leader out to a small black tag, its number in yellow, its name in plain type.
-   */
-  .pin.pin--point .pin__n {
-    display: inline;
-  }
-  .pin--point::before {
-    left: -6px;
-    top: -6px;
-    width: 12px;
-    height: 12px;
-    background: var(--yellow);
-    box-shadow: 0 0 0 1.5px var(--black);
-    animation: pin-pulse 2s var(--ease-out) infinite;
-  }
-  /* (set as the wide screen sets its notes: a yellow tag, black capitals, a black leader edged in yellow) */
-  .pin--point .pin__lead {
-    height: 1.5px;
-    background: var(--black);
-    box-shadow: 0 0 0 1px rgb(253 208 1 / 0.85);
-  }
-  .pin--point .pin__words {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 6px 10px 6px 9px;
-    background: var(--yellow);
-    color: var(--black);
-    box-shadow: 0 0 0 1px var(--black);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-  .pin--point .pin__n {
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    color: var(--black);
   }
   .hero__screen:not(.is-active) .hero__say {
     opacity: 0;
@@ -1305,28 +1258,12 @@
   }
 }
 
-/* the points' numbers are the phone's: the wide screen names its points as before */
+/* the wide screen names the cavity's points without their numbers (a phone names nothing there) */
 .pin--point .pin__n {
   display: none;
 }
-@keyframes pin-pulse {
-  0% {
-    box-shadow:
-      0 0 0 1.5px var(--black),
-      0 0 0 0 rgb(253 208 1 / 0.6);
-  }
-  70%,
-  100% {
-    box-shadow:
-      0 0 0 1.5px var(--black),
-      0 0 0 14px rgb(253 208 1 / 0);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .pin--point::before {
-    animation: none;
-  }
   .eb-fig__tick {
     transform: none !important;
   }

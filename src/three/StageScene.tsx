@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { MeshField, PITCH, cellUrl, useCell, useYarnMaterial } from './mesh/MeshField'
 import { PressField } from './mesh/flex'
-import { ANCHORS, FIELD, HALF, POSES, PHONE_POINTS, TOUR_DIVE, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
+import { ANCHORS, CAVITY_Z, FIELD, HALF, POSES, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
 import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
 import { THICKNESS_OPTIONS } from '../content/technical'
 import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
@@ -522,7 +522,7 @@ export function StageScene({ compact, reduced }: Props) {
     // and the phone's GPU rests until the visitor moves the page again
     if (compact) {
       // (the page coming to rest lets a card set off turning again)
-      let key = `${now - movedAt.current < 220},${vw},${vh},${gl.getPixelRatio()},${stage.tour},${stage.tourDive},${stage.tourPoints},${stage.flat},${thickness},${stage.inspect},${ob0(stage.orbit)}`
+      let key = `${now - movedAt.current < 220},${vw},${vh},${gl.getPixelRatio()},${stage.tour},${stage.tourDive},${stage.flat},${thickness},${stage.inspect},${ob0(stage.orbit)}`
       for (const d of drawn) {
         const b = rects.get(d.r)
         const bl = d.r.blend?.()
@@ -589,16 +589,13 @@ export function StageScene({ compact, reduced }: Props) {
       const hero = id === 'hero'
       const bl = hero ? undefined : r.blend?.()
       let pose: Pose = hero ? tourPose(reduced ? (stage.tour > 2.5 ? 3 : Math.min(stage.tour, 1)) : stage.tour, tourScratch) : bl ? blendPose(POSES[bl.a], POSES[bl.b], bl.t, blendScratch) : POSES[id]
-      // on a phone the opening names only the faces in the cavity; the close of the tour (About's first view on a wide
-      // screen) carries no labels, which would stand over the rows below it
-      if (hero && compact && stage.tour > 2.5) pose.labels = []
-      // and in the cavity it names its points one at a time, a screen each (Hero counts them): never with the words
-      // and in the cavity it names its points one at a time, a screen each (Hero counts them), each alone, the camera a
-      // step further along the cavity for each: never with the words
-      else if (hero && compact) {
-        pose.labels = stage.tourPoints ? [PHONE_POINTS[stage.tourPoints - 1]] : []
+      // on a phone the opening names nothing: the camera goes down between the faces and flies on along the cavity, at an
+      // even pace, into the white (Hero says how far it has gone: tourDive, m), and About comes out of the white
+      if (hero && compact) {
+        pose.labels = []
         // (until the white has taken the screen, where the camera is brought out to the mesh)
-        if (stage.tourDive && stage.tour < 2.56) pose.tgt = [pose.tgt[0], pose.tgt[1], pose.tgt[2] - stage.tourDive * TOUR_DIVE]
+        // (and with reduced motion the tour holds on the mesh built out: no flight)
+        if (!reduced && stage.tourDive && stage.tour < 2.56) pose.tgt = [pose.tgt[0], pose.tgt[1], Math.min(pose.tgt[2], CAVITY_Z - stage.tourDive)]
       }
       // where the panel is: -1 entering from below, 0 in place, 1 leaving above (the opening runs its own tour)
       // (a view in a box holds still as its box scrolls: it turns on its own, steadily, as a looping film does)
@@ -1051,8 +1048,7 @@ export function StageScene({ compact, reduced }: Props) {
 
       // ---- labels pinned to this view's sheet -------------------------------------------------
       // the opening's callouts wait until the piece has been woven
-      // (and a phone's point in the cavity once the camera has come to it: never sliding in with the camera)
-      const settled = (Math.abs(c.dist - dist) < dist * 0.08 || reduced) && (!hero || intro > 0.96) && (!hero || !compact || !stage.tourPoints || (Math.abs(c.tgt.z - pose.tgt[2]) < 0.004 && Math.abs(c.elev - pose.elev) < 1.5))
+      const settled = (Math.abs(c.dist - dist) < dist * 0.08 || reduced) && (!hero || intro > 0.96)
       if (!settled) continue
       const zone = compact ? pose.labelZoneCompact : pose.labelZone
       const shown = inspect === 'width' ? [...pose.labels, 'dim-width'] : inspect === 'elongation' ? [...pose.labels, 'strain'] : pose.labels
