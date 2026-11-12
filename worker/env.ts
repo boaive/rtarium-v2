@@ -10,6 +10,8 @@ export interface Env {
   CONTACT_LIMIT: RateLimit
   FROM_ADDRESS: string
   CLIENT_ADDRESS: string
+  /** comma-separated: the sites whose pages may send an enquiry, e.g. https://rtarium.com,https://www.rtarium.com */
+  ALLOWED_ORIGINS: string
   /** secret: `npx wrangler secret put TURNSTILE_SECRET_KEY` */
   TURNSTILE_SECRET_KEY: string
   /**

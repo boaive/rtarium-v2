@@ -15,7 +15,9 @@ npm run deploy     # build, then deploy to Cloudflare (npx wrangler login first)
 One Worker, `rtarium` (`wrangler.jsonc`, code in `worker/`), serves everything:
 
 - **The site**: the built `dist/` as static assets. Only `/api/*` runs Worker code first.
-- **`POST /api/contact`** (`worker/contact.ts`): same-site Origin only; 5 a minute per IP (per IPv6 /64); JSON of at
+- **`POST /api/contact`** (`worker/contact.ts`): only on the hosts in `ALLOWED_ORIGINS` (`wrangler.jsonc`:
+  rtarium.com, www.rtarium.com, rtarium.mcmdomains.workers.dev) and only from their own pages (Origin = that host);
+  5 a minute per IP (per IPv6 /64); JSON of at
   most 32 KB; every field cleaned and checked by the same rules as the form (`src/content/enquiry.ts`); Cloudflare
   Turnstile (token checked for this host and the form's `contact` action); then ONE time-limited database transaction
   saving the enquiry and its email jobs (AWS RDS PostgreSQL through Hyperdrive). The same enquiry sent again within
@@ -31,9 +33,9 @@ One Worker, `rtarium` (`wrangler.jsonc`, code in `worker/`), serves everything:
   Google Chat, Discord or Telegram webhook) when that secret is set. One per problem per 15 minutes.
 - **Security headers**: `scripts/write-headers.mjs` writes `dist/_headers` at build (CSP with the inline script's hash,
   no framing, nosniff, HSTS, …). The API sets its own in `worker/http.ts`.
-- **Database**: `db/schema.sql` is the tables, rules and indexes the Worker expects (safe to re-run; on the live
-  database it only adds the missing indexes). `db/app-role.sql` makes `rtarium_app`, a user that can only read and add
-  enquiries and read, add and update email jobs: point Hyperdrive at it, not at the admin user.
+- **Database**: `db/schema.sql` is the live database as of 12 Nov 2026 (reference; never run it on live); changes since
+  are in `db/migrations/`, plain SQL run in pgAdmin as `postgres`, each safe to run twice. Hyperdrive connects as
+  `rtarium_app` (already on live): SELECT, INSERT on `enquiries`; SELECT, INSERT, UPDATE on `email_outbox`; nothing else.
 
 The two emails (`worker/emails.ts`):
 

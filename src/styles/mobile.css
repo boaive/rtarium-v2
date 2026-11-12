@@ -941,6 +941,14 @@
     font-size: clamp(1.6rem, 7.6vw, 2.4rem);
     line-height: 1.04;
   }
+  .footer__reach {
+    justify-items: stretch;
+    gap: var(--s-4);
+  }
+  .footer__mail {
+    justify-self: start;
+    font-size: clamp(1.35rem, 6.4vw, 1.9rem);
+  }
   .footer__cta {
     justify-content: space-between;
     width: 100%;

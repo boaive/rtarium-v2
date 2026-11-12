@@ -49,7 +49,10 @@
 
   "vars": {
     "FROM_ADDRESS": "enquiries@rtarium.com",
-    "CLIENT_ADDRESS": "info@rtarium.com"
+    "CLIENT_ADDRESS": "info@rtarium.com",
+    // the only sites whose pages may send an enquiry (worker/contact.ts); any other host, a preview URL included, is
+    // refused. While developing, localhost is accepted as well.
+    "ALLOWED_ORIGINS": "https://rtarium.com,https://www.rtarium.com,https://rtarium.mcmdomains.workers.dev"
   },
   // secrets, set with `npx wrangler secret put NAME` (never in this file):
   //   TURNSTILE_SECRET_KEY  the contact form's Turnstile secret (required)

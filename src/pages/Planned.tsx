@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { APPLICATIONS, SITE, contactConfigured } from '../content/site'
+import { APPLICATIONS, SITE } from '../content/site'
 import { Link } from '../lib/router'
 import { Contact } from './ContactForm'
 import { setShared } from '../three/stageStore'
@@ -75,17 +75,13 @@ export function ContactPage() {
       window.removeEventListener('resize', on)
     }
   }, [])
+  // (the email leads the page itself; any phone or address goes under it)
   return (
     <Contact
       labelledBy="page-title"
       points={
-        contactConfigured() ? (
+        SITE.contact.phone || SITE.contact.address ? (
           <ul className="contact__points">
-            {SITE.contact.email && (
-              <li>
-                <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
-              </li>
-            )}
             {SITE.contact.phone && <li>{SITE.contact.phone}</li>}
             {SITE.contact.address && <li>{SITE.contact.address}</li>}
           </ul>

@@ -1,42 +1,38 @@
--- RTARIUM contact form: the two tables the Worker (worker/) reads and writes, with their rules and indexes.
+-- RTARIUM contact form: the LIVE database as it stood on 12 Nov 2026 (database rtarium, schema public), as the owner
+-- gave it. A reference, and the starting point for a new or local database: the live database already has all of it,
+-- so never run this file there. Changes since are in db/migrations/, run in order (in pgAdmin, as postgres).
 --
--- Safe to run more than once, and safe on the live database: everything is "if not exists", so on a database that
--- already has these tables it only adds what is missing (the indexes). It never changes or deletes data.
---
---   psql "postgres://ADMIN_USER@HOST:5432/DBNAME?sslmode=require" -f db/schema.sql
---
--- PostgreSQL 13 or newer (gen_random_uuid() is built in). The limits below match src/content/enquiry.ts: the Worker
--- checks them first, and the database refuses anything that slips past.
+-- The Worker connects (through Hyperdrive) as rtarium_app, which already exists on the live database with exactly:
+--   CONNECT on database rtarium; USAGE on schema public;
+--   SELECT, INSERT on enquiries; SELECT, INSERT, UPDATE on email_outbox.
+-- That is all the Worker needs: it never deletes, never changes an enquiry, never creates anything.
 
 create table if not exists enquiries (
   id         uuid primary key default gen_random_uuid(),
-  ref        text not null unique check (ref ~ '^RT-[0-9]{8}-[0-9]{4}-[A-Z0-9]{4}$'),
-  name       text not null check (char_length(name) between 1 and 120),
-  email      text not null check (char_length(email) between 3 and 200),
-  phone      text check (char_length(phone) <= 40),
-  company    text check (char_length(company) <= 160),
-  interest   text not null check (char_length(interest) between 1 and 60),
-  message    text not null check (char_length(message) between 1 and 4000),
+  ref        text not null unique,
+  name       varchar(120) not null,
+  email      varchar(200) not null,
+  phone      varchar(40),
+  company    varchar(160),
+  interest   varchar(60) not null,
+  message    varchar(4000) not null,
   created_at timestamptz not null default now()
 );
 
 create table if not exists email_outbox (
   id                  uuid primary key default gen_random_uuid(),
-  enquiry_id          uuid not null references enquiries (id) on delete cascade,
+  enquiry_id          uuid not null references enquiries (id),
   kind                text not null check (kind in ('client_notification', 'visitor_confirmation')),
   status              text not null default 'pending' check (status in ('pending', 'queued', 'sent', 'failed')),
-  attempts            integer not null default 0 check (attempts >= 0),
+  attempts            integer not null default 0,
   last_error          text,
   provider_message_id text,
-  sent_at             timestamptz,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
+  sent_at             timestamptz,
   unique (enquiry_id, kind)
 );
 
--- the repeat check and the per-address confirmation limit (worker/contact.ts)
-create index if not exists enquiries_email_created on enquiries (lower(email), created_at desc);
--- the hourly confirmation limit (worker/contact.ts)
-create index if not exists email_outbox_kind_created on email_outbox (kind, created_at);
--- the 5-minute and hourly checks (worker/mailer.ts): only rows still waiting are indexed
-create index if not exists email_outbox_waiting on email_outbox (updated_at) where status in ('pending', 'queued');
+-- the 5-minute re-queue and the hourly check (worker/mailer.ts) read this one
+create index if not exists email_outbox_pending_idx on email_outbox (status, created_at)
+  where status in ('pending', 'queued', 'failed');

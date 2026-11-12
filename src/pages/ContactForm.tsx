@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
 import { ENQUIRY_FIELDS, INTERESTS, cleanField, enquiryField, fieldProblem, type Enquiry } from '../content/enquiry'
-import { ENQUIRY_ADDRESS, TURNSTILE_SITE_KEY } from '../content/site'
+import { ENQUIRY_ADDRESS, SITE, TURNSTILE_SITE_KEY } from '../content/site'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 
 /**
  * The contact page, kept simple: on the left a photograph of the mesh, full-bleed and darkened, and over it from its top
- * left RTARIUM's slogan large over four lines, its last, RTARIUM, in yellow, and a line on what to tell us; on the right, on warm white, the form alone, in three short steps on the same page: a thin line across its top
+ * left RTARIUM's slogan large over four lines, its last, RTARIUM, in yellow, and under it the first way to reach us, the
+ * email, large in yellow with a copy button (most clients write); on the right, on warm white, the second way, "Or fill
+ * in the enquiry…", over the form, in three short steps on the same page: a thin line across its top
  * filling a third a step, the step's number and name over it; then the step's fields, a row each, a faint hairline over
  * each, the label on the left and the line to write on the right (what it is about as four quiet buttons, two by two, a
  * dot each that fills when chosen), what is wrong said under it; and the way on, drawn in line: back, next, and at the
@@ -62,6 +64,69 @@ const SLOGAN: [string, string][] = [
   ['', 'Built to'],
   ['', 'outlast.'],
 ]
+
+/** the email first: most clients write rather than fill in a form. The address large, in the brand's yellow, and a
+ * button that copies it (for a computer with no mail program set up) */
+function Reach() {
+  const email = SITE.contact.email
+  const words = useRef<HTMLSpanElement>(null)
+  /** copied; or, where the browser will not let a page copy, the address selected for the visitor to copy */
+  const [copy, setCopy] = useState<'idle' | 'done' | 'select'>('idle')
+  const timer = useRef(0)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  const show = (s: 'done' | 'select') => {
+    setCopy(s)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setCopy('idle'), s === 'done' ? 2400 : 6000)
+  }
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(email)
+      return show('done')
+    } catch {
+      // the clipboard refused (an insecure page, a locked-down browser): select the address instead
+    }
+    const sel = window.getSelection()
+    if (words.current && sel) {
+      const range = document.createRange()
+      range.selectNodeContents(words.current)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    }
+    let ok = false
+    try {
+      ok = document.execCommand('copy')
+    } catch {
+      ok = false
+    }
+    show(ok ? 'done' : 'select')
+  }
+  const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+  if (!email) return null
+  return (
+    <span className="contact__reach ct-rise" style={{ '--d': '0.95s' } as CSSProperties}>
+      <span className="contact__reach-line">Contact us on</span>
+      <a className="contact__mail" href={`mailto:${email}`}>
+        <span ref={words}>{email}</span>
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 12 12 4M5.5 4H12v6.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      </a>
+      <button type="button" className={`contact__copy ${copy === 'done' ? 'is-done' : ''}`} onClick={onCopy}>
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+          {copy === 'done' ? (
+            <path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          ) : (
+            <path d="M5.5 5.5V2.5h8v8h-3M2.5 5.5h8v8h-8z" fill="none" stroke="currentColor" strokeWidth="1.4" />
+          )}
+        </svg>
+        <span aria-live="polite">
+          {copy === 'done' ? 'Copied' : copy === 'select' ? `Selected: press ${mac ? 'Cmd' : 'Ctrl'}+C` : 'Copy address'}
+        </span>
+      </button>
+    </span>
+  )
+}
 
 function ArrowIcon({ back = false }: { back?: boolean }) {
   return (
@@ -285,9 +350,7 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
               </Mask>
             ))}
           </span>
-          <span className="contact__lede ct-rise" style={{ '--d': '1s' } as CSSProperties}>
-            Tell us about your project, and we'll help you find what fits it best.
-          </span>
+          <Reach />
           {points}
         </figcaption>
       </figure>
@@ -332,6 +395,8 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
           </div>
         ) : (
           <form className="ct-form ct-rise" style={{ '--d': '0.3s' } as CSSProperties} onSubmit={submit} noValidate>
+            {/* the second way, after the email beside it */}
+            <p className="ct-alt">Or fill in the enquiry, and we&rsquo;ll contact you soon.</p>
             {/* where the visitor is: the step's number and name, and a thin line filling a third a step */}
             <div className="ct-progress">
               <p className="ct-progress__label" aria-live="polite">

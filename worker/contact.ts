@@ -7,7 +7,8 @@ import { errInfo, json } from './http'
 /**
  * POST /api/contact: the contact form's enquiry. In order, each step answering at once when it fails:
  *
- * 1. POST only, and from this site's own pages: a browser's Origin, when it sends one, must be this host
+ * 1. POST only, on one of the allowed sites (ALLOWED_ORIGINS: rtarium.com, www.rtarium.com, the workers.dev address),
+ *    and from that site's own pages: a browser's Origin, when it sends one, must be the same host
  * 2. rate-limited: 5 a minute per IP address (per IPv6 /64, which one home or server usually has whole)
  * 3. JSON only, at most 32 KB (read as it arrives, so a huge body is stopped early), valid UTF-8, one object
  * 4. the hidden trap field filled in = a bot: answered as if sent, logged, nothing stored or sent
@@ -56,6 +57,17 @@ function hostOf(origin: string) {
   } catch {
     return ''
   }
+}
+
+/** the hosts of ALLOWED_ORIGINS (wrangler.jsonc). Matched by host: a page reached over plain http on one of them, whose
+ *  send the browser then upgrades to https, is still the same site */
+function allowedHosts(env: Env) {
+  return new Set(
+    (env.ALLOWED_ORIGINS ?? '')
+      .split(',')
+      .map((o) => hostOf(o.trim()))
+      .filter(Boolean),
+  )
 }
 
 /** for logs: the part of an address after the @, nothing that identifies the person */
@@ -211,12 +223,20 @@ async function save(sql: Sql, e: Enquiry): Promise<{ ref: string; jobIds: string
 export async function handleContact(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (request.method !== 'POST') return json(405, { ok: false, error: 'POST only.' }, { Allow: 'POST' })
   const host = new URL(request.url).hostname.toLowerCase()
+  const local = isLocalHost(host)
 
-  // 1. only this site's pages: every browser says where a POST comes from (scripts outside a browser do not, and
-  //    still have to pass Turnstile like anyone else)
+  // 1. only the allowed sites (ALLOWED_ORIGINS), and only their own pages: every browser says where a POST comes from
+  //    (scripts outside a browser do not, and still have to pass Turnstile, made on this host, like anyone else)
+  const allowed = allowedHosts(env)
+  if (!local && !allowed.size) {
+    ctx.waitUntil(alert(env, 'origins', 'The contact form refuses every enquiry: ALLOWED_ORIGINS is not set'))
+    return json(503, { ok: false, error: SORRY })
+  }
+  if (!local && !allowed.has(host)) return json(403, { ok: false, error: 'Not allowed.' })
   const origin = request.headers.get('Origin')
-  if ((origin !== null && hostOf(origin) !== host) || request.headers.get('Sec-Fetch-Site') === 'cross-site')
-    return json(403, { ok: false, error: 'Not allowed.' })
+  const fromHost = origin === null ? null : hostOf(origin)
+  const sameSite = fromHost === null || fromHost === host || (local && isLocalHost(fromHost))
+  if (!sameSite || request.headers.get('Sec-Fetch-Site') === 'cross-site') return json(403, { ok: false, error: 'Not allowed.' })
 
   // 2. at most 5 a minute from one address
   const ip = request.headers.get('CF-Connecting-IP')

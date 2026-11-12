@@ -1,14 +1,14 @@
 /**
  * Site map, applications and contact configuration.
  *
- * CONTACT DETAILS ARE NOT IN THE SUPPLIED MATERIAL. Nothing here is invented: while both channels
- * are empty, the contact page says so plainly instead of showing a form that cannot send.
+ * The email is the owner's (12 Nov 2026): the way most clients prefer to reach RTARIUM, so the contact page and the
+ * footer lead with it, the enquiry form second. Phone and address are not in the supplied material: nothing invented.
  */
 export const SITE = {
   name: 'RTARIUM',
   by: 'HEMISPHERE ONE',
   contact: {
-    email: '',
+    email: 'info@rtarium.com',
     phone: '',
     address: '',
   },
@@ -23,11 +23,8 @@ export const contactConfigured = () => Boolean(SITE.contact.email || SITE.contac
 export const TURNSTILE_SITE_KEY: string =
   import.meta.env.VITE_TURNSTILE_SITE_KEY || (import.meta.env.DEV ? '1x00000000000000000000AA' : '0x4AAAAAAF81S59VTqixzZll')
 
-/**
- * Where enquiries go (the Worker's CLIENT_ADDRESS in wrangler.jsonc). The contact form offers it only when its
- * verification check cannot load, so a visitor is never left without a way to reach RTARIUM.
- */
-export const ENQUIRY_ADDRESS = 'info@rtarium.com'
+/** Where enquiries go: the same address (the Worker's CLIENT_ADDRESS in wrangler.jsonc). */
+export const ENQUIRY_ADDRESS = SITE.contact.email
 
 /** `?review` in the address shows the open questions beside flagged figures. */
 export const REVIEW_MODE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('review')

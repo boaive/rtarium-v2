@@ -721,6 +721,29 @@ html[data-ground='black'] .pin__text {
   justify-content: space-between;
   gap: var(--s-6);
 }
+/* the email over the contact button, both on the right, the button's edge the email's edge */
+.footer__reach {
+  display: grid;
+  justify-items: end;
+  gap: var(--s-4);
+}
+.footer__mail {
+  font-size: clamp(1.3rem, min(2vw, 3.8vh), 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+  transition: text-decoration-thickness 0.2s;
+}
+.footer__mail:hover {
+  text-decoration-thickness: 4px;
+}
+.footer__mail:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
 .footer__line {
   max-width: 20em;
   font-size: clamp(1.75rem, min(3.2vw, 6vh), 3.4rem);
