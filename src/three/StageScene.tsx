@@ -669,7 +669,8 @@ export function StageScene({ compact, reduced }: Props) {
       // a phone's card: the one most in view turns one way at its own slow pace (PHONE_CARD), never back and forth, and
       // nothing stops it, the page scrolling or a finger on it; one with no turn holds its pose
       if (compact && r.box) {
-        if (!reduced && pose.spin && r === turning) c.spin = (c.spin + pose.spin * dt) % 360
+        // ("In concrete" turns only once its mortar has run in)
+        if (!reduced && pose.spin && r === turning && (!pose.pour || f.pour >= 1)) c.spin = (c.spin + pose.spin * dt) % 360
       }
       // a phone's opening piece turns slowly while the page rests on it, and eases back to its pose as the tour sets off
       // (unwound with the tour itself, all of it by the time the mesh built out is reached: eased on a clock of its own, it

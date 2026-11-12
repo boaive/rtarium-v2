@@ -410,14 +410,14 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   // the rovings close, running away under the words, low in the card
   // seen low, on its edge, from another side than Structure; it turns the other way, its near edge moving left to right
   material: card('material', { elev: 7, azim: 112, distCompact: 0.16, frameBox: [0.5, 0.6], fog: [0.14, 0.5], spin: -2 }),
-  // close on the mortar running in, held still
-  pour: card('pour', {}),
+  // close on the mortar running in; once it has, turning slowly
+  pour: card('pour', { spin: 2 }),
   // (the whiteboard: a broad sheet across the lower screen, at an angle, the X, Y and Z arrows standing out of it)
-  depth: card('depth', { tgt: [0.012, 0.012, 0.02], elev: 26, azim: 36, distCompact: 0.4, win: [18, 18], fog: [0.36, 0.8], frameBox: [0.42, 0.6] }),
+  depth: card('depth', { tgt: [0.012, 0.012, 0.02], elev: 26, azim: 36, distCompact: 0.4, win: [18, 18], fog: [0.36, 0.8], frameBox: [0.42, 0.6], spin: 2 }),
   // low on its front edge, so its thickness (the two faces and the fibres between them) shows along the foot
-  shear: card('shear', { tgt: [0, -0.002, 0.07], elev: 12, azim: 8, dist: 0.17, distCompact: 0.17, frameBox: [0.5, 0.6], win: [18, 18], fog: [0.2, 0.55], shadow: 1 }),
-  // from above, slightly tipped, the grid of its cells clear; turning very slowly
-  mineral: card('mineral', { tgt: [0, 0, 0], elev: 52, azim: 30, dist: 0.3, distCompact: 0.3, frameBox: [0.5, 0.72], win: [10, 10], tilt: [5, -7], fog: [0.3, 0.75], shadow: 1, spin: 2 }),
+  shear: card('shear', { tgt: [0, -0.002, 0.05], elev: 17, azim: 30, dist: 0.18, distCompact: 0.18, frameBox: [0.5, 0.6], win: [18, 18], fog: [0.2, 0.55], shadow: 1, spin: 2 }),
+  // close and low, in perspective, running away up the card into the ground (no far edge); turning very slowly
+  mineral: card('mineral', { tgt: [0, 0, 0], elev: 32, azim: 30, dist: 0.2, distCompact: 0.2, fov: 40, frameBox: [0.5, 0.72], win: [18, 18], fog: [0.2, 0.33], shadow: 1, spin: 2 }),
 }
 
 /* ---- the opening tour -------------------------------------------------------------------------- */
