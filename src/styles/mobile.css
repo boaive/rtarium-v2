@@ -329,6 +329,132 @@
       transition: none;
     }
   }
+  /*
+   * ---- The header on a phone, as on a wide screen: the two names on their black capsule (RTARIUM, and by HEMISPHERE ONE
+   * after a hairline), and the menu a round black button. (:root: over the phone's bar of the name alone, nav.css) ----
+   */
+  :root .nav .nav__home,
+  :root .nav.is-tucked .nav__home,
+  :root .nav.on-black .nav__home {
+    margin-left: -4px;
+    padding: 9px 14px 9px 12px;
+    border-radius: var(--radius-round);
+    background: var(--black);
+    box-shadow: 0 6px 18px -10px rgb(8 8 8 / 0.55);
+  }
+  :root .nav.on-black .nav__home {
+    box-shadow: inset 0 0 0 1px rgb(253 208 1 / 0.32);
+  }
+  :root .nav .brand,
+  :root .nav.is-tucked .brand {
+    gap: 10px;
+  }
+  :root .nav .brand__clip,
+  :root .nav.is-tucked .brand__clip {
+    max-width: none;
+  }
+  /* (the white name on the capsule on every ground: over the phone's ink name for light and yellow grounds) */
+  :root .nav .brand .brand__rt {
+    display: block;
+    height: 15px;
+  }
+  :root .nav .brand .brand__rt.brand__rt--ink {
+    display: none;
+  }
+  :root .nav .brand__by,
+  :root .nav.is-tucked .brand__by {
+    display: flex;
+    max-width: none;
+    padding-left: 10px;
+    border-left: 1px solid rgb(242 240 233 / 0.28);
+    font-size: 10px;
+    opacity: 1;
+  }
+  :root .nav .brand__by img {
+    height: 12px;
+  }
+  :root .nav .nav__menu,
+  :root .nav.is-tucked .nav__menu {
+    width: 44px;
+    margin-right: 0;
+  }
+  :root .nav .nav__menu-cell {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--black);
+    color: var(--white);
+  }
+  :root .nav.is-open .nav__menu-cell {
+    background: var(--yellow);
+    color: var(--black);
+  }
+  :root .nav .nav__menu-icon,
+  :root .nav .nav__menu-icon i {
+    width: 18px;
+  }
+
+  /*
+   * ---- The opening on a phone: the name, what it is, and the way to the team, together at the top; the piece under
+   * them; the way on at the foot (Scroll to explore, its line, and a chevron in the middle). ----
+   */
+  :root .hero__copy {
+    align-content: start;
+    gap: clamp(18px, 3svh, 28px);
+  }
+  :root .hero__sub {
+    justify-items: start;
+    gap: clamp(18px, 2.8svh, 26px);
+  }
+  :root .hero__sub .explore {
+    min-width: min(100%, 19.5rem);
+    height: 52px;
+    background: var(--black);
+    color: var(--yellow);
+    box-shadow: none;
+  }
+  :root .hero__sub .explore__label {
+    color: var(--yellow);
+  }
+  :root .hero__sub .explore__cell {
+    width: 52px;
+    border-left: 1px solid rgb(253 208 1 / 0.28);
+    color: var(--yellow);
+  }
+  :root .hero__scroll {
+    display: block;
+    bottom: calc(clamp(18px, 3svh, 30px) + env(safe-area-inset-bottom, 0px) + var(--bar));
+  }
+  :root .hero__screen--open::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    bottom: calc(clamp(16px, 2.6svh, 26px) + env(safe-area-inset-bottom, 0px) + var(--bar));
+    width: 11px;
+    height: 11px;
+    margin-left: -6px;
+    border-right: 1.8px solid var(--black);
+    border-bottom: 1.8px solid var(--black);
+    opacity: clamp(0, calc(1 - var(--p, 0) * 5), 1);
+    transform: rotate(45deg);
+    animation: hero-chevron 2.2s var(--ease-in-out) infinite;
+    pointer-events: none;
+  }
+  @keyframes hero-chevron {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 5px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root .hero__screen--open::after {
+      animation: none;
+    }
+  }
   /* what it is and the way to the team leave with the first fifth of the first swipe, never lingering at the foot of the
      next screen */
   .hero__screen--open.is-active .hero__sub {

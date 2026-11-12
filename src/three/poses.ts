@@ -170,11 +170,11 @@ export const POSES: Record<PoseId, Pose> = {
     elev: 41,
     azim: 36,
     dist: 0.53,
-    distCompact: 0.95,
+    distCompact: 1.02,
     fov: 30,
     frame: [0.71, 0.7],
-    // phones: the middle of the screen, between the name under the header and the copy at the foot
-    frameCompact: [0.5, 0.5],
+    // phones: lower and larger, in the room under the name, what it is and the way to the team, all at the top
+    frameCompact: [0.5, 0.67],
     sway: 4,
     press: true,
     win: [18, 12],
