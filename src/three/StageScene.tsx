@@ -55,8 +55,9 @@ const PARALLAX = { dist: 0.14, elev: 5, azim: 12 }
 const SWAY_PERIOD = 16
 /** how fast a view in a box turns, steadily, in degrees a second (once round in a minute) */
 const BOX_TURN = 6
-/** a phone's card most in view turns slowly, on and on (deg/s); the rest hold where they are */
-const CARD_TURN = 2.5
+/** a phone's card most in view sways gently either side of its pose, never right round: how far (deg) and how slowly (s
+    a sway there and back); the rest hold where they are */
+const CARD_SWAY = { deg: 9, period: 18 }
 /** a phone's opening piece turns slowly while the page rests on it (deg/s); as the tour sets off it eases back to its pose */
 const OPEN_TURN = 4
 /** a finger on a phone's card: a small, gentle dent (a share of the cursor's depth, and of its reach) */
@@ -309,6 +310,8 @@ export function StageScene({ compact, reduced }: Props) {
   const pressLive = useRef(false)
   /** when the page last moved (ms): a phone's card turns only with the page at rest */
   const movedAt = useRef(-1e9)
+  /** how far through its sway a phone's card has come (s): it advances only while that card sways */
+  const cardPhase = useRef(0)
   useEffect(() => {
     const on = () => void (movedAt.current = performance.now())
     window.addEventListener('scroll', on, { passive: true })
@@ -503,7 +506,7 @@ export function StageScene({ compact, reduced }: Props) {
       }, (INTRO.delay + INTRO.duration) * 1000)
     }
     const since = (now - started.current) / 1000
-    // a phone's cards: only the one most in view turns (slowly, CARD_TURN); the rest hold where they are
+    // a phone's cards: only the one most in view sways (slowly, CARD_SWAY); the rest hold where they are
     let turning: Region | null = null
     if (compact) {
       let most = 0
@@ -651,7 +654,12 @@ export function StageScene({ compact, reduced }: Props) {
       // the page, and the phone draws nothing while the page is still
       // (and only while the page is at rest: turning, it is drawn and copied into its card every frame, a weight on a
       // phone's frames that showed as a hitch while the page glided, and as it came to rest on About)
-      if (compact && r.box && !pose.spin) c.spin = reduced || r !== turning || now - movedAt.current < 220 ? c.spin : (c.spin + CARD_TURN * dt) % 360
+      if (compact && r.box && !pose.spin) {
+        if (!reduced && r === turning && now - movedAt.current >= 220) {
+          cardPhase.current += dt
+          c.spin = CARD_SWAY.deg * Math.sin((cardPhase.current * Math.PI * 2) / CARD_SWAY.period)
+        }
+      }
       // a phone's opening piece turns slowly while the page rests on it, and eases back to its pose as the tour sets off
       else if (compact && hero) c.spin = reduced ? 0 : stage.tour < 0.08 ? (c.spin + OPEN_TURN * dt) % 360 : dampAngle(c.spin, 0, 2.4, dt)
       else c.spin = reduced ? 0 : turn ? (c.spin + turn * dt) % 360 : dampAngle(c.spin, 0, 1.6, dt)

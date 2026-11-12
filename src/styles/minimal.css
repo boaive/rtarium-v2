@@ -313,7 +313,6 @@
 
   /* the chapter bar, the chips and the chevron belong to About's layout only */
   .eb-row__bar,
-  .eb-row__next,
   .figure__chips {
     display: none;
   }
@@ -321,7 +320,7 @@
   /*
    * About, set as its reference: on warm white, each part opened by a bar (the chapter's name, which of how many and a
    * yellow line drawn in that far), its number on a yellow block before its name, a firm headline, the thicknesses as
-   * chips, the mesh with no frame across the full width, and a chevron down to the next part
+   * chips, the mesh with no frame across the full width
    */
   #about .eb__head {
     display: none;
@@ -382,7 +381,9 @@
   #about .eb-row .lead {
     color: var(--on-light-2);
   }
+  /* (no thickness options on a phone) */
   :root #about .eb-row .figure {
+    display: none;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
@@ -425,18 +426,6 @@
   }
   #about .eb-fig__tick {
     display: none;
-  }
-  #about .eb-row__next {
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 36px;
-    margin: 4px auto 0;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--eb-fg2);
-    cursor: pointer;
   }
 
   /*

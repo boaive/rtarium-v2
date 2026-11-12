@@ -345,23 +345,6 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
           <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
         </div>
       </figure>
-      {index < count - 1 && (
-        <button
-          type="button"
-          className="eb-row__next"
-          aria-label="Next part"
-          onClick={() => {
-            const next = row.current?.nextElementSibling as HTMLElement | null
-            // (the next part's bar comes to rest just clear of the header floating over the page)
-            const nav = document.querySelector<HTMLElement>('header.nav')?.getBoundingClientRect().height ?? 0
-            if (next) scrollToY(next.getBoundingClientRect().top + window.scrollY - nav)
-          }}
-        >
-          <svg viewBox="0 0 16 10" width="14" height="9" aria-hidden="true">
-            <path d="M1.5 1.5 8 8l6.5-6.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-          </svg>
-        </button>
-      )}
     </article>
   )
 }
