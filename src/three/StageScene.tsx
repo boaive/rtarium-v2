@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, useGLTF } from '@react-three/drei'
 import { MeshField, PITCH, cellUrl, useCell, useYarnMaterial } from './mesh/MeshField'
 import { PressField } from './mesh/flex'
-import { ANCHORS, FIELD, HALF, POSES, PHONE_POINTS, TOUR_DIVE, POUR_OUT, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
+import { ANCHORS, FIELD, HALF, POSES, PHONE_POINTS, TOUR_DIVE, POUR_OUT, POUR_OUT_PHONE, TILE, anchorAt, blendPose, tourPose, type Pose } from './poses'
 import { setShared, stage, useStageValue, type PoseId, type Region } from './stageStore'
 import { THICKNESS_OPTIONS } from '../content/technical'
 import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
@@ -622,7 +622,7 @@ export function StageScene({ compact, reduced }: Props) {
         // over with it), so the notes, on the copy's line, never come in while the copy still stands on the right
         const played = active && !reduced ? pourClock() : null
         if (active) f.pour = reduced ? 1.6 : played !== null ? Math.min(1.6, -0.25 + played / 1.85) : Math.min(1.6, f.pour + dt / 1.85)
-        if (f.pour > 1.02) pose = blendPose(pose, POUR_OUT, smoothstep(1.02, 1.6, f.pour), pourScratch)
+        if (f.pour > 1.02) pose = blendPose(pose, compact && r.box ? POUR_OUT_PHONE : POUR_OUT, smoothstep(1.02, 1.6, f.pour), pourScratch)
       } else f.pour = -0.25
 
       // ---- camera: the view travels with its panel and turns a little as the panel passes -------

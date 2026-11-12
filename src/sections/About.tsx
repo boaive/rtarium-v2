@@ -98,16 +98,6 @@ const steps: Step[] = [
         <PourFilm active={active} />
         <div className="copy copy--pour">
           <Lines lines={['Concrete flows in.', 'The mesh is locked.']} />
-          {/* (a phone lists the panel's notes under the words, in place of the labels on the 3D: minimal.css) */}
-          <ol className="pournotes" aria-label="What the cast panel shows">
-            {NOTES.map((n, i) => (
-              <li key={n.anchor} className="pournotes__item rv" style={{ '--i': 3 + i } as CSSProperties}>
-                <span className="pournotes__num num">0{i + 1}</span>
-                <span className="pournotes__name">{n.name}</span>
-                <span className="pournotes__text">{n.text}</span>
-              </li>
-            ))}
-          </ol>
         </div>
       </>
     ),

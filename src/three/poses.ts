@@ -383,14 +383,21 @@ export const POUR_OUT: Pose = {
   elev: 30,
   azim: -20,
   dist: 0.72,
-  // (a phone's card stands closer: the block fills its box)
-  distCompact: 0.46,
+  distCompact: 0.7,
   frame: [0.46, 0.665],
   frameCompact: [0.5, 0.71],
   fog: [1, 2],
   sway: 2,
   labels: POUR_LABELS,
   labelZone: [0.02, 0.4, 0.98, 0.95],
+}
+
+/** the same on a phone's card: the whole block, corner on and square to the card, every edge clear of the box's sides */
+export const POUR_OUT_PHONE: Pose = {
+  ...POUR_OUT,
+  elev: 38,
+  azim: -45,
+  distCompact: 1,
 }
 
 /* ---- the opening tour -------------------------------------------------------------------------- */
