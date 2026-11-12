@@ -66,6 +66,12 @@ const QUEUE_FROM = 0.2
 const TURN_HELD = 300
 /** ms without a wheel event that end a gesture */
 const GESTURE_GAP = 140
+/**
+ * The same on Home, whose 3D keeps the page busy: a touchpad's momentum there reaches the page in lumps (held back a
+ * frame or more, then handed over at once), which look like a pause and a fresh, harder swipe. So on Home only a real
+ * pause starts a new scroll, never a lump of the last one: one swipe, however hard, is one screen, either way
+ */
+const HOME_GESTURE_GAP = 250
 /** how far a slow trackpad drag has to go before it counts as a step */
 const NUDGE = 24
 /** how much scroll the other way, as a fresh gesture, turns a step round: a real notch or swipe back, never the flick
@@ -328,9 +334,10 @@ export function stepScreens(
     const dir = Math.sign(d)
     // momentum only ever dies away; a new notch or swipe comes in as strong as the last, or stronger
     // (a swipe is one notch, read once as it starts: always a scroll of its own, however soon after the last)
-    const fresh = swiped || e.timeStamp - last > GESTURE_GAP || (dir !== lastDir && size >= 8)
+    // (Home, the whole page stepping, no section of its own: only a real pause starts a new scroll, see HOME_GESTURE_GAP)
+    const fresh = swiped || e.timeStamp - last > (own ? GESTURE_GAP : HOME_GESTURE_GAP) || (dir !== lastDir && size >= 8)
     const gap = e.timeStamp - last
-    const strong = (size >= 60 && size >= lastSize && gap > 24) || (size >= 30 && size > lastSize * 2)
+    const strong = !!own && ((size >= 60 && size >= lastSize && gap > 24) || (size >= 30 && size > lastSize * 2))
     last = e.timeStamp
     lastSize = size
     lastDir = dir
