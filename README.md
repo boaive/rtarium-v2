@@ -15,13 +15,25 @@ npm run deploy     # build, then deploy to Cloudflare (npx wrangler login first)
 One Worker, `rtarium` (`wrangler.jsonc`, code in `worker/`), serves everything:
 
 - **The site**: the built `dist/` as static assets. Only `/api/*` runs Worker code first.
-- **`POST /api/contact`** (`worker/contact.ts`): rate limit per IP, the same field checks as the form, Cloudflare
-  Turnstile, then ONE database transaction saving the enquiry and its two email jobs (AWS RDS PostgreSQL through
-  Hyperdrive). The visitor sees "sent" only after that commits. The jobs then go on the `rtarium-email` queue.
-- **The queue consumer** (`worker/mailer.ts`): sends each job through Cloudflare Email Service and records it in
-  `email_outbox`; failures retry with backoff, then the dead-letter queue `rtarium-email-dlq`, and the job is marked
-  `failed`. Each job row is locked while it sends, so an email is never sent twice by two deliveries.
-- **Every 5 minutes** (cron): jobs stuck `pending`/`queued` for 10 minutes go back on the queue.
+- **`POST /api/contact`** (`worker/contact.ts`): same-site Origin only; 5 a minute per IP (per IPv6 /64); JSON of at
+  most 32 KB; every field cleaned and checked by the same rules as the form (`src/content/enquiry.ts`); Cloudflare
+  Turnstile (token checked for this host and the form's `contact` action); then ONE time-limited database transaction
+  saving the enquiry and its email jobs (AWS RDS PostgreSQL through Hyperdrive). The same enquiry sent again within
+  30 minutes gets the first one's reference back; the visitor's confirmation is skipped after 3 a day to one address
+  or 40 an hour in all (the client's copy never is). The visitor sees "sent" only after the commit. The jobs then go
+  on the `rtarium-email` queue.
+- **The queue consumer** (`worker/mailer.ts`): sends each job through Cloudflare Email Service (30 s limit) and records
+  it in `email_outbox`; failures retry with backoff, then the job is marked `failed` and an alert goes out. A client
+  copy refused outright is sent once more without the visitor as Reply-To. Each job row is locked while it sends.
+- **Every 5 minutes** (cron): jobs stuck `pending`/`queued` for 10 minutes go back on the queue. **On the hour**: an
+  alert if emails have waited over 30 minutes or the database does not answer.
+- **Alerts** (`worker/alert.ts`): always `[ALERT] …` in the Worker logs; also posted to `ALERT_WEBHOOK_URL` (Slack,
+  Google Chat, Discord or Telegram webhook) when that secret is set. One per problem per 15 minutes.
+- **Security headers**: `scripts/write-headers.mjs` writes `dist/_headers` at build (CSP with the inline script's hash,
+  no framing, nosniff, HSTS, …). The API sets its own in `worker/http.ts`.
+- **Database**: `db/schema.sql` is the tables, rules and indexes the Worker expects (safe to re-run; on the live
+  database it only adds the missing indexes). `db/app-role.sql` makes `rtarium_app`, a user that can only read and add
+  enquiries and read, add and update email jobs: point Hyperdrive at it, not at the admin user.
 
 The two emails (`worker/emails.ts`):
 
@@ -34,13 +46,16 @@ The two emails (`worker/emails.ts`):
 
 The confirmation does not repeat the visitor's message, so the form cannot be used to mail arbitrary text to someone.
 
-**Secret** (once): `npx wrangler secret put TURNSTILE_SECRET_KEY`. Nothing else secret is in the repo: the database
-password lives in the Hyperdrive configuration.
+**Secrets** (once): `npx wrangler secret put TURNSTILE_SECRET_KEY`, and `npx wrangler secret put ALERT_WEBHOOK_URL`.
+Nothing secret is in the repo: the database password lives in the Hyperdrive configuration. A Turnstile *test*
+secret is refused on any host but localhost.
 
 **Developing the API locally**: `npm run build`, then `npx wrangler dev` (port 8787; `npm run dev` proxies `/api` to it).
 Hyperdrive needs a local connection string for that: set `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE`.
 Put `TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA` (Cloudflare's always-pass test secret) in `.dev.vars`;
-in development the form uses the matching test site key.
+in development the form uses the matching test site key. To test the built site under `wrangler dev`, build it with
+`VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA` (and rebuild without it before deploying). Locally, emails are written
+to `.wrangler/tmp/email/`, and `/cdn-cgi/handler/scheduled?cron=*/5+*+*+*+*` runs the cron.
 
 **Checking emails**: `select ref, kind, status, attempts, last_error from email_outbox join enquiries e on e.id = enquiry_id order by e.created_at desc;`
 

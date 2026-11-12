@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
-import { EMAIL_RE, ENQUIRY_FIELDS, INTERESTS, type Enquiry } from '../content/enquiry'
-import { TURNSTILE_SITE_KEY } from '../content/site'
+import { ENQUIRY_FIELDS, INTERESTS, cleanField, enquiryField, fieldProblem, type Enquiry } from '../content/enquiry'
+import { ENQUIRY_ADDRESS, TURNSTILE_SITE_KEY } from '../content/site'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
 
 /**
@@ -34,16 +34,14 @@ const KIND: Partial<Record<Key, { type: string; auto: string; place: string }>> 
   company: { type: 'text', auto: 'organization', place: 'Your company' },
 }
 
-/** what a required field says when it is left empty */
-const NEED: Partial<Record<Key, string>> = {
-  name: 'Enter your name',
-  email: 'Enter your email',
-  interest: 'Choose one',
-  message: 'Tell us a little about it',
-}
+/** a send that has had no answer by then is given up, and the visitor can try again (a repeat is recognised) */
+const SEND_TIMEOUT_MS = 25_000
 
 const two = (n: number) => String(n).padStart(2, '0')
-const field = (k: Key) => ENQUIRY_FIELDS.find((f) => f.key === k)!
+const field = enquiryField
+const stepOf = (k: Key) => STEPS.findIndex((s) => s.keys.includes(k))
+/** every field as it is sent: cleaned the same way the server cleans it */
+const cleaned = (v: Enquiry) => Object.fromEntries(ENQUIRY_FIELDS.map((f) => [f.key, cleanField(f, v[f.key])])) as Enquiry
 
 /** a line revealed by a block of its own colour: the block runs across it, the words come up under it, it runs off */
 function Mask({ k, children }: { k: number; children: ReactNode }) {
@@ -84,6 +82,9 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
   /** Turnstile's one-use token, once the check has passed; and the widget, to reset it after a failed send */
   const [token, setToken] = useState('')
   const verify = useRef<TurnstileHandle | null>(null)
+  /** the check could not load or failed; and a count that, raised, puts up a fresh widget */
+  const [trouble, setTrouble] = useState(false)
+  const [verifyTry, setVerifyTry] = useState(0)
   /** moved on or back by the visitor (not the page's first showing): the step's first field takes the cursor */
   const moved = useRef(false)
   const last = step === STEPS.length - 1
@@ -122,8 +123,11 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
   /** a step's fields, checked: what is wrong with each is said under it, and the first takes the cursor */
   const check = (s: number) => {
     const w: Partial<Record<Key, string>> = {}
-    for (const k of STEPS[s].keys) if (field(k).required && !v[k].trim()) w[k] = NEED[k] ?? 'Needed'
-    if (STEPS[s].keys.includes('email') && v.email.trim() && !EMAIL_RE.test(v.email.trim())) w.email = 'Check the address'
+    for (const k of STEPS[s].keys) {
+      const f = field(k)
+      const p = fieldProblem(f, cleanField(f, v[k]))
+      if (p) w[k] = p
+    }
     setWrong((o) => {
       const next = { ...o }
       for (const k of STEPS[s].keys) next[k] = w[k]
@@ -154,7 +158,12 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
         return
       }
     if (!token) {
-      setState({ kind: 'error', text: 'Please wait for the verification check below to finish, then send.' })
+      setState({
+        kind: 'error',
+        text: trouble
+          ? `The verification check did not load. Try it again below, or write to ${ENQUIRY_ADDRESS}.`
+          : 'Please wait for the verification check below to finish, then send.',
+      })
       return
     }
     setState({ kind: 'sending' })
@@ -163,27 +172,43 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
       setToken('')
       verify.current?.reset()
     }
+    const stop = new AbortController()
+    const late = window.setTimeout(() => stop.abort(), SEND_TIMEOUT_MS)
     try {
       const r = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...v, website: trap, turnstileToken: token }),
+        body: JSON.stringify({ ...cleaned(v), website: trap, turnstileToken: token }),
+        signal: stop.signal,
       })
-      const out = (await r.json().catch(() => ({}))) as { ok?: boolean; ref?: string; error?: string }
+      const out = (await r.json().catch(() => ({}))) as { ok?: boolean; ref?: string; error?: string; field?: string }
       if (r.ok && out.ok) setState({ kind: 'sent', ref: out.ref })
       else {
         fresh()
-        setState({ kind: 'error', text: out.error ?? 'The enquiry could not be sent. Please try again.' })
+        // the server found a field wrong: back to its step, said under it as the form says it
+        const k = ENQUIRY_FIELDS.find((f) => f.key === out.field)?.key
+        if (k && out.error) {
+          setWrong((o) => ({ ...o, [k]: out.error }))
+          moved.current = true
+          setStep(stepOf(k))
+          setState({ kind: 'error', text: `${field(k).label}: ${out.error}.` })
+        } else setState({ kind: 'error', text: out.error ?? 'The enquiry could not be sent. Please try again.' })
       }
     } catch {
       fresh()
-      setState({ kind: 'error', text: 'No connection. Please try again.' })
+      setState({
+        kind: 'error',
+        text: stop.signal.aborted ? 'This is taking too long. Please try again.' : 'No connection. Please try again.',
+      })
+    } finally {
+      window.clearTimeout(late)
     }
   }
 
   const again = () => {
     setV(EMPTY)
     setWrong({})
+    setTrouble(false)
     setStep(0)
     moved.current = true
     setState({ kind: 'idle' })
@@ -335,20 +360,55 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
             {/* the last step: Cloudflare's check that a person is sending it */}
             {last && (
               <Turnstile
+                key={verifyTry}
                 siteKey={TURNSTILE_SITE_KEY}
                 handle={verify}
                 onToken={(t) => {
                   setToken(t)
+                  setTrouble(false)
                   if (state.kind === 'error') setState({ kind: 'idle' })
                 }}
                 onExpire={() => setToken('')}
+                onError={() => setTrouble(true)}
               />
             )}
+            {/* the check could not load or failed: what to do, and another way to reach us */}
+            {last && trouble && (
+              <p className="ct-verify-trouble" role="alert">
+                The verification check did not load. Check your connection, or allow challenges.cloudflare.com if a blocker
+                is on, then{' '}
+                <span className="ct-nowrap">
+                  <button
+                    type="button"
+                    className="ct-link"
+                    onClick={() => {
+                      setTrouble(false)
+                      setVerifyTry((n) => n + 1)
+                    }}
+                  >
+                    try again
+                  </button>
+                  .
+                </span>{' '}
+                Or write to us at <a href={`mailto:${ENQUIRY_ADDRESS}`}>{ENQUIRY_ADDRESS}</a>.
+              </p>
+            )}
 
-            {/* for bots only: a person never sees it */}
+            {/* for bots only: a person never sees it. Named so that browsers and password managers leave it alone */}
             <label className="ct-trap" aria-hidden="true">
-              Website
-              <input type="text" name="website" tabIndex={-1} autoComplete="off" value={trap} onChange={(e) => setTrap(e.target.value)} />
+              Leave this empty
+              <input
+                type="text"
+                name="ct-extra"
+                tabIndex={-1}
+                autoComplete="off"
+                data-1p-ignore=""
+                data-lpignore="true"
+                data-bwignore=""
+                data-form-type="other"
+                value={trap}
+                onChange={(e) => setTrap(e.target.value)}
+              />
             </label>
 
             <div className="ct-foot">

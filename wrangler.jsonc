@@ -51,7 +51,10 @@
     "FROM_ADDRESS": "enquiries@rtarium.com",
     "CLIENT_ADDRESS": "info@rtarium.com"
   },
-  // secret, set with `npx wrangler secret put TURNSTILE_SECRET_KEY` (never in this file): TURNSTILE_SECRET_KEY
+  // secrets, set with `npx wrangler secret put NAME` (never in this file):
+  //   TURNSTILE_SECRET_KEY  the contact form's Turnstile secret (required)
+  //   ALERT_WEBHOOK_URL     where problems are reported: a Slack, Google Chat, Discord or Telegram webhook (optional,
+  //                         but without it a failed email is only in the logs)
 
   "observability": { "enabled": true }
 }

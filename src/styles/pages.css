@@ -424,6 +424,43 @@
   min-height: 65px;
   margin-top: clamp(16px, 2.6vh, 24px);
 }
+/* the check could not load: what to do, marked as the form marks what is wrong (the brand's yellow, never red) */
+.ct-verify-trouble {
+  margin-top: 10px;
+  padding: 8px 12px;
+  max-width: 52ch;
+  background: var(--yellow);
+  color: var(--black);
+  font-size: var(--t-small);
+  line-height: 1.5;
+}
+/* the widget that did not load leaves no empty box above the note */
+.ct-verify:has(+ .ct-verify-trouble) {
+  min-height: 0;
+}
+.ct-nowrap {
+  white-space: nowrap;
+}
+.ct-verify-trouble a,
+.ct-link {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ct-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ct-link:focus-visible,
+.ct-verify-trouble a:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 2px;
+}
 .ct-trap {
   position: absolute;
   left: -9999px;

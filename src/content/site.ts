@@ -23,6 +23,12 @@ export const contactConfigured = () => Boolean(SITE.contact.email || SITE.contac
 export const TURNSTILE_SITE_KEY: string =
   import.meta.env.VITE_TURNSTILE_SITE_KEY || (import.meta.env.DEV ? '1x00000000000000000000AA' : '0x4AAAAAAF81S59VTqixzZll')
 
+/**
+ * Where enquiries go (the Worker's CLIENT_ADDRESS in wrangler.jsonc). The contact form offers it only when its
+ * verification check cannot load, so a visitor is never left without a way to reach RTARIUM.
+ */
+export const ENQUIRY_ADDRESS = 'info@rtarium.com'
+
 /** `?review` in the address shows the open questions beside flagged figures. */
 export const REVIEW_MODE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('review')
 
