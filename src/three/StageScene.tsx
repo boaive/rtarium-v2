@@ -996,7 +996,7 @@ export function StageScene({ compact, reduced }: Props) {
 
       // (what this view draws, for a phone's comparison with the next frame)
       const sig = (a: number, b: number) => {
-        sigNow.push(...camera.matrixWorld.elements, ...camera.projectionMatrix.elements, a, b, f.winX, f.winZ, f.band, f.weaveX, f.weaveZ, f.explode, f.xray, f.flex, f.axes, f.shear, f.dim, f.widthDim, f.slabs, f.gap, f.pour, f.shadow)
+        sigNow.push(...camera.matrixWorld.elements, ...camera.projectionMatrix.elements, a, b, f.winX, f.winZ, f.band, f.weaveX, f.weaveZ, f.explode, f.xray, f.flex, f.axes, f.shear, f.dim, f.widthDim, f.slabs, f.gap, f.pour, f.shadow, f.flat)
         sigNow.push(...v.dim.toArray(), ...v.vis.toArray(), ...v.glow.toArray(), ...v.face.toArray(), ...v.pile.toArray(), ...v.fogColor.toArray(), v.fog[0], v.fog[1])
         sigNow.push(mortar.current?.visible ? since : 0, concrete.opacity, mortarU.uFront.value, catcherMat.opacity, gl.toneMappingExposure, scene.environmentIntensity, keyLight.current?.intensity ?? 0)
         if (tile.current) sigNow.push(tile.current.position.y, tile.current.rotation.x, tile.current.rotation.z, tile.current.scale.x)

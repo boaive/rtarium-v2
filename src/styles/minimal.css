@@ -1511,17 +1511,35 @@
     background: none;
     box-shadow: none;
   }
-  :root .nav.nav .nav__menu-cell {
+  /* (the menu: the three lines alone, white on the glass, no ring round them) */
+  :root .nav.nav .nav__menu-cell,
+  :root .nav.nav.is-open .nav__menu-cell {
     width: 40px;
     height: 40px;
-    background: rgb(255 255 255 / 0.1);
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+    background: none;
+    box-shadow: none;
     color: var(--white);
   }
-  :root .nav.nav.is-open .nav__menu-cell {
-    background: var(--yellow);
-    box-shadow: none;
-    color: var(--black);
+  :root .nav.nav .nav__menu-icon,
+  :root .nav.nav .nav__menu-icon i {
+    width: 22px;
+  }
+
+  /*
+   * About, Innovation and Tech Space: the words and the controls stand in place as a part comes up, no rise or fade of
+   * their own (played as each part landed, after its swipe, they read as a jolt; on a phone that missed the moment they
+   * stayed half there, the controls flickering)
+   */
+  :root :is(#about, #innovation, #tech) .rv,
+  :root :is(#about, #innovation, #tech) .scene.is-active .rv {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  :root :is(#about, #innovation, #tech) .word__in,
+  :root :is(#about, #innovation, #tech) .scene.is-active .word__in {
+    transform: none;
+    animation: none;
   }
 
   /* the opening: no chevron at the foot, Scroll to explore alone says the way on */

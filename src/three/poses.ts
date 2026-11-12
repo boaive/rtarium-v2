@@ -404,6 +404,7 @@ export const POUR_OUT: Pose = {
  */
 const card = (id: PoseId, o: Partial<Pose>): Pose => ({ ...POSES[id], press: false, sway: 0, spin: 0, labels: [], ...o })
 export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
+  // (Innovation's three: no fog, the mesh its own colour right to its far edge: fog [6, 8], far past it)
   // as on a wide screen, close and low over the sheet's near edge, its two faces and the fibres between them large;
   // turned about the sheet's middle, so whichever way it has turned an edge of it stands in front
   structure: card('structure', { tgt: [0, -0.002, 0], dist: 0.14, frameBox: [0.5, 0.6], spin: 2 }),
@@ -413,15 +414,15 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   // close on the mortar running in; once it has, turning slowly
   pour: card('pour', { spin: 2 }),
   // (the whiteboard: a broad sheet across the lower screen, at an angle, the X, Y and Z arrows standing out of it)
-  depth: card('depth', { tgt: [0.012, 0.012, 0.02], elev: 26, azim: 36, distCompact: 0.4, win: [18, 18], fog: [0.36, 0.8], frameBox: [0.42, 0.6], spin: 2 }),
+  depth: card('depth', { tgt: [0.012, 0.012, 0.02], elev: 26, azim: 36, distCompact: 0.4, win: [18, 18], fog: [6, 8], frameBox: [0.42, 0.6], spin: 2 }),
   // low on its front edge, so its thickness (the two faces and the fibres between them) shows along the foot
   // RTARIUM: in close and low on the sheet's front edge, its upper face, the fibres looping between and its lower face
   // all in view, the edge running a little uphill across the card; Flat mesh takes the lower face and the fibres away
   // and leaves the camera where it is
-  shear: card('shear', { tgt: [0, -0.002, 0.058], elev: 9, azim: 14, dist: 0.12, distCompact: 0.12, frameBox: [0.5, 0.55], win: [14, 14], fog: [0.12, 0.4], shadow: 1 }),
+  shear: card('shear', { tgt: [0, -0.002, 0], elev: 22, azim: 14, dist: 0.23, distCompact: 0.23, frameBox: [0.5, 0.58], win: [14, 8], tilt: [0, 5], fog: [6, 8], shadow: 1, shearPlane: false }),
   // (the sketch) from above, its grid square to the card, its far edge half way down rising a little to the right, the
   // near part running off the foot
-  mineral: card('mineral', { tgt: [0, 0, -0.035], elev: 48, azim: -8, dist: 0.125, distCompact: 0.125, fov: 38, frameBox: [0.5, 0.66], win: [12, 12], tilt: [0, 3], fog: [0.16, 0.4], shadow: 1 }),
+  mineral: card('mineral', { tgt: [0, 0, -0.035], elev: 48, azim: -8, dist: 0.125, distCompact: 0.125, fov: 38, frameBox: [0.5, 0.66], win: [12, 12], tilt: [0, 3], fog: [6, 8], shadow: 1, spin: 2 }),
 }
 
 /* ---- the opening tour -------------------------------------------------------------------------- */
