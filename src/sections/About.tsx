@@ -4,6 +4,7 @@ import { VideoLoop } from '../components/Media'
 import { StageLabel } from '../three/Stage'
 import { useIsCompact } from '../lib/motion'
 
+const THICK = [3, 6, 10, 15]
 const MAKING = ['Basalt rock', 'Melted', 'Drawn into filaments', 'Woven into the mesh']
 
 /** the notes on the cast panel at the close of "In concrete" */
@@ -44,10 +45,18 @@ const steps: Step[] = [
         <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
           Two basalt mesh faces, connected by vertical fibres to form a 3D structure.
         </p>
-        <p className="figure rv" style={{ '--i': 4 } as CSSProperties}>
+        <div className="figure rv" style={{ '--i': 4 } as CSSProperties}>
           <span className="figure__label">Thickness options</span>
           <span className="figure__value num">3 / 6 / 10 / 15 mm</span>
-        </p>
+          {/* (a phone sets them as chips: minimal.css) */}
+          <ul className="figure__chips" aria-hidden="true">
+            {THICK.map((t) => (
+              <li key={t} className="num">
+                {t} mm
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     ),
   },
@@ -98,7 +107,7 @@ const steps: Step[] = [
 export function About() {
   return (
     <>
-      <Track id="about" title="About RTARIUM" steps={steps} phoneGround="yellow" />
+      <Track id="about" title="About RTARIUM" steps={steps} />
       <StageLabel anchor="upper-face">Upper face</StageLabel>
       <StageLabel anchor="fibres">Connecting fibres</StageLabel>
       <StageLabel anchor="lower-face" side="left">

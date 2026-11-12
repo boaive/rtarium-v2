@@ -174,7 +174,7 @@ export function Rows({ id, title, steps, ground = 'light' }: { id: string; title
         <p className="eb__title">{title}</p>
       </header>
       {steps.map((s, i) => (
-        <Row key={s.id} chapter={id} step={s} index={i} ground={ground} />
+        <Row key={s.id} chapter={id} title={title} count={steps.length} step={s} index={i} ground={ground} />
       ))}
     </section>
   )
@@ -254,7 +254,7 @@ function Loop({ pose }: { pose: PoseId }) {
   )
 }
 
-function Row({ chapter, step, index, ground }: { chapter: string; step: Step; index: number; ground: Ground }) {
+function Row({ chapter, title, count, step, index, ground }: { chapter: string; title: string; count: number; step: Step; index: number; ground: Ground }) {
   const row = useRef<HTMLElement>(null)
   const box = useRef<HTMLDivElement>(null)
   const none = useRef<HTMLDivElement>(null)
@@ -321,6 +321,16 @@ function Row({ chapter, step, index, ground }: { chapter: string; step: Step; in
   const still = failed ? STILLS[step.pose] : undefined
   return (
     <article ref={row} id={`${chapter}-${step.id}`} className={`eb-row scene scene--${step.id} on-${ground} ${active ? 'is-active' : seen ? 'is-seen' : ''}`}>
+      {/* (About: which of how many, under the chapter's name, a line drawn in as far as this part) */}
+      <div className="eb-row__bar" aria-hidden="true">
+        <span className="eb-row__chapter">{title}</span>
+        <span className="eb-row__pos num">
+          {two(index + 1)} / {two(count)}
+          <i className="eb-row__track">
+            <i style={{ width: `${((index + 1) / count) * 100}%` }} />
+          </i>
+        </span>
+      </div>
       <h3 className="eb-row__num">
         <span className="eb-row__n num" aria-hidden="true">{two(index + 1)}</span>
         {step.label}
@@ -335,6 +345,23 @@ function Row({ chapter, step, index, ground }: { chapter: string; step: Step; in
           <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
         </div>
       </figure>
+      {index < count - 1 && (
+        <button
+          type="button"
+          className="eb-row__next"
+          aria-label="Next part"
+          onClick={() => {
+            const next = row.current?.nextElementSibling as HTMLElement | null
+            // (the next part's bar comes to rest just clear of the header floating over the page)
+            const nav = document.querySelector<HTMLElement>('header.nav')?.getBoundingClientRect().height ?? 0
+            if (next) scrollToY(next.getBoundingClientRect().top + window.scrollY - nav)
+          }}
+        >
+          <svg viewBox="0 0 16 10" width="14" height="9" aria-hidden="true">
+            <path d="M1.5 1.5 8 8l6.5-6.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          </svg>
+        </button>
+      )}
     </article>
   )
 }

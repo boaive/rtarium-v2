@@ -559,6 +559,9 @@
   font-size: var(--t-small);
   font-weight: 600;
 }
+.figure__chips {
+  display: none;
+}
 .figure__value {
   font-size: clamp(1.4rem, 2vw, 2rem);
 }
