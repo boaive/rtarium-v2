@@ -35,6 +35,8 @@ export interface Pose {
   /** where the target sits on screen, as fractions of the viewport (desktop, phone) */
   frame: [number, number]
   frameCompact: [number, number]
+  /** where the target stands in a phone's card (share of its width, height): its middle unless the mesh needs it lower */
+  frameBox?: [number, number]
   /** fall-off into the ground colour: distance (m) where it starts and where it is complete */
   fog: [number, number]
   look: Look
@@ -191,6 +193,10 @@ export const POSES: Record<PoseId, Pose> = {
     frame: [0.4, 0.3],
     // phones: under the copy at the top, above the carousel at the foot
     frameCompact: [0.5, 0.64],
+    // (in a phone's card the sheet's corner stands low, so the mesh reaches the card's foot)
+    frameBox: [0.5, 0.62],
+    // (a finger on its card presses the sheet where it touches)
+    press: true,
     fog: [0.2, 0.7],
     sway: 6,
     labels: ['upper-face', 'lower-face', 'fibres'],
@@ -229,6 +235,8 @@ export const POSES: Record<PoseId, Pose> = {
     frame: [0.26, 0.58],
     // phones: under the copy and the footage
     frameCompact: [0.5, 0.71],
+    // (in a phone's card the slab's edge low in it, no bare band under it)
+    frameBox: [0.5, 0.62],
     fog: [0.16, 0.5],
     sway: 3,
     win: [16, 16],

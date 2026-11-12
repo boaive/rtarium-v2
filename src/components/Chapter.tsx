@@ -268,7 +268,8 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
   // pressed and held, the card's mesh turns in the hand (its own, eased back to its pose once let go: StageScene)
   const [turn] = useState<Turn>(() => ({ yaw: 0, pitch: 0, dragging: false, touch: { x: 0, y: 0, down: false } }))
   useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true, turn })
-  // (About's cards are not turned by hand: a finger anywhere on its parts only ever swipes the page on)
+  // (About's cards are not turned by hand: a finger anywhere on its parts only ever swipes the page on; it still presses
+  // the sheet where it touches)
   const handled = !filmed && chapter !== 'about'
   useOrbitDrag(handled ? box : none, turn)
   // a finger on the card presses the sheet where it is, as the cursor does on a wide screen (StageScene, where the
@@ -276,7 +277,7 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
   useEffect(() => {
     const el = box.current
     const t = turn.touch
-    if (!handled || !el || !t) return
+    if (filmed || !el || !t) return
     let id = -1
     const at = (e: PointerEvent) => {
       const r = el.getBoundingClientRect()
@@ -308,7 +309,7 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
       window.removeEventListener('pointercancel', up)
       t.down = false
     }
-  }, [handled, turn])
+  }, [filmed, turn])
   useEffect(() => {
     const el = row.current
     if (!el) return

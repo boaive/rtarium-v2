@@ -1344,6 +1344,42 @@
     font-weight: 500;
   }
 
+  /* ---- applications as "Three ways onto a building": the heading over a hairline, one picture, the picker under it ---- */
+  .apps.apps--pick {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+    padding: 0;
+  }
+  .apps--pick .apps__head {
+    padding: calc(var(--nav-h) + clamp(28px, 5svh, 44px)) var(--gutter) clamp(22px, 3.6svh, 32px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .apps--pick .apps__title {
+    font-size: clamp(2rem, 9.4vw, 2.6rem);
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    line-height: 1.02;
+  }
+  .apps__stage {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: clamp(18px, 3svh, 28px);
+    padding-top: clamp(22px, 4svh, 36px);
+    touch-action: pan-y;
+  }
+  /* (the picture takes the room the words leave, whatever its own size: the picker under it never moves) */
+  .apps__pic {
+    display: block;
+    flex: 1 1 0;
+    width: calc(100% - 2 * var(--gutter));
+    min-height: clamp(220px, 34svh, 360px);
+    margin: 0 var(--gutter);
+    object-fit: cover;
+    animation: pick-in 0.55s var(--ease-out) both;
+  }
+
   /* ---- applications: Enerblock's solution rows, the picture framed under the words ---------------------------- */
 
   .apps__title {

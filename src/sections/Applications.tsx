@@ -1,12 +1,44 @@
-import { useRef, type CSSProperties } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { APPLICATIONS } from '../content/site'
 import { Link } from '../lib/router'
 import { useScreen } from '../components/Chapter'
 import { useIsCompact } from '../lib/motion'
 import { useMarkIn } from '../lib/reveal'
+import { PhonePick } from '../facade/PhonePick'
+
+/**
+ * A phone's applications, set as the façade pages' "Three ways onto a building": the heading over a hairline, one
+ * application's picture at a time, large, and under it the same picker (its number and name; which of three, back and
+ * on; its line and the way in). A sideways swipe across the picture or the words moves one along.
+ */
+function PhoneApplications() {
+  const ref = useRef<HTMLElement>(null)
+  const stage = useRef<HTMLDivElement>(null)
+  const [at, setAt] = useState(0)
+  useScreen(ref, 'applications', 'light')
+  const a = APPLICATIONS[at]
+  return (
+    <section id="applications" ref={ref} className="apps apps--pick" aria-labelledby="apps-title" data-screen="light" data-flow="">
+      <header className="apps__head">
+        <h2 id="apps-title" className="apps__title">
+          Built into three applications.
+        </h2>
+      </header>
+      <div ref={stage} className="apps__stage">
+        <img key={a.id} className="apps__pic" src={a.image.src} alt={a.image.alt} loading="lazy" decoding="async" style={{ objectPosition: a.image.position }} />
+        <PhonePick items={APPLICATIONS.map((x, i) => ({ n: i + 1, title: x.title, line: x.points.join(' · '), path: x.path }))} at={at} onPick={setAt} swipeRef={stage} />
+      </div>
+    </section>
+  )
+}
 
 /** One warm-white screen: the three applications side by side, full height. */
 export function Applications() {
+  const compact = useIsCompact()
+  return compact ? <PhoneApplications /> : <WideApplications />
+}
+
+function WideApplications() {
   const ref = useRef<HTMLElement>(null)
   const list = useRef<HTMLUListElement>(null)
   const compact = useIsCompact()
