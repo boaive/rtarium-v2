@@ -63,15 +63,37 @@
   :root #replaces .ledger__in {
     height: 100lvh;
   }
-  :root #about .eb-row,
-  :root #innovation .eb-row,
   :root #tech .eb-row {
     height: 100lvh;
     padding-bottom: calc(clamp(14px, 2.6svh, 24px) + var(--bar));
   }
+  /*
+   * About and Innovation scroll freely (no stop a swipe at each part): each part is as tall as what it holds, its number
+   * straight under the hairline of the part before, a figure of its own proportion. As a screen each (the header's room
+   * at its top, the figure stretched to the foot), a band of bare ground stood between one part's figure and the next
+   * part's number as the page scrolled.
+   */
+  :root #about .eb-row,
+  :root #innovation .eb-row,
   :root #about .eb-row:first-of-type,
   :root #innovation .eb-row:first-of-type {
-    height: calc(100lvh - var(--about-head));
+    height: auto;
+    padding-top: 0;
+    padding-bottom: clamp(28px, 5svh, 40px);
+  }
+  :root #about .eb-row .eb-fig,
+  :root #innovation .eb-row .eb-fig {
+    flex: none;
+  }
+  /* (a figure line, as Thickness options, the width of the column: its rule and its value end where the card does) */
+  :root .eb .eb-row .figure {
+    justify-self: stretch;
+    justify-content: space-between;
+  }
+  :root #about .eb-row .eb-fig__view,
+  :root #innovation .eb-row .eb-fig__view {
+    flex: none;
+    aspect-ratio: 1 / 0.86;
   }
   /*
    * ---- A sideways chapter on a phone (Innovation), set as the Facade pages set their steps: which of how many, small,
@@ -267,6 +289,46 @@
     100% {
       opacity: 0;
       transform: scale(1.15);
+    }
+  }
+  /*
+   * What it replaces on a phone: one screen, scrolled past as any other (nothing pinned, no stop a swipe). Its deck is
+   * dealt once as it comes into view, each card rising onto the one before, and then holds still; a tap on a card behind
+   * lifts it out of the deck and it settles in front as the others glide up behind it (Why's Cards).
+   */
+  :root #replaces {
+    height: 100lvh;
+  }
+  :root #replaces .ledger__in {
+    position: relative;
+  }
+  :root .vs--deck .vs__card {
+    transition:
+      transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--pos, 0) * 0.3s),
+      top 0.42s cubic-bezier(0.3, 0.6, 0.2, 1);
+  }
+  :root .vs--deck .vs__card.is-lift {
+    animation: vs-lift 0.2s cubic-bezier(0.3, 0, 0.6, 1) forwards;
+  }
+  :root .vs--deck .vs__card.is-land {
+    animation: vs-land 0.42s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  @keyframes vs-lift {
+    to {
+      transform: translate3d(0, -34px, 0) scale(0.97);
+    }
+  }
+  @keyframes vs-land {
+    from {
+      transform: translate3d(0, -34px, 0) scale(0.97);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root .vs--deck .vs__card {
+      transition: none;
     }
   }
   /* what it is and the way to the team leave with the first fifth of the first swipe, never lingering at the foot of the

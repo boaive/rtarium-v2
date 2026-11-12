@@ -31,8 +31,6 @@ const ROWS = [
   { name: 'Flat 2D mesh', what: 'A single grid that reinforces only along the sheet.', weak: 'Works in one plane.' },
 ]
 const STRENGTHS = ['Non-corrosive.', 'Alkali-resistant.', 'Three-dimensional.']
-/** a phone's swipe stops through the deck (Hero's useSwipePager), as shares of its run: each card in front, one a swipe */
-const DECK_STOPS = '0,0.5,1'
 /** the rows' way in, as shares of the screen's rise (as the flooring pages' table): the first starts at FROM, each takes SPAN */
 const FROM = 0.3
 const SPAN = 0.36
@@ -41,30 +39,53 @@ const SPAN = 0.36
  * On a phone the table is three cards, one for each strength of RTARIUM, each set against the compromise it
  * replaces (the client's columns line up: steel fibre corrodes, the mesh does not; AR-glass fibre is vulnerable to
  * alkali, the mesh is alkali-resistant; a flat mesh works in one plane, the mesh in three). Under the strength, the
- * reinforcement it replaces, struck through, its weakness and what it is. RTARIUM is set above them; the cards stack
- * as the page scrolls (mobile.css).
+ * reinforcement it replaces, struck through, its weakness and what it is. RTARIUM is set above them; the cards are
+ * dealt once and then hold still, a tap shuffling one to the front (Cards).
  */
-function Cards({ list }: { list: RefObject<HTMLOListElement | null> }) {
+/** a shuffle: how long the card takes to lift out of the deck before it goes to the front, and to settle there (ms) */
+const SHUFFLE = { lift: 200, land: 420 }
+
+function Cards({ list, dealt }: { list: RefObject<HTMLOListElement | null>; dealt: boolean }) {
   /*
    * A deck, all three on one screen: the ones behind tucked up under the one in front, their numbers and their
-   * strengths still showing; a tap on one tucked behind brings it to the front. The front card is read in full.
+   * strengths still showing. It is dealt once, the first time it comes into view (`dealt`: each card rises onto the
+   * one before), and then holds still, the page scrolling past it as past any other. A tap on one tucked behind
+   * shuffles it to the front: it lifts up out of the deck, goes to the front as the others close up behind it, and
+   * settles. The cards keep their place in the page (only their slot, `--pos`, changes), so they glide to their new
+   * slots rather than jump. The front card is read in full.
    */
   const [front, setFront] = useState(ROWS.length - 1)
+  const [moving, setMoving] = useState<{ i: number; phase: 'lift' | 'land' } | null>(null)
   const order = [...ROWS.keys()].filter((i) => i !== front).concat(front)
+  const timers = useRef<number[]>([])
+  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), [])
+  const shuffle = (i: number) => {
+    if (moving) return
+    if (prefersReducedMotion()) return setFront(i)
+    setMoving({ i, phase: 'lift' })
+    timers.current.push(
+      window.setTimeout(() => {
+        setFront(i)
+        setMoving({ i, phase: 'land' })
+      }, SHUFFLE.lift),
+      window.setTimeout(() => setMoving(null), SHUFFLE.lift + SHUFFLE.land),
+    )
+  }
   return (
     <>
       <p className="vs__word">RTARIUM</p>
-      <ol ref={list} className="vs vs--deck">
-        {order.map((i, pos) => {
+      <ol ref={list} className={`vs vs--deck ${dealt ? 'is-dealt' : ''}`} style={{ '--deck': dealt ? ROWS.length - 1 : 0 } as CSSProperties}>
+        {[...ROWS.keys()].map((i) => {
+          const pos = order.indexOf(i)
           const r = ROWS[i]
           const isFront = i === front
           return (
             <li
               key={r.name}
-              className={`vs__card ${isFront ? 'is-front' : 'is-tucked'}`}
+              className={`vs__card ${isFront ? 'is-front' : 'is-tucked'} ${moving?.i === i ? `is-${moving.phase}` : ''}`}
               style={{ '--i': i, '--pos': pos } as CSSProperties}
-              onClick={isFront ? undefined : () => setFront(i)}
-              onKeyDown={isFront ? undefined : (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setFront(i))}
+              onClick={isFront ? undefined : () => shuffle(i)}
+              onKeyDown={isFront ? undefined : (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), shuffle(i))}
               role={isFront ? undefined : 'button'}
               tabIndex={isFront ? undefined : 0}
               aria-label={isFront ? undefined : `${STRENGTHS[i]} Show this card`}
@@ -117,37 +138,11 @@ function Replaces() {
   // the band plays when it is itself on screen, not when the table above it is
   const [band, bandIn] = useInView<HTMLDivElement>('0px 0px -8% 0px')
 
-  // a phone: the section holds still (pinned, minimal.css) while the scroll brings the second card and then the third up
-  // over the first, `--deck` 0 to 2 across the run; then the page goes on
+  // a phone: the deck is dealt once, the first time it is in view, and then holds still (no stop a swipe, nothing pinned)
+  const [dealt, setDealt] = useState(false)
   useEffect(() => {
-    const el = section.current
-    const deck = cards.current
-    if (!compact || !el || !deck) return
-    const still = prefersReducedMotion()
-    let raf = 0
-    const read = () => {
-      raf = 0
-      const r = el.getBoundingClientRect()
-      // (the run is what the pinned panel stands still through: the section less the panel, which is as tall as the screen
-      // gets; less the window instead, which is shorter while the address bar shows, the third card came in only once the
-      // panel had begun to leave)
-      const pin = el.querySelector<HTMLElement>('[data-swipe-pin]')
-      const run = Math.max(1, r.height - (pin?.offsetHeight ?? window.innerHeight))
-      const p = still ? 1 : Math.min(1, Math.max(0, -r.top / run))
-      deck.style.setProperty('--deck', (p * 2).toFixed(4))
-    }
-    const on = () => {
-      if (!raf) raf = requestAnimationFrame(read)
-    }
-    read()
-    window.addEventListener('scroll', on, { passive: true })
-    window.addEventListener('resize', on)
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('scroll', on)
-      window.removeEventListener('resize', on)
-    }
-  }, [compact])
+    if (compact && inView) setDealt(true)
+  }, [compact, inView])
 
   // the rows with the scroll, no easing of their own: the page's glide (Lenis) is what makes it smooth
   useEffect(() => {
@@ -182,13 +177,13 @@ function Replaces() {
   }, [])
 
   return (
-    <section id="replaces" ref={section} className="ledger on-light" data-screen="light" data-flow={compact ? '' : undefined} data-swipe-stops={compact ? DECK_STOPS : undefined} aria-labelledby="replaces-title">
-      <div ref={ref} className={`ledger__in ${inView ? 'is-in' : ''}`} data-swipe-pin="">
+    <section id="replaces" ref={section} className="ledger on-light" data-screen="light" data-flow={compact ? '' : undefined} aria-labelledby="replaces-title">
+      <div ref={ref} className={`ledger__in ${inView ? 'is-in' : ''}`}>
         <h2 id="replaces-title" className="ledger__title">
           One mesh in place of three compromises.
         </h2>
         {compact ? (
-          <Cards list={cards} />
+          <Cards list={cards} dealt={dealt} />
         ) : (
           <>
             <table className="ledger__table">

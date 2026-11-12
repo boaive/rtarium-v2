@@ -372,9 +372,13 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       const zone = zoneAt(zones, touch.from, dir)
       // (a swipe that sets off where the page scrolls freely is the browser's own)
       if (!zone) return
+      step(zone, touch.from, dir)
+    }
+    /** a swipe (or a wheel's turn) `dir` from `from` in a paged stretch: on to the stop that way, or back to the one it left */
+    const step = (zone: Zone, from: number, dir: number) => {
       const { stops } = zone
       const y = window.scrollY
-      const i = stops.indexOf(nearestOf(stops, touch.from))
+      const i = stops.indexOf(nearestOf(stops, from))
       if (dir === 0) return glide(nearestOf(stops, y))
       if (dir > 0) {
         // the next stop on from where the swipe set off; past it already (a long drag), the next past where the page is;
@@ -389,6 +393,30 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       if (i === 0) return
       const prev = stops[i - 1]
       return glide(y < prev - 4 ? ([...stops].reverse().find((s) => s < y - 4) ?? stops[0]) : prev)
+    }
+    /*
+     * A wheel or a trackpad on a phone-sized window (a desktop's phone view, a tablet with a trackpad), the same as a
+     * swipe in a paged stretch: a turn of it (a notch, or a whole swipe of the pad, its momentum included) a stop. Left
+     * to scroll freely there, it stopped wherever it ran out, in the white as often as not, a blank screen.
+     */
+    const wheelSeen = { at: -Infinity, dir: 0, size: 0, freshAt: -Infinity }
+    const wheel = (e: WheelEvent) => {
+      if (e.ctrlKey || !e.deltaY) return
+      const dir = Math.sign(e.deltaY)
+      const from = gliding() && aim !== null ? aim : window.scrollY
+      const zone = zoneAt(pagedZones(el), from, dir)
+      if (!zone) return
+      e.preventDefault()
+      // a new turn: after a pause, the other way, or (a trackpad's momentum still dying away) one markedly stronger than
+      // the tail it lands on, never the tail itself
+      const size = Math.abs(e.deltaY)
+      const fresh = e.timeStamp - wheelSeen.at > 160 || dir !== wheelSeen.dir || (size >= 30 && size > wheelSeen.size * 2 && e.timeStamp - wheelSeen.freshAt > 260)
+      wheelSeen.at = e.timeStamp
+      wheelSeen.dir = dir
+      wheelSeen.size = size
+      if (!fresh || performance.now() - stage.heldAt < 400) return
+      wheelSeen.freshAt = e.timeStamp
+      step(zone, from, dir)
     }
     /** a page come to rest inside a paged stretch between two of its stops (a fling run on into it): to the nearer */
     let quiet = 0
@@ -409,8 +437,10 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     const cancel = () => void (touch.down = false)
     window.addEventListener('touchcancel', cancel, { passive: true })
     window.addEventListener('scroll', scrolled, { passive: true })
+    window.addEventListener('wheel', wheel, { passive: false })
     return () => {
       window.clearTimeout(quiet)
+      window.removeEventListener('wheel', wheel)
       window.removeEventListener('touchstart', start)
       window.removeEventListener('touchend', end)
       window.removeEventListener('touchcancel', cancel)
