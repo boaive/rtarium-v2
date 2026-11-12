@@ -392,14 +392,6 @@ export const POUR_OUT: Pose = {
   labelZone: [0.02, 0.4, 0.98, 0.95],
 }
 
-/** the same on a phone's card: the whole block, corner on and square to the card, every edge clear of the box's sides */
-export const POUR_OUT_PHONE: Pose = {
-  ...POUR_OUT,
-  elev: 38,
-  azim: -45,
-  distCompact: 1,
-}
-
 /* ---- the opening tour -------------------------------------------------------------------------- */
 
 type TourKey = Pick<Pose, 'tgt' | 'elev' | 'azim' | 'dist' | 'fov' | 'frame' | 'frameCompact' | 'fog' | 'win'> & { at: number; distCompact: number }

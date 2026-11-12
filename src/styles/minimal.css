@@ -442,6 +442,11 @@
     aspect-ratio: auto;
   }
 
+  /* Material: the words alone, its mesh given the room the steps took */
+  #about .eb-row .chain {
+    display: none;
+  }
+
   /* the mesh with no frame, across the full width */
   :root :is(#about, #innovation) .eb-fig {
     margin-inline: calc(-1 * var(--gutter));
