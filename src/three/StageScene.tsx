@@ -56,7 +56,9 @@ const SWAY_PERIOD = 16
 /** how fast a view in a box turns, steadily, in degrees a second (once round in a minute) */
 const BOX_TURN = 6
 /** a phone's opening piece, tipped off the level about its own x and z (deg): a slant, not lying flat */
-const PHONE_SLANT: [number, number] = [-14, 20]
+const PHONE_SLANT: [number, number] = [-6, 9]
+/** and seen lower than a wide screen sees it (deg), three-quarters on, so its thickness and its two faces read */
+const PHONE_OPEN_ELEV = 28
 /**
  * a phone's opening piece turns slowly, one way, while the page rests on it (deg/s). Swiped on, it holds where it had
  * turned to while the mesh is built out round it (it once swung all the way back to its pose there, up to half a turn in
@@ -600,6 +602,7 @@ export function StageScene({ compact, reduced }: Props) {
         // the mesh is built out
         const level = 1 - smoothstep(0, 0.7, stage.tour)
         pose.tilt = [PHONE_SLANT[0] * level, PHONE_SLANT[1] * level]
+        if (stage.tour < 1) pose.elev = lerp(PHONE_OPEN_ELEV, pose.elev, smoothstep(0, 1, stage.tour))
       }
       // where the panel is: -1 entering from below, 0 in place, 1 leaving above (the opening runs its own tour)
       // (a view in a box holds still as its box scrolls: it turns on its own, steadily, as a looping film does)
@@ -619,7 +622,9 @@ export function StageScene({ compact, reduced }: Props) {
         // on the clock of the copy's own move to the left (it starts with the slide's `is-active`, and starts
         // over with it), so the notes, on the copy's line, never come in while the copy still stands on the right
         const played = active && !reduced ? pourClock() : null
-        if (active) f.pour = reduced ? 1.6 : played !== null ? Math.min(1.6, -0.25 + played / 1.85) : Math.min(1.6, f.pour + dt / 1.85)
+        // (a phone's card lets the mortar run in slowly, over some five seconds)
+        const pace = compact && r.box ? 5 : 1.85
+        if (active) f.pour = reduced ? 1.6 : played !== null ? Math.min(1.6, -0.25 + played / pace) : Math.min(1.6, f.pour + dt / pace)
         // (a phone's card keeps to the close view the mortar flows in under: it never stands back to the whole block)
         if (f.pour > 1.02 && !(compact && r.box)) pose = blendPose(pose, POUR_OUT, smoothstep(1.02, 1.6, f.pour), pourScratch)
       } else f.pour = -0.25

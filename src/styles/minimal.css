@@ -1576,21 +1576,58 @@
    * every card under it stay whole in view ----
    */
   .vs {
-    --line: calc(18px + 16px + 12px + clamp(1.4rem, 6.4vw, 1.8rem) * 1.15 + 12px);
+    --strength: clamp(1.55rem, 7.4vw, 2.1rem);
+    --line: calc(22px + 18px + 14px + var(--strength) * 1.15 + 14px);
     --peek: var(--line);
-    --card-h: clamp(222px, 31svh, 246px);
+    --card-h: clamp(236px, 35svh, 300px);
+  }
+  .vs__card,
+  .vs__card.is-in {
+    align-content: start;
+    gap: 14px;
+    padding: 22px 20px 24px;
+    border-radius: 14px;
   }
   .vs__top {
-    height: 16px;
+    height: 18px;
     min-height: 0;
     align-items: center;
   }
-  .vs__count {
-    line-height: 16px;
+  .vs__count,
+  .vs__count b {
+    font-size: 0.86rem;
+    line-height: 18px;
   }
   .vs__strength {
+    font-size: var(--strength);
     line-height: 1.15;
     white-space: nowrap;
+  }
+  .vs__other {
+    padding-top: 14px;
+  }
+  .vs__name {
+    font-size: 1.06rem;
+  }
+  .vs__weak {
+    font-size: 1rem;
+  }
+  .vs__what {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+}
+/* a short phone (or one with its browser bars showing): the heading over the deck tightens so the bigger cards keep their room */
+@media (max-width: 860px) and (max-height: 700px) {
+  #replaces .ledger__in {
+    padding-top: calc(var(--nav-h) + 12px);
+  }
+  #replaces .ledger__title {
+    font-size: clamp(1.5rem, 7vw, 2rem);
+  }
+  .vs__word {
+    margin-block: 10px 14px;
+    font-size: calc((100vw - 2 * var(--gutter)) * 0.11);
   }
 }
 
