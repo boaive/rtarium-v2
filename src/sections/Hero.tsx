@@ -370,8 +370,14 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       const dir = Math.abs(dy) > vh * SWIPE.reach || (speed > SWIPE.flick && Math.abs(dy) > 12) ? Math.sign(dy) : 0
       const zones = pagedZones(el)
       const zone = zoneAt(zones, touch.from, dir)
-      // (a swipe that sets off where the page scrolls freely is the browser's own)
-      if (!zone) return
+      if (!zone) {
+        // a swipe from where the page scrolls freely that has drawn it on into a paged stretch (the deck): to that
+        // stretch's first stop going down, its last going up, never through it
+        const into = zones.find((z) => !z.tour && zoneAt([z], window.scrollY, 0))
+        if (into) glide(dir < 0 ? into.stops[into.stops.length - 1] : into.stops[0])
+        // (otherwise the browser's own)
+        return
+      }
       step(zone, touch.from, dir)
     }
     /** a swipe (or a wheel's turn) `dir` from `from` in a paged stretch: on to the stop that way, or back to the one it left */
@@ -428,9 +434,37 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       const near = nearestOf(zone.stops, y)
       if (Math.abs(near - y) > 3) glide(near)
     }
+    /*
+     * A page carried by its own momentum (a fling, a wheel or a trackpad from where it scrolls freely) into a paged stretch
+     * (the deck) is caught at the stretch's first stop going down, its last going up, and held there a moment while the
+     * momentum dies: it ran on through every card before, the whole deck stacked in one swipe
+     */
+    let lastY = window.scrollY
+    const caught = { y: 0, until: 0 }
     const scrolled = () => {
       window.clearTimeout(quiet)
       quiet = window.setTimeout(settle, SWIPE.settle)
+      const y = window.scrollY
+      const was = lastY
+      lastY = y
+      if (performance.now() < caught.until) {
+        if (Math.abs(y - caught.y) > 1) window.scrollTo({ top: caught.y, behavior: 'instant' as ScrollBehavior })
+        lastY = caught.y
+        return
+      }
+      if (touch.down || gliding()) return
+      for (const z of pagedZones(el)) {
+        if (z.tour) continue
+        const first = z.stops[0]
+        const last = z.stops[z.stops.length - 1]
+        const at = was < first - 2 && y > first + 2 ? first : was > last + 2 && y < last - 2 ? last : null
+        if (at === null) continue
+        caught.y = at
+        caught.until = performance.now() + 320
+        window.scrollTo({ top: at, behavior: 'instant' as ScrollBehavior })
+        lastY = at
+        return
+      }
     }
     window.addEventListener('touchstart', start, { passive: true })
     window.addEventListener('touchend', end, { passive: true })
