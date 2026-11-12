@@ -268,13 +268,15 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
   // pressed and held, the card's mesh turns in the hand (its own, eased back to its pose once let go: StageScene)
   const [turn] = useState<Turn>(() => ({ yaw: 0, pitch: 0, dragging: false, touch: { x: 0, y: 0, down: false } }))
   useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true, turn })
-  useOrbitDrag(filmed ? none : box, turn)
+  // (About's cards are not turned by hand: a finger anywhere on its parts only ever swipes the page on)
+  const handled = !filmed && chapter !== 'about'
+  useOrbitDrag(handled ? box : none, turn)
   // a finger on the card presses the sheet where it is, as the cursor does on a wide screen (StageScene, where the
   // figure's pose takes a press); it springs back once the finger lifts or goes off to scroll
   useEffect(() => {
     const el = box.current
     const t = turn.touch
-    if (filmed || !el || !t) return
+    if (!handled || !el || !t) return
     let id = -1
     const at = (e: PointerEvent) => {
       const r = el.getBoundingClientRect()
@@ -306,7 +308,7 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
       window.removeEventListener('pointercancel', up)
       t.down = false
     }
-  }, [filmed, turn])
+  }, [handled, turn])
   useEffect(() => {
     const el = row.current
     if (!el) return
@@ -340,7 +342,7 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
         <div ref={box} className="eb-fig__view" data-screen={ground}>
           {/* the 3D is drawn into the card's own canvas (StageScene), so it scrolls with the card */}
           {filmed ? <Loop pose={step.pose} /> : still ? <img className="eb-fig__still" src={still} alt="" /> : <canvas className="eb-fig__canvas" aria-hidden="true" />}
-          {!filmed && !still && <TouchHint id="hold-card" when={active} icon="hold" text="Drag to turn" className="eb-fig__hint" />}
+          {handled && !still && <TouchHint id="hold-card" when={active} icon="hold" text="Drag to turn" className="eb-fig__hint" />}
           <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
           <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
         </div>

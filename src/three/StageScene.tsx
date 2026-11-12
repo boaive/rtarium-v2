@@ -312,10 +312,30 @@ export function StageScene({ compact, reduced }: Props) {
   const movedAt = useRef(-1e9)
   /** how far through its sway a phone's card has come (s): it advances only while that card sways */
   const cardPhase = useRef(0)
+  /** a finger on the screen: a phone's card holds still until it lifts and the page has come to rest (a swipe never
+      shares its frames with the card's sway) */
+  const touching = useRef(false)
   useEffect(() => {
     const on = () => void (movedAt.current = performance.now())
+    const down = () => {
+      touching.current = true
+      on()
+    }
+    const up = (e: TouchEvent) => {
+      if (e.touches.length) return
+      touching.current = false
+      on()
+    }
     window.addEventListener('scroll', on, { passive: true })
-    return () => window.removeEventListener('scroll', on)
+    window.addEventListener('touchstart', down, { passive: true })
+    window.addEventListener('touchend', up, { passive: true })
+    window.addEventListener('touchcancel', up, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('touchstart', down)
+      window.removeEventListener('touchend', up)
+      window.removeEventListener('touchcancel', up)
+    }
   }, [])
 
   const press = useMemo(() => new PressField(96, 96), [])
@@ -656,7 +676,7 @@ export function StageScene({ compact, reduced }: Props) {
       // (and only while the page is at rest: turning, it is drawn and copied into its card every frame, a weight on a
       // phone's frames that showed as a hitch while the page glided, and as it came to rest on About)
       if (compact && r.box && !pose.spin) {
-        if (!reduced && r === turning && now - movedAt.current >= 220) {
+        if (!reduced && r === turning && !touching.current && now - movedAt.current >= 300) {
           cardPhase.current += dt
           c.spin = CARD_SWAY.deg * Math.sin((cardPhase.current * Math.PI * 2) / CARD_SWAY.period)
         }
