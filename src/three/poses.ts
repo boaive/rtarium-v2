@@ -416,8 +416,9 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   depth: card('depth', { tgt: [0.012, 0.012, 0.02], elev: 26, azim: 36, distCompact: 0.4, win: [18, 18], fog: [0.36, 0.8], frameBox: [0.42, 0.6], spin: 2 }),
   // low on its front edge, so its thickness (the two faces and the fibres between them) shows along the foot
   shear: card('shear', { tgt: [0, -0.002, 0.05], elev: 17, azim: 30, dist: 0.18, distCompact: 0.18, frameBox: [0.5, 0.6], win: [18, 18], fog: [0.2, 0.55], shadow: 1, spin: 2 }),
-  // close and low, in perspective, running away up the card into the ground (no far edge); turning very slowly
-  mineral: card('mineral', { tgt: [0, 0, 0], elev: 32, azim: 30, dist: 0.2, distCompact: 0.2, fov: 40, frameBox: [0.5, 0.72], win: [18, 18], fog: [0.2, 0.33], shadow: 1, spin: 2 }),
+  // a short sheet inclined some 30 degrees, seen low from its edge: the edge and its thickness pushed forward, the face
+  // running away up the card; turning very slowly
+  mineral: card('mineral', { tgt: [0, 0, 0], elev: 14, azim: 24, dist: 0.24, distCompact: 0.24, fov: 34, frameBox: [0.5, 0.45], win: [10, 10], stand: 0.33, fog: [0.22, 0.5], shadow: 0, spin: 2 }),
 }
 
 /* ---- the opening tour -------------------------------------------------------------------------- */

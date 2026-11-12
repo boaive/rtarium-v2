@@ -31,6 +31,29 @@ const ROWS = [
   { name: 'Flat 2D mesh', what: 'A single grid that reinforces only along the sheet.', weak: 'Works in one plane.' },
 ]
 const STRENGTHS = ['Non-corrosive.', 'Alkali-resistant.', 'Three-dimensional.']
+/**
+ * a phone's cards: each strength drawn from the mesh itself, in hairlines with a touch of yellow. Non-corrosive: a roving
+ * of two twisted filaments, a drop running off it. Alkali-resistant: the roving straight through a ring of chemistry, untouched.
+ * Three-dimensional: one cell of the mesh, its two faces and the fibres standing between them.
+ */
+const GLYPHS = [
+  <svg key="nc" viewBox="0 0 40 40">
+    <path d="M5.0 34.0 L6.2 34.1 L7.4 34.1 L8.5 34.0 L9.5 33.8 L10.3 33.3 L11.0 32.7 L11.5 31.8 L11.9 30.8 L12.2 29.7 L12.5 28.5 L12.8 27.3 L13.1 26.2 L13.5 25.2 L14.0 24.3 L14.7 23.7 L15.5 23.2 L16.5 23.0 L17.6 22.9 L18.8 22.9 L20.0 23.0 L21.2 23.1 L22.4 23.1 L23.5 23.0 L24.5 22.8 L25.3 22.3 L26.0 21.7 L26.5 20.8 L26.9 19.8 L27.2 18.7 L27.5 17.5 L27.8 16.3 L28.1 15.2 L28.5 14.2 L29.0 13.3 L29.7 12.7 L30.5 12.2 L31.5 12.0 L32.6 11.9 L33.8 11.9 L35.0 12.0" />
+    <path d="M5.0 34.0 L5.3 32.8 L5.6 31.7 L6.0 30.7 L6.5 29.8 L7.2 29.2 L8.0 28.7 L9.0 28.5 L10.1 28.4 L11.3 28.4 L12.5 28.5 L13.7 28.6 L14.9 28.6 L16.0 28.5 L17.0 28.3 L17.8 27.8 L18.5 27.2 L19.0 26.3 L19.4 25.3 L19.7 24.2 L20.0 23.0 L20.3 21.8 L20.6 20.7 L21.0 19.7 L21.5 18.8 L22.2 18.2 L23.0 17.7 L24.0 17.5 L25.1 17.4 L26.3 17.4 L27.5 17.5 L28.7 17.6 L29.9 17.6 L31.0 17.5 L32.0 17.3 L32.8 16.8 L33.5 16.2 L34.0 15.3 L34.4 14.3 L34.7 13.2 L35.0 12.0" />
+    <path className="vs__glyph-fill" d="M11 4.5c2.4 3.1 3.6 5.3 3.6 6.9a3.6 3.6 0 0 1-7.2 0c0-1.6 1.2-3.8 3.6-6.9Z" />
+  </svg>,
+  <svg key="ar" viewBox="0 0 40 40">
+    <path d="M20 7.5 30.8 13.75v12.5L20 32.5 9.2 26.25v-12.5Z" />
+    <circle className="vs__glyph-fill" cx="20" cy="20" r="3.4" />
+    <path d="M3 20h13.6M23.4 20H37" />
+  </svg>,
+  <svg key="3d" viewBox="0 0 40 40">
+    <path d="M6 26 20 33 34 26" />
+    <path d="M6 12 9.5 27.75 13 15.5 16.5 31.25 20 19 23.5 31.25 27 15.5 30.5 27.75 34 12" />
+    <path className="vs__glyph-fill" d="M20 5 34 12 20 19 6 12Z" />
+    <path d="M13 8.5 27 15.5M27 8.5 13 15.5" />
+  </svg>,
+]
 /** a phone's swipe stops through the deck the first time (Hero's useSwipePager), shares of its run: a card a swipe */
 const DECK_STOPS = '0,0.5,1'
 /** the rows' way in, as shares of the screen's rise (as the flooring pages' table): the first starts at FROM, each takes SPAN */
@@ -96,7 +119,9 @@ function Cards({ list, dealt }: { list: RefObject<HTMLOListElement | null>; deal
                 <span className="vs__count num">
                   <b>0{i + 1}</b> / 0{ROWS.length}
                 </span>
-                <img className="vs__mark" src="/brand/rtarium-emblem.png" alt="" width={256} height={256} loading="lazy" decoding="async" />
+                <span className="vs__glyph" aria-hidden="true">
+                  {GLYPHS[i]}
+                </span>
               </div>
               <p className="vs__strength">{STRENGTHS[i]}</p>
               <dl className="vs__other" aria-hidden={!isFront}>

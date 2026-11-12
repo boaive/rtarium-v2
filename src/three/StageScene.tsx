@@ -622,8 +622,8 @@ export function StageScene({ compact, reduced }: Props) {
         // on the clock of the copy's own move to the left (it starts with the slide's `is-active`, and starts
         // over with it), so the notes, on the copy's line, never come in while the copy still stands on the right
         const played = active && !reduced ? pourClock() : null
-        // (a phone's card lets the mortar run in slowly, over some five seconds)
-        const pace = compact && r.box ? 5 : 1.85
+        // (a phone's card: the wide screen's pace, a little quicker)
+        const pace = compact && r.box ? 1.5 : 1.85
         if (active) f.pour = reduced ? 1.6 : played !== null ? Math.min(1.6, -0.25 + played / pace) : Math.min(1.6, f.pour + dt / pace)
         // (a phone's card keeps to the close view the mortar flows in under: it never stands back to the whole block)
         if (f.pour > 1.02 && !(compact && r.box)) pose = blendPose(pose, POUR_OUT, smoothstep(1.02, 1.6, f.pour), pourScratch)
