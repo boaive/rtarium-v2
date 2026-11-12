@@ -311,24 +311,24 @@
     color: var(--eb-fg);
   }
 
-  /* the chapter bar, the chips and the chevron belong to About's layout only */
+  /* the chapter bar and the chips belong to About's and Innovation's layout only */
   .eb-row__bar,
   .figure__chips {
     display: none;
   }
 
   /*
-   * About, set as its reference: on warm white, each part opened by a bar (the chapter's name, which of how many and a
+   * About and Innovation, set as About's reference: on warm white, each part opened by a bar (the chapter's name, which of how many and a
    * yellow line drawn in that far), its number on a yellow block before its name, a firm headline, the thicknesses as
    * chips, the mesh with no frame across the full width
    */
-  #about .eb__head {
+  :is(#about, #innovation) .eb__head {
     display: none;
   }
-  :root #about .eb-row:first-of-type {
+  :root :is(#about, #innovation) .eb-row:first-of-type {
     padding-top: var(--nav-h);
   }
-  #about .eb-row__bar {
+  :is(#about, #innovation) .eb-row__bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -339,31 +339,31 @@
     text-transform: uppercase;
     color: var(--eb-fg2);
   }
-  #about .eb-row__pos {
+  :is(#about, #innovation) .eb-row__pos {
     display: grid;
     justify-items: end;
     gap: 6px;
     letter-spacing: 0.06em;
   }
-  #about .eb-row__track {
+  :is(#about, #innovation) .eb-row__track {
     display: block;
     width: 34px;
     height: 2px;
     background: var(--eb-rule);
   }
-  #about .eb-row__track i {
+  :is(#about, #innovation) .eb-row__track i {
     display: block;
     height: 100%;
     background: var(--yellow);
   }
-  :root #about .eb-row__num {
+  :root :is(#about, #innovation) .eb-row__num {
     margin: clamp(18px, 3.4svh, 28px) 0 10px;
     padding: 0;
     border: 0;
     font-size: 0.68rem;
     letter-spacing: 0.14em;
   }
-  #about .eb-row__n {
+  :is(#about, #innovation) .eb-row__n {
     min-width: 28px;
     height: 22px;
     border-radius: 3px;
@@ -372,17 +372,17 @@
     font-size: 0.7rem;
     font-weight: 700;
   }
-  #about .eb-row .lines {
+  :is(#about, #innovation) .eb-row .lines {
     font-size: clamp(1.75rem, 8.2vw, 2.25rem);
     font-weight: 700;
     letter-spacing: -0.04em;
     line-height: 1.04;
   }
-  #about .eb-row .lead {
+  :is(#about, #innovation) .eb-row .lead {
     color: var(--on-light-2);
   }
   /* (no thickness options on a phone) */
-  :root #about .eb-row .figure {
+  :root :is(#about, #innovation) .eb-row .figure {
     display: none;
     flex-direction: column;
     align-items: stretch;
@@ -391,15 +391,15 @@
     padding-top: 0;
     border-top: 0;
   }
-  #about .eb-row .figure__label {
+  :is(#about, #innovation) .eb-row .figure__label {
     font-size: 0.64rem;
     letter-spacing: 0.14em;
     color: var(--eb-fg2);
   }
-  #about .eb-row .figure__value {
+  :is(#about, #innovation) .eb-row .figure__value {
     display: none;
   }
-  #about .figure__chips {
+  :is(#about, #innovation) .figure__chips {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
@@ -407,7 +407,7 @@
     padding: 0;
     list-style: none;
   }
-  #about .figure__chips li {
+  :is(#about, #innovation) .figure__chips li {
     padding: 9px 0;
     border: 1px solid rgb(8 8 8 / 0.12);
     border-radius: 6px;
@@ -417,14 +417,14 @@
     text-align: center;
   }
   /* the mesh with no frame, across the full width */
-  :root #about .eb-fig {
+  :root :is(#about, #innovation) .eb-fig {
     margin-inline: calc(-1 * var(--gutter));
   }
-  :root #about .eb-fig__view {
+  :root :is(#about, #innovation) .eb-fig__view {
     box-shadow: none;
     background: none;
   }
-  #about .eb-fig__tick {
+  :is(#about, #innovation) .eb-fig__tick {
     display: none;
   }
 
