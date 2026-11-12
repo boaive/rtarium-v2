@@ -480,6 +480,19 @@ export function StageScene({ compact, reduced }: Props) {
           gl.clear()
         }
         scene.remove(probe)
+        // and with the key light casting (the opening's shadow): the yarn's program with a shadow and its depth pass, made
+        // now, not the first time the opening is come back to
+        const key = keyLight.current
+        if (key) {
+          key.castShadow = true
+          gl.compile(scene, camera)
+          gl.setScissorTest(true)
+          gl.setScissor(0, 0, 1, 1)
+          gl.render(scene, camera)
+          gl.setScissorTest(false)
+          gl.clear()
+          key.castShadow = false
+        }
       }
       // once the opening is under way, the programs of everything still hidden (concrete, mortar,
       // the drawing lines) compile in parallel, so nothing stalls the first time it appears
@@ -876,6 +889,9 @@ export function StageScene({ compact, reduced }: Props) {
       gl.toneMappingExposure = pose.look === 'day' ? 1.05 : 1.22
       scene.environmentIntensity = (pose.look === 'day' ? 1.1 : 1.35) * rv
       const key = keyLight.current
+      // a phone: the piece casts its shadow on the opening alone, where it lies still and turns slowly; as the tour sets
+      // off the light stops casting, so the swipes never draw the sheet twice a frame
+      if (compact && key) key.castShadow = hero && stage.tour < 0.3 && f.shadow > 0.01
       if (key) {
         key.color.copy(KEY[pose.look])
         key.intensity = (pose.look === 'day' ? 2.6 : 4.2) * rv
@@ -1155,6 +1171,7 @@ export function StageScene({ compact, reduced }: Props) {
           // a third of the triangles (a sheet of 1600 cells goes from over a million to about half that)
           farDistance={compact ? 0.5 : 0.9}
           shadows={!compact}
+          castShadow={compact}
           reach={0.04}
           autoLod={false}
           groupRef={setField}
@@ -1234,7 +1251,7 @@ export function StageScene({ compact, reduced }: Props) {
         color="#ffffff"
         intensity={0}
         castShadow={!compact}
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={compact ? [1024, 1024] : [2048, 2048]}
         shadow-bias={-0.00004}
         shadow-camera-near={0.2}
         shadow-camera-far={2.4}
