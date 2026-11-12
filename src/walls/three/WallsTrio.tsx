@@ -155,9 +155,10 @@ export function WallsTrio({
           {b.list.map((p) => (
             <mesh key={p.mat} geometry={p.g} material={p.m} castShadow={p.mat !== 'glass'} receiveShadow={p.mat !== 'glass'} />
           ))}
-          {/* its own ground, under it wherever it stands: only its shadow shows */}
+          {/* its own ground, under it wherever it stands: only its shadow shows. A disc no wider than its column, so it
+              never reaches under a neighbour standing at another height and takes that one's shadow, off its feet */}
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
-            <planeGeometry args={[Math.max(b.w, b.d) * 3, Math.max(b.w, b.d) * 3]} />
+            <circleGeometry args={[Math.min(Math.max(b.w, b.d) * 1.5, (colW * 0.5) / scales[i]), 64]} />
             <shadowMaterial color="#2a241a" opacity={0.16} transparent depthWrite={false} />
           </mesh>
         </group>
