@@ -412,12 +412,12 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   material: card('material', { elev: 7, azim: 112, distCompact: 0.16, frameBox: [0.5, 0.6], fog: [0.14, 0.5], spin: -2 }),
   // close on the mortar running in, held still
   pour: card('pour', {}),
-  // at a slant, held still, the arrows growing from its corner once it is reached
-  depth: card('depth', { elev: 36, azim: 58, distCompact: 0.98, fog: [0.7, 1.8], frameBox: [0.55, 0.57] }),
-  // the piece whole in its card, as the others, the plane drawn through it
-  shear: card('shear', { tgt: [0, 0, 0], elev: 24, azim: 26, dist: 0.74, distCompact: 0.74, frameBox: [0.5, 0.57], win: [12, 12], fog: [0.55, 1.6], shadow: 1 }),
-  // stood back from the fibre, whole in its card, turning very slowly
-  mineral: card('mineral', { tgt: [0, 0, 0], elev: 32, dist: 0.36, distCompact: 0.36, frameBox: [0.5, 0.57], win: [6, 6], fog: [0.25, 0.8], shadow: 1, spin: 2 }),
+  // (the whiteboard: a broad sheet across the lower screen, at an angle, the X, Y and Z arrows standing out of it)
+  depth: card('depth', { tgt: [0.012, 0.012, 0.02], elev: 26, azim: 36, distCompact: 0.4, win: [18, 18], fog: [0.36, 0.8], frameBox: [0.42, 0.6] }),
+  // low on its front edge, so its thickness (the two faces and the fibres between them) shows along the foot
+  shear: card('shear', { tgt: [0, -0.002, 0.07], elev: 12, azim: 8, dist: 0.17, distCompact: 0.17, frameBox: [0.5, 0.6], win: [18, 18], fog: [0.2, 0.55], shadow: 1 }),
+  // from above, slightly tipped, the grid of its cells clear; turning very slowly
+  mineral: card('mineral', { tgt: [0, 0, 0], elev: 52, azim: 30, dist: 0.3, distCompact: 0.3, frameBox: [0.5, 0.72], win: [10, 10], tilt: [5, -7], fog: [0.3, 0.75], shadow: 1, spin: 2 }),
 }
 
 /* ---- the opening tour -------------------------------------------------------------------------- */
