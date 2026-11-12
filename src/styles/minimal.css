@@ -1558,6 +1558,16 @@
     clip-path: inset(0);
     animation: none;
   }
+  /* (the mesh built out: its line in the middle of the screen, over the weave) */
+  :root .hero__screen .hero__say--br {
+    top: 50%;
+    justify-items: center;
+    text-align: center;
+    transform: translateY(-50%);
+  }
+  :root .hero__screen .hero__say--br .lines {
+    justify-items: center;
+  }
   :root .hero__screen--built .hero__say {
     opacity: min(clamp(0, calc((var(--p, 0) - 0.55) * 4), 1), clamp(0, calc((1.4 - var(--p, 0)) * 5), 1));
   }
