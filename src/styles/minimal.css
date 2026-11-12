@@ -451,8 +451,31 @@
     font-size: 0.9rem;
     color: var(--on-light-2);
   }
-  :root #about #about-flow .eb-fig__view {
-    aspect-ratio: 1 / 1.05;
+
+  /*
+   * one part, one whole screen: its bar clear of the header, the words, and the mesh taking all the room left down to
+   * the screen's foot (as tall as the screen gets with its address bar slid away, the foot kept to the part seen with
+   * the bar showing: --bar, mobile.css)
+   */
+  :root :is(#about, #innovation) .eb-row,
+  :root :is(#about, #innovation) .eb-row:first-of-type {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100lvh;
+    padding-top: var(--nav-h);
+    padding-bottom: calc(clamp(14px, 2.6svh, 24px) + var(--bar, 0px));
+  }
+  :root :is(#about, #innovation) .eb-row .eb-fig {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+  }
+  :root :is(#about, #innovation) .eb-row .eb-fig__view {
+    flex: 1 1 0;
+    min-height: 0;
+    aspect-ratio: auto;
   }
 
   /* the mesh with no frame, across the full width */
