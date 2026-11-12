@@ -98,7 +98,7 @@ const steps: Step[] = [
 export function About() {
   return (
     <>
-      <Track id="about" title="About RTARIUM" steps={steps} />
+      <Track id="about" title="About RTARIUM" steps={steps} phoneGround="yellow" />
       <StageLabel anchor="upper-face">Upper face</StageLabel>
       <StageLabel anchor="fibres">Connecting fibres</StageLabel>
       <StageLabel anchor="lower-face" side="left">

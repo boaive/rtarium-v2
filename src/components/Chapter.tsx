@@ -321,7 +321,10 @@ function Row({ chapter, step, index, ground }: { chapter: string; step: Step; in
   const still = failed ? STILLS[step.pose] : undefined
   return (
     <article ref={row} id={`${chapter}-${step.id}`} className={`eb-row scene scene--${step.id} on-${ground} ${active ? 'is-active' : seen ? 'is-seen' : ''}`}>
-      <h3 className="eb-row__num">{step.label}</h3>
+      <h3 className="eb-row__num">
+        <span className="eb-row__n num" aria-hidden="true">{two(index + 1)}</span>
+        {step.label}
+      </h3>
       <div className="eb-row__copy">{step.render(active)}</div>
       <figure className="eb-fig">
         <div ref={box} className="eb-fig__view" data-screen={ground}>
