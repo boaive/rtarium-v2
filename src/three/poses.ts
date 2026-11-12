@@ -420,9 +420,9 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   // all in view, the edge running a little uphill across the card; Flat mesh takes the lower face and the fibres away
   // and leaves the camera where it is
   shear: card('shear', { tgt: [0, -0.002, 0.058], elev: 9, azim: 14, dist: 0.12, distCompact: 0.12, frameBox: [0.5, 0.55], win: [14, 14], fog: [6, 8], shadow: 1, shearPlane: false }),
-  // (the sketch) from above, its grid square to the card, its far edge half way down rising a little to the right, the
-  // near part running off the foot
-  mineral: card('mineral', { tgt: [0, 0, -0.035], elev: 48, azim: -8, dist: 0.125, distCompact: 0.125, fov: 38, frameBox: [0.5, 0.66], win: [12, 12], tilt: [0, 3], fog: [6, 8], shadow: 1, spin: 2 }),
+  // a small rectangle of it from above, close (some five strands across), turning about its own middle: no corner of it
+  // ever reaches the words over it
+  mineral: card('mineral', { tgt: [0, 0, 0], elev: 48, azim: -8, dist: 0.2, distCompact: 0.2, fov: 38, frameBox: [0.5, 0.64], win: [6, 9], fog: [6, 8], shadow: 1, spin: 2 }),
 }
 
 /* ---- the opening tour -------------------------------------------------------------------------- */
