@@ -209,65 +209,100 @@
   }
 
   /*
-   * ---- the story: an accordion, as Enerblock sets its values (Lineage: LineageAccordion) ----
-   * It stands still under the header while the page scrolls through it, a stretch of scroll (--step, a share of the
-   * screen) for each version; the one unfolded takes all the room the rows leave (--open, measured), so as one morphs
-   * open and the one before morphs shut the list keeps its height. Warm white, hairlines between the rows, the panel
-   * in 3D on black.
+   * ---- the story: cards stacked one over another, as veedo.space sets theirs (Lineage: LineageCards) ----
+   * Plain rounded rectangles a shade lighter than the warm white, a hairline and a soft shadow round them. Each holds
+   * under the header a heading lower than the one before (--head: the height of a card's number and name), so the
+   * cards passed show their headings one under another. Each part unfolds at its own plus, the card morphing taller.
    */
-  .lwa {
-    --lwa-rule: rgb(8 8 8 / 0.16);
-    --lwa-fold: cubic-bezier(0.53, 0, 0, 1);
-    --lwa-turn: cubic-bezier(0.4, 0, 0.25, 1);
-    position: relative;
-    height: calc(100svh + var(--n) * var(--step) * 100svh);
+  .lwc {
+    --lwc-card: #fbfaf7;
+    --lwc-rule: rgb(8 8 8 / 0.1);
+    --lwc-head: 64px;
+    --lwc-fold: cubic-bezier(0.53, 0, 0, 1);
+    --lwc-turn: cubic-bezier(0.4, 0, 0.25, 1);
     background: var(--white);
   }
-  .lwa__pin {
+  .lwc__title {
+    max-width: 11em;
+    padding: calc(var(--nav-h) + clamp(28px, 5svh, 48px)) var(--gutter) clamp(22px, 4svh, 36px);
+    font-size: clamp(2rem, 9.2vw, 2.7rem);
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  .lwc__stack {
+    display: grid;
+    gap: 14px;
+    padding: 0 clamp(12px, 3.4vw, 20px) clamp(64px, 16svh, 140px);
+  }
+  .lwc__card {
     position: sticky;
-    top: 0;
+    top: calc(var(--nav-h) + 12px + var(--i) * var(--lwc-head));
     display: flex;
     flex-direction: column;
-    height: 100svh;
-    padding: calc(var(--nav-h) + clamp(10px, 2svh, 18px)) var(--gutter) clamp(12px, 2.2svh, 20px);
-    overflow: hidden;
+    padding: 0 20px clamp(14px, 2.2svh, 18px);
+    border-radius: 20px;
+    background: var(--lwc-card);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.8),
+      0 0 0 1px rgb(8 8 8 / 0.06),
+      0 -10px 28px -22px rgb(8 8 8 / 0.3),
+      0 18px 40px -26px rgb(8 8 8 / 0.34);
   }
-  /* what it is about, a ruled kicker over the list */
-  .lwa__title {
+  /* its number and name: all that shows of it once the next has come up over it */
+  .lwc__head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding-bottom: clamp(10px, 1.8svh, 16px);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    line-height: 1.3;
-    text-transform: uppercase;
+    gap: 14px;
+    height: var(--lwc-head);
   }
-  .lwa__title::before {
-    content: '';
+  /* which of how many, its number on a chip of the yellow */
+  .lwc__count {
     flex: none;
-    width: 7px;
-    height: 7px;
-    background: currentColor;
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
+    color: var(--on-light-2);
   }
-  .lwa__list {
-    border-top: 1px solid var(--lwa-rule);
+  .lwc__count b {
+    margin-right: 2px;
+    padding: 2px 6px;
+    background: var(--yellow);
+    color: var(--black);
+    font-weight: 700;
   }
-  .lwa__item {
-    border-bottom: 1px solid var(--lwa-rule);
+  .lwc__name {
+    min-width: 0;
+    font-size: clamp(1.6rem, 7.4vw, 2.05rem);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .lwa__h {
-    margin: 0;
-    font: inherit;
+  .lwc__full {
+    font-size: clamp(1rem, 4.3vw, 1.1rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
   }
-  /* a row: its number, its name, and a plus that turns into a minus as it unfolds */
-  .lwa__head {
+
+  /* its two parts: a heading and a plus each, under hairlines; what each says unfolds under it */
+  .lwc__parts {
+    margin-top: clamp(12px, 2svh, 18px);
+    border-bottom: 1px solid var(--lwc-rule);
+  }
+  .lwc__part {
+    border-top: 1px solid var(--lwc-rule);
+  }
+  .lwc__part-head {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 14px;
     width: 100%;
-    height: clamp(50px, 7svh, 60px);
+    min-height: 54px;
     padding: 0;
     border: 0;
     background: none;
@@ -277,203 +312,155 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
-  .lwa__item.is-open .lwa__head {
-    cursor: default;
+  .lwc__part-head:focus-visible {
+    outline: 2px solid var(--black);
+    outline-offset: 2px;
   }
-  .lwa__num {
-    flex: none;
-    width: 2.4em;
-    font-size: 0.72rem;
+  .lwc__label {
+    font-size: 0.74rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    opacity: 0.5;
-    transition: opacity 0.4s var(--ease-out);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
-  .lwa__item.is-open .lwa__num {
-    opacity: 1;
-  }
-  .lwa__name {
-    flex: 1;
-    font-size: clamp(1.25rem, 5.6vw, 1.5rem);
-    font-weight: 500;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-  }
-  .lwa__icon {
-    position: relative;
+  /* the plus, turning into a minus as its part unfolds, filled black with the yellow */
+  .lwc__plus {
+    display: grid;
     flex: none;
-    width: 22px;
-    height: 22px;
-    transition: transform 0.6s var(--lwa-turn);
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgb(8 8 8 / 0.2);
+    border-radius: 50%;
+    color: var(--black);
+    transition:
+      background-color 0.35s var(--ease-out),
+      border-color 0.35s var(--ease-out),
+      color 0.35s var(--ease-out),
+      transform 0.25s var(--ease-out);
   }
-  .lwa__icon::before,
-  .lwa__icon::after {
+  .lwc__part-head:active .lwc__plus {
+    transform: scale(0.9);
+  }
+  .lwc__part.is-open .lwc__plus {
+    border-color: var(--black);
+    background: var(--black);
+    color: var(--yellow);
+  }
+  .lwc__icon {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    transition: transform 0.6s var(--lwc-turn);
+  }
+  .lwc__icon::before,
+  .lwc__icon::after {
     content: '';
     position: absolute;
     background: currentColor;
-    transition: transform 0.6s var(--lwa-turn);
+    transition: transform 0.6s var(--lwc-turn);
   }
   /* the upright stroke, laid flat as the icon turns: the minus */
-  .lwa__icon::before {
+  .lwc__icon::before {
     top: 0;
-    left: calc(50% - 1px);
-    width: 2px;
+    left: calc(50% - 0.75px);
+    width: 1.5px;
     height: 100%;
-    transform-origin: center top;
   }
   /* the flat stroke, drawn back into its left end as the icon turns */
-  .lwa__icon::after {
-    top: calc(50% - 1px);
+  .lwc__icon::after {
+    top: calc(50% - 0.75px);
     left: 0;
     width: 100%;
-    height: 2px;
+    height: 1.5px;
     transform-origin: left center;
   }
-  .lwa__item.is-open .lwa__icon {
+  .lwc__part.is-open .lwc__icon {
     transform: rotate(90deg);
   }
-  .lwa__item.is-open .lwa__icon::after {
+  .lwc__part.is-open .lwc__icon::after {
     transform: scaleX(0);
   }
-
-  /* what a row holds: shut, or as tall as the room the rows leave, morphing between the two */
-  .lwa__body {
-    height: 0;
+  /* what a part says: folded to nothing, morphing open to its own height, its words rising into place */
+  .lwc__part-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.6s var(--lwc-fold);
+  }
+  .lwc__part.is-open .lwc__part-body {
+    grid-template-rows: 1fr;
+  }
+  .lwc__part-in {
+    min-height: 0;
     overflow: hidden;
-    transition: height 0.6s var(--lwa-fold);
   }
-  .lwa__item.is-open .lwa__body {
-    height: var(--open);
-  }
-  .lwa__in {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(10px, 1.6svh, 14px);
-    height: var(--open);
-    padding-bottom: clamp(12px, 2svh, 18px);
-  }
-  /* its words rise into place one after another as it unfolds, and drop away quickly as it folds */
-  .lwa__rise {
+  .lwc__say {
+    padding: 2px 46px 16px 0;
+    font-size: clamp(1rem, 4.3vw, 1.12rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.38;
     opacity: 0;
-    transform: translate3d(0, 16px, 0);
+    transform: translate3d(0, 12px, 0);
     transition:
       opacity 0.2s var(--ease-out),
       transform 0.3s var(--ease-out);
   }
-  .lwa__item.is-open .lwa__rise {
+  .lwc__part.is-open .lwc__say {
     opacity: 1;
     transform: none;
     transition:
-      opacity 0.55s var(--ease-out) calc(0.16s + var(--j) * 0.07s),
-      transform 0.8s var(--ease-out) calc(0.16s + var(--j) * 0.07s);
+      opacity 0.55s var(--ease-out) 0.16s,
+      transform 0.8s var(--ease-out) 0.16s;
   }
-  .lwa__full {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--on-light-2);
-  }
-  .lwa__say {
-    max-width: 22em;
-    font-size: clamp(1.02rem, 4.5vw, 1.2rem);
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    line-height: 1.3;
-    text-wrap: pretty;
-  }
-  /* the way on, as Enerblock's "Saber más": a ruled box, its arrow in a cell of its own */
-  .lwa__more {
+
+  /* RTARIUM's way on: a ruled pill, its arrow in a cell of its own */
+  .lwc__more {
     display: inline-flex;
     align-self: flex-start;
     align-items: stretch;
     height: 40px;
+    margin-top: 16px;
     border: 1px solid currentColor;
+    border-radius: 999px;
     color: inherit;
     font-size: 0.82rem;
     font-weight: 600;
     text-decoration: none;
   }
-  .lwa__more-label {
+  .lwc__more-label {
     display: flex;
     align-items: center;
-    padding: 0 16px 0 12px;
+    padding: 0 14px 0 16px;
   }
-  .lwa__more-cell {
+  .lwc__more-cell {
     display: grid;
     place-items: center;
     width: 40px;
     border-left: 1px solid currentColor;
   }
-  .lwa__more:active .lwa__more-cell svg {
-    transform: translateX(3px);
-  }
-  /* the panel in 3D, all the room left between the words and the foot: it opens down out of its top edge */
-  .lwa__3d {
-    position: relative;
-    flex: 1;
-    min-height: 0;
-    --bg: var(--black);
-    background: var(--black);
-    clip-path: inset(0 0 100% 0);
-    transition: clip-path 0.35s var(--ease-out);
-  }
-  .lwa__item.is-open .lwa__3d {
-    clip-path: inset(0);
-    transition: clip-path 0.9s var(--lwa-fold) 0.22s;
-  }
-  /* the foot: the photograph, opening out of its corner, beside why it was used */
-  .lwa__foot {
+  /* the foot: how thick its panel is; RTARIUM, what it replaces, struck through */
+  .lwc__foot {
     display: flex;
-    gap: 14px;
-    align-items: flex-end;
-    height: clamp(72px, 12svh, 104px);
-  }
-  .lwa__photo {
-    position: relative;
-    flex: none;
-    aspect-ratio: 1;
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-    clip-path: inset(0 100% 100% 0);
-    transition: clip-path 0.3s var(--ease-out);
-  }
-  .lwa__item.is-open .lwa__photo {
-    clip-path: inset(0);
-    transition: clip-path 0.9s var(--lwa-fold) 0.36s;
-  }
-  .lwa__photo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .lwa__photo > :not(img) {
-    position: absolute;
-    inset: 0;
-  }
-  .lwa__used {
-    display: grid;
-    gap: 4px;
-    align-self: center;
-    font-size: clamp(0.84rem, 3.6vw, 0.92rem);
-    line-height: 1.35;
-  }
-  .lwa__label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 14px;
+    margin-top: 14px;
+    font-size: 0.86rem;
     color: var(--on-light-2);
   }
-  .lwa__label::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    background: currentColor;
+  .lwc__tag {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .lwc__struck {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+  }
+  .lwc__struck s {
+    text-decoration-thickness: 1px;
   }
 }
 
@@ -500,17 +487,14 @@
   .fco-cue::before {
     transform: none;
   }
-  /* the accordion still folds and unfolds, at once */
-  .lwa__body,
-  .lwa__icon,
-  .lwa__icon::before,
-  .lwa__icon::after,
-  .lwa__rise,
-  .lwa__3d,
-  .lwa__photo,
-  .lwa__item.is-open .lwa__rise,
-  .lwa__item.is-open .lwa__3d,
-  .lwa__item.is-open .lwa__photo {
+  /* the cards' parts still unfold, at once */
+  .lwc__plus,
+  .lwc__icon,
+  .lwc__icon::before,
+  .lwc__icon::after,
+  .lwc__part-body,
+  .lwc__say,
+  .lwc__part.is-open .lwc__say {
     transition: none;
   }
 }

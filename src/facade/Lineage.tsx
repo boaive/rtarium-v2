@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { scrollToY, stepScreens } from '../lib/scroll'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import type { Ground } from '../three/stageStore'
-import { Stage3D, LabelProjector, Labels, MovingKeyLight, holdPump, type LabelSpec } from './three/Stage3D'
+import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from './three/Stage3D'
 import { createBus } from './three/kit'
 import { CellRig, type CellShot } from './three/CellRig'
 import { CladdingPanel, CUT_TARGET, PANEL_TARGET } from './three/CladdingPanel'
@@ -143,6 +143,8 @@ export interface LineageWords {
   used: string
   replaced: string
   claim: string
+  /** over RTARIUM's line, where a phone sets it apart (its cards) */
+  line?: string
 }
 const FACADE_WORDS: LineageWords = {
   title: 'What RTARIUM replaces in a façade panel',
@@ -150,6 +152,7 @@ const FACADE_WORDS: LineageWords = {
   used: 'Why it was used',
   replaced: 'Why it is replaced',
   claim: 'Why it replaces them',
+  line: 'In a façade panel',
 }
 
 const VERSIONS: Version[] = [
@@ -375,81 +378,60 @@ function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: Line
  * the motion are the same.
  */
 type LineageProps = Parameters<typeof LineageGrid>[0] & {
-  /** how a phone sets it: a window a screen tall for each version (by default), or an accordion that unfolds one at a time */
-  phone?: 'screens' | 'accordion'
+  /** how a phone sets it: a window a screen tall for each version (by default), or cards stacked one over another */
+  phone?: 'screens' | 'cards'
 }
 
 export function Lineage({ phone = 'screens', ...props }: LineageProps) {
   if (!useIsCompact()) return <LineageGrid {...props} />
-  return phone === 'accordion' ? <LineageAccordion {...props} /> : <LineagePhone {...props} />
+  return phone === 'cards' ? <LineageCards {...props} /> : <LineagePhone {...props} />
 }
 
-/** the scroll each version holds unfolded while the accordion stands still under the header (a share of the screen) */
-const FOLD_STEP = 0.7
+/** a card's two parts, each its own heading and plus, what it says folded until the plus is pressed */
+type Part = { label: string; text: string }
 
 /**
- * The story on a phone as Enerblock sets the values on its home page: an accordion, a version a row (its number, its
- * name, a plus), one of them unfolded to what it is, why it is replaced, its panel in 3D, and its photograph beside why
- * it was used (RTARIUM: why it replaces them, the way on, and what it comes to). The list stands still under the header
- * while the page scrolls through it: the first is unfolded as it comes up, and each stretch of scroll (FOLD_STEP) folds
- * the one open and unfolds the next, its height morphing open as the one before morphs shut (the list keeps its height,
- * the rows under it move as one), its plus turning into a minus, and what it holds rising into place, its panel and
- * photograph opening out of their edges. A row tapped unfolds by hand, to be seen again; it stays so until the scroll
- * moves on to another stretch.
+ * The story on a phone as cards (as veedo.space sets what makes a build of theirs): a card a version, stacked. Each
+ * holds under the header as the page scrolls and the next comes up over it a heading lower, so every card passed
+ * still shows its number and name, one under another. A card: its number and name, what it is, and two parts, each
+ * its heading with its own plus: why it was used, and why it is replaced (RTARIUM: why it replaces them, and what
+ * that comes to in a façade panel, with the way on); and a foot under a hairline (how thick its panel is; RTARIUM, what
+ * it replaces, struck through). A plus unfolds its part, the card morphing taller and the plus turning into a minus.
  */
-function LineageAccordion({ sectionRef, versions = VERSIONS, panel = (k, compact) => <Panel k={k} compact={compact} />, words = FACADE_WORDS, id = 'lineage', second }: LineageProps) {
+function LineageCards({ sectionRef, versions = VERSIONS, words = FACADE_WORDS, id = 'lineage' }: LineageProps) {
   const n = versions.length
-  const [open, setOpen] = useState(0)
-  const pin = useRef<HTMLDivElement>(null)
-  const list = useRef<HTMLDivElement>(null)
-  /** the stretch of scroll the page was last in: the scroll unfolds its version only as the page moves into another */
-  const stretch = useRef(-1)
+  const parts = (v: Version): Part[] =>
+    v.claim
+      ? [
+          { label: words.claim, text: v.claim },
+          ...(v.line ? [{ label: words.line ?? 'What it comes to', text: v.line }] : []),
+        ]
+      : [
+          ...(v.used ? [{ label: words.used, text: v.used }] : []),
+          ...(v.replaced ? [{ label: words.replaced, text: v.replaced }] : []),
+        ]
+  /** which parts are unfolded, by card and part */
+  const [open, setOpen] = useState<boolean[][]>(() => versions.map(() => [false, false]))
+  const flip = (i: number, k: number) => setOpen((o) => o.map((row, a) => (a === i ? row.map((x, b) => (b === k ? !x : x)) : row)))
+  const cards = useRef<(HTMLElement | null)[]>([])
 
-  // the height an unfolded version gets: the screen, less the header, the title and every row
-  useLayoutEffect(() => {
-    const p = pin.current
-    const l = list.current
-    if (!p || !l) return
-    const fit = () => {
-      const heads = [...l.querySelectorAll<HTMLElement>('.lwa__head')].reduce((s, h) => s + h.offsetHeight, 0)
-      // (each row's rule under it, and the list's over the first)
-      const rules = n + 1
-      const room = p.clientHeight - l.offsetTop - parseFloat(getComputedStyle(p).paddingBottom) - heads - rules
-      l.style.setProperty('--open', `${Math.max(140, Math.floor(room))}px`)
-    }
-    fit()
-    const ro = new ResizeObserver(fit)
-    ro.observe(p)
-    ro.observe(l.querySelector('.lwa__head') ?? l)
-    return () => ro.disconnect()
-  }, [n])
-
-  // while a version folds and the next unfolds, no scene further down the page is built (each build stalls the page a
-  // moment): they wait for the fold to have played (holdPump)
-  const folded = useRef(false)
+  // a card under the next, taller than it (its parts unfolded), would show below it: what would is cut off at its foot
   useEffect(() => {
-    if (!folded.current) return void (folded.current = true)
-    const release = holdPump()
-    const t = window.setTimeout(release, 1200)
-    return () => {
-      window.clearTimeout(t)
-      release()
-    }
-  }, [open])
-
-  // the scroll: the stretch the page is in unfolds its version (before the list, the first; past it, the last)
-  useEffect(() => {
-    const el = sectionRef.current
-    const p = pin.current
-    if (!el || !p) return
+    /** each card's cut as last written (the browser hands the property back in its own form) */
+    const cuts: string[] = []
     let raf = 0
     const read = () => {
       raf = 0
-      const step = Math.max(1, (el.offsetHeight - p.offsetHeight) / n)
-      const k = Math.min(n - 1, Math.max(0, Math.floor(-el.getBoundingClientRect().top / step)))
-      if (k === stretch.current) return
-      stretch.current = k
-      setOpen(k)
+      const els = cards.current
+      for (let i = 0; i < els.length; i++) {
+        const c = els[i]
+        if (!c) continue
+        const next = els[i + 1]?.getBoundingClientRect()
+        const r = c.getBoundingClientRect()
+        const cut = next && next.top < r.bottom ? Math.max(0, r.bottom - next.bottom) : 0
+        const clip = cut > 0.5 ? `inset(0 0 ${cut.toFixed(1)}px 0 round 20px)` : ''
+        if (cuts[i] !== clip) c.style.clipPath = cuts[i] = clip
+      }
     }
     const on = () => {
       if (!raf) raf = requestAnimationFrame(read)
@@ -462,79 +444,82 @@ function LineageAccordion({ sectionRef, versions = VERSIONS, panel = (k, compact
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', on)
     }
-  }, [sectionRef, n])
+  }, [n, open])
 
+  /** what RTARIUM replaces: what the others are reinforced with */
+  const struck = versions.slice(0, -1).map((v) => v.material)
   return (
-    // (data-stage-ahead: the folded panels' canvases are made as the section comes near, not as each unfolds)
-    <section ref={sectionRef} id={id} className="lwa on-light" data-ground="light" data-stage-ahead="" aria-labelledby={`${id}-title`} style={{ '--n': n, '--step': FOLD_STEP } as CSSProperties}>
-      <div ref={pin} className="lwa__pin">
-        <h2 id={`${id}-title`} className="lwa__title">
-          {words.title}
-        </h2>
-        <div ref={list} className="lwa__list">
-          {versions.map((v, i) => {
-            const on = open === i
-            const head = `${id}-${v.id}-head`
-            const body = `${id}-${v.id}-body`
-            const say = v.claim ?? v.replaced ?? ''
-            const model = second?.(i, true) ?? null
-            // the order its parts rise in
-            let j = 0
-            return (
-              <div key={v.id} className={`lwa__item ${on ? 'is-open' : ''}`}>
-                <h3 id={`fs-${v.id}`} className="lwa__h">
-                  <button id={head} type="button" className="lwa__head" aria-expanded={on} aria-controls={body} onClick={() => setOpen(i)}>
-                    <span className="lwa__num num">0{i + 1} /</span>
-                    <span className="lwa__name">{v.name}</span>
-                    <span className="lwa__icon" aria-hidden="true" />
-                  </button>
+    <section ref={sectionRef} id={id} className="lwc on-light" data-ground="light" aria-labelledby={`${id}-title`}>
+      <h2 id={`${id}-title`} className="lwc__title">
+        {words.title}
+      </h2>
+      <div className="lwc__stack">
+        {versions.map((v, i) => {
+          const ours = !!v.claim
+          return (
+            <article key={v.id} ref={(el) => void (cards.current[i] = el)} className="lwc__card" style={{ '--i': i } as CSSProperties} aria-labelledby={`fs-${v.id}`}>
+              <header className="lwc__head">
+                <p className="lwc__count num">
+                  <b>0{i + 1}</b>
+                  <span className="visually-hidden"> of </span>
+                  <span aria-hidden="true"> / </span>0{n}
+                </p>
+                <h3 id={`fs-${v.id}`} className="lwc__name">
+                  {v.name}
                 </h3>
-                <div id={body} className="lwa__body" role="region" aria-labelledby={head} inert={!on}>
-                  <div className="lwa__in">
-                    <p className="lwa__full lwa__rise" style={{ '--j': j++ } as CSSProperties}>
-                      {v.full}
-                    </p>
-                    <p className="lwa__say lwa__rise" style={{ '--j': j++ } as CSSProperties}>
-                      {say}
-                    </p>
-                    {v.more && (
-                      <a className="lwa__more lwa__rise" style={{ '--j': j++ } as CSSProperties} href={v.more.to} onClick={(e) => goTo(e, v.more?.to)}>
-                        <span className="lwa__more-label">{v.more.label}</span>
-                        <span className="lwa__more-cell" aria-hidden="true">
-                          <svg viewBox="0 0 20 20" width="16" height="16">
-                            <path d="M3 10h13M11 5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                          </svg>
+              </header>
+              <p className="lwc__full">{v.full}</p>
+              <div className="lwc__parts">
+                {parts(v).map((p, k) => {
+                  const on = open[i]?.[k] ?? false
+                  const body = `${id}-${v.id}-part${k}`
+                  return (
+                    <div key={p.label} className={`lwc__part ${on ? 'is-open' : ''}`}>
+                      <button type="button" className="lwc__part-head" aria-expanded={on} aria-controls={body} onClick={() => flip(i, k)}>
+                        <span className="lwc__label">{p.label}</span>
+                        <span className="lwc__plus" aria-hidden="true">
+                          <span className="lwc__icon" />
                         </span>
-                      </a>
-                    )}
-                    <div className="lwa__3d on-black">{panel(i, true)}</div>
-                    <div className="lwa__foot">
-                      {model ? (
-                        <div className="lwa__photo">{model}</div>
-                      ) : (
-                        v.photo && (
-                          <figure className="lwa__photo">
-                            <img src={v.photo.src} alt={v.photo.alt} loading="lazy" width={320} height={320} style={v.photo.pos ? { objectPosition: v.photo.pos } : undefined} />
-                          </figure>
-                        )
-                      )}
-                      <div className="lwa__used lwa__rise" style={{ '--j': j++ } as CSSProperties}>
-                        {v.used ? (
-                          <>
-                            <p className="lwa__label">{words.used}</p>
-                            <p>{v.used}</p>
-                          </>
-                        ) : (
-                          v.line && <p>{v.line}</p>
-                        )}
+                      </button>
+                      <div id={body} className="lwc__part-body" role="region" aria-label={p.label} inert={!on}>
+                        <div className="lwc__part-in">
+                          <p className="lwc__say">{p.text}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
+              {v.more && (
+                <a className="lwc__more" href={v.more.to} onClick={(e) => goTo(e, v.more?.to)}>
+                  <span className="lwc__more-label">{v.more.label}</span>
+                  <span className="lwc__more-cell" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" width="16" height="16">
+                      <path d="M3 10h13M11 5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                    </svg>
+                  </span>
+                </a>
+              )}
+              <p className="lwc__foot">
+                {ours ? (
+                  <>
+                    <span className="lwc__tag">Replaces</span>
+                    <span className="lwc__struck">
+                      {struck.map((s) => (
+                        <s key={s}>{s}</s>
+                      ))}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="lwc__tag">In a panel</span>
+                    <span>{v.thick} mm thick</span>
+                  </>
+                )}
+              </p>
+            </article>
+          )
+        })}
       </div>
     </section>
   )

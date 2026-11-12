@@ -19,8 +19,8 @@ import { More } from '../unitized/More'
  *
  *   the opening   the section's name and its line, over a thin façade panel poured as the page opens
  *   the story     one façade reinforced four ways (steel bar, GFRC / GRC, UHPC, RTARIUM): the façade
- *                 in 3D beside cards that stack as they are read; on a phone, an accordion that unfolds them one at a
- *                 time as the page scrolls (see Lineage)
+ *                 in 3D beside cards that stack as they are read; on a phone, cards stacked one over another as the page
+ *                 scrolls, each unfolding why it is replaced at its plus (see Lineage)
  *   the systems   all three façade systems side by side, their models rising in turn: the system pages' own block
  *                 (More), a band under the header, its line, the whole screen
  *
@@ -85,7 +85,7 @@ export default function Overview() {
   // the header takes the ground of whatever is under it, the footer included, read on every scroll
   useEffect(() => {
     const footer = document.querySelector<HTMLElement>('.footer')
-    // (read each time: the story is a different element on a phone, which may set its own ground: the accordion's warm white)
+    // (read each time: the story is a different element on a phone, which may set its own ground: the cards' warm white)
     const sectionsNow = (): [HTMLElement, Ground][] => [
       [hero.current!, 'yellow'],
       ...(story.current ? [[story.current, (story.current.dataset.ground as Ground | undefined) ?? 'yellow'] as [HTMLElement, Ground]] : []),
@@ -146,8 +146,8 @@ export default function Overview() {
         </span>
       </section>
 
-      {/* ---- the story: one façade, four versions, stacked as the page scrolls (a phone: unfolded one at a time) ---- */}
-      <Lineage sectionRef={story} live={storyLive} fromTop after={afterStory} phone="accordion" />
+      {/* ---- the story: one façade, four versions, stacked as the page scrolls (a phone: cards that stack) ---- */}
+      <Lineage sectionRef={story} live={storyLive} fromTop after={afterStory} phone="cards" />
 
       {/* ---- the three systems, side by side: the system pages' block, all three ---- */}
       <More current={null} id="systems" sectionRef={systems} />
