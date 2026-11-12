@@ -51,6 +51,11 @@ function pump() {
   count()
   const fast = opening()
   ;(fast ? (f: () => void) => window.setTimeout(f, 0) : idle)(() => {
+    // (held since it was asked: what is playing now goes first; the release asks again)
+    if (held) {
+      pumping = false
+      return count()
+    }
     waiting.sort((a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top)
     const next = waiting.shift()
     next?.make()
@@ -139,17 +144,34 @@ export function Stage3D({
     const el = host.current
     if (!el || near) return
     const make = () => setNear(true)
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && make(), { rootMargin: '250% 0px' })
-    io.observe(el)
-    // on a large screen, made ahead while the browser is idle (a phone keeps to its sections' approach)
     const entry = { el, make }
     let queued = false
+    const queue = () => {
+      if (queued) return
+      queued = true
+      waiting.push(entry)
+      pump()
+    }
+    /*
+     * a canvas out of sight in a section that shows it later (`data-stage-ahead`: a phone's row of cards swiped
+     * sideways, the ones off the screen clipped by the row): it never comes near by itself, and made only as it is
+     * swiped in it stalled the swipe. It is made as its section comes near instead, one at a time with the others while
+     * the browser is idle (never while an opening plays: holdPump); at once if it shows first
+     */
+    const ahead = el.parentElement?.closest<HTMLElement>('[data-stage-ahead]') ?? null
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) (e.target === el ? make : queue)()
+      },
+      { rootMargin: '250% 0px' },
+    )
+    io.observe(el)
+    if (ahead) io.observe(ahead)
+    // on a large screen, made ahead while the browser is idle (a phone keeps to its sections' approach)
     if (!compact) {
       whenSettled(() => {
         if (!host.current) return
-        queued = true
-        waiting.push(entry)
-        pump()
+        queue()
       })
     }
     return () => {

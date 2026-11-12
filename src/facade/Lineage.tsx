@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { scrollToY, stepScreens } from '../lib/scroll'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import type { Ground } from '../three/stageStore'
@@ -143,6 +143,8 @@ export interface LineageWords {
   used: string
   replaced: string
   claim: string
+  /** over RTARIUM's line, where a phone sets it apart (its cards) */
+  line?: string
 }
 const FACADE_WORDS: LineageWords = {
   title: 'What RTARIUM replaces in a façade panel',
@@ -150,6 +152,7 @@ const FACADE_WORDS: LineageWords = {
   used: 'Why it was used',
   replaced: 'Why it is replaced',
   claim: 'Why it replaces them',
+  line: 'In a façade panel',
 }
 
 const VERSIONS: Version[] = [
@@ -260,6 +263,16 @@ function Panel({ k, compact }: { k: number; compact: boolean }) {
   )
 }
 
+/** RTARIUM's way on: `#id` glides to that part of the page, under the header */
+function goTo(e: MouseEvent<HTMLAnchorElement>, to: string | undefined) {
+  if (!to?.startsWith('#')) return
+  const el = document.querySelector<HTMLElement>(to)
+  if (!el) return
+  e.preventDefault()
+  const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
+  scrollToY(el.getBoundingClientRect().top + window.scrollY - navH)
+}
+
 /** a line revealed by a block of its own colour: the block runs across it, the words come up under it, it runs off */
 function Masked({ k, children }: { k: number; children: ReactNode }) {
   return (
@@ -297,15 +310,7 @@ function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: Line
       el.classList.remove('is-armed', 'is-in')
     }
   }, [])
-  const go = (e: MouseEvent<HTMLAnchorElement>) => {
-    const to = v.more?.to
-    if (!to?.startsWith('#')) return
-    const el = document.querySelector<HTMLElement>(to)
-    if (!el) return
-    e.preventDefault()
-    const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
-    scrollToY(el.getBoundingClientRect().top + window.scrollY - navH)
-  }
+  const go = (e: MouseEvent<HTMLAnchorElement>) => goTo(e, v.more?.to)
   return (
     <article
       ref={(el) => {
@@ -372,10 +377,152 @@ function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: Line
  * (the last is RTARIUM), its own model for the panel's box and its own words; the boxes, the rows and
  * the motion are the same.
  */
-type LineageProps = Parameters<typeof LineageGrid>[0]
+type LineageProps = Parameters<typeof LineageGrid>[0] & {
+  /** how a phone sets it: a window a screen tall for each version (by default), or cards stacked one over another */
+  phone?: 'screens' | 'cards'
+}
 
-export function Lineage(props: LineageProps) {
-  return useIsCompact() ? <LineagePhone {...props} /> : <LineageGrid {...props} />
+export function Lineage({ phone = 'screens', ...props }: LineageProps) {
+  if (!useIsCompact()) return <LineageGrid {...props} />
+  return phone === 'cards' ? <LineageCards {...props} /> : <LineagePhone {...props} />
+}
+
+/** a card's two parts, each its own heading and plus, what it says folded until the plus is pressed */
+type Part = { label: string; text: string }
+
+/**
+ * The story on a phone as cards (as veedo.space sets what makes a build of theirs): a card a version, stacked. Each
+ * holds under the header as the page scrolls and the next comes up over it a heading lower, so every card passed
+ * still shows its number and name, one under another. A card: its number and name, what it is, and two parts, each
+ * its heading with its own plus: why it was used, and why it is replaced (RTARIUM: why it replaces them, and what
+ * that comes to in a façade panel, with the way on); and a foot under a hairline (how thick its panel is; RTARIUM, what
+ * it replaces, struck through). A plus unfolds its part, the card morphing taller and the plus turning into a minus.
+ */
+function LineageCards({ sectionRef, versions = VERSIONS, words = FACADE_WORDS, id = 'lineage' }: LineageProps) {
+  const n = versions.length
+  const parts = (v: Version): Part[] =>
+    v.claim
+      ? [
+          { label: words.claim, text: v.claim },
+          ...(v.line ? [{ label: words.line ?? 'What it comes to', text: v.line }] : []),
+        ]
+      : [
+          ...(v.used ? [{ label: words.used, text: v.used }] : []),
+          ...(v.replaced ? [{ label: words.replaced, text: v.replaced }] : []),
+        ]
+  /** which parts are unfolded, by card and part */
+  const [open, setOpen] = useState<boolean[][]>(() => versions.map(() => [false, false]))
+  const flip = (i: number, k: number) => setOpen((o) => o.map((row, a) => (a === i ? row.map((x, b) => (b === k ? !x : x)) : row)))
+  const cards = useRef<(HTMLElement | null)[]>([])
+
+  // a card under the next, taller than it (its parts unfolded), would show below it: what would is cut off at its foot
+  useEffect(() => {
+    /** each card's cut as last written (the browser hands the property back in its own form) */
+    const cuts: string[] = []
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const els = cards.current
+      for (let i = 0; i < els.length; i++) {
+        const c = els[i]
+        if (!c) continue
+        const next = els[i + 1]?.getBoundingClientRect()
+        const r = c.getBoundingClientRect()
+        const cut = next && next.top < r.bottom ? Math.max(0, r.bottom - next.bottom) : 0
+        const clip = cut > 0.5 ? `inset(0 0 ${cut.toFixed(1)}px 0 round 20px)` : ''
+        if (cuts[i] !== clip) c.style.clipPath = cuts[i] = clip
+      }
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [n, open])
+
+  /** what RTARIUM replaces: what the others are reinforced with */
+  const struck = versions.slice(0, -1).map((v) => v.material)
+  return (
+    <section ref={sectionRef} id={id} className="lwc on-light" data-ground="light" aria-labelledby={`${id}-title`}>
+      <h2 id={`${id}-title`} className="lwc__title">
+        {words.title}
+      </h2>
+      <div className="lwc__stack">
+        {versions.map((v, i) => {
+          const ours = !!v.claim
+          return (
+            <article key={v.id} ref={(el) => void (cards.current[i] = el)} className="lwc__card" style={{ '--i': i } as CSSProperties} aria-labelledby={`fs-${v.id}`}>
+              <header className="lwc__head">
+                <p className="lwc__count num">
+                  <b>0{i + 1}</b>
+                  <span className="visually-hidden"> of </span>
+                  <span aria-hidden="true"> / </span>0{n}
+                </p>
+                <h3 id={`fs-${v.id}`} className="lwc__name">
+                  {v.name}
+                </h3>
+              </header>
+              <p className="lwc__full">{v.full}</p>
+              <div className="lwc__parts">
+                {parts(v).map((p, k) => {
+                  const on = open[i]?.[k] ?? false
+                  const body = `${id}-${v.id}-part${k}`
+                  return (
+                    <div key={p.label} className={`lwc__part ${on ? 'is-open' : ''}`}>
+                      <button type="button" className="lwc__part-head" aria-expanded={on} aria-controls={body} onClick={() => flip(i, k)}>
+                        <span className="lwc__label">{p.label}</span>
+                        <span className="lwc__plus" aria-hidden="true">
+                          <span className="lwc__icon" />
+                        </span>
+                      </button>
+                      <div id={body} className="lwc__part-body" role="region" aria-label={p.label} inert={!on}>
+                        <div className="lwc__part-in">
+                          <p className="lwc__say">{p.text}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {v.more && (
+                <a className="lwc__more" href={v.more.to} onClick={(e) => goTo(e, v.more?.to)}>
+                  <span className="lwc__more-label">{v.more.label}</span>
+                  <span className="lwc__more-cell" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" width="16" height="16">
+                      <path d="M3 10h13M11 5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                    </svg>
+                  </span>
+                </a>
+              )}
+              <p className="lwc__foot">
+                {ours ? (
+                  <>
+                    <span className="lwc__tag">Replaces</span>
+                    <span className="lwc__struck">
+                      {struck.map((s) => (
+                        <s key={s}>{s}</s>
+                      ))}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="lwc__tag">In a panel</span>
+                    <span>{v.thick} mm thick</span>
+                  </>
+                )}
+              </p>
+            </article>
+          )
+        })}
+      </div>
+    </section>
+  )
 }
 
 /** the grounds of the windows on a phone, in turn: yellow, black, warm white */
