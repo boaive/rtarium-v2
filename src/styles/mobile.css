@@ -292,20 +292,18 @@
     }
   }
   /*
-   * What it replaces on a phone: one screen, scrolled past as any other (nothing pinned, no stop a swipe). Its deck is
-   * dealt once as it comes into view, each card rising onto the one before, and then holds still; a tap on a card behind
-   * lifts it out of the deck and it settles in front as the others glide up behind it (Why's Cards).
+   * What it replaces on a phone: the first time, pinned while the scroll stacks its deck a card a swipe; once all three
+   * are stacked (Why's `is-dealt`) it is one screen scrolled past as any other, nothing pinned, the deck stacked for good;
+   * a tap on a card behind lifts it out of the deck and it settles in front as the others glide up behind it
    */
-  :root #replaces {
+  :root #replaces.is-dealt {
     height: 100lvh;
   }
-  :root #replaces .ledger__in {
+  :root #replaces.is-dealt .ledger__in {
     position: relative;
   }
   :root .vs--deck .vs__card {
-    transition:
-      transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--pos, 0) * 0.3s),
-      top 0.42s cubic-bezier(0.3, 0.6, 0.2, 1);
+    transition: top 0.42s cubic-bezier(0.3, 0.6, 0.2, 1);
   }
   :root .vs--deck .vs__card.is-lift {
     animation: vs-lift 0.2s cubic-bezier(0.3, 0, 0.6, 1) forwards;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { Chapter, Statement, useScreen, type Step } from '../components/Chapter'
 import { useInView } from '../facade/Story'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
@@ -31,6 +31,8 @@ const ROWS = [
   { name: 'Flat 2D mesh', what: 'A single grid that reinforces only along the sheet.', weak: 'Works in one plane.' },
 ]
 const STRENGTHS = ['Non-corrosive.', 'Alkali-resistant.', 'Three-dimensional.']
+/** a phone's swipe stops through the deck the first time (Hero's useSwipePager), shares of its run: a card a swipe */
+const DECK_STOPS = '0,0.5,1'
 /** the rows' way in, as shares of the screen's rise (as the flooring pages' table): the first starts at FROM, each takes SPAN */
 const FROM = 0.3
 const SPAN = 0.36
@@ -39,8 +41,8 @@ const SPAN = 0.36
  * On a phone the table is three cards, one for each strength of RTARIUM, each set against the compromise it
  * replaces (the client's columns line up: steel fibre corrodes, the mesh does not; AR-glass fibre is vulnerable to
  * alkali, the mesh is alkali-resistant; a flat mesh works in one plane, the mesh in three). Under the strength, the
- * reinforcement it replaces, struck through, its weakness and what it is. RTARIUM is set above them; the cards are
- * dealt once and then hold still, a tap shuffling one to the front (Cards).
+ * reinforcement it replaces, struck through, its weakness and what it is. RTARIUM is set above them; the first time,
+ * the scroll stacks the cards a swipe each, and stacked they stay, a tap shuffling one to the front (Cards).
  */
 /** a shuffle: how long the card takes to lift out of the deck before it goes to the front, and to settle there (ms) */
 const SHUFFLE = { lift: 200, land: 420 }
@@ -74,7 +76,7 @@ function Cards({ list, dealt }: { list: RefObject<HTMLOListElement | null>; deal
   return (
     <>
       <p className="vs__word">RTARIUM</p>
-      <ol ref={list} className={`vs vs--deck ${dealt ? 'is-dealt' : ''}`} style={{ '--deck': dealt ? ROWS.length - 1 : 0 } as CSSProperties}>
+      <ol ref={list} className={`vs vs--deck ${dealt ? 'is-dealt' : ''}`} style={dealt ? ({ '--deck': ROWS.length - 1 } as CSSProperties) : undefined}>
         {[...ROWS.keys()].map((i) => {
           const pos = order.indexOf(i)
           const r = ROWS[i]
@@ -138,11 +140,53 @@ function Replaces() {
   // the band plays when it is itself on screen, not when the table above it is
   const [band, bandIn] = useInView<HTMLDivElement>('0px 0px -8% 0px')
 
-  // a phone: the deck is dealt once, the first time it is in view, and then holds still (no stop a swipe, nothing pinned)
+  /*
+   * A phone, the first time: the section holds still (pinned) while the scroll stacks the deck, a card a swipe (Hero's
+   * swipe stops, `data-swipe-stops`), `--deck` 0 to 2 across its run. Once all three are stacked it stays so (`dealt`):
+   * the section becomes one screen scrolled past as any other, and a tap shuffles a card to the front. The run it had is
+   * taken off the page as it closes up, in the same frame, so nothing on the screen moves.
+   */
   const [dealt, setDealt] = useState(false)
+  /** the run the section had as it closed up, and where its top stood then (null once taken off the page) */
+  const closing = useRef<{ run: number; top: number } | null>(null)
   useEffect(() => {
-    if (compact && inView) setDealt(true)
-  }, [compact, inView])
+    const el = section.current
+    const deck = cards.current
+    if (!compact || dealt || !el || !deck) return
+    if (prefersReducedMotion()) return setDealt(true)
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      // (the run is what the pinned panel stands still through: the section less the panel, as tall as the screen gets)
+      const pin = el.querySelector<HTMLElement>('[data-swipe-pin]')
+      const run = Math.max(1, r.height - (pin?.offsetHeight ?? window.innerHeight))
+      const p = Math.min(1, Math.max(0, -r.top / run))
+      deck.style.setProperty('--deck', (p * (ROWS.length - 1)).toFixed(4))
+      if (p >= 0.999) {
+        closing.current = { run, top: r.top }
+        setDealt(true)
+      }
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [compact, dealt])
+  // closed up to one screen: the page taken back by the run it lost above the screen, before it is painted
+  useLayoutEffect(() => {
+    const c = closing.current
+    if (!dealt || !c) return
+    closing.current = null
+    if (c.top < 0) window.scrollTo({ top: window.scrollY - c.run, behavior: 'instant' as ScrollBehavior })
+  }, [dealt])
 
   // the rows with the scroll, no easing of their own: the page's glide (Lenis) is what makes it smooth
   useEffect(() => {
@@ -177,8 +221,16 @@ function Replaces() {
   }, [])
 
   return (
-    <section id="replaces" ref={section} className="ledger on-light" data-screen="light" data-flow={compact ? '' : undefined} aria-labelledby="replaces-title">
-      <div ref={ref} className={`ledger__in ${inView ? 'is-in' : ''}`}>
+    <section
+      id="replaces"
+      ref={section}
+      className={`ledger on-light ${compact && dealt ? 'is-dealt' : ''}`}
+      data-screen="light"
+      data-flow={compact ? '' : undefined}
+      data-swipe-stops={compact && !dealt ? DECK_STOPS : undefined}
+      aria-labelledby="replaces-title"
+    >
+      <div ref={ref} className={`ledger__in ${inView ? 'is-in' : ''}`} data-swipe-pin="">
         <h2 id="replaces-title" className="ledger__title">
           One mesh in place of three compromises.
         </h2>
