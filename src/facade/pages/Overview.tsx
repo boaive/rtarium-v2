@@ -19,7 +19,8 @@ import { More } from '../unitized/More'
  *
  *   the opening   the section's name and its line, over a thin façade panel poured as the page opens
  *   the story     one façade reinforced four ways (steel bar, GFRC / GRC, UHPC, RTARIUM): the façade
- *                 in 3D beside cards that stack as they are read (see Lineage)
+ *                 in 3D beside cards that stack as they are read; on a phone, an accordion that unfolds them one at a
+ *                 time as the page scrolls (see Lineage)
  *   the systems   all three façade systems side by side, their models rising in turn: the system pages' own block
  *                 (More), a band under the header, its line, the whole screen
  *
@@ -84,9 +85,10 @@ export default function Overview() {
   // the header takes the ground of whatever is under it, the footer included, read on every scroll
   useEffect(() => {
     const footer = document.querySelector<HTMLElement>('.footer')
-    const sections: [HTMLElement, Ground][] = [
+    // (read each time: the story is a different element on a phone, which may set its own ground: the accordion's warm white)
+    const sectionsNow = (): [HTMLElement, Ground][] => [
       [hero.current!, 'yellow'],
-      [story.current!, 'yellow'],
+      ...(story.current ? [[story.current, (story.current.dataset.ground as Ground | undefined) ?? 'yellow'] as [HTMLElement, Ground]] : []),
       // RTARIUM's closing card, a full screen: the header's words over its black
       ...((c) => (c ? [[c, 'black'] as [HTMLElement, Ground]] : []))(story.current?.querySelector<HTMLElement>('.fs-block--last')),
       [systems.current!, 'light'],
@@ -97,7 +99,7 @@ export default function Overview() {
     const read = () => {
       raf = 0
       let ground: Ground = 'light'
-      for (const [el, g] of sections) {
+      for (const [el, g] of sectionsNow()) {
         const r = el.getBoundingClientRect()
         if (r.top <= 40 && r.bottom > 40) ground = g
       }
@@ -144,8 +146,8 @@ export default function Overview() {
         </span>
       </section>
 
-      {/* ---- the story: one façade, four versions, stacked as the page scrolls ---- */}
-      <Lineage sectionRef={story} live={storyLive} fromTop after={afterStory} />
+      {/* ---- the story: one façade, four versions, stacked as the page scrolls (a phone: unfolded one at a time) ---- */}
+      <Lineage sectionRef={story} live={storyLive} fromTop after={afterStory} phone="accordion" />
 
       {/* ---- the three systems, side by side: the system pages' block, all three ---- */}
       <More current={null} id="systems" sectionRef={systems} />

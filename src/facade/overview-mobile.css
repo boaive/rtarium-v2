@@ -207,6 +207,274 @@
   .fct-col__go:active .fc-go__cell {
     transform: translateX(4px);
   }
+
+  /*
+   * ---- the story: an accordion, as Enerblock sets its values (Lineage: LineageAccordion) ----
+   * It stands still under the header while the page scrolls through it, a stretch of scroll (--step, a share of the
+   * screen) for each version; the one unfolded takes all the room the rows leave (--open, measured), so as one morphs
+   * open and the one before morphs shut the list keeps its height. Warm white, hairlines between the rows, the panel
+   * in 3D on black.
+   */
+  .lwa {
+    --lwa-rule: rgb(8 8 8 / 0.16);
+    --lwa-fold: cubic-bezier(0.53, 0, 0, 1);
+    --lwa-turn: cubic-bezier(0.4, 0, 0.25, 1);
+    position: relative;
+    height: calc(100svh + var(--n) * var(--step) * 100svh);
+    background: var(--white);
+  }
+  .lwa__pin {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    padding: calc(var(--nav-h) + clamp(10px, 2svh, 18px)) var(--gutter) clamp(12px, 2.2svh, 20px);
+    overflow: hidden;
+  }
+  /* what it is about, a ruled kicker over the list */
+  .lwa__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: clamp(10px, 1.8svh, 16px);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+  .lwa__title::before {
+    content: '';
+    flex: none;
+    width: 7px;
+    height: 7px;
+    background: currentColor;
+  }
+  .lwa__list {
+    border-top: 1px solid var(--lwa-rule);
+  }
+  .lwa__item {
+    border-bottom: 1px solid var(--lwa-rule);
+  }
+  .lwa__h {
+    margin: 0;
+    font: inherit;
+  }
+  /* a row: its number, its name, and a plus that turns into a minus as it unfolds */
+  .lwa__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: clamp(50px, 7svh, 60px);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lwa__item.is-open .lwa__head {
+    cursor: default;
+  }
+  .lwa__num {
+    flex: none;
+    width: 2.4em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    opacity: 0.5;
+    transition: opacity 0.4s var(--ease-out);
+  }
+  .lwa__item.is-open .lwa__num {
+    opacity: 1;
+  }
+  .lwa__name {
+    flex: 1;
+    font-size: clamp(1.25rem, 5.6vw, 1.5rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .lwa__icon {
+    position: relative;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    transition: transform 0.6s var(--lwa-turn);
+  }
+  .lwa__icon::before,
+  .lwa__icon::after {
+    content: '';
+    position: absolute;
+    background: currentColor;
+    transition: transform 0.6s var(--lwa-turn);
+  }
+  /* the upright stroke, laid flat as the icon turns: the minus */
+  .lwa__icon::before {
+    top: 0;
+    left: calc(50% - 1px);
+    width: 2px;
+    height: 100%;
+    transform-origin: center top;
+  }
+  /* the flat stroke, drawn back into its left end as the icon turns */
+  .lwa__icon::after {
+    top: calc(50% - 1px);
+    left: 0;
+    width: 100%;
+    height: 2px;
+    transform-origin: left center;
+  }
+  .lwa__item.is-open .lwa__icon {
+    transform: rotate(90deg);
+  }
+  .lwa__item.is-open .lwa__icon::after {
+    transform: scaleX(0);
+  }
+
+  /* what a row holds: shut, or as tall as the room the rows leave, morphing between the two */
+  .lwa__body {
+    height: 0;
+    overflow: hidden;
+    transition: height 0.6s var(--lwa-fold);
+  }
+  .lwa__item.is-open .lwa__body {
+    height: var(--open);
+  }
+  .lwa__in {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.6svh, 14px);
+    height: var(--open);
+    padding-bottom: clamp(12px, 2svh, 18px);
+  }
+  /* its words rise into place one after another as it unfolds, and drop away quickly as it folds */
+  .lwa__rise {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+    transition:
+      opacity 0.2s var(--ease-out),
+      transform 0.3s var(--ease-out);
+  }
+  .lwa__item.is-open .lwa__rise {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.55s var(--ease-out) calc(0.16s + var(--j) * 0.07s),
+      transform 0.8s var(--ease-out) calc(0.16s + var(--j) * 0.07s);
+  }
+  .lwa__full {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--on-light-2);
+  }
+  .lwa__say {
+    max-width: 22em;
+    font-size: clamp(1.02rem, 4.5vw, 1.2rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    text-wrap: pretty;
+  }
+  /* the way on, as Enerblock's "Saber más": a ruled box, its arrow in a cell of its own */
+  .lwa__more {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: stretch;
+    height: 40px;
+    border: 1px solid currentColor;
+    color: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .lwa__more-label {
+    display: flex;
+    align-items: center;
+    padding: 0 16px 0 12px;
+  }
+  .lwa__more-cell {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    border-left: 1px solid currentColor;
+  }
+  .lwa__more:active .lwa__more-cell svg {
+    transform: translateX(3px);
+  }
+  /* the panel in 3D, all the room left between the words and the foot: it opens down out of its top edge */
+  .lwa__3d {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    --bg: var(--black);
+    background: var(--black);
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path 0.35s var(--ease-out);
+  }
+  .lwa__item.is-open .lwa__3d {
+    clip-path: inset(0);
+    transition: clip-path 0.9s var(--lwa-fold) 0.22s;
+  }
+  /* the foot: the photograph, opening out of its corner, beside why it was used */
+  .lwa__foot {
+    display: flex;
+    gap: 14px;
+    align-items: flex-end;
+    height: clamp(72px, 12svh, 104px);
+  }
+  .lwa__photo {
+    position: relative;
+    flex: none;
+    aspect-ratio: 1;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(0 100% 100% 0);
+    transition: clip-path 0.3s var(--ease-out);
+  }
+  .lwa__item.is-open .lwa__photo {
+    clip-path: inset(0);
+    transition: clip-path 0.9s var(--lwa-fold) 0.36s;
+  }
+  .lwa__photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .lwa__photo > :not(img) {
+    position: absolute;
+    inset: 0;
+  }
+  .lwa__used {
+    display: grid;
+    gap: 4px;
+    align-self: center;
+    font-size: clamp(0.84rem, 3.6vw, 0.92rem);
+    line-height: 1.35;
+  }
+  .lwa__label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--on-light-2);
+  }
+  .lwa__label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+  }
 }
 
 @keyframes fco-rule {
@@ -231,5 +499,18 @@
   }
   .fco-cue::before {
     transform: none;
+  }
+  /* the accordion still folds and unfolds, at once */
+  .lwa__body,
+  .lwa__icon,
+  .lwa__icon::before,
+  .lwa__icon::after,
+  .lwa__rise,
+  .lwa__3d,
+  .lwa__photo,
+  .lwa__item.is-open .lwa__rise,
+  .lwa__item.is-open .lwa__3d,
+  .lwa__item.is-open .lwa__photo {
+    transition: none;
   }
 }

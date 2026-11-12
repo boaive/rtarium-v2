@@ -51,6 +51,11 @@ function pump() {
   count()
   const fast = opening()
   ;(fast ? (f: () => void) => window.setTimeout(f, 0) : idle)(() => {
+    // (held since it was asked: what is playing now goes first; the release asks again)
+    if (held) {
+      pumping = false
+      return count()
+    }
     waiting.sort((a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top)
     const next = waiting.shift()
     next?.make()
@@ -139,21 +144,43 @@ export function Stage3D({
     const el = host.current
     if (!el || near) return
     const make = () => setNear(true)
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && make(), { rootMargin: '250% 0px' })
-    io.observe(el)
-    // on a large screen, made ahead while the browser is idle (a phone keeps to its sections' approach)
     const entry = { el, make }
     let queued = false
+    const queue = () => {
+      if (queued) return
+      queued = true
+      waiting.push(entry)
+      pump()
+    }
+    /*
+     * a canvas folded away in a section that shows it later (the façade's accordion on a phone, `data-stage-ahead`):
+     * hidden, it never comes near by itself, and made only as it unfolds it stalled the unfolding. It is made as its
+     * section comes near instead, one at a time with the others while the browser is idle; at once if it shows first.
+     * On a phone every canvas coming near is made so, in a pause and never while an opening or a fold plays (holdPump):
+     * made the moment it came near, a scene ahead stalled whatever was moving on the screen then (the accordion's fold);
+     * one already on the screen is made at once
+     */
+    const ahead = el.parentElement?.closest<HTMLElement>('[data-stage-ahead]') ?? null
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) (e.target === el && !compact ? make : queue)()
+      },
+      { rootMargin: '250% 0px' },
+    )
+    io.observe(el)
+    if (ahead) io.observe(ahead)
+    const seen = compact ? new IntersectionObserver(([e]) => e.isIntersecting && make()) : null
+    seen?.observe(el)
+    // on a large screen, made ahead while the browser is idle (a phone keeps to its sections' approach)
     if (!compact) {
       whenSettled(() => {
         if (!host.current) return
-        queued = true
-        waiting.push(entry)
-        pump()
+        queue()
       })
     }
     return () => {
       io.disconnect()
+      seen?.disconnect()
       if (queued) {
         const i = waiting.indexOf(entry)
         if (i >= 0) waiting.splice(i, 1)

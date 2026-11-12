@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { scrollToY, stepScreens } from '../lib/scroll'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import type { Ground } from '../three/stageStore'
-import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from './three/Stage3D'
+import { Stage3D, LabelProjector, Labels, MovingKeyLight, holdPump, type LabelSpec } from './three/Stage3D'
 import { createBus } from './three/kit'
 import { CellRig, type CellShot } from './three/CellRig'
 import { CladdingPanel, CUT_TARGET, PANEL_TARGET } from './three/CladdingPanel'
@@ -260,6 +260,16 @@ function Panel({ k, compact }: { k: number; compact: boolean }) {
   )
 }
 
+/** RTARIUM's way on: `#id` glides to that part of the page, under the header */
+function goTo(e: MouseEvent<HTMLAnchorElement>, to: string | undefined) {
+  if (!to?.startsWith('#')) return
+  const el = document.querySelector<HTMLElement>(to)
+  if (!el) return
+  e.preventDefault()
+  const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
+  scrollToY(el.getBoundingClientRect().top + window.scrollY - navH)
+}
+
 /** a line revealed by a block of its own colour: the block runs across it, the words come up under it, it runs off */
 function Masked({ k, children }: { k: number; children: ReactNode }) {
   return (
@@ -297,15 +307,7 @@ function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: Line
       el.classList.remove('is-armed', 'is-in')
     }
   }, [])
-  const go = (e: MouseEvent<HTMLAnchorElement>) => {
-    const to = v.more?.to
-    if (!to?.startsWith('#')) return
-    const el = document.querySelector<HTMLElement>(to)
-    if (!el) return
-    e.preventDefault()
-    const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
-    scrollToY(el.getBoundingClientRect().top + window.scrollY - navH)
-  }
+  const go = (e: MouseEvent<HTMLAnchorElement>) => goTo(e, v.more?.to)
   return (
     <article
       ref={(el) => {
@@ -372,10 +374,170 @@ function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: Line
  * (the last is RTARIUM), its own model for the panel's box and its own words; the boxes, the rows and
  * the motion are the same.
  */
-type LineageProps = Parameters<typeof LineageGrid>[0]
+type LineageProps = Parameters<typeof LineageGrid>[0] & {
+  /** how a phone sets it: a window a screen tall for each version (by default), or an accordion that unfolds one at a time */
+  phone?: 'screens' | 'accordion'
+}
 
-export function Lineage(props: LineageProps) {
-  return useIsCompact() ? <LineagePhone {...props} /> : <LineageGrid {...props} />
+export function Lineage({ phone = 'screens', ...props }: LineageProps) {
+  if (!useIsCompact()) return <LineageGrid {...props} />
+  return phone === 'accordion' ? <LineageAccordion {...props} /> : <LineagePhone {...props} />
+}
+
+/** the scroll each version holds unfolded while the accordion stands still under the header (a share of the screen) */
+const FOLD_STEP = 0.7
+
+/**
+ * The story on a phone as Enerblock sets the values on its home page: an accordion, a version a row (its number, its
+ * name, a plus), one of them unfolded to what it is, why it is replaced, its panel in 3D, and its photograph beside why
+ * it was used (RTARIUM: why it replaces them, the way on, and what it comes to). The list stands still under the header
+ * while the page scrolls through it: the first is unfolded as it comes up, and each stretch of scroll (FOLD_STEP) folds
+ * the one open and unfolds the next, its height morphing open as the one before morphs shut (the list keeps its height,
+ * the rows under it move as one), its plus turning into a minus, and what it holds rising into place, its panel and
+ * photograph opening out of their edges. A row tapped unfolds by hand, to be seen again; it stays so until the scroll
+ * moves on to another stretch.
+ */
+function LineageAccordion({ sectionRef, versions = VERSIONS, panel = (k, compact) => <Panel k={k} compact={compact} />, words = FACADE_WORDS, id = 'lineage', second }: LineageProps) {
+  const n = versions.length
+  const [open, setOpen] = useState(0)
+  const pin = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLDivElement>(null)
+  /** the stretch of scroll the page was last in: the scroll unfolds its version only as the page moves into another */
+  const stretch = useRef(-1)
+
+  // the height an unfolded version gets: the screen, less the header, the title and every row
+  useLayoutEffect(() => {
+    const p = pin.current
+    const l = list.current
+    if (!p || !l) return
+    const fit = () => {
+      const heads = [...l.querySelectorAll<HTMLElement>('.lwa__head')].reduce((s, h) => s + h.offsetHeight, 0)
+      // (each row's rule under it, and the list's over the first)
+      const rules = n + 1
+      const room = p.clientHeight - l.offsetTop - parseFloat(getComputedStyle(p).paddingBottom) - heads - rules
+      l.style.setProperty('--open', `${Math.max(140, Math.floor(room))}px`)
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(p)
+    ro.observe(l.querySelector('.lwa__head') ?? l)
+    return () => ro.disconnect()
+  }, [n])
+
+  // while a version folds and the next unfolds, no scene further down the page is built (each build stalls the page a
+  // moment): they wait for the fold to have played (holdPump)
+  const folded = useRef(false)
+  useEffect(() => {
+    if (!folded.current) return void (folded.current = true)
+    const release = holdPump()
+    const t = window.setTimeout(release, 1200)
+    return () => {
+      window.clearTimeout(t)
+      release()
+    }
+  }, [open])
+
+  // the scroll: the stretch the page is in unfolds its version (before the list, the first; past it, the last)
+  useEffect(() => {
+    const el = sectionRef.current
+    const p = pin.current
+    if (!el || !p) return
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const step = Math.max(1, (el.offsetHeight - p.offsetHeight) / n)
+      const k = Math.min(n - 1, Math.max(0, Math.floor(-el.getBoundingClientRect().top / step)))
+      if (k === stretch.current) return
+      stretch.current = k
+      setOpen(k)
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [sectionRef, n])
+
+  return (
+    // (data-stage-ahead: the folded panels' canvases are made as the section comes near, not as each unfolds)
+    <section ref={sectionRef} id={id} className="lwa on-light" data-ground="light" data-stage-ahead="" aria-labelledby={`${id}-title`} style={{ '--n': n, '--step': FOLD_STEP } as CSSProperties}>
+      <div ref={pin} className="lwa__pin">
+        <h2 id={`${id}-title`} className="lwa__title">
+          {words.title}
+        </h2>
+        <div ref={list} className="lwa__list">
+          {versions.map((v, i) => {
+            const on = open === i
+            const head = `${id}-${v.id}-head`
+            const body = `${id}-${v.id}-body`
+            const say = v.claim ?? v.replaced ?? ''
+            const model = second?.(i, true) ?? null
+            // the order its parts rise in
+            let j = 0
+            return (
+              <div key={v.id} className={`lwa__item ${on ? 'is-open' : ''}`}>
+                <h3 id={`fs-${v.id}`} className="lwa__h">
+                  <button id={head} type="button" className="lwa__head" aria-expanded={on} aria-controls={body} onClick={() => setOpen(i)}>
+                    <span className="lwa__num num">0{i + 1} /</span>
+                    <span className="lwa__name">{v.name}</span>
+                    <span className="lwa__icon" aria-hidden="true" />
+                  </button>
+                </h3>
+                <div id={body} className="lwa__body" role="region" aria-labelledby={head} inert={!on}>
+                  <div className="lwa__in">
+                    <p className="lwa__full lwa__rise" style={{ '--j': j++ } as CSSProperties}>
+                      {v.full}
+                    </p>
+                    <p className="lwa__say lwa__rise" style={{ '--j': j++ } as CSSProperties}>
+                      {say}
+                    </p>
+                    {v.more && (
+                      <a className="lwa__more lwa__rise" style={{ '--j': j++ } as CSSProperties} href={v.more.to} onClick={(e) => goTo(e, v.more?.to)}>
+                        <span className="lwa__more-label">{v.more.label}</span>
+                        <span className="lwa__more-cell" aria-hidden="true">
+                          <svg viewBox="0 0 20 20" width="16" height="16">
+                            <path d="M3 10h13M11 5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                          </svg>
+                        </span>
+                      </a>
+                    )}
+                    <div className="lwa__3d on-black">{panel(i, true)}</div>
+                    <div className="lwa__foot">
+                      {model ? (
+                        <div className="lwa__photo">{model}</div>
+                      ) : (
+                        v.photo && (
+                          <figure className="lwa__photo">
+                            <img src={v.photo.src} alt={v.photo.alt} loading="lazy" width={320} height={320} style={v.photo.pos ? { objectPosition: v.photo.pos } : undefined} />
+                          </figure>
+                        )
+                      )}
+                      <div className="lwa__used lwa__rise" style={{ '--j': j++ } as CSSProperties}>
+                        {v.used ? (
+                          <>
+                            <p className="lwa__label">{words.used}</p>
+                            <p>{v.used}</p>
+                          </>
+                        ) : (
+                          v.line && <p>{v.line}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
 }
 
 /** the grounds of the windows on a phone, in turn: yellow, black, warm white */
