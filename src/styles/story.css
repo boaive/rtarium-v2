@@ -559,6 +559,9 @@
   font-size: var(--t-small);
   font-weight: 600;
 }
+.figure__chips {
+  display: none;
+}
 .figure__value {
   font-size: clamp(1.4rem, 2vw, 2rem);
 }
@@ -1133,6 +1136,12 @@
   background: var(--black);
   color: var(--yellow);
 }
+/* the black passes from one to the other, never blinking across */
+.toggle button {
+  transition:
+    background-color 0.35s var(--ease-out),
+    color 0.35s var(--ease-out);
+}
 
 /* ---- Tech Space: three elements, one system, on a diagonal --------------------------------- */
 
@@ -1210,8 +1219,11 @@
   font-weight: 600;
   opacity: 0.75;
 }
-.system__seg-btn:hover {
-  background: rgb(253 208 1 / 0.1);
+/* (a pointer's hover only: on a phone a tap left the tint on the button it pressed, a flash) */
+@media (hover: hover) {
+  .system__seg-btn:hover {
+    background: rgb(253 208 1 / 0.1);
+  }
 }
 .system__seg-btn[aria-pressed='true'] {
   background: var(--yellow);

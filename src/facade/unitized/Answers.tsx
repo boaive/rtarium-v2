@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { damp, prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../three/Stage3D'
@@ -8,6 +8,7 @@ import { AnswerScene, tallAt, type AnswerAxis } from '../three/unit/AnswerScene'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { StepBar } from './StepBar'
+import { Stations } from './Stations'
 
 /**
  * RTARIUM's answers, on yellow, as EnduroSat's space-service page runs its satellite: one pinned
@@ -77,8 +78,26 @@ const LAST_AT = 0.86
 const RUN = STRETCH.reduce((a, b) => a + b, 0)
 const START = STRETCH.map((_, k) => STRETCH.slice(0, k).reduce((a, b) => a + b, 0))
 const N = ANSWERS.length
-/** where the last answer has played out (the panel at its 6 m), as a point of the run: there the section is done */
-const DONE = (START[N - 1] + STRETCH[N - 1] * LAST_AT) / RUN
+/** where answer k has played out, its words still in place (the last: the panel at its 6 m), in screens into the run */
+const stopAt = (k: number) => START[k] + STRETCH[k] * (k === N - 1 ? LAST_AT : 0.76)
+
+/**
+ * The section is stepped like the rest of the page, an answer a scroll, played as the page glides there and back the
+ * same way (`data-back`): its stops, written exactly (the run is measured by the window, its height by the screen)
+ */
+function useAnswerStops(section: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = section.current
+    if (!el) return
+    const write = () => {
+      const run = Math.max(1, el.offsetHeight - window.innerHeight)
+      el.dataset.stops = ANSWERS.map((_, k) => ((stopAt(k) * window.innerHeight) / run).toFixed(5)).join(',')
+    }
+    write()
+    window.addEventListener('resize', write)
+    return () => window.removeEventListener('resize', write)
+  }, [section])
+}
 
 /** the run, in screens scrolled into the pin, as answers: answer k over k..k+1 */
 function answerAt(s: number) {
@@ -100,11 +119,14 @@ function wordsAt(k: number, t: number) {
 export function goToAnswer(k: number) {
   const el = document.getElementById('answers')
   if (!el) return
-  const s = START[k] + STRETCH[k] * (k === N - 1 ? LAST_AT : 0.76)
-  scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight)
+  scrollToY(el.getBoundingClientRect().top + window.scrollY + stopAt(k) * window.innerHeight)
 }
 
 export function Answers() {
+  return useIsCompact() ? <AnswersPhone /> : <AnswersWide />
+}
+
+function AnswersWide() {
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const words = useRef<(HTMLDivElement | null)[]>([])
@@ -120,6 +142,7 @@ export function Answers() {
   const [lit, setLit] = useState('')
   /** where the scene stands, from the layout: the middle of the room right of the words, on their line */
   const axis = useRef<AnswerAxis>({ x: 0.6, y: 0.5 })
+  useAnswerStops(section)
 
   useEffect(() => {
     const measure = () => {
@@ -240,7 +263,7 @@ export function Answers() {
     }
     const show = (e: Event) => {
       const { k, move } = (e as CustomEvent<{ k: number; move?: boolean }>).detail
-      const s = START[k] + STRETCH[k] * (k === N - 1 ? LAST_AT : 0.76)
+      const s = stopAt(k)
       if (move) scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight, true)
       // (without `move`, the stepper is saying the scroll has played it to its end: it is eased on from where it stands,
       // never played again from its start)
@@ -283,7 +306,7 @@ export function Answers() {
   const shown = ANSWERS.find((a) => a.id === lit)?.labels ?? []
 
   return (
-    <section ref={section} id="answers" className="fu-ans on-yellow" data-done={DONE} aria-labelledby="fu-answers-title" style={{ '--run': RUN } as CSSProperties}>
+    <section ref={section} id="answers" className="fu-ans on-yellow" data-no-top="" data-back="all" aria-labelledby="fu-answers-title" style={{ '--run': RUN } as CSSProperties}>
       <div ref={pin} className="fu-ans__pin">
         <div className="fu-ans__stage" aria-hidden="true">
           <Stage3D shadows fallback={<img className="fu-still" src="/img/shoot/mesh-profile.webp" alt="" />}>
@@ -345,3 +368,37 @@ export function Answers() {
     </section>
   )
 }
+
+/**
+ * a phone: each answer's clip, rendered from the scene a frame at a time (the dev film page, src/dev/FilmUnitized.tsx),
+ * and how long it runs, its last frame's hold included (ms): the next answer comes in as it ends
+ */
+const CLIP_MS = [2700, 3034, 3034, 3034, 3700]
+
+/**
+ * The answers on a phone, set as the slab to slab's are (Stations): each answer a clip of the textile playing it out, in
+ * a card, played one after another by themselves, with the bar, pause, back and on, and the answers as thumbnails. The
+ * page scrolls past it as past any screen.
+ */
+function AnswersPhone() {
+  const section = useRef<HTMLElement>(null)
+  return (
+    <Stations
+      sectionRef={section}
+      id="answers"
+      title="The RTARIUM Solution"
+      label="Answer"
+      ground="yellow"
+      items={ANSWERS.map((a, i) => ({
+        name: a.name,
+        line: a.line,
+        clip: `/img/facade/unitized/answer-step-${i + 1}.webp`,
+        ms: CLIP_MS[i],
+        thumb: `/img/facade/unitized/answer-${i + 1}.webp`,
+      }))}
+    />
+  )
+}
+
+/** for the dev film page (src/dev/FilmUnitized.tsx), which renders each answer as a phone's clip */
+export { ANSWERS, LABELS as ANSWER_LABELS }

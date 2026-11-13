@@ -35,6 +35,8 @@ export interface Pose {
   /** where the target sits on screen, as fractions of the viewport (desktop, phone) */
   frame: [number, number]
   frameCompact: [number, number]
+  /** where the target stands in a phone's card (share of its width, height): its middle unless the mesh needs it lower */
+  frameBox?: [number, number]
   /** fall-off into the ground colour: distance (m) where it starts and where it is complete */
   fog: [number, number]
   look: Look
@@ -54,6 +56,16 @@ export interface Pose {
   labelZoneCompact: [number, number, number, number]
   /** cells built across the warp and the weft */
   win: [number, number]
+  /** the piece built round, win[0] cells across (yarnMaterial uRound): turned about its middle, its outline never moves */
+  round?: boolean
+  /** the piece cut flush, square, this far out from its middle on all four sides (m): every edge ends the same way */
+  cut?: number
+  /**
+   * a phone's card grown with the scroll from one edge: `near`, where its near edge lies (cells, along z, toward the
+   * camera); as the card's row comes up the screen the piece is woven on from there, away from the camera, to its full
+   * `win[1]`, all of it by the time the row has come to rest
+   */
+  grow?: { near: number }
   /** 0 = the sheet lies flat, 1 = it stands on its edge facing the camera */
   stand: number
   /** how much of its shadow the sheet casts on the ground under it (0..1) */
@@ -133,11 +145,6 @@ export const ANCHORS: Record<string, [number, number, number]> = {
   'tour-face-a': [0, 0.004, 0.018],
   'tour-fibres': [-0.003, 0, 0.021],
   'tour-face-b': [0, -0.004, 0.018],
-  // a phone's cavity names them one at a time, the camera a step further in for each (TOUR_DIVE): the same points, each
-  // that much further along the cavity (a whole number of cells, so each stays on its yarn)
-  'tour-p1': [0, 0.004, 0.018],
-  'tour-p2': [-0.003, 0, 0.021 - 0.036],
-  'tour-p3': [0, -0.004, 0.018 - 0.072],
   // the cast panel at the close of "In concrete": the mortar between the yarns, a yarn of the upper
   // face, the side of the slab
   'pour-cavity': [-0.08, 0.0042, -0.066],
@@ -170,11 +177,14 @@ export const POSES: Record<PoseId, Pose> = {
     elev: 41,
     azim: 36,
     dist: 0.53,
-    distCompact: 0.95,
+    // phones: the piece large on the screen, its corners kept clear of the sides through its slow turn
+    // (closer than it was, and seen wider, low and slanted: its near edge looms over the far one, in depth)
+    distCompact: 0.84,
     fov: 30,
     frame: [0.71, 0.7],
-    // phones: the middle of the screen, between the name under the header and the copy at the foot
-    frameCompact: [0.5, 0.5],
+    // phones: centred across the screen, low in the room between the way to the team and Scroll to explore
+    // (a little left of centre: its shadow falls to the right, and the two read as one, centred)
+    frameCompact: [0.5, 0.68],
     sway: 4,
     press: true,
     win: [18, 12],
@@ -195,6 +205,10 @@ export const POSES: Record<PoseId, Pose> = {
     frame: [0.4, 0.3],
     // phones: under the copy at the top, above the carousel at the foot
     frameCompact: [0.5, 0.64],
+    // (in a phone's card the sheet's corner stands low, so the mesh reaches the card's foot)
+    frameBox: [0.5, 0.62],
+    // (a finger on its card presses the sheet where it touches)
+    press: true,
     fog: [0.2, 0.7],
     sway: 6,
     labels: ['upper-face', 'lower-face', 'fibres'],
@@ -233,6 +247,8 @@ export const POSES: Record<PoseId, Pose> = {
     frame: [0.26, 0.58],
     // phones: under the copy and the footage
     frameCompact: [0.5, 0.71],
+    // (in a phone's card the slab's edge low in it, no bare band under it)
+    frameBox: [0.5, 0.62],
     fog: [0.16, 0.5],
     sway: 3,
     win: [16, 16],
@@ -392,12 +408,45 @@ export const POUR_OUT: Pose = {
   labelZone: [0.02, 0.4, 0.98, 0.95],
 }
 
+/**
+ * A phone's cards (About and Innovation, a screen each): a piece of the sheet whole in its card, clear of its edges at
+ * every angle of its turn, never pressed by a finger. `spin` (deg/s): the card most in view turns one way, very slowly,
+ * on and on (scrolling or a finger on it never stops it); none: it holds its pose.
+ */
+const card = (id: PoseId, o: Partial<Pose>): Pose => ({ ...POSES[id], press: false, sway: 0, spin: 0, labels: [], ...o })
+export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
+  // (Innovation's three: no fog, the mesh its own colour right to its far edge: fog [6, 8], far past it)
+  // as on a wide screen, close and low over the sheet's near edge, its two faces and the fibres between them large;
+  // turned about the sheet's middle, so whichever way it has turned an edge of it stands in front
+  structure: card('structure', { tgt: [0, -0.002, 0], dist: 0.14, frameBox: [0.5, 0.6], spin: 2 }),
+  // the rovings close, running away under the words, low in the card
+  // seen low, on its edge, from another side than Structure; it turns the other way, its near edge moving left to right
+  material: card('material', { elev: 7, azim: 112, distCompact: 0.16, frameBox: [0.5, 0.6], fog: [0.14, 0.5], spin: -2 }),
+  // close on the mortar running in; once it has, turning slowly
+  pour: card('pour', { spin: 2 }),
+  // (the whiteboard: a broad sheet across the lower screen, at an angle, the X, Y and Z arrows standing out of it)
+  depth: card('depth', { tgt: [0.012, 0.012, 0.02], elev: 26, azim: 36, distCompact: 0.4, win: [18, 18], fog: [6, 8], frameBox: [0.42, 0.6], spin: 2 }),
+  // low on its front edge, so its thickness (the two faces and the fibres between them) shows along the foot
+  // RTARIUM: in close and low on the sheet's front edge, its upper face, the fibres looping between and its lower face
+  // all in view, the edge running a little uphill across the card; Flat mesh takes the lower face and the fibres away
+  // and leaves the camera where it is
+  shear: card('shear', { tgt: [0, -0.002, 0.058], elev: 9, azim: 14, dist: 0.12, distCompact: 0.12, frameBox: [0.5, 0.55], win: [14, 14], fog: [6, 8], shadow: 1, shearPlane: false, spin: 2 }),
+  // close over it from a high angle, the strands large (some four across the card), running off its sides and its foot;
+  // it does not turn: it grows, woven on from the card's foot up the card as the row comes up the screen (`grow`), its
+  // far edge one straight line of whole cells, low in the card, clear of the words, once the row has come to rest
+  mineral: card('mineral', { tgt: [0, 0, 0.006], elev: 74, azim: 0, dist: 0.145, distCompact: 0.145, fov: 38, frameBox: [0.5, 0.42], win: [14, 5], grow: { near: 5 }, fog: [6, 8], shadow: 1 }),
+  // Tech Space: the system pulled apart, turning one way about its middle, slowly, on and on (once round in a minute)
+  stack: card('stack', { spin: 6 }),
+}
+
 /* ---- the opening tour -------------------------------------------------------------------------- */
 
 type TourKey = Pick<Pose, 'tgt' | 'elev' | 'azim' | 'dist' | 'fov' | 'frame' | 'frameCompact' | 'fog' | 'win'> & { at: number; distCompact: number }
 
 /** a fog that has swallowed everything: the screen is all ground colour (white, by then) */
 const WHITE_FOG: [number, number] = [0, 0.002]
+/** where the camera looks once it is down between the two faces (2), along the cavity */
+export const CAVITY_Z = -0.07
 
 /**
  * The opening, as the visitor scrolls: 0 the piece lies beside the headline; 1 the mesh has been
@@ -411,7 +460,7 @@ function tourKeys(): TourKey[] {
   return [
     { at: 0, tgt: h0.tgt, elev: h0.elev, azim: h0.azim, dist: h0.dist, distCompact: h0.distCompact ?? h0.dist, fov: h0.fov, frame: h0.frame, frameCompact: h0.frameCompact, fog: h0.fog, win: h0.win },
     { at: 1, tgt: [0, 0, 0], elev: 50, azim: 18, dist: 0.3, distCompact: 0.42, fov: 34, frame: [0.5, 0.5], frameCompact: [0.5, 0.45], fog: [1, 2], win: [FIELD, FIELD] },
-    { at: 2, tgt: [0, 0, -0.07], elev: 0, azim: 0, dist: 0.11, distCompact: 0.11, fov: 66, frame: [0.5, 0.5], frameCompact: [0.5, 0.5], fog: [0.12, 0.45], win: [FIELD, FIELD] },
+    { at: 2, tgt: [0, 0, CAVITY_Z], elev: 0, azim: 0, dist: 0.11, distCompact: 0.11, fov: 66, frame: [0.5, 0.5], frameCompact: [0.5, 0.5], fog: [0.12, 0.45], win: [FIELD, FIELD] },
     { at: 2.5, tgt: [0, 0, -0.2], elev: 0, azim: 0, dist: 0.11, distCompact: 0.11, fov: 70, frame: [0.5, 0.5], frameCompact: [0.5, 0.5], fog: WHITE_FOG, win: [FIELD, FIELD] },
     // in the white the camera is brought to the mesh, unseen; the white clears, close on the yarns
     { at: 2.62, tgt: s.tgt, elev: 34, azim: 30, dist: 0.075, distCompact: 0.1, fov: 30, frame: [0.5, 0.5], frameCompact: [0.5, 0.4], fog: WHITE_FOG, win: [TILE, TILE] },
@@ -421,9 +470,12 @@ function tourKeys(): TourKey[] {
 }
 
 export const TOUR_LABELS = ['tour-face-a', 'tour-fibres', 'tour-face-b', 'tour-gap']
-/** a phone's cavity points, one to a screen, and how far on along the cavity the camera goes for each (three cells) */
-export const PHONE_POINTS = ['tour-p1', 'tour-p2', 'tour-p3']
-export const TOUR_DIVE = 0.036
+/**
+ * a phone's flight through the cavity, no labels: how far along it (m, from CAVITY_Z) the camera has gone by the time
+ * the white has taken the screen, at an even pace (the tour's own move along the cavity into the white is less, and slower
+ * at first: the flight runs ahead of it)
+ */
+export const PHONE_TRAVEL = 0.2
 /** how far into white light the tour has gone (0..1): the ground washes to warm white with it, and back to yellow on the way into About */
 export const tourWash = (p: number) => smoothstep(2.08, 2.5, p) * (1 - smoothstep(2.66, 3, p))
 /** in the cavity, as it starts to wash into the white: the visitor scrolls the tour this far, and from here it plays itself on into About */

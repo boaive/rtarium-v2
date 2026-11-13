@@ -63,15 +63,37 @@
   :root #replaces .ledger__in {
     height: 100lvh;
   }
-  :root #about .eb-row,
-  :root #innovation .eb-row,
   :root #tech .eb-row {
     height: 100lvh;
     padding-bottom: calc(clamp(14px, 2.6svh, 24px) + var(--bar));
   }
+  /*
+   * About and Innovation scroll freely (no stop a swipe at each part): each part is as tall as what it holds, its number
+   * straight under the hairline of the part before, a figure of its own proportion. As a screen each (the header's room
+   * at its top, the figure stretched to the foot), a band of bare ground stood between one part's figure and the next
+   * part's number as the page scrolled.
+   */
+  :root #about .eb-row,
+  :root #innovation .eb-row,
   :root #about .eb-row:first-of-type,
   :root #innovation .eb-row:first-of-type {
-    height: calc(100lvh - var(--about-head));
+    height: auto;
+    padding-top: 0;
+    padding-bottom: clamp(28px, 5svh, 40px);
+  }
+  :root #about .eb-row .eb-fig,
+  :root #innovation .eb-row .eb-fig {
+    flex: none;
+  }
+  /* (a figure line, as Thickness options, the width of the column: its rule and its value end where the card does) */
+  :root .eb .eb-row .figure {
+    justify-self: stretch;
+    justify-content: space-between;
+  }
+  :root #about .eb-row .eb-fig__view,
+  :root #innovation .eb-row .eb-fig__view {
+    flex: none;
+    aspect-ratio: 1 / 0.86;
   }
   /*
    * ---- A sideways chapter on a phone (Innovation), set as the Facade pages set their steps: which of how many, small,
@@ -235,8 +257,20 @@
   .psteps__hint {
     top: 78%;
   }
+  /* on a figure: as quiet as it can be, a small mark and two words on a small chip (readable over the mesh) */
   .eb-fig__hint {
-    bottom: 16px;
+    bottom: 10px;
+    gap: 6px;
+    padding: 4px 9px;
+    background: rgb(8 8 8 / 0.55);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .eb-fig__hint .thint__mark {
+    width: 12px;
+    height: 12px;
   }
   .thint__dot {
     animation: thint-swipe 1.6s ease-in-out infinite;
@@ -267,6 +301,174 @@
     100% {
       opacity: 0;
       transform: scale(1.15);
+    }
+  }
+  /*
+   * What it replaces on a phone: the first time, pinned while the scroll stacks its deck a card a swipe; once all three
+   * are stacked (Why's `is-dealt`) it is one screen scrolled past as any other, nothing pinned, the deck stacked for good;
+   * a tap on a card behind lifts it out of the deck and it settles in front as the others glide up behind it
+   */
+  :root #replaces.is-dealt {
+    height: 100lvh;
+  }
+  :root #replaces.is-dealt .ledger__in {
+    position: relative;
+  }
+  :root .vs--deck .vs__card {
+    transition: top 0.42s cubic-bezier(0.3, 0.6, 0.2, 1);
+  }
+  :root .vs--deck .vs__card.is-lift {
+    animation: vs-lift 0.2s cubic-bezier(0.3, 0, 0.6, 1) forwards;
+  }
+  :root .vs--deck .vs__card.is-land {
+    animation: vs-land 0.42s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  @keyframes vs-lift {
+    to {
+      transform: translate3d(0, -34px, 0) scale(0.97);
+    }
+  }
+  @keyframes vs-land {
+    from {
+      transform: translate3d(0, -34px, 0) scale(0.97);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root .vs--deck .vs__card {
+      transition: none;
+    }
+  }
+  /*
+   * ---- The header on a phone, as on a wide screen: the two names on their black capsule (RTARIUM, and by HEMISPHERE ONE
+   * after a hairline), and the menu a round black button. (:root: over the phone's bar of the name alone, nav.css) ----
+   */
+  :root .nav .nav__home,
+  :root .nav.is-tucked .nav__home,
+  :root .nav.on-black .nav__home {
+    margin-left: -4px;
+    padding: 9px 14px 9px 12px;
+    border-radius: var(--radius-round);
+    background: var(--black);
+    box-shadow: 0 6px 18px -10px rgb(8 8 8 / 0.55);
+  }
+  :root .nav.on-black .nav__home {
+    box-shadow: inset 0 0 0 1px rgb(253 208 1 / 0.32);
+  }
+  :root .nav .brand,
+  :root .nav.is-tucked .brand {
+    gap: 10px;
+  }
+  :root .nav .brand__clip,
+  :root .nav.is-tucked .brand__clip {
+    max-width: none;
+  }
+  /* (the white name on the capsule on every ground: over the phone's ink name for light and yellow grounds) */
+  :root .nav .brand .brand__rt {
+    display: block;
+    height: 15px;
+  }
+  :root .nav .brand .brand__rt.brand__rt--ink {
+    display: none;
+  }
+  :root .nav .brand__by,
+  :root .nav.is-tucked .brand__by {
+    display: flex;
+    max-width: none;
+    padding-left: 10px;
+    border-left: 1px solid rgb(242 240 233 / 0.28);
+    font-size: 10px;
+    opacity: 1;
+  }
+  :root .nav .brand__by img {
+    height: 12px;
+  }
+  :root .nav .nav__menu,
+  :root .nav.is-tucked .nav__menu {
+    width: 44px;
+    margin-right: 0;
+  }
+  :root .nav .nav__menu-cell {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--black);
+    color: var(--white);
+  }
+  :root .nav.is-open .nav__menu-cell {
+    background: var(--yellow);
+    color: var(--black);
+  }
+  :root .nav .nav__menu-icon,
+  :root .nav .nav__menu-icon i {
+    width: 18px;
+  }
+
+  /*
+   * ---- The opening on a phone: the name, what it is, and the way to the team, together at the top; the piece under
+   * them; the way on at the foot (Scroll to explore, its line, and a chevron in the middle). ----
+   */
+  :root .hero__copy {
+    align-content: start;
+    gap: clamp(18px, 3svh, 28px);
+  }
+  :root .hero__sub {
+    justify-items: start;
+    gap: clamp(18px, 2.8svh, 26px);
+  }
+  /* (small: only as wide as its words, a little lower than a thumb's reach) */
+  :root .hero__sub .explore {
+    min-width: 0;
+    height: 40px;
+    background: var(--black);
+    color: var(--yellow);
+    box-shadow: none;
+  }
+  :root .hero__sub .explore__label {
+    flex: none;
+    padding: 0 16px;
+    font-size: 0.66rem;
+    color: var(--yellow);
+  }
+  :root .hero__sub .explore__cell {
+    width: 40px;
+    border-left: 1px solid rgb(253 208 1 / 0.28);
+    color: var(--yellow);
+  }
+  :root .hero__scroll {
+    display: block;
+    bottom: calc(clamp(18px, 3svh, 30px) + env(safe-area-inset-bottom, 0px) + var(--bar));
+  }
+  :root .hero__screen--open::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    bottom: calc(clamp(16px, 2.6svh, 26px) + env(safe-area-inset-bottom, 0px) + var(--bar));
+    width: 11px;
+    height: 11px;
+    margin-left: -6px;
+    border-right: 1.8px solid var(--black);
+    border-bottom: 1.8px solid var(--black);
+    opacity: clamp(0, calc(1 - var(--p, 0) * 5), 1);
+    transform: rotate(45deg);
+    animation: hero-chevron 2.2s var(--ease-in-out) infinite;
+    pointer-events: none;
+  }
+  @keyframes hero-chevron {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 5px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root .hero__screen--open::after {
+      animation: none;
     }
   }
   /* what it is and the way to the team leave with the first fifth of the first swipe, never lingering at the foot of the
@@ -1067,5 +1269,134 @@
       transform: none;
       transition: none;
     }
+  }
+}
+
+/*
+ * A phone's footer (Footer: FooterPhone), simple and clean, set to the left: the name large, the next step in small
+ * type, the site map in two columns between hairlines, the fine print and the year, a black band at the very foot.
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .footer__body:has(.footm) {
+    display: block;
+    padding: calc(var(--nav-h) + clamp(22px, 5svh, 44px)) var(--gutter) calc(clamp(30px, 5svh, 44px) + env(safe-area-inset-bottom, 0px));
+  }
+  .footer:has(.footm)::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 7;
+    height: 6px;
+    background: var(--black);
+  }
+  .footm {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .footm__word {
+    margin-left: -0.03em;
+    font-family: var(--font-name);
+    font-size: clamp(2.4rem, 12.2vw, 3.4rem);
+    font-weight: 860;
+    font-stretch: 150%;
+    letter-spacing: -0.01em;
+    line-height: 0.9;
+  }
+  .footm__by {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .footm__by img {
+    width: auto;
+    height: 15px;
+  }
+  /* the next step, as small type under the name */
+  .footm__line {
+    margin-top: clamp(22px, 3.6svh, 30px);
+    font-size: 0.86rem;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    color: var(--on-yellow-2);
+  }
+  /* the way to the team, minimal: a small outlined pill */
+  .footm__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    margin-top: 16px;
+    padding: 0 14px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px currentColor;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  /* the site map: two columns between two hairlines, each group's name in a quiet tone over its links */
+  .footm__map {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(26px, 4.4svh, 36px) var(--s-4);
+    align-self: stretch;
+    margin-top: clamp(34px, 6svh, 52px);
+    padding: clamp(28px, 4.6svh, 36px) 0;
+    border-top: 1px solid rgb(8 8 8 / 0.22);
+    border-bottom: 1px solid rgb(8 8 8 / 0.22);
+    text-align: left;
+  }
+  .footm__head {
+    margin-bottom: 10px;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--on-yellow-2);
+    opacity: 0.8;
+  }
+  .footm__map ul {
+    display: grid;
+    gap: 2px;
+  }
+  .footm__map a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    font-size: 0.98rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .footm__base {
+    align-self: stretch;
+    display: grid;
+    gap: 14px;
+    padding-top: clamp(22px, 4svh, 30px);
+    text-align: left;
+  }
+  .footm__legal {
+    font-size: 0.74rem;
+    line-height: 1.5;
+    color: var(--on-yellow-2);
+  }
+  .footm__year {
+    font-size: 0.86rem;
+    font-weight: 600;
+  }
+  /* (the copy inside the liquid: yellow on black) */
+  .footer__body--inverse .footm__line,
+  .footer__body--inverse .footm__head,
+  .footer__body--inverse .footm__legal {
+    color: var(--on-dark-2);
+  }
+  .footer__body--inverse .footm__map {
+    border-color: rgb(253 208 1 / 0.3);
   }
 }

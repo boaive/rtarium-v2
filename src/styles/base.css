@@ -201,3 +201,27 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * A tap on a link, a button or the name in the header: no blue flash over it (a phone's own tap highlight), and its words
+ * never selected by a press (a long press selected the label, the blue text highlight)
+ */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+a,
+button,
+[role='button'],
+label,
+summary,
+.nav__bar,
+.nav__menu {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible) {
+  outline: none;
+}

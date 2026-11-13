@@ -25,6 +25,8 @@ const FlooringRoutes = lazy(() => import('./flooring/FlooringRoutes'))
 const isFlooring = (path: string) => path === '/advanced-flooring' || path.startsWith('/advanced-flooring/')
 /** Wall Panels: one page, its own chunk */
 const WallPanels = lazy(() => import('./walls/WallPanels'))
+/** development only (never in a build): the Unitized page's scenes rendered a frame at a time, for its phone clips */
+const FilmUnitized = import.meta.env.DEV ? lazy(() => import('./dev/FilmUnitized')) : null
 const isWalls = (path: string) => path === '/wall-panels'
 
 function Home() {
@@ -68,6 +70,14 @@ function Page() {
   useEffect(() => {
     if (path !== '/') setShared({ chapter: 'page', step: 0, ground: 'light' })
   }, [path])
+  // (development only: a scene rendered a frame at a time, for the Unitized page's phone clips)
+  if (FilmUnitized && path === '/__film') {
+    return (
+      <Suspense fallback={null}>
+        <FilmUnitized />
+      </Suspense>
+    )
+  }
   if (path === '/') {
     return (
       <>

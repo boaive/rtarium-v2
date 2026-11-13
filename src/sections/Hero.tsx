@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { StageLabel, useOrbitDrag, useStageRegion } from '../three/Stage'
 import { setShared, stage, useStageValue } from '../three/stageStore'
-import { PHONE_POINTS, tourWash } from '../three/poses'
+import { PHONE_TRAVEL, tourWash } from '../three/poses'
 import { Lines } from '../components/Chapter'
 import { Link } from '../lib/router'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
@@ -10,24 +10,28 @@ import { scrollToY, setAsideSmoothScroll } from '../lib/scroll'
 /** the screens of the opening tour: the piece, the mesh built out, the cavity, the light */
 const SCREENS = 4
 /**
- * On a phone the cavity has screens of its own after its line, one for each point named in it, while the camera
- * holds between the faces: the opening, the mesh built out, the line, three points, the light. Each screen is a
- * place on the tour (`at`, as on a wide screen: 1 built, 2 between the faces, 2.5 all white). A phone's tour ends in
- * the white: it does not come back out onto the mesh, and About, on the same warm white, rises out of it.
+ * On a phone the tour names nothing in the cavity: after its line ("An open core", over the mesh seen from just above)
+ * one swipe sends the camera down between the faces and on along the cavity, through the mesh, into the white, and
+ * About comes out of it. Its screens: the opening, the mesh built out, the line, the flight, the white. Each is a place
+ * on the tour (`at`, as on a wide screen: 1 built, 2 between the faces, 2.5 all white): the camera is down between the
+ * faces half way into the flight's screen, holds there (in the yellow) while it flies on, and the white comes in over
+ * the last of it. A phone's tour ends in the white: it does not come back out onto the mesh.
  */
 const PHONE_KEYS: [number, number][] = [
   [0, 0],
   [1, 1],
   [2, 1.72],
-  [3, 2],
-  [4, 2],
-  [5, 2],
-  [6, 2.5],
-  [7, 2.5],
+  [2.5, 2],
+  [3.3, 2.03],
+  // (all white by where the white hands over to About: HANDOFF.at)
+  [3.85, 2.5],
+  [5, 2.5],
 ]
-const PHONE_SCREENS = PHONE_KEYS.length - 1
-/** the screen of the cavity's first point, on a phone */
-const FIRST_POINT = 3
+const PHONE_SCREENS = 5
+/** the screens a phone's swipe stops on in the tour (then About's top): the opening, the mesh built out, the line */
+const PHONE_STOPS = [0, 1, 2]
+/** on a phone, where the flight along the cavity sets off and where it has gone its whole way (screens) */
+const FLIGHT: [number, number] = [2.5, 4]
 function phoneTour(s: number) {
   for (let k = 1; k < PHONE_KEYS.length; k++) {
     const [s1, p1] = PHONE_KEYS[k]
@@ -38,8 +42,8 @@ function phoneTour(s: number) {
 }
 /** the height of one of a phone's tour screens (all alike, the section their stack) */
 const screenH = (el: HTMLElement) => el.offsetHeight / PHONE_SCREENS
-/** on a phone, how far on along the cavity the camera has gone, a step for each point after the first (0..2) */
-const phoneDive = (s: number) => Math.min(2, Math.max(0, s - FIRST_POINT))
+/** on a phone, how far on along the cavity the camera has flown (m): evenly with the page, from the flight's start to its end */
+const phoneDive = (s: number) => PHONE_TRAVEL * Math.min(1, Math.max(0, (s - FLIGHT[0]) / (FLIGHT[1] - FLIGHT[0])))
 
 /**
  * The opening tour, the one vertical sequence on the page tied to the scroll. Four screens: the
@@ -98,8 +102,6 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
       // the header and the labels follow the ground: yellow, then the white of the light
       if (r.top <= vh * 0.5 && r.bottom > vh * 0.5) setShared({ chapter: 'hero', step: 0, ground: stage.wash > 0.5 ? 'light' : 'yellow' })
       const i = Math.min(screens - 1, Math.max(0, Math.round(at)))
-      // a phone's cavity: each point named while its screen holds most of the view, none once the light comes
-      stage.tourPoints = phone && i >= FIRST_POINT && i < FIRST_POINT + 3 && Math.abs(at - i) < 0.3 ? i - FIRST_POINT + 1 : 0
       if (i !== shown) {
         shown = i
         screenCb.current(i)
@@ -124,7 +126,7 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
   }, [section, phone])
 }
 
-/** the points named in the cavity (on a phone, one at a time, each with its number) */
+/** the points named in the cavity (a wide screen's: a phone names nothing there) */
 const POINTS = [
   { anchor: 'tour-face-a', name: 'Upper basalt face' },
   { anchor: 'tour-fibres', name: 'Connecting fibres' },
@@ -142,7 +144,7 @@ const HANDOFF = { at: PHONE_SCREENS - 1 - 0.15, hold: 25, quiet: 25, most: 2400,
 
 /**
  * A phone's tour ends in the white, and About does not scroll up into it: once the page goes on down into the white past
- * its top (a swipe from the cavity's last point: useSwipePager; however fast), a warm-white curtain holds the screen and the page is set on About's first view. A fling still
+ * its top (the flight through the cavity: useSwipePager; however fast), a warm-white curtain holds the screen and the page is set on About's first view. A fling still
  * running is held there under the curtain (put back each frame it pushes the page on) until it has died out, so even a
  * hard flick lands on About's first view, never past it; then the curtain clears and About comes out of the white.
  * From there the page scrolls as any page does; going back up, it scrolls back through the white into the cavity.
@@ -267,6 +269,17 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
  * long the page must have been still before a page left between two stops is brought to the nearer (ms)
  */
 const SWIPE = { reach: 0.06, flick: 0.45, settle: 140 }
+/** a glide's length (ms): a screen's, more for each screen past the first, and the most */
+const GLIDE_MS = { screen: 640, more: 240, most: 1100 }
+/**
+ * the flight through the cavity, from the line into the white (ms): an even pace, neither slow nor fast, that sets off
+ * the moment the finger lets go and eases a little at either end (About takes over in the white, ~88% of the way)
+ */
+const FLIGHT_MS = 2500
+const flightEase = (t: number) => 0.5 * t + 0.25 * (1 - Math.cos(Math.PI * t))
+/** a glide's ease: away at once, settling softly, and reaching its stop exactly (a bare 1 - 2^-10t stops 0.1% short and
+ * jumped the rest on its last frame, a pixel or two once the page had all but come to rest: a twitch at every landing) */
+const glideEase = (t: number) => (1 - Math.pow(2, -10 * t)) / (1 - Math.pow(2, -10))
 
 /**
  * A stretch of a phone's Home that goes a stop a swipe: its stops, top to bottom (px), and where a swipe on out of its
@@ -280,18 +293,26 @@ interface Zone {
 }
 
 /**
- * The stretches of a phone's Home that go a stop a swipe: the tour, its screens to the cavity's last point and on (one
- * swipe through the white) to About's top; and a section that names its own stops (`data-swipe-stops`, shares of its run:
- * What it replaces, a card a swipe), and one more on to the section after it. Everywhere else the page scrolls freely.
+ * The stretches of a phone's Home that go a stop a swipe: the tour, its screens to the cavity's line and on (one swipe,
+ * the flight through the cavity and the white) to About's top; and a section that names its own stops (`data-swipe-stops`,
+ * shares of its run: What it replaces, a card a swipe), and one more on to the section after it. Everywhere else the page
+ * scrolls freely.
  */
 function pagedZones(tour: HTMLElement): Zone[] {
   const vh = window.innerHeight
   const sh = screenH(tour)
   const aboutTop = Math.round(tour.offsetTop + tour.offsetHeight)
-  // (the white, the tour's last screen, is no stop: from the cavity's last point one swipe goes through it to About)
-  const zones: Zone[] = [{ stops: [...Array.from({ length: PHONE_SCREENS - 1 }, (_, k) => Math.round(tour.offsetTop + k * sh)), aboutTop], after: null, tour: true }]
-  for (const p of document.querySelectorAll<HTMLElement>('[data-swipe-stops]')) {
+  // (the flight and the white are no stops: from the line one swipe flies through them to About)
+  const zones: Zone[] = [{ stops: [...PHONE_STOPS.map((k) => Math.round(tour.offsetTop + k * sh)), aboutTop], after: null, tour: true }]
+  for (const p of document.querySelectorAll<HTMLElement>('[data-swipe-stops], [data-swipe-rows]')) {
     const top = p.getBoundingClientRect().top + window.scrollY
+    // a chapter of screen-tall parts: a stop at each part's top, and on out of the last to the section after it
+    if (p.hasAttribute('data-swipe-rows')) {
+      const rows = [...p.querySelectorAll<HTMLElement>('.eb-row')].map((r) => Math.round(r.getBoundingClientRect().top + window.scrollY))
+      if (rows.length) zones.push({ stops: rows, after: Math.round(top + p.offsetHeight) })
+      continue
+    }
+
     // (its run: what its pinned panel, `data-swipe-pin`, stands still through)
     const pin = p.querySelector<HTMLElement>('[data-swipe-pin]')
     const run = Math.max(1, p.offsetHeight - (pin?.offsetHeight ?? vh))
@@ -320,7 +341,8 @@ const nearestOf = (stops: number[], y: number) => stops.reduce((a, s) => (Math.a
 
 /**
  * A phone's Home goes a stop a swipe where a stop a swipe tells the story (pagedZones): the tour, a screen a swipe and
- * one on through the white to About; and the deck of What it replaces, a card a swipe and one on to Innovation. There,
+ * then one swipe that flies through the cavity and the white to About (a flight of its own pace, the finger's swipe only
+ * setting it off); and the deck of What it replaces, a card a swipe and one on to Innovation. There,
  * while the finger is down the page is the browser's own and follows it exactly; once it lets go, the page goes on to
  * the next stop that way (never past it, however hard the flick), or back to the one it set off from if the swipe was a
  * small one, in the browser's own smooth scroll (run off the page's thread, so it keeps its pace while the 3D draws).
@@ -335,16 +357,130 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     // (the smooth scroll set aside: written a frame behind the page, it would pull at the page's own glides)
     const bringBack = setAsideSmoothScroll()
     const touch = { y: 0, x: 0, t: 0, at: 0, from: 0, down: false, multi: false }
-    /** where the last glide was going, and when it set off */
+    /*
+     * A swipe in a paged stretch is the page's own from its first move: the page follows the finger exactly (its moves
+     * cancelled, the scroll set here), so the browser never starts a fling of its own. Left to the browser, the finger's
+     * fling ran on, off the page's thread, under the glide to the next stop: the two pulled the page back and forth a
+     * few pixels a frame for a third of a second as it landed, a shake at the start of every section (and the browser's
+     * bars slid in and out with it, resizing the screen mid-glide). `drag`: the swipe taken (where the page and the
+     * finger were as it was), or null: the browser's (a sideways move, or a swipe on out of a stretch to where the page
+     * goes freely, which keeps its fling); `decided`: settled on the touch's first move, the only one that can be
+     * cancelled.
+     */
+    let drag: { base: number; y0: number } | null = null
+    let decided = false
+    /** where the last glide was going, and until when it runs (ms) */
     let aim: number | null = null
-    let aimAt = 0
-    const glide = (to: number) => {
+    let aimUntil = 0
+    /** the flight through the cavity under way: the page is the flight's until the white hands it to About */
+    let flying = false
+    /*
+     * The glide to a stop: away at once and settling softly (an expo ease-out, as a smooth-scroll's), stepped frame by
+     * frame with the 3D, so the mesh and the page move as one. (The browser's own smooth scroll set off slowly and ran on
+     * a track of its own: on a phone, drawing the 3D at fewer frames than the page scrolled, the mesh trailed the page.)
+     * A finger on the screen stops it where it is; the white handing over to About takes it from there.
+     * The flight through the cavity (`flight`) goes at its own even pace instead, and a finger does not stop it: it is
+     * one short move from the line to About, which the white hands over to as it comes in.
+     */
+    let anim = 0
+    const glide = (to: number, flight = false) => {
+      cancelAnimationFrame(anim)
+      flying = false
+      const from = window.scrollY
+      const far = to - from
       aim = to
-      aimAt = performance.now()
-      window.scrollTo({ top: to, behavior: 'smooth' })
+      if (Math.abs(far) < 1) return
+      const ms = flight ? FLIGHT_MS : Math.min(GLIDE_MS.most, GLIDE_MS.screen + Math.max(0, Math.abs(far) / window.innerHeight - 1) * GLIDE_MS.more)
+      const t0 = performance.now()
+      aimUntil = t0 + ms + 100
+      flying = flight
+      const frame = (now: number) => {
+        if ((touch.down && !flight) || stage.heldAt > t0) return void (flying = false)
+        const t = Math.min(1, (now - t0) / ms)
+        const eased = t >= 1 ? 1 : flight ? flightEase(t) : glideEase(t)
+        window.scrollTo({ top: from + far * eased, behavior: 'instant' as ScrollBehavior })
+        if (t < 1) anim = requestAnimationFrame(frame)
+        else flying = false
+      }
+      anim = requestAnimationFrame(frame)
     }
-    const gliding = () => aim !== null && performance.now() - aimAt < 1200 && Math.abs(window.scrollY - aim) > 2
+    const gliding = () => flying || (aim !== null && performance.now() < aimUntil && Math.abs(window.scrollY - aim) > 2)
+    /** the flight was turned back by the finger: once it lifts, the page goes back to the opening */
+    let turnedBack = false
+    /**
+     * (a finger dragging on during the flight would pull the page against it: the page is the flight's; but one drawn
+     * back up turns it round at once, never a lock: the flight stops where it is and, the finger lifted, the page goes back
+     * up to the opening)
+     */
+    const hold = (e: TouchEvent) => {
+      if (!flying) return follow(e)
+      const t = e.touches[0]
+      if (t && t.clientY - touch.y > 24) {
+        cancelAnimationFrame(anim)
+        flying = false
+        turnedBack = true
+        return
+      }
+      if (e.cancelable) e.preventDefault()
+    }
+    /** whether a swipe `dir` from `from` in `zone` goes to a stop of the stretch's (as `step` takes it), not on out freely */
+    const pagedFor = (zone: Zone, from: number, dir: number, zones: Zone[]) => {
+      const { stops } = zone
+      const i = stops.indexOf(nearestOf(stops, from))
+      if (dir > 0) return i < stops.length - 1 || zone.after !== null
+      if (dir < 0) {
+        if (zone.tour && i === stops.length - 1) return Boolean(back.current)
+        if (i === 0) return zones.some((z) => z !== zone && z.after !== null && Math.abs(z.after - stops[0]) < 4)
+      }
+      return true
+    }
+    /**
+     * the paged stretch a swipe `dir` from `from`, where the page goes freely, sets into within a screen (About's first part
+     * from its top, the deck from the line before it, Tech Space back up from the applications): its stop that way
+     */
+    const entry = (zones: Zone[], from: number, dir: number) => {
+      const vh = window.innerHeight
+      for (const z of zones) {
+        if (z.tour) continue
+        const first = z.stops[0]
+        const last = z.stops[z.stops.length - 1]
+        // (within a screen and a half: from anywhere on a screen-tall section before it, the black statement before the
+        // deck, a swipe goes on to the stretch, never left resting part way on its way there)
+        if (dir > 0 && first > from + 3 && first - from <= vh * 1.6) return first
+        if (dir < 0 && last < from - 3 && from - last <= vh * 1.6) return last
+      }
+      return null
+    }
+    /** the finger moving: on its first move, the swipe taken or left to the browser; taken, the page follows it */
+    const follow = (e: TouchEvent) => {
+      const t = e.touches[0]
+      if (!t || !touch.down) return
+      if (!decided) {
+        decided = true
+        const dy = touch.y - t.clientY
+        const dx = touch.x - t.clientX
+        // (two fingers, a mesh in hand, a sideways move, or a move that cannot be cancelled: the browser's)
+        if (touch.multi || !e.cancelable || stage.heldAt >= touch.at || Math.abs(dx) > Math.abs(dy)) return
+        // (a sheet or the menu over the page scrolls on its own: never taken)
+        if ((e.target as Element | null)?.closest?.('dialog, [data-lenis-prevent]') || document.querySelector('dialog[open]')) return
+        const dir = Math.sign(dy)
+        const zones = pagedZones(section.current ?? el)
+        const zone = zoneAt(zones, touch.from, dir)
+        // (a swipe in a stretch is always taken, even one that leaves it for where the page goes freely: left to the
+        // browser, its fling ran on up through the sections above, each catching it as it passed, a jitter all the way)
+        if (!zone && entry(zones, touch.from, dir) === null) return
+        drag = { base: window.scrollY, y0: t.clientY }
+      }
+      if (!drag) return
+      e.preventDefault()
+      // (a mesh taken in hand meanwhile: the page stays where it is)
+      if (stage.heldAt >= touch.at) return
+      const to = Math.max(0, drag.base + (drag.y0 - t.clientY))
+      if (Math.abs(to - window.scrollY) >= 0.5) window.scrollTo({ top: to, behavior: 'instant' as ScrollBehavior })
+    }
     const start = (e: TouchEvent) => {
+      drag = null
+      decided = false
       touch.multi = e.touches.length !== 1
       const t = e.touches[0]
       if (!t) return
@@ -358,8 +494,15 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     }
     const end = (e: TouchEvent) => {
       touch.down = false
+      const taken = drag !== null
+      drag = null
       const t = e.changedTouches[0]
-      if (touch.multi || !t) return
+      if (turnedBack) {
+        turnedBack = false
+        // (back to the line it set off from, as a swipe back from About comes out of the white to it)
+        return glide(Math.round(el.offsetTop + PHONE_STOPS[PHONE_STOPS.length - 1] * screenH(el)))
+      }
+      if (touch.multi || !t || flying) return
       // a mesh taken in hand, or the white handing over to About, during this touch: not a swipe of the page
       if (stage.heldAt >= touch.at) return
       const dy = touch.y - t.clientY
@@ -370,25 +513,84 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       const dir = Math.abs(dy) > vh * SWIPE.reach || (speed > SWIPE.flick && Math.abs(dy) > 12) ? Math.sign(dy) : 0
       const zones = pagedZones(el)
       const zone = zoneAt(zones, touch.from, dir)
-      // (a swipe that sets off where the page scrolls freely is the browser's own)
-      if (!zone) return
+      // (a swipe taken out of a stretch to where the page goes freely: the page has no fling of its own, so it goes on to
+      // the next stretch's stop that way if one is within reach, else a screen on; one too small to count goes back to
+      // the stop it set off from)
+      if (taken && zone && !pagedFor(zone, touch.from, dir, zones)) {
+        if (dir === 0) return glide(nearestOf(zone.stops, touch.from))
+        const max = document.documentElement.scrollHeight - window.innerHeight
+        return glide(entry(zones, touch.from, dir) ?? Math.min(max, Math.max(0, touch.from + dir * window.innerHeight)))
+      }
+      // (a swipe taken from where the page goes freely into a paged stretch: to the stretch's stop, however short the swipe
+      // was; one too small to count, or turned back, back to where it set off)
+      if (taken && !zone) return glide((dir !== 0 && entry(zones, touch.from, dir)) || touch.from)
+      if (!zone) {
+        // a swipe from where the page scrolls freely that has drawn it on into a paged stretch (the deck): to that
+        // stretch's first stop going down, its last going up, never through it
+        const into = zones.find((z) => !z.tour && zoneAt([z], window.scrollY, 0))
+        if (into) glide(dir < 0 ? into.stops[into.stops.length - 1] : into.stops[0])
+        // (otherwise the browser's own)
+        return
+      }
+      step(zone, touch.from, dir, zones)
+    }
+    /** a swipe (or a wheel's turn) `dir` from `from` in a paged stretch: on to the stop that way, or back to the one it left */
+    const step = (zone: Zone, from: number, dir: number, zones: Zone[]) => {
       const { stops } = zone
       const y = window.scrollY
-      const i = stops.indexOf(nearestOf(stops, touch.from))
+      const i = stops.indexOf(nearestOf(stops, from))
       if (dir === 0) return glide(nearestOf(stops, y))
       if (dir > 0) {
         // the next stop on from where the swipe set off; past it already (a long drag), the next past where the page is;
         // on from the last, where the stretch hands the page on (or nowhere: the page goes on freely)
         if (i === stops.length - 1) return zone.after !== null ? glide(zone.after) : undefined
+        // on from the tour's line: the flight through the cavity into the white, where About takes over
+        if (zone.tour && i === stops.length - 2) return glide(Math.round(el.offsetTop + (PHONE_SCREENS - 1) * screenH(el)), true)
         const next = stops[i + 1]
         return glide(y > next + 4 ? (stops.find((s) => s > y + 4) ?? stops[stops.length - 1]) : next)
       }
-      // back up from About's top into the tour: the way down, in reverse (About fades to the white, out of it into the cavity)
-      if (zone.tour && i === stops.length - 1 && back.current) return back.current(stops[i - 1])
-      // (back out of the first stop: the page goes on freely)
-      if (i === 0) return
+      // back up from About's top into the tour: the way down, in reverse (About fades to the white, out of it into the
+      // cavity), on up to the opening in one go
+      if (zone.tour && i === stops.length - 1 && back.current) return back.current(stops[stops.length - 2])
+
+      // back out of the first stop: to the last stop of the stretch that hands on to this one (Innovation's first part back
+      // to the deck stacked whole, as the swipe down came), else the page goes on freely
+      if (i === 0) {
+        const before = zones.find((z) => z !== zone && z.after !== null && Math.abs(z.after - stops[0]) < 4)
+        return before ? glide(before.stops[before.stops.length - 1]) : undefined
+      }
       const prev = stops[i - 1]
       return glide(y < prev - 4 ? ([...stops].reverse().find((s) => s < y - 4) ?? stops[0]) : prev)
+    }
+    /*
+     * A wheel or a trackpad on a phone-sized window (a desktop's phone view, a tablet with a trackpad), the same as a
+     * swipe in a paged stretch: a turn of it (a notch, or a whole swipe of the pad, its momentum included) a stop. Left
+     * to scroll freely there, it stopped wherever it ran out, in the white as often as not, a blank screen.
+     */
+    const wheelSeen = { at: -Infinity, dir: 0, size: 0, freshAt: -Infinity }
+    const wheel = (e: WheelEvent) => {
+      if (e.ctrlKey || !e.deltaY) return
+      // (the flight is under way: a wheel's turn neither stops it nor pulls the page against it)
+      if (flying) return e.preventDefault()
+      const dir = Math.sign(e.deltaY)
+      const from = gliding() && aim !== null ? aim : window.scrollY
+      const zones = pagedZones(el)
+      const zone = zoneAt(zones, from, dir)
+      if (!zone) return
+      // (back up out of a stretch's first stop with no stretch before it to go to: the wheel scrolls the page freely)
+      const first = Math.abs(nearestOf(zone.stops, from) - zone.stops[0]) < 4
+      if (dir < 0 && first && !zone.tour && !zones.some((z) => z !== zone && z.after !== null && Math.abs(z.after - zone.stops[0]) < 4)) return
+      e.preventDefault()
+      // a new turn: after a pause, the other way, or (a trackpad's momentum still dying away) one markedly stronger than
+      // the tail it lands on, never the tail itself
+      const size = Math.abs(e.deltaY)
+      const fresh = e.timeStamp - wheelSeen.at > 160 || dir !== wheelSeen.dir || (size >= 30 && size > wheelSeen.size * 2 && e.timeStamp - wheelSeen.freshAt > 260)
+      wheelSeen.at = e.timeStamp
+      wheelSeen.dir = dir
+      wheelSeen.size = size
+      if (!fresh || performance.now() - stage.heldAt < 400) return
+      wheelSeen.freshAt = e.timeStamp
+      step(zone, from, dir, zones)
     }
     /** a page come to rest inside a paged stretch between two of its stops (a fling run on into it): to the nearer */
     let quiet = 0
@@ -400,18 +602,55 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       const near = nearestOf(zone.stops, y)
       if (Math.abs(near - y) > 3) glide(near)
     }
+    /*
+     * A page carried by its own momentum (a fling, a wheel or a trackpad from where it scrolls freely) into a paged stretch
+     * (the deck) is caught at the stretch's first stop going down, its last going up, and held there a moment while the
+     * momentum dies: it ran on through every card before, the whole deck stacked in one swipe
+     */
+    let lastY = window.scrollY
+    const caught = { y: 0, until: 0 }
     const scrolled = () => {
       window.clearTimeout(quiet)
       quiet = window.setTimeout(settle, SWIPE.settle)
+      const y = window.scrollY
+      const was = lastY
+      lastY = y
+      if (performance.now() < caught.until) {
+        if (Math.abs(y - caught.y) > 1) window.scrollTo({ top: caught.y, behavior: 'instant' as ScrollBehavior })
+        lastY = caught.y
+        return
+      }
+      // (a jump of a screen or more at once is a link or the menu, not momentum: never caught)
+      if (touch.down || gliding() || Math.abs(y - was) > window.innerHeight * 0.9) return
+      for (const z of pagedZones(el)) {
+        if (z.tour) continue
+        const first = z.stops[0]
+        const last = z.stops[z.stops.length - 1]
+        const at = was < first - 2 && y > first + 2 ? first : was > last + 2 && y < last - 2 ? last : null
+        if (at === null) continue
+        caught.y = at
+        caught.until = performance.now() + 320
+        window.scrollTo({ top: at, behavior: 'instant' as ScrollBehavior })
+        lastY = at
+        return
+      }
     }
     window.addEventListener('touchstart', start, { passive: true })
+    window.addEventListener('touchmove', hold, { passive: false })
     window.addEventListener('touchend', end, { passive: true })
-    const cancel = () => void (touch.down = false)
+    const cancel = () => {
+      touch.down = false
+      drag = null
+    }
     window.addEventListener('touchcancel', cancel, { passive: true })
     window.addEventListener('scroll', scrolled, { passive: true })
+    window.addEventListener('wheel', wheel, { passive: false })
     return () => {
       window.clearTimeout(quiet)
+      window.removeEventListener('wheel', wheel)
+      cancelAnimationFrame(anim)
       window.removeEventListener('touchstart', start)
+      window.removeEventListener('touchmove', hold)
       window.removeEventListener('touchend', end)
       window.removeEventListener('touchcancel', cancel)
       window.removeEventListener('scroll', scrolled)
@@ -488,20 +727,20 @@ export function Hero() {
           </div>
         </div>
 
-        {/* a phone: a screen for each point named in the cavity, one after another, the words gone */}
-        {compact &&
-          [0, 1, 2].map((k) => <div key={k} className={`hero__screen hero__screen--point scene ${state(FIRST_POINT + k)}`} data-screen="yellow" />)}
+        {/* a phone: the flight on along the cavity, through the mesh, the words gone and nothing named */}
+        {compact && <div className={`hero__screen hero__screen--flight scene ${state(3)}`} data-screen="yellow" />}
 
         {/* on through the cavity into white light, and out of it onto the mesh: the 3D alone, no words */}
-        <div className={`hero__screen scene ${state(compact ? FIRST_POINT + 3 : 3)}`} data-screen="yellow" />
+        <div className={`hero__screen scene ${state(compact ? 4 : 3)}`} data-screen="yellow" />
       </section>
-      {/* (a phone's: each a step further along the cavity, where the camera stands for it) */}
-      {POINTS.map((t, i) => (
-        <StageLabel key={`${t.anchor}-${compact}`} anchor={compact ? PHONE_POINTS[i] : t.anchor} column={0.24} className="pin--point">
-          <span className="pin__n num">0{i + 1}</span>
-          <span className="pin__name">{t.name}</span>
-        </StageLabel>
-      ))}
+      {/* the cavity's points, named on a wide screen only */}
+      {!compact &&
+        POINTS.map((t, i) => (
+          <StageLabel key={t.anchor} anchor={t.anchor} column={0.24} className="pin--point">
+            <span className="pin__n num">0{i + 1}</span>
+            <span className="pin__name">{t.name}</span>
+          </StageLabel>
+        ))}
       <CavityDimension />
       {/* a phone's hand-over from the white to About (useWhiteHandoff) */}
       {compact && <div ref={curtain} className="hero__curtain" aria-hidden="true" />}
