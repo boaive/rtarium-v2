@@ -435,8 +435,8 @@
   inset: 0;
   background: currentColor;
   transform: scaleX(var(--f));
-  /* the layers come in from the frame on the right, so each line fills towards the left */
-  transform-origin: right;
+  /* the layers come in from the frame on the left, so each line fills towards the right, as a progress bar does */
+  transform-origin: left;
 }
 .fu-track__cell[data-state='past'] .fu-track__btn {
   color: rgb(242 240 233 / 0.78);
@@ -1513,9 +1513,10 @@
     display: none;
   }
   /* the details: the number and name at the top, under the header; the line at the foot, over the track */
+  /* (the line keeps well clear of the track under it: a line and a half of room) */
   .fu-layers .fu-sheet__now {
     position: absolute;
-    inset: calc(var(--nav-h) + clamp(14px, 3svh, 28px)) var(--gutter) calc(var(--pad) + 34px);
+    inset: calc(var(--nav-h) + clamp(14px, 3svh, 28px)) var(--gutter) calc(clamp(16px, 3svh, 28px) + 58px);
     display: flex;
     flex-direction: column;
     gap: 6px;
