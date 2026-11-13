@@ -228,6 +228,8 @@ export function stepScreens(
   let last = -Infinity
   let lastSize = 0
   let lastDir = 0
+  /** the strongest event of this gesture: momentum only dies away from it, a sustained scroll stays near it */
+  let peak = 0
   let sum = 0
   let spent = false
   /** the free run has landed at its foot during this gesture */
@@ -320,6 +322,8 @@ export function stepScreens(
       return
     }
     tourAim = to
+    stepAt = performance.now()
+    stepMs = TOUR_TIME * 1000
     glide.scrollTo(to, { duration: TOUR_TIME, easing: easePlay, force: true })
   }
   const wheel = (e: WheelEvent) => {
@@ -337,7 +341,14 @@ export function stepScreens(
     // (Home, the whole page stepping, no section of its own: only a real pause starts a new scroll, see HOME_GESTURE_GAP)
     const fresh = swiped || e.timeStamp - last > (own ? GESTURE_GAP : HOME_GESTURE_GAP) || (dir !== lastDir && size >= 8)
     const gap = e.timeStamp - last
-    const strong = !!own && ((size >= 60 && size >= lastSize && gap > 24) || (size >= 30 && size > lastSize * 2))
+    // Home (no section of its own): a scroll that is still going at strength, a wheel or touchpad held on, goes on to the
+    // next screen once the last is 60% there (never a screen ahead of the one it is on, so none is skipped); a tail dying
+    // away (under half its peak) never does
+    const sustained = !fresh && size >= 30 && size >= peak * 0.5 && performance.now() - stepAt >= stepMs * 0.6
+    const strong = !!own
+      ? (size >= 60 && size >= lastSize && gap > 24) || (size >= 30 && size > lastSize * 2)
+      : sustained
+    peak = fresh ? size : Math.max(peak, size)
     last = e.timeStamp
     lastSize = size
     lastDir = dir
@@ -361,7 +372,7 @@ export function stepScreens(
       if (tourAim !== null && tourAim >= lo - 4 && dir > 0 && lo > 0 && lo < Infinity) {
         e.preventDefault()
         e.stopPropagation()
-        if (fresh) {
+        if (fresh || strong) {
           const n = stopsOf().find((s) => s > lo + 4)
           tourAim = null
           spent = true
@@ -375,7 +386,7 @@ export function stepScreens(
       if (lo > 0 && lo < Infinity && (dir > 0 ? at < lo - 4 : at <= lo + 4 && at > 4)) {
         e.preventDefault()
         e.stopPropagation()
-        if (!fresh) return
+        if (!fresh && !strong) return
         // a screen of the tour a scroll: on to the next of its views (its words, the labels inside the mesh), never left
         // between two
         const vh = window.innerHeight
@@ -386,6 +397,8 @@ export function stepScreens(
           const next = stopsOf().find((s) => s >= lo - 4)
           if (next === undefined) return
           tourAim = next
+          stepAt = performance.now()
+          stepMs = AUTO_TIME * 750
           glide.scrollTo(next, { duration: AUTO_TIME * 0.75, easing: easeAuto, force: true })
           return
         }
@@ -393,6 +406,8 @@ export function stepScreens(
         const white = lo - window.innerHeight * TOUR_WHITE
         const back = dir < 0 && at > white + 4
         tourAim = back ? Math.min(to, lo - window.innerHeight * 2) : Math.max(0, to)
+        stepAt = performance.now()
+        stepMs = (back ? AUTO_TIME * 0.75 : TOUR_TIME) * 1000
         glide.scrollTo(tourAim, { duration: back ? AUTO_TIME * 0.75 : TOUR_TIME, easing: back ? easeAuto : easePlay, force: true })
         return
       }
