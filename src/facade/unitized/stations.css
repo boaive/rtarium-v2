@@ -1,0 +1,265 @@
+/*
+ * Stations (a phone's steps that play themselves, as veedo.space's factory): the section's heading, the step's label,
+ * name and line, its clip in a rounded card, a segmented bar, which of how many with pause, back and on, and the steps
+ * as thumbnails. One screen, scrolled past as any. Phones only: the component is only set on a phone (the compact
+ * query the 3D frames its phone views by: lib/motion.ts).
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fst {
+    --fst-bg: var(--white);
+    --fst-fg: var(--black);
+    --fst-2: var(--on-light-2);
+    --fst-track: rgb(8 8 8 / 0.12);
+    --fst-fill: var(--black);
+    --fst-card: #e9e6de;
+    --fst-ring: var(--black);
+    position: relative;
+    background: var(--fst-bg);
+    color: var(--fst-fg);
+  }
+  .fst--yellow {
+    --fst-bg: var(--yellow);
+    --fst-2: var(--on-yellow-2);
+    --fst-track: rgb(8 8 8 / 0.16);
+    --fst-card: var(--yellow);
+  }
+  .fst__pin {
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    min-height: 600px;
+    padding: calc(var(--nav-h) + clamp(16px, 3svh, 28px)) 0 clamp(14px, 2.4svh, 22px);
+    overflow: hidden;
+  }
+  .fst__pin > :not(.fst__strip) {
+    margin-inline: var(--gutter);
+  }
+
+  /* the step: its label, its name and what happens in it, coming in as each step does */
+  .fst__head {
+    display: grid;
+    gap: 5px;
+    margin-top: clamp(12px, 2.2svh, 20px);
+    min-height: calc(clamp(1.3rem, 5.8vw, 1.6rem) * 1.1 * 2 + 62px);
+    align-content: start;
+  }
+  .fst__label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fst-2);
+  }
+  .fst__name {
+    font-size: clamp(1.3rem, 5.8vw, 1.6rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    text-wrap: balance;
+    animation: fst-in 0.5s var(--ease-out) both;
+  }
+  .fst__line {
+    max-width: 26em;
+    font-size: clamp(0.9rem, 3.8vw, 0.98rem);
+    line-height: 1.42;
+    color: var(--fst-2);
+    animation: fst-in 0.5s var(--ease-out) 0.06s both;
+  }
+  @keyframes fst-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+  }
+
+  /* the step's clip, in a rounded card that takes the room left; the new one fades in over the last */
+  .fst__card {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    margin-top: clamp(10px, 1.8svh, 16px);
+    overflow: hidden;
+    border-radius: 18px;
+    background: var(--fst-card);
+    box-shadow: inset 0 0 0 1px var(--fst-track);
+  }
+  .fst__clip {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.35s var(--ease-out);
+  }
+  .fst__clip.is-on {
+    opacity: 1;
+  }
+
+  /* the bar: a segment a step; those passed full, the one in play filling as its clip runs */
+  .fst__bar {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 5px;
+    margin-top: clamp(12px, 2svh, 16px);
+    padding: 0;
+    list-style: none;
+  }
+  .fst__seg {
+    position: relative;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--fst-track);
+  }
+  .fst__seg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--fst-fill);
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  .fst__seg.is-past::after {
+    transform: none;
+  }
+  .fst__seg.is-now::after {
+    animation: fst-fill var(--ms) linear both;
+  }
+  .fst__bar.is-paused .fst__seg.is-now::after {
+    animation-play-state: paused;
+  }
+  @keyframes fst-fill {
+    to {
+      transform: none;
+    }
+  }
+
+  /* which of how many, pause, back and on */
+  .fst__ctrl {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: clamp(8px, 1.4svh, 12px);
+  }
+  .fst__count {
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    color: var(--fst-2);
+  }
+  .fst__count b {
+    font-weight: 700;
+    color: var(--fst-fg);
+  }
+  .fst__btns {
+    display: flex;
+    gap: 10px;
+  }
+  .fst__btn {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 1px solid var(--fst-track);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--fst-fg);
+    cursor: pointer;
+    transition:
+      transform 0.25s var(--ease-out),
+      border-color 0.3s var(--ease-out);
+  }
+  .fst__btn--back svg {
+    transform: scaleX(-1);
+  }
+  /* (on, the way it goes: ringed) */
+  .fst__btn--on {
+    border: 1.5px solid var(--fst-ring);
+  }
+  .fst__btn:active {
+    transform: scale(0.92);
+  }
+  .fst__btn:focus-visible {
+    outline: 2px solid var(--fst-ring);
+    outline-offset: 3px;
+  }
+
+  /* the steps as thumbnails, in a strip the width of the screen; the one in play ringed */
+  .fst__strip {
+    display: flex;
+    gap: 10px;
+    margin-top: clamp(10px, 1.8svh, 14px);
+    padding: 3px var(--gutter);
+    overflow-x: auto;
+    list-style: none;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .fst__strip::-webkit-scrollbar {
+    display: none;
+  }
+  .fst__thumb {
+    flex: none;
+    width: clamp(92px, 27vw, 116px);
+  }
+  .fst__thumb-btn {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--fst-2);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .fst__thumb-img {
+    display: block;
+    aspect-ratio: 13 / 8;
+    overflow: hidden;
+    margin-bottom: 3px;
+    border-radius: 10px;
+    background: var(--fst-card);
+    box-shadow: 0 0 0 1px var(--fst-track);
+    transition: box-shadow 0.35s var(--ease-out);
+  }
+  .fst__thumb-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .fst__thumb.is-on .fst__thumb-img {
+    box-shadow: 0 0 0 2px var(--fst-ring);
+  }
+  .fst__thumb-num {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+  .fst__thumb-name {
+    font-size: 0.74rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .fst__thumb.is-on .fst__thumb-num,
+  .fst__thumb.is-on .fst__thumb-name {
+    color: var(--fst-fg);
+  }
+  .fst__thumb-btn:focus-visible {
+    outline: 2px solid var(--fst-ring);
+    outline-offset: 3px;
+  }
+}
+
+@media (max-width: 860px) and (prefers-reduced-motion: reduce), (max-aspect-ratio: 4/5) and (prefers-reduced-motion: reduce) {
+  .fst__name,
+  .fst__line {
+    animation: none;
+  }
+  .fst__clip {
+    transition: none;
+  }
+}

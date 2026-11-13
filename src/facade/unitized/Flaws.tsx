@@ -21,10 +21,10 @@ import { RiseWords, useRise } from './Rise'
  */
 
 const FLAWS = [
-  { name: 'Direction weakness', line: 'Fibres settle in one direction. Load the panel across them and it cracks first.' },
-  { name: 'Clumping', line: 'Loose fibre bunches together. Between the bunches, nothing reinforces the panel.' },
-  { name: 'Isolated anchorage', line: 'Each fixing holds on a small cone of concrete.' },
-  { name: 'Length to weight ratio', line: 'A longer panel has to be thicker and heavier.' },
+  { name: 'Direction weakness', line: 'Fibres settle in one direction. Load the panel across them and it cracks first.', fix: 'Reinforced in 3D' },
+  { name: 'Clumping', line: 'Loose fibre bunches together. Between the bunches, nothing reinforces the panel.', fix: 'Mesh in textile form' },
+  { name: 'Isolated anchorage', line: 'Each fixing holds on a small cone of concrete.', fix: 'In-built ferrule inserts' },
+  { name: 'Length to weight ratio', line: 'A longer panel has to be thicker and heavier.', fix: 'Up to 6 m high, no extra thickness' },
 ]
 
 const LABELS: LabelSpec[] = [
@@ -102,6 +102,10 @@ function Card({ k, progress, live, compact, open, onOpen }: { k: number; progres
 }
 
 export function Flaws() {
+  return useIsCompact() ? <FlawsCards /> : <FlawsGrid />
+}
+
+function FlawsGrid() {
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const progress = useCardClock(section)
@@ -126,6 +130,37 @@ export function Flaws() {
           ))}
         </ol>
       </div>
+    </section>
+  )
+}
+
+/**
+ * A phone: the four problems as veedo.space sets what makes a build of theirs, cards one after another down the page
+ * (not stacked), each with its number, a still of its panel played out (rendered from the 3D, not the 3D itself), its
+ * name and line, and at its foot, under a hairline, the RTARIUM answer to it (the answers further down the page).
+ */
+function FlawsCards() {
+  return (
+    <section id="problems" className="fu-pcards on-black" aria-labelledby="fu-pcards-title">
+      <h2 id="fu-pcards-title" className="fu-pcards__title fu-h">
+        Four problems with thin panels.
+      </h2>
+      <ol className="fu-pcards__list">
+        {FLAWS.map((f, k) => (
+          <li key={f.name} className="fu-pcard">
+            <p className="fu-pcard__count num">
+              <b>0{k + 1}</b> / 0{FLAWS.length}
+            </p>
+            <img className="fu-pcard__img" src={`/img/facade/unitized/problem-${k + 1}.webp`} alt={`A conventional thin panel showing ${f.name.toLowerCase()}`} loading="lazy" decoding="async" width={720} height={540} />
+            <h3 className="fu-pcard__name">{f.name}</h3>
+            <p className="fu-pcard__line">{f.line}</p>
+            <p className="fu-pcard__fix">
+              <span className="fu-pcard__tag">RTARIUM</span>
+              <span>{f.fix}</span>
+            </p>
+          </li>
+        ))}
+      </ol>
     </section>
   )
 }

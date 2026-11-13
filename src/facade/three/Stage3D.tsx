@@ -103,6 +103,7 @@ export function Stage3D({
   shadows = false,
   keyLight = true,
   sharp = false,
+  film = false,
 }: {
   children: ReactNode
   fallback?: ReactNode
@@ -113,6 +114,11 @@ export function Stage3D({
   keyLight?: boolean
   /** always drawn at full sharpness, never at fewer pixels while it moves (a scene light enough to keep up: the panels' burst) */
   sharp?: boolean
+  /**
+   * drawn only when told, a frame at a time on a clock of its own (R3F's `advance(seconds)`): for rendering a scene as a
+   * film, every frame the same step of time apart however long each takes to draw and capture (the dev film page)
+   */
+  film?: boolean
 }) {
   const host = useRef<HTMLDivElement>(null)
   const [near, setNear] = useState(false)
@@ -243,7 +249,7 @@ export function Stage3D({
         : near && (
             <Boundary key={life} onFail={again}>
               <Canvas
-                frameloop="demand"
+                frameloop={film ? 'never' : 'demand'}
                 shadows={shadows}
                 dpr={[1, dpr]}
                 gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false }}
