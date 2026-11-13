@@ -77,7 +77,10 @@
     margin-top: 0;
   }
 
-  /* ---- the problems: cards one after another, each a still of its panel, its name and line, and RTARIUM's answer ---- */
+  /*
+   * ---- the problems: cards one after another, each wider than it is tall (as veedo's "How is Vee different?"): its
+   * number and a still of its panel along the top, its name, its line, and RTARIUM's answer ----
+   */
 
   .fu-unit .fu-pcards {
     padding: calc(var(--nav-h) + clamp(28px, 5svh, 44px)) 0 clamp(40px, 8svh, 72px);
@@ -89,14 +92,16 @@
   }
   .fu-unit .fu-pcards__list {
     display: grid;
-    gap: 14px;
+    gap: 16px;
     margin: clamp(20px, 3.6svh, 30px) 0 0;
     padding: 0 clamp(12px, 3.4vw, 20px);
     list-style: none;
   }
+  /* (6:5, as veedo's cards; one whose words need more grows a little taller, never narrower) */
   .fu-unit .fu-pcard {
     display: flex;
     flex-direction: column;
+    aspect-ratio: 6 / 5;
     padding: 20px 20px 18px;
     border-radius: 20px;
     background: #161616;
@@ -113,26 +118,35 @@
     font-weight: 700;
     color: var(--yellow);
   }
+  .fu-unit .fu-pcard__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
   .fu-unit .fu-pcard__img {
     display: block;
-    width: 100%;
+    flex: none;
+    width: 52%;
     height: auto;
     aspect-ratio: 4 / 3;
-    margin-top: 14px;
     object-fit: cover;
     border-radius: 12px;
     background: #0d0d0d;
+    box-shadow: 0 0 0 1px rgb(242 240 233 / 0.08);
   }
+  /* (the room the card has over its words goes between the top and the name, as veedo's) */
   .fu-unit .fu-pcard__name {
-    margin-top: 18px;
-    font-size: clamp(1.7rem, 7.6vw, 2.15rem);
+    margin-top: auto;
+    padding-top: 14px;
+    font-size: clamp(1.6rem, 7.2vw, 2rem);
     font-weight: 500;
     letter-spacing: -0.04em;
     line-height: 1.04;
   }
   .fu-unit .fu-pcard__line {
-    margin-top: 8px;
-    font-size: clamp(0.95rem, 4vw, 1.02rem);
+    margin-top: 6px;
+    font-size: clamp(0.9rem, 3.8vw, 0.98rem);
     line-height: 1.45;
     color: rgb(242 240 233 / 0.68);
   }
@@ -141,10 +155,10 @@
     flex-wrap: wrap;
     align-items: baseline;
     gap: 4px 12px;
-    margin-top: 16px;
-    padding-top: 12px;
+    margin-top: 12px;
+    padding-top: 10px;
     border-top: 1px solid rgb(242 240 233 / 0.12);
-    font-size: 0.92rem;
+    font-size: 0.88rem;
   }
   .fu-unit .fu-pcard__tag {
     font-size: 0.66rem;

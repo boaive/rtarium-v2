@@ -21,11 +21,14 @@ import { smooth, type Progress } from '../facade/progress'
  * slab's edge, in the middle), drawing back to the scene's own shots as the unit comes in; the answers a little closer
  * than a wide screen's, the 6 m panel as it is (`framing`).
  *
- * The clips in public/img/facade/unitized (`hang-step-N`, `answer-step-N`, and their thumbnails) were made here: each
- * step eased from the last one's stop to its own over 1.4 to 2.5 s, a frame each 1/30 s, then held half a second for the
- * camera to come to rest (the façade going up by itself played at twice its speed); the frames screenshot at 600 px
- * (scripts/dev-shoot.mjs) and encoded as looping animated WebP at 480 px, quality 60, 24 fps, the last frame held 0.7 s.
- * Their lengths are the steps' `CLIP_MS` (Hang, Answers).
+ * The window is see-through (the canvas is): the clips carry no ground of their own, and the page sets each on its own
+ * (Hang on its grid floor, the answers on their panel).
+ *
+ * The clips in public/img/facade/unitized (`hang-step-N`, `answer-step-N`, and the answers' thumbnails) were made here:
+ * each step eased from the last one's stop to its own over 1.4 to 2.5 s, a frame each 1/30 s, then held half a second
+ * for the camera to come to rest (the façade going up by itself played at twice its speed); the frames screenshot at
+ * 600 px as PNG with their transparency (scripts/dev-shoot.mjs, `transparent`) and encoded as looping animated WebP
+ * with alpha at 480 px, 24 fps, the last frame held 0.7 s. Their lengths are the steps' `CLIP_MS` (Hang, Answers).
  */
 
 declare global {
@@ -101,10 +104,13 @@ export default function FilmUnitized() {
 
   const shown = ANSWERS.find((a) => a.id === lit)?.labels ?? []
   return (
-    <div className={scene === 'answers' ? 'on-yellow' : 'on-light'} style={{ position: 'fixed', inset: 0, background: scene === 'answers' ? '#fdd001' : '#e9e6de' }}>
+    <div className={scene === 'answers' ? 'on-yellow' : 'on-light'} style={{ position: 'fixed', inset: 0, background: 'transparent' }}>
       {/* (the marks come in at once: a frame is a still, and a fade would run on the wall clock; the page's scroll line is
-          not part of the scene) */}
-      <style>{'.is-film .fc-pin { transition: none !important; } .is-film .fc-pin__tag { font-weight: 700; } .is-film .sline { display: none !important; }'}</style>
+          not part of the scene; nothing behind the scene: the clip is see-through) */}
+      <style>
+        {'.is-film .fc-pin { transition: none !important; } .is-film .fc-pin__tag { font-weight: 700; } .is-film .sline { display: none !important; }' +
+          ' html.is-film, html.is-film body { background: transparent !important; }'}
+      </style>
       <div style={{ position: 'absolute', inset: 0 }}>
         {scene === 'hang' ? (
           <Stage3D shadows keyLight={false} sharp film>

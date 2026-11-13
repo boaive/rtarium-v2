@@ -135,9 +135,10 @@ function FlawsGrid() {
 }
 
 /**
- * A phone: the four problems as veedo.space sets what makes a build of theirs, cards one after another down the page
- * (not stacked), each with its number, a still of its panel played out (rendered from the 3D, not the 3D itself), its
- * name and line, and at its foot, under a hairline, the RTARIUM answer to it (the answers further down the page).
+ * A phone: the four problems as veedo.space sets "How is Vee different?", cards one after another down the page (not
+ * stacked), each wider than it is tall: its number at the top left and, where veedo has its drawing, a still of its
+ * panel played out (rendered from the 3D, not the 3D itself); then its name, large, its line, and at its foot, under a
+ * hairline, the RTARIUM answer to it (the answers further down the page).
  */
 function FlawsCards() {
   return (
@@ -148,10 +149,12 @@ function FlawsCards() {
       <ol className="fu-pcards__list">
         {FLAWS.map((f, k) => (
           <li key={f.name} className="fu-pcard">
-            <p className="fu-pcard__count num">
-              <b>0{k + 1}</b> / 0{FLAWS.length}
-            </p>
-            <img className="fu-pcard__img" src={`/img/facade/unitized/problem-${k + 1}.webp`} alt={`A conventional thin panel showing ${f.name.toLowerCase()}`} loading="lazy" decoding="async" width={720} height={540} />
+            <div className="fu-pcard__top">
+              <p className="fu-pcard__count num">
+                <b>0{k + 1}</b> / 0{FLAWS.length}
+              </p>
+              <img className="fu-pcard__img" src={`/img/facade/unitized/problem-${k + 1}.webp`} alt={`A conventional thin panel showing ${f.name.toLowerCase()}`} loading="lazy" decoding="async" width={720} height={540} />
+            </div>
             <h3 className="fu-pcard__name">{f.name}</h3>
             <p className="fu-pcard__line">{f.line}</p>
             <p className="fu-pcard__fix">

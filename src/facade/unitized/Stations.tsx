@@ -11,46 +11,35 @@ import './stations.css'
  * the last, while it is on the screen (paused under reduced motion, until asked); the buttons and thumbnails go to a
  * step. It is one screen and takes no scroll of its own: the page scrolls past it as past any screen.
  *
- * Each clip is fetched once, when it is about to be wanted (the step in play and the next), and shown afresh each time
- * its step comes round (a new object URL: a new image, so it plays from its start), over the last until it has loaded,
- * so a step never shows blank.
+ * The clips play by `useClips` (the Hang section's floor, StepFloor, plays its own by it too).
  */
 
-export interface Station {
+export interface Station extends Clip {
   name: string
   line: string
-  /** the step's clip (an animated image that plays once and holds), and how long it runs, hold included (ms) */
-  clip: string
-  ms: number
   /** a still of the step, for its thumbnail */
   thumb?: string
 }
 
-export function Stations({
-  sectionRef,
-  id,
-  title,
-  label,
-  items,
-  ground,
-}: {
-  sectionRef: RefObject<HTMLElement | null>
-  id: string
-  /** the section's heading */
-  title: string
-  /** what each step is called ("Step", "Answer") */
-  label: string
-  items: Station[]
-  ground: 'light' | 'yellow'
-}) {
+/** a clip to play: the step's animated image (it plays once and holds), and how long it runs, hold included (ms) */
+export interface Clip {
+  clip: string
+  ms: number
+}
+
+/**
+ * Clips that play themselves, step after step, round again after the last, while their section is on the screen (paused
+ * under reduced motion, until asked). Each is fetched once, when it is about to be wanted (the step in play and the
+ * next), and shown afresh each time its step comes round (a new object URL: a new image, so it plays from its start),
+ * over the last until it has loaded, so a step never shows blank. The two `layer`s are the images it shows them in.
+ */
+export function useClips(sectionRef: RefObject<HTMLElement | null>, items: Clip[]) {
   const n = items.length
   const [k, setK] = useState(0)
   const [playing, setPlaying] = useState(() => !prefersReducedMotion())
   const [seen, setSeen] = useState(false)
-  /** how many times a step has been shown: restarts the bar's fill each time */
+  /** how many times a step has been shown: restarts its bar's fill each time */
   const [turn, setTurn] = useState(0)
-  const strip = useRef<HTMLOListElement>(null)
-  const thumbs = useRef<(HTMLLIElement | null)[]>([])
   const blobs = useRef<(Blob | null)[]>([])
   const layers = useRef<(HTMLImageElement | null)[]>([null, null])
   const front = useRef(0)
@@ -147,6 +136,47 @@ export function Stations({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [k, turn, playing, seen, n, items])
 
+  /** to step `i`, its clip and its bar from the start */
+  const go = (i: number) => {
+    setK(((i % n) + n) % n)
+    setTurn((t) => t + 1)
+  }
+
+  return {
+    k,
+    turn,
+    playing,
+    setPlaying,
+    /** playing, and on the screen */
+    running: playing && seen,
+    go,
+    /** the two images the clips are shown in, one over the other */
+    layer: (i: 0 | 1) => (el: HTMLImageElement | null) => void (layers.current[i] = el),
+  }
+}
+
+export function Stations({
+  sectionRef,
+  id,
+  title,
+  label,
+  items,
+  ground,
+}: {
+  sectionRef: RefObject<HTMLElement | null>
+  id: string
+  /** the section's heading */
+  title: string
+  /** what each step is called ("Step", "Answer") */
+  label: string
+  items: Station[]
+  ground: 'light' | 'yellow'
+}) {
+  const n = items.length
+  const { k, turn, playing, setPlaying, running, go, layer } = useClips(sectionRef, items)
+  const strip = useRef<HTMLOListElement>(null)
+  const thumbs = useRef<(HTMLLIElement | null)[]>([])
+
   // the strip keeps the step in play in view
   useEffect(() => {
     const s = strip.current
@@ -156,15 +186,8 @@ export function Stations({
     s.scrollTo({ left: Math.max(0, t.offsetLeft - pad), behavior: 'smooth' })
   }, [k])
 
-  /** to step `i`, its clip and its bar from the start */
-  const go = (i: number) => {
-    setK(((i % n) + n) % n)
-    setTurn((t) => t + 1)
-  }
-
   const item = items[k]
   const num = (i: number) => String(i + 1).padStart(2, '0')
-  const running = playing && seen
   return (
     <section ref={sectionRef} id={id} className={`fst fst--${ground} on-${ground}`} aria-labelledby={`${id}-title`} aria-roledescription="carousel">
       <div className="fst__pin">
@@ -183,8 +206,8 @@ export function Stations({
           </p>
         </div>
         <div className="fst__card" aria-hidden="true">
-          <img ref={(el) => void (layers.current[0] = el)} className="fst__clip" alt="" decoding="async" />
-          <img ref={(el) => void (layers.current[1] = el)} className="fst__clip" alt="" decoding="async" />
+          <img ref={layer(0)} className="fst__clip" alt="" decoding="async" />
+          <img ref={layer(1)} className="fst__clip" alt="" decoding="async" />
         </div>
         <ol className={`fst__bar ${running ? '' : 'is-paused'}`} aria-hidden="true">
           {items.map((it, i) => (

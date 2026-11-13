@@ -17,11 +17,21 @@
     background: var(--fst-bg);
     color: var(--fst-fg);
   }
+  /*
+   * On yellow, the model stands on a panel of its own, warm white and lifted off the ground, so it reads apart from the
+   * yellow (the clips are see-through: the panel shows behind the model, and behind the thumbnails' stills)
+   */
   .fst--yellow {
     --fst-bg: var(--yellow);
     --fst-2: var(--on-yellow-2);
     --fst-track: rgb(8 8 8 / 0.16);
-    --fst-card: var(--yellow);
+    --fst-card: var(--white);
+  }
+  .fst--yellow .fst__card {
+    background: radial-gradient(120% 85% at 50% 40%, #fbf9f4 0%, var(--white) 52%, #e6e2d6 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.55) inset,
+      0 22px 40px -26px rgb(8 8 8 / 0.5);
   }
   .fst__pin {
     display: flex;

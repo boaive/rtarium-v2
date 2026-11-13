@@ -10,7 +10,7 @@ import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { useLive } from './live'
 import { REPLAY_HINT, StepBar } from './StepBar'
-import { Stations } from './Stations'
+import { StepFloor } from './StepFloor'
 
 /**
  * Slab to slab, and onto the building. One scene on the warm white page, edge to edge and sharp (the
@@ -19,8 +19,9 @@ import { Stations } from './Stations'
  * façade going up by itself. It is stepped, one scroll a step (STOPS: each part solid, the joints, the unit lifted in,
  * the façade up), the step played as the page glides there and back the same way. The answers' bar along the foot
  * (EnduroSat's phase bar) fills with the scroll, closes the passed steps to their numbers, and takes you to any of them.
- * A phone sets the same steps as veedo.space's factory stations (Stations): each a clip of the scene in a card, played
- * one after another by themselves; the page scrolls past it as past any screen.
+ * A phone sets the same steps as veedo.space sets "One system. Six footprints." (StepFloor): each a clip of the scene
+ * standing on a floor drawn in perspective, played one after another by themselves, a dash a step along the foot and
+ * the step's number large across from them; the page scrolls past it as past any screen.
  */
 
 /** the steps along the bar; each starts once the one before has played out (and past its hold), so the bar never runs ahead of the scene */
@@ -141,22 +142,21 @@ function HangWide() {
  */
 const CLIP_MS = [2617, 2617, 3034, 3034, 5700]
 
-/** a phone: the steps as stations that play themselves, each step a clip of the scene (Stations) */
+/** a phone: the steps on a floor, playing themselves, each step a clip of the scene (StepFloor) */
 function HangStations() {
   const section = useRef<HTMLElement>(null)
   return (
-    <Stations
+    <StepFloor
       sectionRef={section}
       id="hang"
       title="Hang. Seal. Join. Done."
-      label="Step"
-      ground="light"
+      kicker={['On site', 'Installation']}
+      sub="Five steps — slab to slab"
       items={PHASES.map((ph, i) => ({
         name: ph.name,
         line: ph.line,
         clip: `/img/facade/unitized/hang-step-${i + 1}.webp`,
         ms: CLIP_MS[i],
-        thumb: `/img/facade/unitized/hang-${i + 1}.webp`,
       }))}
     />
   )
