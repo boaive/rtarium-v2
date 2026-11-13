@@ -11,10 +11,10 @@ import { smooth } from '../progress'
  */
 
 const MADE = [
-  { img: '/img/facade/mould-release.webp', pos: '50% 62%', name: 'The mould', text: 'Flat, face down, coated with release agent.', alt: 'A worker brushing release agent into a timber mould lined for a thin panel' },
-  { img: '/img/facade/face-coat.webp', pos: '50% 72%', name: 'Face coat', text: 'Sprayed first. This is the surface the building will show.', alt: 'A face coat being sprayed into the mould with a hopper gun' },
-  { img: '/img/facade/mesh-formed.webp', pos: '50% 78%', name: 'RTARIUM', text: 'Cut and stitched to the shape of the mould, then laid in.', alt: 'RTARIUM cut and stitched up at both edges to the shape of the mould' },
-  { img: '/img/facade/backing-coat.webp', pos: '50% 40%', name: 'Backing', text: 'Sprayed over the textile to the full thickness.', alt: 'The backing mix being sprayed over the mesh in the mould' },
+  { img: '/img/client/u1.webp', pos: '50% 62%', name: 'The mould', text: 'Flat, face down, coated with release agent.', alt: 'A worker preparing the timber mould for a thin concrete panel' },
+  { img: '/img/client/u2.webp', pos: '50% 62%', name: 'Face coat', text: 'Sprayed first. This is the surface the building will show.', alt: 'A face coat being sprayed into the mould with a hopper gun' },
+  { img: '/img/client/u3.webp', pos: '50% 78%', name: 'RTARIUM', text: 'Cut and stitched to the shape of the mould, then laid in.', alt: 'RTARIUM basalt mesh formed with upright edges' },
+  { img: '/img/client/u4.webp', pos: '50% 46%', name: 'Backing', text: 'Sprayed over the textile to the full thickness.', alt: 'The backing mix being sprayed into the panel mould' },
 ]
 
 export function Made() {

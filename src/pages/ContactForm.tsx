@@ -339,7 +339,7 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
     <section ref={page} className="contact" aria-labelledby={labelledBy}>
       {/* the photograph; over it the label, the slogan, and what to tell us */}
       <figure className="contact__media">
-        <img src="/img/shoot/mesh-macro.webp" alt="RTARIUM's basalt mesh, close up" />
+        <img src="/img/client/c1.webp" alt="RTARIUM's basalt mesh, close up" />
         <figcaption className="contact__brand">
           {/* the slogan, a line at a time: what it is in white, what it comes to in the brand's yellow */}
           <span className="contact__slogan">

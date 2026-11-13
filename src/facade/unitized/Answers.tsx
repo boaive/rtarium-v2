@@ -51,7 +51,7 @@ const ANSWERS: Answer[] = [
     head: ['In-built', 'ferrule inserts'],
     line: 'Ferrules are set into the textile before the backing goes on.',
     // (a tall shot, seen wide: the screw coming down to the ferrule in the textile)
-    photo: { src: '/img/facade/ferrule-in-mesh.webp', alt: 'A ferrule insert set into the RTARIUM textile in the mould', pos: '50% 50%' },
+    photo: { src: '/img/client/u5.webp', alt: 'A ferrule insert set into the RTARIUM textile in the mould', pos: '50% 50%' },
     labels: ['ferrule'],
     review: REVIEW.ferrules,
   },

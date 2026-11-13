@@ -161,7 +161,7 @@ const VERSIONS: Version[] = [
     replaced: 'Rust expands, concrete cracks, cover thickens, weight adds up.',
     material: 'Steel bar',
     thick: 100,
-    photo: { src: '/img/facade/steel-bar.webp', alt: 'Ribbed steel reinforcing bars stacked side by side, rusting' },
+    photo: { src: '/img/client/f1.webp', alt: 'Bent ribbed steel reinforcing bars stacked together' },
   },
   {
     id: 'grc',
@@ -171,7 +171,7 @@ const VERSIONS: Version[] = [
     replaced: 'Over time, alkali attacks the fibre. Strength and toughness go with it.',
     material: 'AR-glass fibre',
     thick: 20,
-    photo: { src: '/img/facade/glass-fibre.webp', alt: 'A heap of short chopped glass fibre strands' },
+    photo: { src: '/img/client/f2.webp', alt: 'Generated illustration of a bundle of glass fibres' },
   },
   {
     id: 'uhpc',
@@ -182,9 +182,8 @@ const VERSIONS: Version[] = [
     material: 'Steel micro-fibre',
     thick: 20,
     photo: {
-      src: '/img/facade/steel-fibres.webp',
-      // supplied by the team: its source and licence are still to be confirmed
-      alt: 'A break through fibre reinforced concrete, steel fibres standing out of both faces',
+      src: '/img/client/f3.webp',
+      alt: 'Generated illustration of a concrete section with exposed steel fibres',
     },
   },
   {
@@ -196,7 +195,7 @@ const VERSIONS: Version[] = [
     more: { label: 'See the three systems', to: '#systems' },
     material: 'RTARIUM 3D basalt mesh',
     thick: 20,
-    photo: { src: '/img/shoot/mesh-stack.webp', alt: 'Sheets of RTARIUM basalt mesh, stacked, against an insulation board', pos: '50% 82%' },
+    photo: { src: '/img/client/f4.webp', alt: 'Sheets of RTARIUM basalt mesh, stacked, against an insulation board', pos: '50% 82%' },
   },
 ]
 

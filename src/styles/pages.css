@@ -4,7 +4,8 @@
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto;
+  align-content: start;
   gap: var(--s-6);
   min-height: 100svh;
   padding: calc(var(--nav-h) + var(--s-4)) var(--gutter) var(--s-6);
@@ -16,73 +17,96 @@
   gap: var(--s-3);
 }
 .apps__title {
-  font-size: clamp(2.3rem, 4.6vw, 5rem);
+  font-size: clamp(2.3rem, 3.8vw, 4.2rem);
   font-weight: 700;
   letter-spacing: -0.045em;
   line-height: 0.98;
 }
 .apps__row {
   display: flex;
-  gap: var(--s-3);
+  gap: clamp(12px, 1.3vw, 24px);
   min-height: 0;
 }
 .app {
   display: flex;
   flex: 1 1 0;
   min-width: 0;
-  transition: flex-grow var(--d-slow) var(--ease-out);
+  --card-ground: #e9e7df;
 }
-.app:hover,
-.app:focus-within {
-  flex-grow: 1.55;
-}
+.app:nth-child(2) { --card-ground: #e6e4db; }
+.app:nth-child(3) { --card-ground: #eae8e0; }
 .app__link {
   position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: space-between;
-  min-height: 52svh;
-  padding: var(--s-5);
+  min-height: 0;
+  padding: 12px;
   overflow: hidden;
-  border-radius: 8px;
-  color: var(--white);
+  border: 1px solid rgb(8 8 8 / 0.11);
+  background: linear-gradient(155deg, rgb(255 255 255 / 0.42), transparent 58%), var(--card-ground);
+  color: var(--black);
   text-decoration: none;
   isolation: isolate;
+  transition: transform 0.45s var(--ease-out), box-shadow 0.45s var(--ease-out), border-color 0.45s;
+}
+.app__link:hover,
+.app__link:focus-visible {
+  transform: translateY(-8px);
+  border-color: rgb(8 8 8 / 0.2);
+  box-shadow: 0 18px 36px rgb(28 25 16 / 0.13);
+}
+.app__link:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 3px;
 }
 .app__img {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
+  position: relative;
+  display: block;
   width: 100%;
-  height: 100%;
+  aspect-ratio: 4 / 3;
+  height: auto;
   object-fit: cover;
-  transform: scale(1.03);
-  transition: transform 1.2s var(--ease-out);
+  background: var(--card-ground);
+  mix-blend-mode: multiply;
+  transition: transform 0.55s var(--ease-out);
 }
 .app__link:hover .app__img,
 .app__link:focus-visible .app__img {
-  transform: scale(1.08);
+  transform: scale(1.025);
 }
 .app__shade {
+  display: block;
   position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(180deg, rgb(8 8 8 / 0.15) 0%, rgb(8 8 8 / 0) 30%, rgb(8 8 8 / 0.82) 100%);
+  inset: 12px 12px auto;
+  height: min(17vw, 180px);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.24), transparent);
+  pointer-events: none;
 }
 .app__index {
+  order: 1;
   align-self: flex-start;
-  padding: 3px 8px;
-  background: var(--black);
-  color: var(--yellow);
+  margin: -24px 0 0 clamp(12px, 1.1vw, 20px);
+  padding: 9px 13px;
+  background: var(--yellow);
+  color: var(--black);
   font-size: var(--t-small);
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
 }
 .app__body {
+  order: 2;
   display: grid;
-  gap: var(--s-3);
+  flex: 1;
+  width: 100%;
+  grid-template-rows: auto 1fr auto;
+  align-content: start;
+  gap: 14px;
+  padding: 22px clamp(12px, 1.1vw, 20px) 22px;
 }
 .app__title {
-  font-size: clamp(1.6rem, 2.4vw, 2.5rem);
+  font-size: clamp(1.5rem, 2.1vw, 2.25rem);
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -93,11 +117,12 @@
   gap: 6px;
 }
 .app__points span {
-  padding: 4px 8px;
-  border: 1px solid rgb(242 240 233 / 0.5);
+  padding: 0 12px 0 0;
+  border: 0;
   border-radius: var(--radius);
   font-size: var(--t-micro);
   font-weight: 600;
+  color: var(--on-light-2);
 }
 .app__more {
   display: inline-flex;
@@ -107,10 +132,16 @@
   min-height: 40px;
   padding: 0 16px;
   border-radius: var(--radius);
-  background: var(--yellow);
-  color: var(--black);
+  background: var(--black);
+  color: var(--white);
   font-size: var(--t-small);
   font-weight: 700;
+  transition: background 0.3s, color 0.3s;
+}
+.app__link:hover .app__more,
+.app__link:focus-visible .app__more {
+  background: var(--yellow);
+  color: var(--black);
 }
 
 @media (max-width: 860px) {
@@ -120,6 +151,15 @@
   .app__link {
     min-height: 44svh;
   }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app__link,
+  .app__img,
+  .app__more { transition: none; }
+  .app__link:hover,
+  .app__link:focus-visible,
+  .app__link:hover .app__img,
+  .app__link:focus-visible .app__img { transform: none; }
 }
 
 /* ---- planned destination pages, contact, not found -------------------------------------- */

@@ -521,13 +521,13 @@
   line-height: 1.04;
   text-wrap: balance;
 }
-/* the box beside the name stands at the right of the screen: its words hold to its right edge, the label's mark after it */
+/* the box beside the name reads from its left edge, like the rest of the four-box story */
 .fs-block:not(.fs-block--last) .fs-cell--limit .fs-cell__in {
-  align-items: flex-end;
-  text-align: right;
+  align-items: flex-start;
+  text-align: left;
 }
 .fs-block:not(.fs-block--last) .fs-cell--limit .fs-label {
-  flex-direction: row-reverse;
+  flex-direction: row;
 }
 
 /* the photograph, framed in its box with room round it: it grows out of its top left corner as the

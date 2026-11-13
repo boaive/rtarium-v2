@@ -59,12 +59,12 @@ export const APPLICATIONS: Application[] = [
       'Textile reinforced concrete for façade and cladding panels: RTARIUM replaces glass fibre and steel fibre as the intermediate reinforcement.',
     pages: ['Unitized thin concrete façade', 'RTARIUM rainscreen cladding', 'Stud frame cladding'],
     image: {
-      src: '/img/shoot/mould-mesh-press.webp',
-      small: '/img/shoot/mould-mesh-press-sm.webp',
-      alt: 'RTARIUM mesh being pressed by hand into the mould of a thin façade panel',
-      position: '42% 50%',
+      src: '/img/client/h2.webp',
+      small: '/img/client/h2-sm.webp',
+      alt: '3D render of a thin concrete façade panel with exposed RTARIUM reinforcement',
+      position: '50% 50%',
     },
-    caption: 'RTARIUM pressed into the mould of a thin panel, production shoot.',
+    caption: '3D render of the RTARIUM façade model.',
   },
   {
     id: 'flooring',
@@ -74,8 +74,8 @@ export const APPLICATIONS: Application[] = [
     intro:
       'An intermediate reinforcement layer for thin, high-performance concrete overlays on structural slabs. Rust-proof, non-magnetic and chemically inert.',
     pages: ['Hyperscale data and AI centres', 'Automated warehouses', 'Semiconductor plants'],
-    image: { src: '/img/site-strip.webp', small: '/img/site-strip.webp', alt: 'A long strip of RTARIUM mesh laid out on a site trial ground', position: '50% 70%' },
-    caption: 'RTARIUM laid out on a site trial.',
+    image: { src: '/img/client/h3.webp', small: '/img/client/h3-sm.webp', alt: '3D render of RTARIUM mesh between a structural slab and a thin screed', position: '50% 50%' },
+    caption: '3D render of the RTARIUM flooring model.',
   },
   {
     id: 'walls',
@@ -86,12 +86,12 @@ export const APPLICATIONS: Application[] = [
       'A 30 mm solid panel and a 100 mm SIP insulated panel (15 + 70 mm EPS/SPS core + 15), up to 5.8 m × 600 mm.',
     pages: ['30 mm solid panel', '100 mm SIP insulated panel'],
     image: {
-      src: '/img/shoot/load-hang.webp',
-      small: '/img/shoot/load-hang-sm.webp',
-      alt: 'A thin concrete panel hanging from chains by its cast-in inserts in the test bay',
-      position: '50% 40%',
+      src: '/img/client/h4.webp',
+      small: '/img/client/h4-sm.webp',
+      alt: '3D render of an RTARIUM insulated wall panel with its layers separated',
+      position: '50% 50%',
     },
-    caption: 'A thin panel hung by its cast-in inserts, test bay.',
+    caption: '3D render of the RTARIUM insulated wall-panel model.',
   },
 ]
 

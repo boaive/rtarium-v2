@@ -63,7 +63,7 @@ const SHOWN: Record<string, [string, number, number?][]> = {
 }
 /** what stands under a slide's words: one of RTARIUM's own photographs */
 const MEDIA: Record<string, { src: string; alt: string }> = {
-  weld: { src: '/img/facade/ferrule-in-mesh.webp', alt: 'A ferrule insert fixed on the RTARIUM mesh before the concrete, a bolt coming down to it' },
+  weld: { src: '/img/client/p2.webp', alt: 'A ferrule insert fixed on the RTARIUM mesh before the concrete, a bolt coming down to it' },
 }
 
 /** screens of scroll for each slide: the ones with a close look in them run longer */

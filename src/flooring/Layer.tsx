@@ -97,7 +97,7 @@ const BLOCKS: Block[] = [
       { id: 'c', anchor: 'fl-crack', text: 'Reflective crack', dx: 30, dy: c ? -44 : -96 },
       { id: 's', anchor: 'fl-slab', text: 'Moving slab', dx: c ? -30 : -70, dy: c ? 40 : 70 },
     ],
-    photo: { src: '/img/facade/precast-joint.webp', alt: 'A joint in concrete, opened by movement (stand-in photograph)' },
+    photo: { src: '/img/client/l1.webp', alt: 'A crack running across a concrete floor' },
   },
   {
     id: 'layer',
@@ -111,7 +111,7 @@ const BLOCKS: Block[] = [
       { id: 'sc', anchor: 'fl-screed', text: 'Screed', dx: -40, dy: c ? -40 : -80 },
       { id: 's', anchor: 'fl-slab', text: 'Structural slab', dx: c ? -30 : -70, dy: c ? 40 : 70 },
     ],
-    photo: { src: '/img/shoot/mesh-macro.webp', alt: 'RTARIUM basalt mesh, close up (stand-in photograph)' },
+    photo: { src: '/img/client/l2.webp', alt: 'RTARIUM basalt mesh, close up' },
   },
   {
     id: 'premix',
@@ -124,7 +124,7 @@ const BLOCKS: Block[] = [
       { id: 'm', anchor: 'fl-mesh', text: 'Basalt: nothing to rust', dx: -30, dy: c ? -44 : -96 },
       { id: 'sc', anchor: 'fl-screed', text: 'Your premix', dx: 40, dy: c ? -40 : -80 },
     ],
-    photo: { src: '/img/site-strip.webp', alt: 'RTARIUM laid out on a site trial (stand-in photograph)' },
+    photo: { src: '/img/client/l3.webp', alt: 'RTARIUM basalt mesh laid across a prepared flooring test bay, viewed from a low angle' },
   },
 ]
 

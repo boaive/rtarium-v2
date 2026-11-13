@@ -43,8 +43,8 @@ const BLOCKS: Block[] = [
     facts: ['photo', 'strength'],
     names: ['', 'Strength'],
     photo: {
-      src: '/img/walls/panel-hang.webp',
-      alt: 'An eye bolt in a ferrule insert of an RTARIUM wall panel, a chain and hook hung from it, black test weights behind',
+      src: '/img/client/p1.webp',
+      alt: 'A thin concrete panel in a test bay with chains and suspended test weights',
       ratio: 3 / 4,
       pos: '50% 74%',
     },

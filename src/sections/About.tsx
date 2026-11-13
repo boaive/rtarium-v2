@@ -66,9 +66,9 @@ const steps: Step[] = [
         <figure className="pourfilm" aria-hidden={!active}>
           <div className="pourfilm__frame">
             {active ? (
-              <VideoLoop src="/video/mortar-flow-wide.mp4" small="/video/mortar-flow-wide-m.mp4" poster="/video/mortar-flow-wide.jpg" label="Mortar flowing into the RTARIUM mesh, close up" className="pourfilm__video" />
+              <VideoLoop src="/video/client/h1.mp4" small="/video/client/h1-sm.mp4" poster="/video/client/h1.jpg" label="Mortar flowing into the RTARIUM mesh, close up" className="pourfilm__video" />
             ) : (
-              <img className="pourfilm__poster" src="/video/mortar-flow-wide.jpg" alt="" loading="lazy" decoding="async" />
+              <img className="pourfilm__poster" src="/video/client/h1.jpg" alt="" loading="lazy" decoding="async" />
             )}
           </div>
           <figcaption className="caption">Footage from the RTARIUM production shoot.</figcaption>
