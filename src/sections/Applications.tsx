@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { APPLICATIONS } from '../content/site'
 import { Link } from '../lib/router'
 import { useScreen } from '../components/Chapter'
@@ -14,12 +14,20 @@ const AppModel = lazy(() => import('./AppModel'))
 const SWIPE = { reach: 0.14, flick: 0.35, glide: 560 }
 const mod = (a: number, n: number) => ((a % n) + n) % n
 
+/** a tap anywhere on a card (a drag is not one: the row swallows its click) goes where the card's way in goes */
+function openCard(e: { currentTarget: HTMLElement; target: EventTarget }) {
+  const go = e.currentTarget.querySelector<HTMLAnchorElement>('a.ways__go')
+  // (the way in itself takes its own tap)
+  if (!go || (e.target as Element).closest?.('a')) return
+  go.click()
+}
+
 /**
  * A phone's applications, laid out as the façade pages' "Three ways onto a building" (facade/unitized/More: MoreCards,
  * its styles too): the heading over a hairline, then a card an application in a row that goes round, swiped sideways a
  * card at a time, the next showing at the edge; each card its application's own model in 3D (AppModel: the one its page
  * opens on), its number and name at the foot and a round black button with a yellow arrow, the way in; dashes under the
- * row say which is in front. The models are made as the section comes near (`data-stage-ahead`).
+ * row say which is in front. The models are made behind the opening, and only the one in front turns.
  */
 function PhoneApplications() {
   const section = useRef<HTMLElement>(null)
@@ -29,9 +37,23 @@ function PhoneApplications() {
   const [front, setFront] = useState(0)
   const pos = useRef(0)
   const anim = useRef(0)
-  const [near, setNear] = useState(false)
-  const [play, setPlay] = useState(false)
+  // (the models are made from the start, so they are built behind the opening, not mid-scroll as the section came near:
+  // three scenes made at once there stalled the page just after Tech Space)
+  const [near, setNear] = useState(true)
+  // (the models play their openings as soon as they are made, out of sight, not all three at once as the section came
+  // into view: that stalled the page a tenth of a second at a time, four times, as the section arrived)
+  const [play, setPlay] = useState(true)
+  // each model's picture once taken: the card shows it, and its 3D scene is let go (AppModel: Snapshot)
+  const [shots, setShots] = useState<(string | null)[]>(() => APPLICATIONS.map(() => null))
+  const onShot = useMemo(() => APPLICATIONS.map((_, i) => (url: string) => setShots((s) => s.map((x, j) => (j === i ? url : x)))), [])
   const live = useRef(false)
+  // only the card in front turns; the ones beside it hold still and draw nothing (one scene drawn a frame, not three)
+  const frontAt = useRef(0)
+  frontAt.current = front
+  const liveOf = useMemo(
+    () => APPLICATIONS.map((_, i) => ({ get current() { return live.current && frontAt.current === i } })),
+    [],
+  )
   useEffect(() => {
     const el = section.current
     if (!el) return
@@ -47,7 +69,8 @@ function PhoneApplications() {
       seen.disconnect()
     }
   }, [])
-  useScreen(section, 'applications', 'light')
+  // (on the yellow, its cards warm ivory: the applications' palette, as at the foot of every page)
+  useScreen(section, 'applications', 'yellow')
 
   const step = useCallback(() => {
     const r = rail.current
@@ -170,7 +193,7 @@ function PhoneApplications() {
   }, [glide, place, step])
 
   return (
-    <section id="applications" ref={section} className="ways ways--apps on-light" data-stage-ahead="" data-screen="light" data-flow="" aria-labelledby="apps-title">
+    <section id="applications" ref={section} className="ways ways--apps on-yellow" data-stage-ahead="" data-stage-early="" data-screen="yellow" data-flow="" aria-labelledby="apps-title">
       <div className="ways__in fc-reveal is-in">
         <header className="ways__head">
           <h2 id="apps-title" className="ways__title">
@@ -180,12 +203,16 @@ function PhoneApplications() {
         <div ref={rail} className="ways__rail" role="group" aria-roledescription="carousel" aria-label="The three applications">
           <ol className="ways__track">
             {APPLICATIONS.map((a, i) => (
-              <li key={a.id} ref={(el) => void (cards.current[i] = el)} className={`ways__card ${front === i ? 'is-front' : ''}`} onFocus={() => front !== i && show(i)}>
+              <li key={a.id} ref={(el) => void (cards.current[i] = el)} className={`ways__card ${front === i ? 'is-front' : ''}`} onFocus={() => front !== i && show(i)} onClick={openCard}>
                 <div className="ways__model" aria-hidden="true">
-                  {near && (
-                    <Suspense fallback={<img className="ways__still" src={a.image.src} alt="" style={{ objectPosition: a.image.position }} />}>
-                      <AppModel id={a.id} play={play} live={live} still={a.image.src} />
-                    </Suspense>
+                  {shots[i] ? (
+                    <img className="ways__shot" src={shots[i]!} alt="" draggable={false} />
+                  ) : (
+                    near && (
+                      <Suspense fallback={<img className="ways__still" src={a.image.src} alt="" style={{ objectPosition: a.image.position }} />}>
+                        <AppModel id={a.id} play={play} live={liveOf[i]} still={a.image.src} onShot={onShot[i]} />
+                      </Suspense>
+                    )
                   )}
                 </div>
                 <p className="ways__count num">

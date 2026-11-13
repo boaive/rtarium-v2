@@ -277,6 +277,9 @@ const GLIDE_MS = { screen: 640, more: 240, most: 1100 }
  */
 const FLIGHT_MS = 2500
 const flightEase = (t: number) => 0.5 * t + 0.25 * (1 - Math.cos(Math.PI * t))
+/** a glide's ease: away at once, settling softly, and reaching its stop exactly (a bare 1 - 2^-10t stops 0.1% short and
+ * jumped the rest on its last frame, a pixel or two once the page had all but come to rest: a twitch at every landing) */
+const glideEase = (t: number) => (1 - Math.pow(2, -10 * t)) / (1 - Math.pow(2, -10))
 
 /**
  * A stretch of a phone's Home that goes a stop a swipe: its stops, top to bottom (px), and where a swipe on out of its
@@ -354,6 +357,18 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     // (the smooth scroll set aside: written a frame behind the page, it would pull at the page's own glides)
     const bringBack = setAsideSmoothScroll()
     const touch = { y: 0, x: 0, t: 0, at: 0, from: 0, down: false, multi: false }
+    /*
+     * A swipe in a paged stretch is the page's own from its first move: the page follows the finger exactly (its moves
+     * cancelled, the scroll set here), so the browser never starts a fling of its own. Left to the browser, the finger's
+     * fling ran on, off the page's thread, under the glide to the next stop: the two pulled the page back and forth a
+     * few pixels a frame for a third of a second as it landed, a shake at the start of every section (and the browser's
+     * bars slid in and out with it, resizing the screen mid-glide). `drag`: the swipe taken (where the page and the
+     * finger were as it was), or null: the browser's (a sideways move, or a swipe on out of a stretch to where the page
+     * goes freely, which keeps its fling); `decided`: settled on the touch's first move, the only one that can be
+     * cancelled.
+     */
+    let drag: { base: number; y0: number } | null = null
+    let decided = false
     /** where the last glide was going, and until when it runs (ms) */
     let aim: number | null = null
     let aimUntil = 0
@@ -382,7 +397,7 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       const frame = (now: number) => {
         if ((touch.down && !flight) || stage.heldAt > t0) return void (flying = false)
         const t = Math.min(1, (now - t0) / ms)
-        const eased = t >= 1 ? 1 : flight ? flightEase(t) : 1 - Math.pow(2, -10 * t)
+        const eased = t >= 1 ? 1 : flight ? flightEase(t) : glideEase(t)
         window.scrollTo({ top: from + far * eased, behavior: 'instant' as ScrollBehavior })
         if (t < 1) anim = requestAnimationFrame(frame)
         else flying = false
@@ -398,7 +413,7 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
      * up to the opening)
      */
     const hold = (e: TouchEvent) => {
-      if (!flying) return
+      if (!flying) return follow(e)
       const t = e.touches[0]
       if (t && t.clientY - touch.y > 24) {
         cancelAnimationFrame(anim)
@@ -408,7 +423,64 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       }
       if (e.cancelable) e.preventDefault()
     }
+    /** whether a swipe `dir` from `from` in `zone` goes to a stop of the stretch's (as `step` takes it), not on out freely */
+    const pagedFor = (zone: Zone, from: number, dir: number, zones: Zone[]) => {
+      const { stops } = zone
+      const i = stops.indexOf(nearestOf(stops, from))
+      if (dir > 0) return i < stops.length - 1 || zone.after !== null
+      if (dir < 0) {
+        if (zone.tour && i === stops.length - 1) return Boolean(back.current)
+        if (i === 0) return zones.some((z) => z !== zone && z.after !== null && Math.abs(z.after - stops[0]) < 4)
+      }
+      return true
+    }
+    /**
+     * the paged stretch a swipe `dir` from `from`, where the page goes freely, sets into within a screen (About's first part
+     * from its top, the deck from the line before it, Tech Space back up from the applications): its stop that way
+     */
+    const entry = (zones: Zone[], from: number, dir: number) => {
+      const vh = window.innerHeight
+      for (const z of zones) {
+        if (z.tour) continue
+        const first = z.stops[0]
+        const last = z.stops[z.stops.length - 1]
+        // (within a screen and a half: from anywhere on a screen-tall section before it, the black statement before the
+        // deck, a swipe goes on to the stretch, never left resting part way on its way there)
+        if (dir > 0 && first > from + 3 && first - from <= vh * 1.6) return first
+        if (dir < 0 && last < from - 3 && from - last <= vh * 1.6) return last
+      }
+      return null
+    }
+    /** the finger moving: on its first move, the swipe taken or left to the browser; taken, the page follows it */
+    const follow = (e: TouchEvent) => {
+      const t = e.touches[0]
+      if (!t || !touch.down) return
+      if (!decided) {
+        decided = true
+        const dy = touch.y - t.clientY
+        const dx = touch.x - t.clientX
+        // (two fingers, a mesh in hand, a sideways move, or a move that cannot be cancelled: the browser's)
+        if (touch.multi || !e.cancelable || stage.heldAt >= touch.at || Math.abs(dx) > Math.abs(dy)) return
+        // (a sheet or the menu over the page scrolls on its own: never taken)
+        if ((e.target as Element | null)?.closest?.('dialog, [data-lenis-prevent]') || document.querySelector('dialog[open]')) return
+        const dir = Math.sign(dy)
+        const zones = pagedZones(section.current ?? el)
+        const zone = zoneAt(zones, touch.from, dir)
+        // (a swipe in a stretch is always taken, even one that leaves it for where the page goes freely: left to the
+        // browser, its fling ran on up through the sections above, each catching it as it passed, a jitter all the way)
+        if (!zone && entry(zones, touch.from, dir) === null) return
+        drag = { base: window.scrollY, y0: t.clientY }
+      }
+      if (!drag) return
+      e.preventDefault()
+      // (a mesh taken in hand meanwhile: the page stays where it is)
+      if (stage.heldAt >= touch.at) return
+      const to = Math.max(0, drag.base + (drag.y0 - t.clientY))
+      if (Math.abs(to - window.scrollY) >= 0.5) window.scrollTo({ top: to, behavior: 'instant' as ScrollBehavior })
+    }
     const start = (e: TouchEvent) => {
+      drag = null
+      decided = false
       touch.multi = e.touches.length !== 1
       const t = e.touches[0]
       if (!t) return
@@ -422,6 +494,8 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     }
     const end = (e: TouchEvent) => {
       touch.down = false
+      const taken = drag !== null
+      drag = null
       const t = e.changedTouches[0]
       if (turnedBack) {
         turnedBack = false
@@ -439,6 +513,17 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       const dir = Math.abs(dy) > vh * SWIPE.reach || (speed > SWIPE.flick && Math.abs(dy) > 12) ? Math.sign(dy) : 0
       const zones = pagedZones(el)
       const zone = zoneAt(zones, touch.from, dir)
+      // (a swipe taken out of a stretch to where the page goes freely: the page has no fling of its own, so it goes on to
+      // the next stretch's stop that way if one is within reach, else a screen on; one too small to count goes back to
+      // the stop it set off from)
+      if (taken && zone && !pagedFor(zone, touch.from, dir, zones)) {
+        if (dir === 0) return glide(nearestOf(zone.stops, touch.from))
+        const max = document.documentElement.scrollHeight - window.innerHeight
+        return glide(entry(zones, touch.from, dir) ?? Math.min(max, Math.max(0, touch.from + dir * window.innerHeight)))
+      }
+      // (a swipe taken from where the page goes freely into a paged stretch: to the stretch's stop, however short the swipe
+      // was; one too small to count, or turned back, back to where it set off)
+      if (taken && !zone) return glide((dir !== 0 && entry(zones, touch.from, dir)) || touch.from)
       if (!zone) {
         // a swipe from where the page scrolls freely that has drawn it on into a paged stretch (the deck): to that
         // stretch's first stop going down, its last going up, never through it
@@ -553,7 +638,10 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     window.addEventListener('touchstart', start, { passive: true })
     window.addEventListener('touchmove', hold, { passive: false })
     window.addEventListener('touchend', end, { passive: true })
-    const cancel = () => void (touch.down = false)
+    const cancel = () => {
+      touch.down = false
+      drag = null
+    }
     window.addEventListener('touchcancel', cancel, { passive: true })
     window.addEventListener('scroll', scrolled, { passive: true })
     window.addEventListener('wheel', wheel, { passive: false })

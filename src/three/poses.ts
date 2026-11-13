@@ -56,6 +56,16 @@ export interface Pose {
   labelZoneCompact: [number, number, number, number]
   /** cells built across the warp and the weft */
   win: [number, number]
+  /** the piece built round, win[0] cells across (yarnMaterial uRound): turned about its middle, its outline never moves */
+  round?: boolean
+  /** the piece cut flush, square, this far out from its middle on all four sides (m): every edge ends the same way */
+  cut?: number
+  /**
+   * a phone's card grown with the scroll from one edge: `near`, where its near edge lies (cells, along z, toward the
+   * camera); as the card's row comes up the screen the piece is woven on from there, away from the camera, to its full
+   * `win[1]`, all of it by the time the row has come to rest
+   */
+  grow?: { near: number }
   /** 0 = the sheet lies flat, 1 = it stands on its edge facing the camera */
   stand: number
   /** how much of its shadow the sheet casts on the ground under it (0..1) */
@@ -168,12 +178,13 @@ export const POSES: Record<PoseId, Pose> = {
     azim: 36,
     dist: 0.53,
     // phones: the piece large on the screen, its corners kept clear of the sides through its slow turn
-    distCompact: 1.16,
+    // (closer than it was, and seen wider, low and slanted: its near edge looms over the far one, in depth)
+    distCompact: 0.84,
     fov: 30,
     frame: [0.71, 0.7],
     // phones: centred across the screen, low in the room between the way to the team and Scroll to explore
     // (a little left of centre: its shadow falls to the right, and the two read as one, centred)
-    frameCompact: [0.46, 0.69],
+    frameCompact: [0.5, 0.68],
     sway: 4,
     press: true,
     win: [18, 12],
@@ -420,9 +431,12 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   // all in view, the edge running a little uphill across the card; Flat mesh takes the lower face and the fibres away
   // and leaves the camera where it is
   shear: card('shear', { tgt: [0, -0.002, 0.058], elev: 9, azim: 14, dist: 0.12, distCompact: 0.12, frameBox: [0.5, 0.55], win: [14, 14], fog: [6, 8], shadow: 1, shearPlane: false, spin: 2 }),
-  // a small rectangle of it from above, close (some five strands across), turning about its own middle: no corner of it
-  // ever reaches the words over it
-  mineral: card('mineral', { tgt: [0, 0, 0], elev: 48, azim: -8, dist: 0.2, distCompact: 0.2, fov: 38, frameBox: [0.5, 0.64], win: [6, 9], fog: [6, 8], shadow: 1, spin: 2 }),
+  // close over it from a high angle, the strands large (some four across the card), running off its sides and its foot;
+  // it does not turn: it grows, woven on from the card's foot up the card as the row comes up the screen (`grow`), its
+  // far edge one straight line of whole cells, low in the card, clear of the words, once the row has come to rest
+  mineral: card('mineral', { tgt: [0, 0, 0.006], elev: 74, azim: 0, dist: 0.145, distCompact: 0.145, fov: 38, frameBox: [0.5, 0.42], win: [14, 5], grow: { near: 5 }, fog: [6, 8], shadow: 1 }),
+  // Tech Space: the system pulled apart, turning one way about its middle, slowly, on and on (once round in a minute)
+  stack: card('stack', { spin: 6 }),
 }
 
 /* ---- the opening tour -------------------------------------------------------------------------- */

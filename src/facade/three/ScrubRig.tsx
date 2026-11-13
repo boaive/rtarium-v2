@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { prefersReducedMotion } from '../../lib/motion'
@@ -9,6 +9,14 @@ const DEG = Math.PI / 180
 
 /** every page's opening model turns slowly, the same way on every page: this far either side, once in this long */
 export const HERO_TURN = { deg: 14, period: 26 }
+
+/**
+ * when the page last moved (a swipe, a glide, a fling): a turn holds while it does and takes up again once it has been
+ * still a moment, so a phone draws no scene under the finger (its touch kept quick)
+ */
+let movedAt = -1e9
+const HOLD_MS = 160
+if (typeof window !== 'undefined') window.addEventListener('scroll', () => void (movedAt = performance.now()), { passive: true })
 
 /**
  * A camera that follows the scroll: the shot is a function of how far the section has been
@@ -44,6 +52,9 @@ export function ScrubRig({
   const cur = useRef<Record<string, number> | null>(null)
   /** the turn's own clock (s), run only while the turn plays */
   const clock = useRef(0)
+  /** a frame asked for once the page has come to rest (the scene draws only on request) */
+  const resume = useRef(0)
+  useEffect(() => () => window.clearTimeout(resume.current), [])
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 1 / 20)
@@ -64,15 +75,23 @@ export function ScrubRig({
     const c = cur.current
     let moving = false
     for (const k of Object.keys(to) as (keyof typeof to)[]) if (approach(c, k, to[k], 7, dt, 1e-4)) moving = true
-    const idle = !reduced && (sway > 0 || Boolean(turn)) && (live?.current ?? true)
+    // (the page moving: the turn holds, and a frame is asked for once it has been still a moment)
+    const held = performance.now() - movedAt < HOLD_MS
+    if (held) {
+      window.clearTimeout(resume.current)
+      resume.current = window.setTimeout(() => invalidate(), HOLD_MS + 20)
+    }
+    const idle = !reduced && !held && (sway > 0 || Boolean(turn)) && (live?.current ?? true)
     const t = performance.now() / 1000
     const el = (c.elev + (idle ? sway * 0.25 * Math.sin((t * Math.PI * 2) / 17 + 0.8) : 0)) * DEG
     let side = 0
     if (turn && !reduced) {
       if (idle) clock.current += dt
-      const s = clock.current
+      // (in development, a recording of a phone's card films sets the turn's clock itself: window.__turnAt, s)
+      const forced = import.meta.env.DEV ? (window as unknown as { __turnAt?: number }).__turnAt : undefined
+      const s = forced ?? clock.current
       // (eased in over its first seconds, so the model starts to turn from rest)
-      const ease = Math.min(1, s / 5)
+      const ease = forced !== undefined ? 1 : Math.min(1, s / 5)
       side = turn.deg * ease * ease * (3 - 2 * ease) * Math.sin((s * Math.PI * 2) / turn.period)
     } else if (idle) side = sway * Math.sin((t * Math.PI * 2) / 12)
     const az = (c.azim + side) * DEG
@@ -81,7 +100,7 @@ export function ScrubRig({
     if (camera.fov !== c.fov) camera.fov = c.fov
     camera.setViewOffset(size.width, size.height, -(c.fx - 0.5) * size.width, -(c.fy - 0.5) * size.height, size.width, size.height)
     camera.updateProjectionMatrix()
-    if (moving || idle) invalidate()
+    if (moving || idle || (import.meta.env.DEV && (window as unknown as { __turnAt?: number }).__turnAt !== undefined)) invalidate()
   }, -1)
   return null
 }

@@ -163,14 +163,18 @@ export function Track(props: { id: string; title: string; steps: Step[]; classNa
  * figure's box: `useStageRegion` with `box`), a drawing's title block along the figure's foot. The step whose figure
  * holds the middle of the screen is the one playing.
  */
+/** the phone chapters that go a part a swipe (Hero's useSwipePager) */
+const PAGED = new Set(['about', 'innovation', 'tech'])
+
 export function Rows({ id, title, steps, ground = 'light' }: { id: string; title: string; steps: Step[]; ground?: Ground }) {
   CHAPTERS.set(id, { title, labels: steps.map((s) => s.label) })
   const section = useRef<HTMLElement>(null)
   // holding the middle of the screen, read on every scroll as the other sections are, the header takes this ground
   useScreen(section, id, ground)
   return (
-    // (About's and Innovation's parts go a part a swipe, both ways: Hero's useSwipePager, `data-swipe-rows`)
-    <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground} data-swipe-rows={id === 'about' || id === 'innovation' ? '' : undefined}>
+    // (About's, Innovation's and Tech Space's parts go a part a swipe, both ways: Hero's useSwipePager, `data-swipe-rows`;
+    // Tech Space's one screen a swipe in and a swipe on, never left resting part way where a fling ran out)
+    <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground} data-swipe-rows={PAGED.has(id) ? '' : undefined}>
       <header className="eb__head">
         <p className="eb__title">{title}</p>
       </header>
@@ -265,13 +269,16 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
   // the figure is the live 3D, sharp at any size (only the one most in view turns: StageScene);
   // its film stands in only where there is no 3D (no WebGL, or the scene failed), in place of a still
   // (in development ?films shows the films, to check them)
+  // (Tech Space's system is drawn live too: a film in its place went black for a moment each time the thickness changed
+  // it for another; the live card is kept light instead, its turn held while the page moves: StageScene)
   const filmed = Boolean(LOOPS[step.pose]) && (failed || (import.meta.env.DEV && new URLSearchParams(window.location.search).has('films')))
   // pressed and held, the card's mesh turns in the hand (its own, eased back to its pose once let go: StageScene)
   const [turn] = useState<Turn>(() => ({ yaw: 0, pitch: 0, dragging: false, touch: { x: 0, y: 0, down: false } }))
   useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true, turn })
-  // (About's and Innovation's cards are not turned or pressed by hand: a finger anywhere on them only ever scrolls the
-  // page, and their mesh turns on, slowly, under it)
-  const handled = !filmed && chapter !== 'about' && chapter !== 'innovation'
+  // (a paged chapter's cards are not turned or pressed by hand: a finger anywhere on them only ever moves the page, and
+  // their mesh turns on, slowly, under it; Tech Space's system dented under the finger and swung round in the hand as the
+  // page was swiped through it)
+  const handled = !filmed && !PAGED.has(chapter)
   useOrbitDrag(handled ? box : none, turn)
   // a finger on the card presses the sheet where it is, as the cursor does on a wide screen (StageScene, where the
   // figure's pose takes a press); it springs back once the finger lifts or goes off to scroll

@@ -5,6 +5,97 @@ import { useScrollRead } from './Chapter'
 import { setShared } from '../three/stageStore'
 import { Liquid } from './Liquid'
 import { useIsCompact } from '../lib/motion'
+import { DATA_SHEET } from '../content/technical'
+
+/**
+ * A phone's footer, simple and clean, all of it set to the left: the name large with its maker under it, what to do next
+ * in two lines of small type and a small outlined button, then the site map in two columns between two rules, and the
+ * fine print and the year, a black band at the foot
+ */
+function FooterPhone({ inverse = false }: { inverse?: boolean }) {
+  const Map = inverse ? 'div' : 'nav'
+  return (
+    <div className="footm">
+      <p className="footm__word" aria-hidden="true">
+        RTARIUM
+      </p>
+      <p className="footm__by">
+        <span>by</span>
+        <img src={inverse ? '/brand/hemisphere-one-logo.png' : '/brand/hemisphere-one-logo-ink.png'} alt={inverse ? '' : 'HEMISPHERE ONE'} width={900} height={171} loading="lazy" decoding="async" />
+      </p>
+      <p className="footm__line">
+        Bring RTARIUM into your next project.
+        <br />
+        Talk to our team about your requirements.
+      </p>
+      <Link to="/contact" className="footm__cta">
+        Contact HEMISPHERE ONE
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path d="M4 12 12 4M5.5 4H12v6.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      </Link>
+      <Map className="footm__map" aria-label={inverse ? undefined : 'Site map'}>
+        <div>
+          <h2 className="footm__head">Technology</h2>
+          <ul>
+            <li>
+              <Link to="/#about">About RTARIUM</Link>
+            </li>
+            <li>
+              <Link to="/#innovation">Innovation</Link>
+            </li>
+            <li>
+              <Link to="/#tech">Tech Space</Link>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h2 className="footm__head">Applications</h2>
+          <ul>
+            {APPLICATIONS.map((a) => (
+              <li key={a.id}>
+                <Link to={a.path}>{a.title}</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h2 className="footm__head">Company</h2>
+          <ul>
+            <li>
+              <Link to="/contact">Contact</Link>
+            </li>
+            {SITE.contact.email && (
+              <li>
+                <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
+              </li>
+            )}
+          </ul>
+        </div>
+        <div>
+          <h2 className="footm__head">Resources</h2>
+          <ul>
+            <li>
+              <a href={DATA_SHEET} download>
+                Data sheet
+              </a>
+            </li>
+            <li>
+              <Link to="/#tech">All figures</Link>
+            </li>
+          </ul>
+        </div>
+      </Map>
+      <div className="footm__base">
+        <p className="footm__legal">
+          Technical figures describe the tested materials and configurations. The 3D model is a visual reconstruction made to
+          explain the product. Applications are subject to project-specific engineering and validation.
+        </p>
+        <p className="footm__year">© {new Date().getFullYear()} RTARIUM by HEMISPHERE ONE. All rights reserved.</p>
+      </div>
+    </div>
+  )
+}
 
 /** The footer's content. `inverse` is the yellow-on-black copy shown only inside the liquid. */
 function FooterContent({ inverse = false }: { inverse?: boolean }) {
@@ -97,13 +188,16 @@ export function Footer({ screen = false }: { screen?: boolean }) {
   })
   return (
     <footer ref={ref} className={`footer ${screen ? 'footer--screen' : ''}`} data-screen="yellow" data-flow={compact ? '' : undefined}>
-      <div className="footer__body">
-        <FooterContent />
-      </div>
-      <Liquid reveal={inverse} />
-      <div ref={inverse} className="footer__body footer__body--inverse" aria-hidden="true" inert>
-        <FooterContent inverse />
-      </div>
+      <div className="footer__body">{compact ? <FooterPhone /> : <FooterContent />}</div>
+      {/* (a phone's footer has no liquid: under a finger it was a black blot that followed the scroll) */}
+      {!compact && (
+        <>
+          <Liquid reveal={inverse} />
+          <div ref={inverse} className="footer__body footer__body--inverse" aria-hidden="true" inert>
+            <FooterContent inverse />
+          </div>
+        </>
+      )}
     </footer>
   )
 }

@@ -155,11 +155,13 @@ function Cards({ list, dealt }: { list: RefObject<HTMLOListElement | null>; deal
  */
 function Replaces() {
   const section = useRef<HTMLElement>(null)
-  useScreen(section, 'replaces', 'light')
-  const rows = useRef<HTMLTableSectionElement>(null)
-  const [ref, inView] = useInView<HTMLDivElement>('0px 0px -20% 0px')
   // on a phone the section runs past one screen: it is read at its own pace, never brought to a screen inside it (lib/scroll.ts)
   const compact = useIsCompact()
+  // (a phone sets the deck on yellow, its cards white on it)
+  const ground = compact ? 'yellow' : 'light'
+  useScreen(section, 'replaces', ground)
+  const rows = useRef<HTMLTableSectionElement>(null)
+  const [ref, inView] = useInView<HTMLDivElement>('0px 0px -20% 0px')
   const cards = useRef<HTMLOListElement>(null)
   useMarkIn(cards, '.vs__card', compact)
   // the band plays when it is itself on screen, not when the table above it is
@@ -250,8 +252,8 @@ function Replaces() {
     <section
       id="replaces"
       ref={section}
-      className={`ledger on-light ${compact && dealt ? 'is-dealt' : ''}`}
-      data-screen="light"
+      className={`ledger on-${ground} ${compact && dealt ? 'is-dealt' : ''}`}
+      data-screen={ground}
       data-flow={compact ? '' : undefined}
       data-swipe-stops={compact ? DECK_STOPS : undefined}
       aria-labelledby="replaces-title"

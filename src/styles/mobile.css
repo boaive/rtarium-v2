@@ -418,18 +418,22 @@
     justify-items: start;
     gap: clamp(18px, 2.8svh, 26px);
   }
+  /* (small: only as wide as its words, a little lower than a thumb's reach) */
   :root .hero__sub .explore {
-    min-width: min(100%, 19.5rem);
-    height: 52px;
+    min-width: 0;
+    height: 40px;
     background: var(--black);
     color: var(--yellow);
     box-shadow: none;
   }
   :root .hero__sub .explore__label {
+    flex: none;
+    padding: 0 16px;
+    font-size: 0.66rem;
     color: var(--yellow);
   }
   :root .hero__sub .explore__cell {
-    width: 52px;
+    width: 40px;
     border-left: 1px solid rgb(253 208 1 / 0.28);
     color: var(--yellow);
   }
@@ -1257,5 +1261,134 @@
       transform: none;
       transition: none;
     }
+  }
+}
+
+/*
+ * A phone's footer (Footer: FooterPhone), simple and clean, set to the left: the name large, the next step in small
+ * type, the site map in two columns between hairlines, the fine print and the year, a black band at the very foot.
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .footer__body:has(.footm) {
+    display: block;
+    padding: calc(var(--nav-h) + clamp(22px, 5svh, 44px)) var(--gutter) calc(clamp(30px, 5svh, 44px) + env(safe-area-inset-bottom, 0px));
+  }
+  .footer:has(.footm)::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 7;
+    height: 6px;
+    background: var(--black);
+  }
+  .footm {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .footm__word {
+    margin-left: -0.03em;
+    font-family: var(--font-name);
+    font-size: clamp(2.4rem, 12.2vw, 3.4rem);
+    font-weight: 860;
+    font-stretch: 150%;
+    letter-spacing: -0.01em;
+    line-height: 0.9;
+  }
+  .footm__by {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .footm__by img {
+    width: auto;
+    height: 15px;
+  }
+  /* the next step, as small type under the name */
+  .footm__line {
+    margin-top: clamp(22px, 3.6svh, 30px);
+    font-size: 0.86rem;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    color: var(--on-yellow-2);
+  }
+  /* the way to the team, minimal: a small outlined pill */
+  .footm__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    margin-top: 16px;
+    padding: 0 14px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px currentColor;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  /* the site map: two columns between two hairlines, each group's name in a quiet tone over its links */
+  .footm__map {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(26px, 4.4svh, 36px) var(--s-4);
+    align-self: stretch;
+    margin-top: clamp(34px, 6svh, 52px);
+    padding: clamp(28px, 4.6svh, 36px) 0;
+    border-top: 1px solid rgb(8 8 8 / 0.22);
+    border-bottom: 1px solid rgb(8 8 8 / 0.22);
+    text-align: left;
+  }
+  .footm__head {
+    margin-bottom: 10px;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--on-yellow-2);
+    opacity: 0.8;
+  }
+  .footm__map ul {
+    display: grid;
+    gap: 2px;
+  }
+  .footm__map a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    font-size: 0.98rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .footm__base {
+    align-self: stretch;
+    display: grid;
+    gap: 14px;
+    padding-top: clamp(22px, 4svh, 30px);
+    text-align: left;
+  }
+  .footm__legal {
+    font-size: 0.74rem;
+    line-height: 1.5;
+    color: var(--on-yellow-2);
+  }
+  .footm__year {
+    font-size: 0.86rem;
+    font-weight: 600;
+  }
+  /* (the copy inside the liquid: yellow on black) */
+  .footer__body--inverse .footm__line,
+  .footer__body--inverse .footm__head,
+  .footer__body--inverse .footm__legal {
+    color: var(--on-dark-2);
+  }
+  .footer__body--inverse .footm__map {
+    border-color: rgb(253 208 1 / 0.3);
   }
 }

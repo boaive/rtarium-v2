@@ -97,6 +97,14 @@ function MoreColumns({ current = 'unitized', id, sectionRef }: MoreProps) {
 const SWIPE = { reach: 0.14, flick: 0.35, glide: 560 }
 const mod = (a: number, n: number) => ((a % n) + n) % n
 
+/** a tap anywhere on a card (a drag is not one: the row swallows its click) goes where the card's way in goes */
+function openCard(e: { currentTarget: HTMLElement; target: EventTarget }) {
+  const go = e.currentTarget.querySelector<HTMLAnchorElement>('a.ways__go')
+  // (the way in itself takes its own tap)
+  if (!go || (e.target as Element).closest?.('a')) return
+  go.click()
+}
+
 /**
  * On a phone: the heading over a hairline, then the systems as cards in a row that goes round: swiped sideways a card at
  * a time, on past the last comes the first again (and back past the first, the last), the next one showing at the edge.
@@ -254,7 +262,7 @@ function MoreCards({ current = 'unitized', id, sectionRef }: MoreProps) {
   }, [glide, place, step])
 
   return (
-    <section ref={section} id={id} className="ways on-light" data-stage-ahead="" aria-labelledby="fu-more-title">
+    <section ref={section} id={id} className="ways on-yellow" data-stage-ahead="" aria-labelledby="fu-more-title">
       <div ref={ref} className={`ways__in fc-reveal ${inView ? 'is-in' : ''}`}>
         <header className="ways__head">
           <Words id="fu-more-title" className="ways__title" lines={all ? ['Three ways', 'onto a building.'] : ['Two more ways', 'onto a building.']} />
@@ -270,7 +278,7 @@ function MoreCards({ current = 'unitized', id, sectionRef }: MoreProps) {
               const s = SYSTEMS[n]
               return (
                 // (a card's way in, reached by the keyboard, brings it to the front)
-                <li key={s.id} ref={(el) => void (cards.current[i] = el)} className={`ways__card ${front === i ? 'is-front' : ''}`} onFocus={() => front !== i && show(i)}>
+                <li key={s.id} ref={(el) => void (cards.current[i] = el)} className={`ways__card ${front === i ? 'is-front' : ''}`} onFocus={() => front !== i && show(i)} onClick={openCard}>
                   <div className="ways__model" aria-hidden="true">
                     <Stage3D shadows keyLight={false} fallback={<img className="ways__still" src="/img/facade/panel-ivory.webp" alt="" />}>
                       <SystemsTrio play={inView} hover={front === i ? 0 : null} live={live} pick={[n]} fill={0.86} headroom={0.02} />

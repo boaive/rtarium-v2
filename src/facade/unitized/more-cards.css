@@ -6,17 +6,29 @@
  * Phones only (the compact query the 3D frames its phone views by: lib/motion.ts).
  */
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  /*
+   * the cards' palette (Home's applications and the foot of every page alike): RTARIUM yellow under warm ivory cards, each
+   * model in a soft grey window lit to white, near-black type and way in, the number and the dashes in greys
+   */
   .ways {
-    --ways-card: #fbfaf7;
+    /* (the footer's own yellow, so the two read as one ground) */
+    --ways-yellow: var(--yellow);
+    --ways-card: #fffcf7;
+    --ways-model: #f2f1ee;
+    --ways-model-lit: #ffffff;
+    --ways-ink: #111111;
+    --ways-ink-2: #737373;
+    /* (the other dashes the ink itself, faint: a grey of its own looked dull on the yellow) */
+    --ways-dot: rgb(17 17 17 / 0.22);
     --ways-gap: 12px;
     --ways-h: clamp(430px, 62svh, 580px);
     padding: calc(var(--nav-h) + clamp(24px, 4.4svh, 40px)) 0 clamp(36px, 7svh, 64px);
-    background: var(--white);
+    background: var(--ways-yellow);
+    color: var(--ways-ink);
   }
   .ways__head {
     margin: 0 var(--gutter);
-    padding-bottom: clamp(18px, 3svh, 28px);
-    border-bottom: 1px solid rgb(8 8 8 / 0.12);
+    padding-bottom: clamp(4px, 1svh, 10px);
   }
   .ways__title {
     font-size: clamp(2.3rem, 11vw, 3.3rem);
@@ -49,6 +61,7 @@
   }
   /* a card: its model filling the top, its number and name at the foot, the way in at its corner */
   .ways__card {
+    cursor: pointer;
     position: absolute;
     top: 0;
     left: var(--gutter);
@@ -62,16 +75,31 @@
     border-radius: 22px;
     background: var(--ways-card);
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.8),
-      0 0 0 1px rgb(8 8 8 / 0.05),
-      0 22px 44px -26px rgb(8 8 8 / 0.4);
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 0 0 1px rgb(17 17 17 / 0.04),
+      0 26px 48px -26px rgb(110 75 0 / 0.45);
     will-change: transform;
   }
+  /* the model in a soft grey window of its own, lit to white above it, inset in the card */
   .ways__model {
     position: relative;
     flex: 1;
     min-height: 0;
-    margin: 0 -24px 4px;
+    margin: 12px -12px 18px;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 16px;
+    background: radial-gradient(ellipse 90% 70% at 50% 28%, var(--ways-model-lit) 0%, var(--ways-model) 72%);
+    box-shadow: inset 0 0 0 1px rgb(17 17 17 / 0.04);
+  }
+  /* a model's picture, taken once its opening has played, in place of its 3D (Applications) */
+  .ways__shot {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
   }
   .ways__still {
     position: absolute;
@@ -84,7 +112,7 @@
     font-size: 0.92rem;
     font-weight: 600;
     letter-spacing: 0.04em;
-    color: var(--on-light-2);
+    color: var(--ways-ink-2);
   }
   .ways__name {
     margin-top: 8px;
@@ -105,8 +133,8 @@
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    background: var(--black);
-    color: var(--yellow);
+    background: var(--ways-ink);
+    color: var(--ways-yellow);
     -webkit-user-drag: none;
     transition: transform 0.35s var(--ease-out);
   }
@@ -122,7 +150,7 @@
     outline-offset: 3px;
   }
 
-  /* which card is in front: a dash each on the left, the one in front yellow (a taller target than it looks) */
+  /* which card is in front: a hairline dash each, on the left under the row, the one in front longer and near-black (a taller target than it looks) */
   .ways__dots {
     display: flex;
     justify-content: flex-start;
@@ -131,7 +159,7 @@
   }
   .ways__dot {
     position: relative;
-    width: 40px;
+    width: 28px;
     height: 24px;
     padding: 0;
     border: 0;
@@ -139,23 +167,22 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
-  /* (the first dash flush with the edge of the cards above) */
-  .ways__dot:first-child {
-    margin-left: -3px;
-  }
   .ways__dot::before {
     content: '';
     position: absolute;
-    left: 3px;
-    right: 3px;
-    top: calc(50% - 3px);
-    height: 6px;
-    border-radius: 3px;
-    background: rgb(8 8 8 / 0.12);
-    transition: background-color 0.35s var(--ease-out);
+    left: 0;
+    width: 22px;
+    top: calc(50% - 1px);
+    height: 2px;
+    border-radius: 1px;
+    background: var(--ways-dot);
+    transition:
+      background-color 0.35s var(--ease-out),
+      width 0.35s var(--ease-out);
   }
   .ways__dot[aria-current='true']::before {
-    background: var(--yellow);
+    width: 28px;
+    background: var(--ways-ink);
   }
   .ways__dot:focus-visible {
     outline: 2px solid var(--black);
