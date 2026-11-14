@@ -389,6 +389,7 @@ function AnswersPhone() {
       title="The RTARIUM Solution"
       label="Answer"
       ground="yellow"
+      presentation="solution"
       items={ANSWERS.map((a, i) => ({
         name: a.name,
         line: a.line,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { prefersReducedMotion } from '../../lib/motion'
 import { Arrow } from '../Shell'
 import './stations.css'
@@ -137,10 +137,10 @@ export function useClips(sectionRef: RefObject<HTMLElement | null>, items: Clip[
   }, [k, turn, playing, seen, n, items])
 
   /** to step `i`, its clip and its bar from the start */
-  const go = (i: number) => {
+  const go = useCallback((i: number) => {
     setK(((i % n) + n) % n)
     setTurn((t) => t + 1)
-  }
+  }, [n])
 
   return {
     k,
@@ -162,6 +162,7 @@ export function Stations({
   label,
   items,
   ground,
+  presentation,
 }: {
   sectionRef: RefObject<HTMLElement | null>
   id: string
@@ -171,6 +172,7 @@ export function Stations({
   label: string
   items: Station[]
   ground: 'light' | 'yellow'
+  presentation?: 'solution'
 }) {
   const n = items.length
   const { k, turn, playing, setPlaying, running, go, layer } = useClips(sectionRef, items)
@@ -182,14 +184,50 @@ export function Stations({
     const s = strip.current
     const t = thumbs.current[k]
     if (!s || !t) return
-    const pad = parseFloat(getComputedStyle(s).paddingLeft) || 0
-    s.scrollTo({ left: Math.max(0, t.offsetLeft - pad), behavior: 'smooth' })
-  }, [k])
+    const place = () => {
+      const pad = parseFloat(getComputedStyle(s).paddingLeft) || 0
+      const target = presentation === 'solution' ? thumbs.current[Math.max(0, Math.min(n - 3, k - 1))] : t
+      s.scrollTo({ left: Math.max(0, (target ?? t).offsetLeft - pad), behavior: prefersReducedMotion() ? 'instant' : 'smooth' })
+    }
+    place()
+    if (presentation !== 'solution') return
+    const resize = new ResizeObserver(place)
+    resize.observe(s)
+    return () => resize.disconnect()
+  }, [k, n, presentation])
+
+  // A horizontal gesture changes answers; vertical gestures continue scrolling the page.
+  useEffect(() => {
+    const card = sectionRef.current?.querySelector<HTMLElement>('.fst__card')
+    if (presentation !== 'solution' || !card) return
+    let start: { id: number; x: number; y: number } | null = null
+    const down = (e: PointerEvent) => {
+      if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return
+      start = { id: e.pointerId, x: e.clientX, y: e.clientY }
+      card.setPointerCapture(e.pointerId)
+    }
+    const up = (e: PointerEvent) => {
+      if (!start || e.pointerId !== start.id) return
+      const dx = e.clientX - start.x
+      const dy = e.clientY - start.y
+      start = null
+      if (Math.abs(dx) >= 44 && Math.abs(dx) > Math.abs(dy) * 1.3) go(k + (dx < 0 ? 1 : -1))
+    }
+    const cancel = () => { start = null }
+    card.addEventListener('pointerdown', down)
+    card.addEventListener('pointerup', up)
+    card.addEventListener('pointercancel', cancel)
+    return () => {
+      card.removeEventListener('pointerdown', down)
+      card.removeEventListener('pointerup', up)
+      card.removeEventListener('pointercancel', cancel)
+    }
+  }, [k, presentation, sectionRef, go])
 
   const item = items[k]
   const num = (i: number) => String(i + 1).padStart(2, '0')
   return (
-    <section ref={sectionRef} id={id} className={`fst fst--${ground} on-${ground}`} aria-labelledby={`${id}-title`} aria-roledescription="carousel">
+    <section ref={sectionRef} id={id} className={`fst fst--${ground} ${presentation === 'solution' ? 'fst--solution' : ''} on-${ground}`} aria-labelledby={`${id}-title`} aria-roledescription="carousel">
       <div className="fst__pin">
         <h2 id={`${id}-title`} className="fst__title fu-h">
           {title}
@@ -205,7 +243,7 @@ export function Stations({
             {item.line}
           </p>
         </div>
-        <div className="fst__card" aria-hidden="true">
+        <div className="fst__card" data-step={k + 1} aria-hidden="true">
           <img ref={layer(0)} className="fst__clip" alt="" decoding="async" />
           <img ref={layer(1)} className="fst__clip" alt="" decoding="async" />
         </div>
@@ -222,7 +260,7 @@ export function Stations({
           <p className="fst__count num">
             <b>{num(k)}</b> / {num(n - 1)}
           </p>
-          <div className="fst__btns">
+          {presentation !== 'solution' && <div className="fst__btns">
             <button type="button" className="fst__btn" aria-label={playing ? 'Pause' : 'Play'} aria-pressed={!playing} onClick={() => setPlaying((p) => !p)}>
               {playing ? (
                 <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
@@ -240,7 +278,7 @@ export function Stations({
             <button type="button" className="fst__btn fst__btn--on" aria-label={`Next ${label.toLowerCase()}`} onClick={() => go(k + 1)}>
               <Arrow />
             </button>
-          </div>
+          </div>}
         </div>
         <ol ref={strip} className="fst__strip" aria-label={`The ${label.toLowerCase()}s`}>
           {items.map((it, i) => (

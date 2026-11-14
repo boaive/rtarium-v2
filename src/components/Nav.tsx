@@ -152,6 +152,7 @@ export function Nav() {
   /** on a phone: something of the page is under the bar (it frosts over it), and the ground it stands on, as seen */
   const [scrolled, setScrolled] = useState(false)
   const [seen, setSeen] = useState<Ground | null>(null)
+  const [solution, setSolution] = useState(false)
 
   useEffect(() => {
     let raf = 0
@@ -167,6 +168,8 @@ export function Nav() {
       header.current?.style.setProperty('--read', max > 0 ? Math.min(1, Math.max(0, y / max)).toFixed(4) : '0')
       const d = y - lastY
       if (phone.matches && header.current) {
+        const answer = document.querySelector('.fst--solution')?.getBoundingClientRect()
+        setSolution(Boolean(answer && answer.top <= 64 && answer.bottom > 64))
         // (looked at no more than every LOOK ms while the page moves, and once more as it stops: see `on`)
         const now = performance.now()
         if (now - looked >= LOOK) {
@@ -179,6 +182,7 @@ export function Nav() {
           setSeen(b.ground)
         }
       } else {
+        setSolution(false)
         setScrolled(false)
         setSeen(null)
       }
@@ -264,7 +268,7 @@ export function Nav() {
   const close = () => setOpen(false)
 
   return (
-    <header ref={header} className={`nav on-${theme} ${open ? 'is-open' : ''} ${tucked && !open ? 'is-tucked' : ''} ${scrolled ? 'is-scrolled' : ''}`}>
+    <header ref={header} className={`nav on-${theme} ${solution ? 'is-solution' : ''} ${open ? 'is-open' : ''} ${tucked && !open ? 'is-tucked' : ''} ${scrolled ? 'is-scrolled' : ''}`}>
       <a className="skip" href="#main">
         Skip to content
       </a>
