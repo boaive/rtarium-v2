@@ -66,6 +66,12 @@ const QUEUE_FROM = 0.2
 const TURN_HELD = 300
 /** ms without a wheel event that end a gesture */
 const GESTURE_GAP = 140
+/**
+ * The same on Home, whose 3D keeps the page busy: a touchpad's momentum there reaches the page in lumps (held back a
+ * frame or more, then handed over at once), which look like a pause and a fresh, harder swipe. So on Home only a real
+ * pause starts a new scroll, never a lump of the last one: one swipe, however hard, is one screen, either way
+ */
+const HOME_GESTURE_GAP = 250
 /** how far a slow trackpad drag has to go before it counts as a step */
 const NUDGE = 24
 /** how much scroll the other way, as a fresh gesture, turns a step round: a real notch or swipe back, never the flick
@@ -222,6 +228,8 @@ export function stepScreens(
   let last = -Infinity
   let lastSize = 0
   let lastDir = 0
+  /** the strongest event of this gesture: momentum only dies away from it, a sustained scroll stays near it */
+  let peak = 0
   let sum = 0
   let spent = false
   /** the free run has landed at its foot during this gesture */
@@ -314,6 +322,8 @@ export function stepScreens(
       return
     }
     tourAim = to
+    stepAt = performance.now()
+    stepMs = TOUR_TIME * 1000
     glide.scrollTo(to, { duration: TOUR_TIME, easing: easePlay, force: true })
   }
   const wheel = (e: WheelEvent) => {
@@ -328,9 +338,17 @@ export function stepScreens(
     const dir = Math.sign(d)
     // momentum only ever dies away; a new notch or swipe comes in as strong as the last, or stronger
     // (a swipe is one notch, read once as it starts: always a scroll of its own, however soon after the last)
-    const fresh = swiped || e.timeStamp - last > GESTURE_GAP || (dir !== lastDir && size >= 8)
+    // (Home, the whole page stepping, no section of its own: only a real pause starts a new scroll, see HOME_GESTURE_GAP)
+    const fresh = swiped || e.timeStamp - last > (own ? GESTURE_GAP : HOME_GESTURE_GAP) || (dir !== lastDir && size >= 8)
     const gap = e.timeStamp - last
-    const strong = (size >= 60 && size >= lastSize && gap > 24) || (size >= 30 && size > lastSize * 2)
+    // Home (no section of its own): a scroll that is still going at strength, a wheel or touchpad held on, goes on to the
+    // next screen once the last is 60% there (never a screen ahead of the one it is on, so none is skipped); a tail dying
+    // away (under half its peak) never does
+    const sustained = !fresh && size >= 30 && size >= peak * 0.5 && performance.now() - stepAt >= stepMs * 0.6
+    const strong = !!own
+      ? (size >= 60 && size >= lastSize && gap > 24) || (size >= 30 && size > lastSize * 2)
+      : sustained
+    peak = fresh ? size : Math.max(peak, size)
     last = e.timeStamp
     lastSize = size
     lastDir = dir
@@ -354,7 +372,7 @@ export function stepScreens(
       if (tourAim !== null && tourAim >= lo - 4 && dir > 0 && lo > 0 && lo < Infinity) {
         e.preventDefault()
         e.stopPropagation()
-        if (fresh) {
+        if (fresh || strong) {
           const n = stopsOf().find((s) => s > lo + 4)
           tourAim = null
           spent = true
@@ -368,7 +386,7 @@ export function stepScreens(
       if (lo > 0 && lo < Infinity && (dir > 0 ? at < lo - 4 : at <= lo + 4 && at > 4)) {
         e.preventDefault()
         e.stopPropagation()
-        if (!fresh) return
+        if (!fresh && !strong) return
         // a screen of the tour a scroll: on to the next of its views (its words, the labels inside the mesh), never left
         // between two
         const vh = window.innerHeight
@@ -379,6 +397,8 @@ export function stepScreens(
           const next = stopsOf().find((s) => s >= lo - 4)
           if (next === undefined) return
           tourAim = next
+          stepAt = performance.now()
+          stepMs = AUTO_TIME * 750
           glide.scrollTo(next, { duration: AUTO_TIME * 0.75, easing: easeAuto, force: true })
           return
         }
@@ -386,6 +406,8 @@ export function stepScreens(
         const white = lo - window.innerHeight * TOUR_WHITE
         const back = dir < 0 && at > white + 4
         tourAim = back ? Math.min(to, lo - window.innerHeight * 2) : Math.max(0, to)
+        stepAt = performance.now()
+        stepMs = (back ? AUTO_TIME * 0.75 : TOUR_TIME) * 1000
         glide.scrollTo(tourAim, { duration: back ? AUTO_TIME * 0.75 : TOUR_TIME, easing: back ? easeAuto : easePlay, force: true })
         return
       }
@@ -533,6 +555,13 @@ export function stepScreens(
    * alone (a stepped section takes it as back and on: StepBar).
    */
   const finger = { x: 0, y: 0, decided: true, taken: false }
+  /*
+   * A swipe the steps have taken is theirs alone: Lenis (which leaves a finger to the browser, `syncTouch` off) stops
+   * its own animation at every touch it sees, and the step's glide is a Lenis animation, so the swipe's next move killed
+   * the glide it had just started and the page stayed where it was. Its moves and its end are marked for Lenis to pass
+   * over (its own flag), read here first (these listen in the capture phase, before Lenis's on the window).
+   */
+  const hide = (e: TouchEvent) => void ((e as TouchEvent & { lenisStopPropagation?: boolean }).lenisStopPropagation = true)
   const touchOn = (e: TouchEvent) => {
     touching = true
     const t = e.touches[0]
@@ -546,6 +575,7 @@ export function stepScreens(
   const touchMove = (e: TouchEvent) => {
     if (finger.taken) {
       if (e.cancelable) e.preventDefault()
+      hide(e)
       return
     }
     const t = e.touches[0]
@@ -568,6 +598,7 @@ export function stepScreens(
       const top = r.top + window.scrollY
       finger.taken = true
       if (e.cancelable) e.preventDefault()
+      hide(e)
       moveTo(Math.round(dy > 0 ? top + r.height : Math.max(0, top - vh)))
       return
     }
@@ -587,9 +618,11 @@ export function stepScreens(
     if (held) {
       finger.taken = true
       if (e.cancelable) e.preventDefault()
+      hide(e)
     }
   }
-  const touchOff = () => {
+  const touchOff = (e: TouchEvent) => {
+    if (finger.taken) hide(e)
     touching = false
     // a swipe the steps took has played its step: the page is already on its way to where it should rest
     if (!finger.taken) rest()
@@ -600,9 +633,10 @@ export function stepScreens(
   window.addEventListener('keydown', keys)
   window.addEventListener('scroll', rest, { passive: true })
   window.addEventListener('touchstart', touchOn, { passive: true })
-  window.addEventListener('touchmove', touchMove, { passive: false })
-  window.addEventListener('touchend', touchOff, { passive: true })
-  window.addEventListener('touchcancel', touchOff, { passive: true })
+  // (in the capture phase: a swipe the steps take is marked before Lenis, on the window, sees it)
+  window.addEventListener('touchmove', touchMove, { passive: false, capture: true })
+  window.addEventListener('touchend', touchOff, { passive: true, capture: true })
+  window.addEventListener('touchcancel', touchOff, { passive: true, capture: true })
   rest()
   return () => {
     clearTimeout(timer)
@@ -611,9 +645,9 @@ export function stepScreens(
     window.removeEventListener('keydown', keys)
     window.removeEventListener('scroll', rest)
     window.removeEventListener('touchstart', touchOn)
-    window.removeEventListener('touchmove', touchMove)
-    window.removeEventListener('touchend', touchOff)
-    window.removeEventListener('touchcancel', touchOff)
+    window.removeEventListener('touchmove', touchMove, { capture: true })
+    window.removeEventListener('touchend', touchOff, { capture: true })
+    window.removeEventListener('touchcancel', touchOff, { capture: true })
   }
 }
 

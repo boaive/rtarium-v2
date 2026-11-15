@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && tsc -p tsconfig.worker.json && vite build && node scripts/write-routes.mjs",
+    "build": "tsc -b && tsc -p tsconfig.worker.json && vite build && node scripts/write-routes.mjs && node scripts/write-headers.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit && tsc -p tsconfig.worker.json",
     "deploy": "npm run build && wrangler deploy"

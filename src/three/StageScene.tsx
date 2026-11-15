@@ -351,8 +351,6 @@ export function StageScene({ compact, reduced }: Props) {
   const pressLive = useRef(false)
   /** a phone's opening piece: how far it had turned (deg, -180..180) as the tour set off */
   const openSpin = useRef(0)
-  /** where the page stood last frame, to tell when it moves */
-  const lastScroll = useRef(0)
 
   const press = useMemo(() => new PressField(96, 96), [])
   useEffect(() => {
@@ -429,19 +427,27 @@ export function StageScene({ compact, reduced }: Props) {
     [lineMat, inkLineMat, planeMat, edgeMat, concrete, catcherMat, mortarMat, planeEdges],
   )
 
+  /** where the page was the frame before: how far it moved since tells how far a view may land off its panel */
+  const lastScroll = useRef(typeof window !== 'undefined' ? window.scrollY : 0)
+
   useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.1)
     const vw = state.size.width
     const vh = state.size.height
     const camera = state.camera as THREE.PerspectiveCamera
     const now = performance.now()
+    // the canvas may reach the screen a frame after the page has moved (a large screen, a busy GPU): a view then shows
+    // where its panel was, and the edge it leads with pokes past the panel's own solid foot onto the next one as a
+    // thin strip. That edge is pulled in by the page's last move, so it never reaches past the panel while it glides
+    const scrolled = window.scrollY - lastScroll.current
+    lastScroll.current = window.scrollY
+    const lag = compact ? 0 : Math.min(vh * 0.08, Math.abs(scrolled) + 2)
 
     rects.clear()
     for (const r of stage.regions) rects.set(r, r.el.getBoundingClientRect())
     const primary = activeRegion(vh)
     // the page moving under the stage this frame (a swipe, a glide, a fling): a phone's turning card holds still meanwhile
-    const pageMoving = Math.abs(window.scrollY - lastScroll.current) > 0.5
-    lastScroll.current = window.scrollY
+    const pageMoving = Math.abs(scrolled) > 0.5
 
     // the screens in the viewport that have something to draw, each with where it is. Leaving the
     // cast, the opening holds the whole screen until its camera has come out as About's first
@@ -1148,8 +1154,11 @@ export function StageScene({ compact, reduced }: Props) {
       // is resampled and a row of this view's mesh bleeds past the edge onto the panel beside it
       const pr = gl.getPixelRatio()
       const ch = gl.domElement.height
-      const s0 = y0 > 0 ? Math.min(ch, Math.ceil(y0 * pr) + 1) : 0
-      const s1 = y1 < vh ? Math.max(0, Math.floor(y1 * pr) - 1) : ch
+      // (going down a late view sits low, so its foot is pulled up; going up it sits high, so its head is pulled down)
+      const lead0 = scrolled < 0 ? lag : 0
+      const lead1 = scrolled > 0 ? lag : 0
+      const s0 = y0 > 0 ? Math.min(ch, Math.ceil((y0 + lead0) * pr) + 1) : 0
+      const s1 = y1 < vh ? Math.max(0, Math.floor((y1 - lead1) * pr) - 1) : ch
       if (s1 <= s0) continue
       gl.setScissorTest(true)
       if (bx) {

@@ -13,7 +13,7 @@ import { Applications } from './sections/Applications'
 import { ApplicationPage, ContactPage, NotFound } from './pages/Planned'
 import { APPLICATIONS } from './content/site'
 import { setShared } from './three/stageStore'
-import { stepScreens } from './lib/scroll'
+import { startSmoothScroll, stepScreens } from './lib/scroll'
 import { COMPACT_QUERY, useIsCompact } from './lib/motion'
 import { ScrollLine } from './components/ScrollLine'
 
@@ -25,18 +25,27 @@ const FlooringRoutes = lazy(() => import('./flooring/FlooringRoutes'))
 const isFlooring = (path: string) => path === '/advanced-flooring' || path.startsWith('/advanced-flooring/')
 /** Wall Panels: one page, its own chunk */
 const WallPanels = lazy(() => import('./walls/WallPanels'))
+/** development only (never in a build): the Unitized page's scenes rendered a frame at a time, for its phone clips */
+const FilmUnitized = import.meta.env.DEV ? lazy(() => import('./dev/FilmUnitized')) : null
 const isWalls = (path: string) => path === '/wall-panels'
 
 function Home() {
   usePointerTracking()
+  const compact = useIsCompact()
   useEffect(() => {
     document.title = 'RTARIUM by HEMISPHERE ONE · Three-dimensional basalt reinforcement mesh'
     // arriving on /#chapter: land on it once the page has laid out
     if (window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
-    // a phone reads Home as EnduroSat's reads: one free, native scroll over the fixed 3D, nothing snapping to a screen
-    if (window.matchMedia(COMPACT_QUERY).matches) return
-    return stepScreens()
   }, [])
+  // a phone reads Home as EnduroSat's reads: one free, native scroll over the fixed 3D, nothing snapping to a screen.
+  // A wide screen steps a screen a scroll, decided again whenever the window changes between the two: a page that
+  // opened narrow (a window still sizing, a docked inspector) and then widened would otherwise scroll freely for good.
+  useEffect(() => {
+    if (compact || window.matchMedia(COMPACT_QUERY).matches) return
+    // (the phone's pager sets the smooth scroll aside and brings it back as it lets go: make sure it is running)
+    startSmoothScroll()
+    return stepScreens()
+  }, [compact])
   return (
     <>
       <Ground />
@@ -61,6 +70,14 @@ function Page() {
   useEffect(() => {
     if (path !== '/') setShared({ chapter: 'page', step: 0, ground: 'light' })
   }, [path])
+  // (development only: a scene rendered a frame at a time, for the Unitized page's phone clips)
+  if (FilmUnitized && path === '/__film') {
+    return (
+      <Suspense fallback={null}>
+        <FilmUnitized />
+      </Suspense>
+    )
+  }
   if (path === '/') {
     return (
       <>

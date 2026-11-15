@@ -176,7 +176,9 @@ Confirmed figures (client technical PDF; the margin notes are treated as correct
 Real: the client's production shoot (mesh, mould, spray, panels, load test), four 4K macro clips of mortar flowing
 through the mesh, an eye-bolt clip and a load-hang clip, site-trial stills, the Blender-built mesh cells (visual
 reconstruction, not CAD). Absent and never to be fabricated: test reports, certifications, project photographs of
-floors in data centres, warehouses or fabs, contact email, phone, address, form endpoint, data sheet.
+floors in data centres, warehouses or fabs, phone, address, data sheet. Contact email (owner, 12 Nov 2026):
+info@rtarium.com, the way most clients prefer to reach RTARIUM, so the contact page and the footer lead with it and the
+enquiry form (worker/, mailed to the same address) comes second.
 
 ## Product Principles
 

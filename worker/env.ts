@@ -1,4 +1,4 @@
-/** What the Worker is bound to (wrangler.jsonc), and its one secret. */
+/** What the Worker is bound to (wrangler.jsonc), and its secrets. */
 export interface Env {
   ASSETS: Fetcher
   HYPERDRIVE: Hyperdrive
@@ -10,8 +10,15 @@ export interface Env {
   CONTACT_LIMIT: RateLimit
   FROM_ADDRESS: string
   CLIENT_ADDRESS: string
+  /** comma-separated: the sites whose pages may send an enquiry, e.g. https://rtarium.com,https://www.rtarium.com */
+  ALLOWED_ORIGINS: string
   /** secret: `npx wrangler secret put TURNSTILE_SECRET_KEY` */
   TURNSTILE_SECRET_KEY: string
+  /**
+   * secret, optional: where problems are reported (worker/alert.ts), a Slack, Google Chat, Discord or Telegram webhook.
+   * `npx wrangler secret put ALERT_WEBHOOK_URL`. Without it, problems are only written to the Worker's logs.
+   */
+  ALERT_WEBHOOK_URL?: string
 }
 
 /** a queue message: which row of email_outbox to send */
@@ -21,3 +28,6 @@ export interface EmailJob {
 
 /** an email job is given up (and marked failed) after this many attempts */
 export const MAX_ATTEMPTS = 6
+
+/** a row id as the database makes them */
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

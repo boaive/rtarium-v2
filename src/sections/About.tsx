@@ -4,7 +4,6 @@ import { VideoLoop } from '../components/Media'
 import { StageLabel } from '../three/Stage'
 import { useIsCompact } from '../lib/motion'
 
-const THICK = [3, 6, 10, 15]
 const MAKING = ['Basalt rock', 'Melted', 'Drawn into filaments', 'Woven into the mesh']
 
 /** the notes on the cast panel at the close of "In concrete" */
@@ -22,9 +21,9 @@ function PourFilm({ active }: { active: boolean }) {
     <figure className="pourfilm" aria-hidden={!active}>
       <div className="pourfilm__frame">
         {active ? (
-          <VideoLoop src="/video/mortar-flow-wide.mp4" small="/video/mortar-flow-wide-m.mp4" poster="/video/mortar-flow-wide.jpg" label="Mortar flowing into the RTARIUM mesh, close up" className="pourfilm__video" />
+          <VideoLoop src="/video/client/h1.mp4" small="/video/client/h1-sm.mp4" poster="/video/client/h1.jpg" label="Mortar flowing into the RTARIUM mesh, close up" className="pourfilm__video" />
         ) : (
-          <img className="pourfilm__poster" src="/video/mortar-flow-wide.jpg" alt="" loading="lazy" decoding="async" />
+          <img className="pourfilm__poster" src="/video/client/h1.jpg" alt="" loading="lazy" decoding="async" />
         )}
       </div>
       <figcaption className="caption">Footage from the RTARIUM production shoot.</figcaption>
@@ -45,18 +44,6 @@ const steps: Step[] = [
         <p className="lead rv" style={{ '--i': 3 } as CSSProperties}>
           Two basalt mesh faces, connected by vertical fibres to form a 3D structure.
         </p>
-        <div className="figure rv" style={{ '--i': 4 } as CSSProperties}>
-          <span className="figure__label">Thickness options</span>
-          <span className="figure__value num">3 / 6 / 10 / 15 mm</span>
-          {/* (a phone sets them as chips: minimal.css) */}
-          <ul className="figure__chips" aria-hidden="true">
-            {THICK.map((t) => (
-              <li key={t} className="num">
-                {t} mm
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
     ),
   },

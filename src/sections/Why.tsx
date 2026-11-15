@@ -19,7 +19,7 @@ const steps: Step[] = [
     // the whole screen is the sentence; its words arrive one by one
     render: () => (
       <div className="copy copy--full">
-        <Statement text="Thin concrete traditionally relies on steel fibre, glass fibre and flat mesh. Each has its own inherent weaknesses." />
+        <Statement text="Thin concrete traditionally relies on steel fibre, glass fibre and flat mesh. Each has its own inherent limitations." />
       </div>
     ),
   },
