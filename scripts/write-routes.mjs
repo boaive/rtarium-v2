@@ -15,6 +15,7 @@ const ROUTES = [
   'facade-cladding/stud-frame-cladding',
   'wall-panels',
   'contact',
+  'privacy',
 ]
 const dist = fileURLToPath(new URL('../dist/', import.meta.url))
 const index = join(dist, 'index.html')

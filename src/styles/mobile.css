@@ -1364,7 +1364,8 @@
     display: grid;
     gap: 2px;
   }
-  .footm__map a {
+  .footm__map a,
+  .footm__map .footer__link {
     display: inline-flex;
     align-items: center;
     min-height: 34px;

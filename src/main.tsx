@@ -11,11 +11,14 @@ import './styles/pages.css'
 import './styles/mobile.css'
 import './styles/nav.css'
 import './styles/minimal.css'
+import './styles/consent.css'
 import { App } from './App'
 import { startSmoothScroll } from './lib/scroll'
+import { startAnalytics } from './lib/analytics'
 import { runOpener } from './opener'
 
 startSmoothScroll()
+startAnalytics()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -5,6 +5,7 @@ import { useScrollRead } from './Chapter'
 import { setShared } from '../three/stageStore'
 import { Liquid } from './Liquid'
 import { useIsCompact } from '../lib/motion'
+import { openConsentSettings } from '../lib/analytics'
 import { DATA_SHEET } from '../content/technical'
 
 /**
@@ -70,6 +71,14 @@ function FooterPhone({ inverse = false }: { inverse?: boolean }) {
                 <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
               </li>
             )}
+            <li>
+              <Link to="/privacy">Privacy</Link>
+            </li>
+            <li>
+              <button type="button" className="footer__link" onClick={openConsentSettings}>
+                Cookie settings
+              </button>
+            </li>
           </ul>
         </div>
         <div>
@@ -156,6 +165,14 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
                 <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
               </li>
             )}
+            <li>
+              <Link to="/privacy">Privacy</Link>
+            </li>
+            <li>
+              <button type="button" className="footer__link" onClick={openConsentSettings}>
+                Cookie settings
+              </button>
+            </li>
           </ul>
         </div>
         <p className="footer__legal">

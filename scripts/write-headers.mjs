@@ -3,7 +3,8 @@
 //
 // Content-Security-Policy: the page may run only its own scripts, the inline scripts of index.html (allowed by their
 // exact hash, worked out here from the built file, so editing one can never quietly break it), Cloudflare Turnstile and
-// Cloudflare's own analytics beacon; it may talk only to itself and Turnstile; nothing may frame it. The rest: no
+// Cloudflare's own analytics beacon and Google Analytics; it may talk only to itself, Turnstile and those two analytics
+// services; nothing may frame it. The rest: no
 // sniffing, no framing, no referrer beyond this site, no camera/microphone/location, HTTPS only.
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -17,14 +18,18 @@ const inline = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/scr
 const hashes = inline.map((code) => `'sha256-${createHash('sha256').update(code, 'utf8').digest('base64')}'`)
 
 const TURNSTILE = 'https://challenges.cloudflare.com'
+// Google Analytics (src/lib/analytics.ts): its script, and the addresses it reports to and the pixel it falls back to.
+// The script is only ever loaded after a visitor accepts, but the policy has to allow it for when they do.
+const GA_SCRIPT = 'https://www.googletagmanager.com'
+const GA_REPORT = 'https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com'
 const csp = [
   "default-src 'self'",
-  `script-src 'self' ${hashes.join(' ')} ${TURNSTILE} https://static.cloudflareinsights.com`.replace(/\s+/g, ' '),
+  `script-src 'self' ${hashes.join(' ')} ${TURNSTILE} https://static.cloudflareinsights.com ${GA_SCRIPT}`.replace(/\s+/g, ' '),
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob: https://*.google-analytics.com https://*.googletagmanager.com`,
   "font-src 'self' data:",
   "media-src 'self' blob:",
-  `connect-src 'self' ${TURNSTILE} https://cloudflareinsights.com`,
+  `connect-src 'self' ${TURNSTILE} https://cloudflareinsights.com ${GA_REPORT}`,
   `frame-src ${TURNSTILE}`,
   "worker-src 'self' blob:",
   "object-src 'none'",

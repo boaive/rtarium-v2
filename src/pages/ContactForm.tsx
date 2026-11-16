@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
+import { trackEnquiry } from '../lib/analytics'
 import { ENQUIRY_FIELDS, INTERESTS, cleanField, enquiryField, fieldProblem, type Enquiry } from '../content/enquiry'
 import { ENQUIRY_ADDRESS, SITE, TURNSTILE_SITE_KEY } from '../content/site'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
@@ -247,7 +248,10 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
         signal: stop.signal,
       })
       const out = (await r.json().catch(() => ({}))) as { ok?: boolean; ref?: string; error?: string; field?: string }
-      if (r.ok && out.ok) setState({ kind: 'sent', ref: out.ref })
+      if (r.ok && out.ok) {
+        trackEnquiry(v.interest)
+        setState({ kind: 'sent', ref: out.ref })
+      }
       else {
         fresh()
         // the server found a field wrong: back to its step, said under it as the form says it
