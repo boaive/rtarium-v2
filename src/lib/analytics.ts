@@ -140,11 +140,127 @@ export function track(name: string, params: Record<string, string | number | boo
 /** an enquiry reached the team: Google's own "lead" event, marked as a key event in the property */
 export const trackEnquiry = (interest?: string) => track('generate_lead', { method: 'enquiry_form', ...(interest ? { interest } : {}) })
 
-/** every email link, wherever it is, counts as a click on the email */
+/* ---- sections and clicks ---------------------------------------------------------------------- */
+
+const clean = (s: string | null | undefined, max = 80) => (s ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
+
+/** a section's name as a reader knows it: its heading, else its id; the footer is "Footer" */
+function sectionName(el: Element, i = 0) {
+  if (el.tagName === 'FOOTER') return 'Footer'
+  const h = el.querySelector<HTMLElement>('h1, h2')
+  return clean(h?.innerText || h?.textContent) || el.id || `Section ${i + 1}`
+}
+
+/** the page's own sections: the outermost <section>s in <main>, and the footer */
+function pageSections() {
+  const main = document.querySelector('main')
+  const list: Element[] = main ? [...main.querySelectorAll('section')].filter((s) => !s.parentElement?.closest('main section')) : []
+  const footer = document.querySelector('footer.footer')
+  if (footer) list.push(footer)
+  return list
+}
+
+/** where on the page a click happened: the header, the footer, or the section it is in */
+function whereOf(el: Element) {
+  if (el.closest('footer')) return { click_location: 'footer', section_name: 'Footer' }
+  if (el.closest('header, .nav')) return { click_location: 'header', section_name: 'Header' }
+  const all = pageSections()
+  const s = el.closest('main section')
+  const top = s && all.find((x) => x.contains(s))
+  return { click_location: 'page', section_name: top ? sectionName(top, all.indexOf(top)) : '' }
+}
+
+/**
+ * Time on each section: the section that holds the middle of the screen is the one being read. When another takes
+ * its place (or the page changes, or the tab is hidden), one `section_view` goes out with the seconds it was read;
+ * under a second is a pass, not a read, and is not sent.
+ */
+export function startSectionTimer(path: string) {
+  if (!granted() || typeof IntersectionObserver === 'undefined') return () => {}
+  const names = new Map<Element, string>()
+  let current: Element | null = null
+  let since = 0
+
+  const flush = () => {
+    if (current && since) {
+      const seconds = Math.round((performance.now() - since) / 1000)
+      if (seconds >= 1)
+        track('section_view', { section_name: names.get(current) ?? '', page_path: path, content_group: sectionOf(path), section_seconds: seconds })
+    }
+    since = 0
+  }
+  const enter = (el: Element | null) => {
+    if (el === current) return
+    flush()
+    current = el
+    since = el && document.visibilityState === 'visible' ? performance.now() : 0
+  }
+
+  // a line across the middle of the screen: a section is "in" while it crosses it
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) enter(e.target)
+        else if (e.target === current) enter(null)
+      }
+    },
+    { rootMargin: '-50% 0px -50% 0px', threshold: 0 },
+  )
+  const scan = () =>
+    pageSections().forEach((el, i) => {
+      if (names.has(el)) return
+      names.set(el, sectionName(el, i))
+      io.observe(el)
+    })
+
+  const onVisibility = () => {
+    if (document.visibilityState === 'hidden') flush()
+    else if (current) since = performance.now()
+  }
+  document.addEventListener('visibilitychange', onVisibility)
+  window.addEventListener('pagehide', flush)
+  // the page's sections are there at once; a page loaded in its own chunk brings them a moment later
+  scan()
+  const later = window.setTimeout(scan, 3000)
+
+  return () => {
+    window.clearTimeout(later)
+    flush()
+    io.disconnect()
+    document.removeEventListener('visibilitychange', onVisibility)
+    window.removeEventListener('pagehide', flush)
+  }
+}
+
+/** a link's address as reports read it: a path on this site, the whole address elsewhere */
+function linkOf(a: HTMLAnchorElement) {
+  try {
+    const u = new URL(a.href, window.location.href)
+    return u.origin === window.location.origin ? u.pathname + u.hash : u.origin + u.pathname
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Every click on a link or button: what it said, where it led, and where it was (header, footer, or which section).
+ * Email links are `click_email`; the analytics notice's own buttons are not counted.
+ */
 function onClick(e: MouseEvent) {
-  const a = (e.target as Element | null)?.closest?.('a[href^="mailto:"]')
-  if (!a) return
-  track('click_email', { page_path: window.location.pathname, link_location: a.closest('footer') ? 'footer' : 'page' })
+  const el = (e.target as Element | null)?.closest?.('a, button') as HTMLAnchorElement | HTMLButtonElement | null
+  if (!el || el.closest('.consent')) return
+  const where = whereOf(el)
+  if (el instanceof HTMLAnchorElement && el.href.startsWith('mailto:')) {
+    track('click_email', { page_path: window.location.pathname, link_location: where.click_location })
+    return
+  }
+  const text = clean(el.innerText || el.getAttribute('aria-label') || el.title) || '(no label)'
+  track('button_click', {
+    button_text: text,
+    ...(el instanceof HTMLAnchorElement ? { link_url: linkOf(el), ...(el.hasAttribute('download') ? { download: true } : {}) } : {}),
+    page_path: window.location.pathname,
+    ...where,
+  })
 }
 
 /** called once, when the site starts: a visitor who already accepted is measured from the first page */
