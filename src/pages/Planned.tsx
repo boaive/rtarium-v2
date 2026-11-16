@@ -3,6 +3,7 @@ import { APPLICATIONS, SITE } from '../content/site'
 import { Link } from '../lib/router'
 import { Contact } from './ContactForm'
 import { setShared } from '../three/stageStore'
+import { trackNotFound } from '../lib/analytics'
 
 /**
  * Destinations the homepage links to that are outside this build. Each says plainly that its full
@@ -94,6 +95,9 @@ export function ContactPage() {
 export function NotFound() {
   useEffect(() => {
     document.title = 'Page not found · RTARIUM by HEMISPHERE ONE'
+    // a visitor who has accepted analytics may answer a moment after the page came up
+    const t = window.setTimeout(trackNotFound, 800)
+    return () => window.clearTimeout(t)
   }, [])
   return (
     <section className="page" aria-labelledby="page-title">

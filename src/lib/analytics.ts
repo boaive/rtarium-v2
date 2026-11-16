@@ -112,12 +112,14 @@ export const closeConsentSettings = () => set({ open: false })
 
 /* ---- what is measured ------------------------------------------------------------------------- */
 
-const granted = () => state.choice === 'granted'
+export const granted = () => state.choice === 'granted'
 
-/** which part of the site a path belongs to, so reports can be read by section */
+/** which part of the site a path belongs to, so reports can be read by section (an address that is no page is "not-found") */
+const GROUPS = new Set(['facade-cladding', 'advanced-flooring', 'wall-panels', 'contact', 'privacy'])
 export function sectionOf(path: string) {
   if (path === '/') return 'home'
-  return path.split('/')[1] || 'home'
+  const first = path.split('/')[1] ?? ''
+  return GROUPS.has(first) ? first : 'not-found'
 }
 
 /** one page view: the path (never the query or hash), the page's own title, and its section */
@@ -140,28 +142,62 @@ export function track(name: string, params: Record<string, string | number | boo
 /** an enquiry reached the team: Google's own "lead" event, marked as a key event in the property */
 export const trackEnquiry = (interest?: string) => track('generate_lead', { method: 'enquiry_form', ...(interest ? { interest } : {}) })
 
+/** the enquiry form: where in it a visitor got to, and what stopped them (field names and steps only, never what was typed) */
+export const trackForm = (name: 'form_start' | 'form_step' | 'form_error' | 'form_send_failed', params: Record<string, string | number> = {}) =>
+  track(name, { page_path: window.location.pathname, ...params })
+
+/** a page that does not exist was asked for (the address is the path only) */
+export const trackNotFound = () => track('not_found', { page_path: window.location.pathname })
+
+/** a script error on the page, at most three a visit, with no addresses or personal data in it */
+let errors = 0
+export function startErrorReport() {
+  window.addEventListener('error', (e) => {
+    if (!granted() || errors >= 3 || !e.message) return
+    errors++
+    track('exception', { description: clean(e.message, 100), fatal: false, page_path: window.location.pathname })
+  })
+}
+
 /* ---- sections and clicks ---------------------------------------------------------------------- */
 
 const clean = (s: string | null | undefined, max = 80) => (s ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
 
 /** a section's name as a reader knows it: its heading, else its label (stepped chapters have no heading), else its id; the footer is "Footer" */
-function sectionName(el: Element, i = 0) {
+export function sectionName(el: Element, i = 0) {
   if (el.tagName === 'FOOTER') return 'Footer'
   const h = el.querySelector<HTMLElement>('h1, h2')
-  return clean(h?.innerText || h?.textContent) || clean(el.getAttribute('aria-label')) || el.id || `Section ${i + 1}`
+  return clean(h ? wordsOf(h) : '') || clean(el.getAttribute('aria-label')) || el.id || `Section ${i + 1}`
 }
 
-/** what a link or button says, pictures included: the logo link reads "RTARIUM by HEMISPHERE ONE", not just "by" */
+/** the words under an element as they were written (not as the page's CSS shouts them), pictures by their description */
+function wordsOf(n: Node): string {
+  if (n.nodeType === 3) return n.textContent ?? ''
+  if (!(n instanceof Element) || n.getAttribute('aria-hidden') === 'true' || n.tagName.toLowerCase() === 'svg') return ''
+  if (n.tagName === 'IMG') return ` ${n.getAttribute('alt') ?? ''} `
+  return ` ${[...n.childNodes].map(wordsOf).join('')} `
+}
+
+/** "Next Next" (a label drawn twice) is "Next" */
+function once(t: string) {
+  const w = t.split(' ')
+  const h = w.length / 2
+  return w.length > 1 && Number.isInteger(h) && w.slice(0, h).join(' ') === w.slice(h).join(' ') ? w.slice(0, h).join(' ') : t
+}
+
+/**
+ * What a link or button is called in reports. Its own `data-track` wins; then the name it was given for screen readers
+ * ("Skip: go past the six layers", "Open Clumping in a larger view"); then its words, with the logo link reading
+ * "RTARIUM by HEMISPHERE ONE" and no label counted twice.
+ */
 function labelOf(el: Element) {
-  const copy = el.cloneNode(true) as Element
-  copy.querySelectorAll('img').forEach((img) => img.replaceWith(` ${img.getAttribute('alt') ?? ''} `))
-  return clean(copy.textContent) || clean(el.getAttribute('aria-label')) || clean((el as HTMLElement).title)
+  return clean(el.getAttribute('data-track')) || clean(el.getAttribute('aria-label')) || once(clean(wordsOf(el), 200)).slice(0, 80) || clean((el as HTMLElement).title)
 }
 
 /** the page's own sections: the outermost <section>s in <main>, and the footer */
 function pageSections() {
   const main = document.querySelector('main')
-  const list: Element[] = main ? [...main.querySelectorAll('section')].filter((s) => !s.parentElement?.closest('main section')) : []
+  const list: Element[] = main ? [...main.querySelectorAll('section')].filter((s) => !s.parentElement?.closest('main section') && !s.matches('[role="tabpanel"], .wp-sheet__block')) : []
   const footer = document.querySelector('footer.footer')
   if (footer) list.push(footer)
   return list
@@ -169,6 +205,9 @@ function pageSections() {
 
 /** where on the page a click happened: the header, the footer, or the section it is in */
 function whereOf(el: Element) {
+  // a dialog sits over the page, outside its sections (and its own heading is a <header>): it is named by its title
+  const dlg = el.closest('dialog')
+  if (dlg) return { click_location: 'dialog', section_name: clean(dlg.querySelector('h1, h2, h3')?.textContent) || clean(dlg.getAttribute('aria-label')) || 'Dialog' }
   if (el.closest('footer')) return { click_location: 'footer', section_name: 'Footer' }
   if (el.closest('header, .nav')) return { click_location: 'header', section_name: 'Header' }
   const all = pageSections()
@@ -273,6 +312,7 @@ function onClick(e: MouseEvent) {
 /** called once, when the site starts: a visitor who already accepted is measured from the first page */
 export function startAnalytics() {
   document.addEventListener('click', onClick, { capture: true })
+  startErrorReport()
   if (state.choice === 'granted') load()
   else if (state.choice === 'denied') w[`ga-disable-${GA_ID}`] = true
 }

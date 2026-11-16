@@ -408,7 +408,7 @@ function StreamsBlock({ id, title, leave, chosen, onChoose }: { id: string; titl
                   {s.head[1]}
                 </h3>
                 <p className="wp-stream__line">{s.line}</p>
-                <button type="button" className="fc-go wp-stream__go" aria-pressed={chosen === s.id} onClick={() => onChoose(s.id)}>
+                <button type="button" className="fc-go wp-stream__go" data-track={`Explore ${s.head.join(' ')}`} aria-pressed={chosen === s.id} onClick={() => onChoose(s.id)}>
                   <span className="fc-go__label">{chosen === s.id ? 'Exploring' : 'Explore'}</span>
                   <span className="fc-go__cell" aria-hidden="true">
                     <Arrow />

@@ -109,6 +109,7 @@ function FiguresSheet({ dialog }: { dialog: RefObject<HTMLDialogElement | null> 
               role="tab"
               id={`${base}-tab-${g.id}`}
               className="sheet__tab"
+              data-track={g.label}
               aria-selected={i === open}
               aria-controls={`${base}-panel`}
               tabIndex={i === open ? 0 : -1}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { scrollToY } from '../../lib/scroll'
 import { useIsCompact } from '../../lib/motion'
+import { useStepView } from '../../lib/stepTimer'
 
 /**
  * The bar along the foot of a pinned section (EnduroSat's phase bar), shared by every step-through: a
@@ -69,6 +70,7 @@ export function StepBar({
   hint,
   hints,
   pick = false,
+  report = true,
 }: {
   label: string
   names: string[]
@@ -87,8 +89,11 @@ export function StepBar({
   hints?: 'run'
   /** a bar of things to pick from, not steps: every cell open, the one picked (`step`) filled, picked again to let go */
   pick?: boolean
+  /** whether its steps' time is reported (Home's bar is read from the page's store instead) */
+  report?: boolean
 }) {
   const list = useRef<HTMLOListElement>(null)
+  useStepView(list, label, names, step, report && !pick)
   const [read, setRead] = useState<Hint | null>(null)
   useEffect(() => {
     const ol = list.current
