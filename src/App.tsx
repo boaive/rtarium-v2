@@ -19,6 +19,7 @@ import { ScrollLine } from './components/ScrollLine'
 import { Consent } from './components/Consent'
 import { PrivacyPage } from './pages/Privacy'
 import { startSectionTimer, trackPage, useConsent } from './lib/analytics'
+import { startStepTimer } from './lib/stepTimer'
 
 /** Façade & Cladding (overview and its three systems): its own chunk, loaded only on those pages */
 const FacadeRoutes = lazy(() => import('./facade/FacadeRoutes'))
@@ -135,6 +136,16 @@ function PageViews() {
     if (choice !== 'granted') return
     let stop = () => {}
     const t = window.setTimeout(() => (stop = startSectionTimer(path)), 900)
+    return () => {
+      window.clearTimeout(t)
+      stop()
+    }
+  }, [path, choice])
+  // time on each step of the stepped sections
+  useEffect(() => {
+    if (choice !== 'granted') return
+    let stop = () => {}
+    const t = window.setTimeout(() => (stop = startStepTimer(path)), 900)
     return () => {
       window.clearTimeout(t)
       stop()

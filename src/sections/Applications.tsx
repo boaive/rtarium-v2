@@ -268,7 +268,7 @@ function WideApplications() {
       <ul ref={list} className="apps__row">
         {APPLICATIONS.map((a, i) => (
           <li key={a.id} className="app" style={{ '--i': i } as CSSProperties}>
-            <Link to={a.path} className="app__link">
+            <Link to={a.path} className="app__link" data-track={a.title}>
               <img className="app__img" src={compact ? a.image.small : a.image.src} alt={a.image.alt} loading="lazy" style={{ objectPosition: a.image.position }} />
               <span className="app__shade" aria-hidden="true" />
               <span className="app__index num">0{i + 1}</span>

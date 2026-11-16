@@ -67,6 +67,7 @@ export function Progress() {
           onGo={(i) => goToStep(chapter, i)}
           cellRef={(k, el) => void (cells.current[k] = el)}
           onSkip={past}
+          report={false}
         />
       )}
     </div>
