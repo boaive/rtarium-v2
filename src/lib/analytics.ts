@@ -144,11 +144,18 @@ export const trackEnquiry = (interest?: string) => track('generate_lead', { meth
 
 const clean = (s: string | null | undefined, max = 80) => (s ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
 
-/** a section's name as a reader knows it: its heading, else its id; the footer is "Footer" */
+/** a section's name as a reader knows it: its heading, else its label (stepped chapters have no heading), else its id; the footer is "Footer" */
 function sectionName(el: Element, i = 0) {
   if (el.tagName === 'FOOTER') return 'Footer'
   const h = el.querySelector<HTMLElement>('h1, h2')
-  return clean(h?.innerText || h?.textContent) || el.id || `Section ${i + 1}`
+  return clean(h?.innerText || h?.textContent) || clean(el.getAttribute('aria-label')) || el.id || `Section ${i + 1}`
+}
+
+/** what a link or button says, pictures included: the logo link reads "RTARIUM by HEMISPHERE ONE", not just "by" */
+function labelOf(el: Element) {
+  const copy = el.cloneNode(true) as Element
+  copy.querySelectorAll('img').forEach((img) => img.replaceWith(` ${img.getAttribute('alt') ?? ''} `))
+  return clean(copy.textContent) || clean(el.getAttribute('aria-label')) || clean((el as HTMLElement).title)
 }
 
 /** the page's own sections: the outermost <section>s in <main>, and the footer */
@@ -254,7 +261,7 @@ function onClick(e: MouseEvent) {
     track('click_email', { page_path: window.location.pathname, link_location: where.click_location })
     return
   }
-  const text = clean(el.innerText || el.getAttribute('aria-label') || el.title) || '(no label)'
+  const text = labelOf(el) || '(no label)'
   track('button_click', {
     button_text: text,
     ...(el instanceof HTMLAnchorElement ? { link_url: linkOf(el), ...(el.hasAttribute('download') ? { download: true } : {}) } : {}),
