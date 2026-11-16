@@ -17,7 +17,8 @@ import { builds } from './lib/builds'
 
 /** the least time the opening shows, the most it waits, and how long nothing may load before all is in (ms) */
 const LEAST = 1300
-const MOST = 9000
+/** (a phone's Home makes every scene behind it, its card models and their openings too: it may take longer there) */
+const MOST = typeof window !== 'undefined' && window.location.pathname === '/' && window.matchMedia('(max-width: 860px), (max-aspect-ratio: 4/5)').matches ? 18000 : 9000
 const STILL = 450
 /** how long the window holds before the doors part, and how long they take (as in index.html) */
 const HOLD = 380
@@ -95,7 +96,7 @@ export function runOpener() {
     if (done) return
     const now = performance.now()
     // (and the page's 3D scenes, built while it shows: none is left to be built as the visitor scrolls)
-    const busy = total > loaded || builds.waiting > 0
+    const busy = total > loaded || builds.waiting > 0 || builds.stage > 0 || builds.tail > 0
     if (busy || !page || !fonts) stillSince = now
     const ready = (now - t0 > LEAST && now - stillSince > STILL) || now - t0 > MOST
     // how far it has come: the page and its fonts a share each, the 3D the rest; never quite full until all is in

@@ -49,6 +49,12 @@ export function ScrollLine() {
         fill = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0
       }
       el.style.setProperty('--fill', fill.toFixed(4))
+      // (out of the way over a row of cards swiped sideways, the applications': there it read as a stray line on a card)
+      const cards = [...document.querySelectorAll<HTMLElement>('.ways')].some((s) => {
+        const r = s.getBoundingClientRect()
+        return r.top < vh * 0.75 && r.bottom > vh * 0.25
+      })
+      el.classList.toggle('is-away', cards)
       el.classList.toggle('is-steps', n > 1)
       if (n !== shownTicks) {
         shownTicks = n

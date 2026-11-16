@@ -1,5 +1,6 @@
 // Development aid (from V1): headless Edge over CDP. node scripts/dev-shoot.mjs shots.json
-// shots.json: { width, height, mobile?, shots: [{ url, out, wait?, eval?, afterEval?, hover?: [x,y], wheel?: [x,y,dy,ticks], full? }] }
+// shots.json: { width, height, mobile?, transparent?, shots: [{ url, out, wait?, eval?, afterEval?, hover?: [x,y], wheel?: [x,y,dy,ticks], full? }] }
+// an `out` ending .png is saved as PNG (with `transparent`, see-through wherever the page draws nothing), any other as JPEG
 // GPU=1 renders on the machine's graphics card (much faster, real-time animation); default is SwiftShader
 import { spawn, spawnSync } from 'node:child_process'
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
@@ -101,6 +102,7 @@ await send('Emulation.setDeviceMetricsOverride', {
   mobile: Boolean(cfg.mobile),
 })
 if (cfg.mobile) await send('Emulation.setTouchEmulationEnabled', { enabled: true })
+if (cfg.transparent) await send('Emulation.setDefaultBackgroundColorOverride', { color: { r: 0, g: 0, b: 0, a: 0 } })
 // media: e.g. [{ "name": "prefers-reduced-motion", "value": "reduce" }]
 if (cfg.media) await send('Emulation.setEmulatedMedia', { features: cfg.media })
 
@@ -145,7 +147,7 @@ for (const s of cfg.shots) {
   }
   await sleep(s.wait ?? 1200)
   if (s.out) {
-    const shot = await send('Page.captureScreenshot', { format: 'jpeg', quality: s.quality ?? 72 })
+    const shot = await send('Page.captureScreenshot', s.out.endsWith('.png') ? { format: 'png' } : { format: 'jpeg', quality: s.quality ?? 72 })
     if (shot.result?.data) {
       writeFileSync(join(outDir, s.out), Buffer.from(shot.result.data, 'base64'))
       console.log('saved', s.out)

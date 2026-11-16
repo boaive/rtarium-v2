@@ -555,6 +555,13 @@ export function stepScreens(
    * alone (a stepped section takes it as back and on: StepBar).
    */
   const finger = { x: 0, y: 0, decided: true, taken: false }
+  /*
+   * A swipe the steps have taken is theirs alone: Lenis (which leaves a finger to the browser, `syncTouch` off) stops
+   * its own animation at every touch it sees, and the step's glide is a Lenis animation, so the swipe's next move killed
+   * the glide it had just started and the page stayed where it was. Its moves and its end are marked for Lenis to pass
+   * over (its own flag), read here first (these listen in the capture phase, before Lenis's on the window).
+   */
+  const hide = (e: TouchEvent) => void ((e as TouchEvent & { lenisStopPropagation?: boolean }).lenisStopPropagation = true)
   const touchOn = (e: TouchEvent) => {
     touching = true
     const t = e.touches[0]
@@ -568,6 +575,7 @@ export function stepScreens(
   const touchMove = (e: TouchEvent) => {
     if (finger.taken) {
       if (e.cancelable) e.preventDefault()
+      hide(e)
       return
     }
     const t = e.touches[0]
@@ -590,6 +598,7 @@ export function stepScreens(
       const top = r.top + window.scrollY
       finger.taken = true
       if (e.cancelable) e.preventDefault()
+      hide(e)
       moveTo(Math.round(dy > 0 ? top + r.height : Math.max(0, top - vh)))
       return
     }
@@ -609,9 +618,11 @@ export function stepScreens(
     if (held) {
       finger.taken = true
       if (e.cancelable) e.preventDefault()
+      hide(e)
     }
   }
-  const touchOff = () => {
+  const touchOff = (e: TouchEvent) => {
+    if (finger.taken) hide(e)
     touching = false
     // a swipe the steps took has played its step: the page is already on its way to where it should rest
     if (!finger.taken) rest()
@@ -622,9 +633,10 @@ export function stepScreens(
   window.addEventListener('keydown', keys)
   window.addEventListener('scroll', rest, { passive: true })
   window.addEventListener('touchstart', touchOn, { passive: true })
-  window.addEventListener('touchmove', touchMove, { passive: false })
-  window.addEventListener('touchend', touchOff, { passive: true })
-  window.addEventListener('touchcancel', touchOff, { passive: true })
+  // (in the capture phase: a swipe the steps take is marked before Lenis, on the window, sees it)
+  window.addEventListener('touchmove', touchMove, { passive: false, capture: true })
+  window.addEventListener('touchend', touchOff, { passive: true, capture: true })
+  window.addEventListener('touchcancel', touchOff, { passive: true, capture: true })
   rest()
   return () => {
     clearTimeout(timer)
@@ -633,9 +645,9 @@ export function stepScreens(
     window.removeEventListener('keydown', keys)
     window.removeEventListener('scroll', rest)
     window.removeEventListener('touchstart', touchOn)
-    window.removeEventListener('touchmove', touchMove)
-    window.removeEventListener('touchend', touchOff)
-    window.removeEventListener('touchcancel', touchOff)
+    window.removeEventListener('touchmove', touchMove, { capture: true })
+    window.removeEventListener('touchend', touchOff, { capture: true })
+    window.removeEventListener('touchcancel', touchOff, { capture: true })
   }
 }
 

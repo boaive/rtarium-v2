@@ -153,7 +153,8 @@ export function Stage() {
       <SceneBoundary>
         <Canvas
           dpr={dpr}
-          shadows={!compact}
+          // (a phone too: its key light casts only while the opening holds the screen, StageScene)
+          shadows
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false }}
           camera={{ fov: 30, near: 0.002, far: 8, position: [0.2, 0.3, 0.4] }}
         >

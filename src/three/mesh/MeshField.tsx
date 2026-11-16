@@ -92,6 +92,8 @@ export interface MeshFieldProps {
   /** chunks farther than this (metres) use the lightest cell; leave unset to never use it */
   farDistance?: number
   shadows?: boolean
+  /** casts a shadow without receiving one (a phone's opening) */
+  castShadow?: boolean
   /** frustum-cull chunks (default true) */
   culling?: boolean
   /** how far the shader may move a cell from its place (m): the chunks' bounds grow by it, so culling never cuts a landing cell */
@@ -126,6 +128,7 @@ export function MeshField({
   lodDistance: lodDistanceProp = 0.2,
   farDistance: farDistanceProp = Infinity,
   shadows = false,
+  castShadow = false,
   culling = true,
   reach = 0,
   autoLod = true,
@@ -169,7 +172,7 @@ export function MeshField({
         mesh.computeBoundingBox()
         mesh.boundingSphere!.radius += reach
         mesh.boundingBox!.expandByScalar(reach)
-        mesh.castShadow = shadows
+        mesh.castShadow = shadows || castShadow
         mesh.receiveShadow = shadows
         if (depthMaterial) mesh.customDepthMaterial = depthMaterial
         group.add(mesh)
@@ -181,7 +184,7 @@ export function MeshField({
       }
     }
     return { group, chunks }
-  }, [cell, nx, nz, chunk, material, depthMaterial, shadows, reach, i0, i1, j0, j1, hi0, hi1, hj0, hj1])
+  }, [cell, nx, nz, chunk, material, depthMaterial, shadows, castShadow, reach, i0, i1, j0, j1, hi0, hi1, hj0, hj1])
 
   useEffect(
     () => () => {

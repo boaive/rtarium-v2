@@ -20,8 +20,9 @@ const LABELS: LabelSpec[] = [{ id: 'h-mesh', anchor: 'hu-mesh', text: 'RTARIUM',
 function shots(compact: boolean): [Shot, Shot] {
   return compact
     ? [
-        { target: HERO_TARGET, dist: 17, azim: 34, elev: 7, frame: [0.5, 0.5] },
-        { target: HERO_TARGET, dist: 15, azim: 46, elev: 13, frame: [0.5, 0.34] },
+        // (a phone: a little smaller than it was, in the middle of the room between the heading and the statement)
+        { target: HERO_TARGET, dist: 19.6, azim: 34, elev: 7, frame: [0.5, 0.52] },
+        { target: HERO_TARGET, dist: 17.3, azim: 46, elev: 13, frame: [0.5, 0.36] },
       ]
     : [
         // (every opening's place and size: see the Façade overview's heroShots)

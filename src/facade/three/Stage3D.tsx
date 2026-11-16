@@ -27,6 +27,8 @@ class Boundary extends Component<{ children: ReactNode; onFail: () => void }, { 
  * visitor reaches it; a section coming near makes its own at once.
  */
 const waiting: { el: HTMLElement; make: () => void }[] = []
+/** a section made early (`data-stage-early`): this long after the opening has gone, and the page this long still (ms) */
+const EARLY = { after: 6000, still: 1200 }
 let pumping = false
 /** openings playing now: while any is, no canvas is built ahead (each build stalls the page for a moment) */
 let held = 0
@@ -51,6 +53,11 @@ function pump() {
   count()
   const fast = opening()
   ;(fast ? (f: () => void) => window.setTimeout(f, 0) : idle)(() => {
+    // (held since it was asked: what is playing now goes first; the release asks again)
+    if (held) {
+      pumping = false
+      return count()
+    }
     waiting.sort((a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top)
     const next = waiting.shift()
     next?.make()
@@ -96,6 +103,7 @@ export function Stage3D({
   shadows = false,
   keyLight = true,
   sharp = false,
+  film = false,
 }: {
   children: ReactNode
   fallback?: ReactNode
@@ -106,6 +114,11 @@ export function Stage3D({
   keyLight?: boolean
   /** always drawn at full sharpness, never at fewer pixels while it moves (a scene light enough to keep up: the panels' burst) */
   sharp?: boolean
+  /**
+   * drawn only when told, a frame at a time on a clock of its own (R3F's `advance(seconds)`): for rendering a scene as a
+   * film, every frame the same step of time apart however long each takes to draw and capture (the dev film page)
+   */
+  film?: boolean
 }) {
   const host = useRef<HTMLDivElement>(null)
   const [near, setNear] = useState(false)
@@ -138,21 +151,68 @@ export function Stage3D({
   useEffect(() => {
     const el = host.current
     if (!el || near) return
+    // (held until the scene has gone: Home's cards take their picture and let their scene go behind the opening, so the
+    // picture and the letting go are both done before it lifts, never a hitch as it does; released as it unmounts)
     const make = () => setNear(true)
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && make(), { rootMargin: '250% 0px' })
-    io.observe(el)
-    // on a large screen, made ahead while the browser is idle (a phone keeps to its sections' approach)
     const entry = { el, make }
     let queued = false
+    const queue = () => {
+      if (queued) return
+      queued = true
+      waiting.push(entry)
+      pump()
+    }
+    /*
+     * a canvas out of sight in a section that shows it later (`data-stage-ahead`: a phone's row of cards swiped
+     * sideways, the ones off the screen clipped by the row): it never comes near by itself, and made only as it is
+     * swiped in it stalled the swipe. It is made as its section comes near instead, one at a time with the others while
+     * the browser is idle (never while an opening plays: holdPump); at once if it shows first
+     */
+    const ahead = el.parentElement?.closest<HTMLElement>('[data-stage-ahead]') ?? null
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) (e.target === el ? make : queue)()
+      },
+      { rootMargin: '250% 0px' },
+    )
+    io.observe(el)
+    if (ahead) io.observe(ahead)
+    // (a section that asks to be made early, `data-stage-early`: Home's row of cards on a phone, made one at a time while
+    // the browser is idle once the opening has gone, as the visitor reads the first screen; never mid-scroll as it came
+    // near, and never holding the opening up)
+    // (and only once the opening piece has been woven and settled, the page still for a moment: a build stalls the page a
+    // little, never where it shows, as the opening plays or under a swipe)
+    let early = 0
+    // (behind the opening when it shows: made now, the opening waiting for it, and a little longer for its own opening to
+    // play out, so once the opening has gone it is finished and still: `builds.tail`)
+    if (opening() && ahead?.hasAttribute('data-stage-early')) queue()
+    else if (ahead?.hasAttribute('data-stage-early')) {
+      let lastY = window.scrollY
+      let stillSince = performance.now()
+      let gone = 0
+      const start = () => {
+        const now = performance.now()
+        if (window.scrollY !== lastY) {
+          lastY = window.scrollY
+          stillSince = now
+        }
+        if (opening()) gone = 0
+        else if (!gone) gone = now
+        const ready = gone && now - gone > EARLY.after && now - stillSince > EARLY.still
+        if (ready) queue()
+        else early = window.setTimeout(start, 300)
+      }
+      early = window.setTimeout(start, 300)
+    }
+    // on a large screen, made ahead while the browser is idle (a phone keeps to its sections' approach)
     if (!compact) {
       whenSettled(() => {
         if (!host.current) return
-        queued = true
-        waiting.push(entry)
-        pump()
+        queue()
       })
     }
     return () => {
+      window.clearTimeout(early)
       io.disconnect()
       if (queued) {
         const i = waiting.indexOf(entry)
@@ -162,6 +222,25 @@ export function Stage3D({
     }
   }, [near, compact])
 
+  // a canvas in a section made behind the opening (`data-stage-early`) holds the opening (`builds.tail`) until it is
+  // gone: Home's cards take their picture and let their scene go first, so neither is a hitch as the opening lifts
+  // (never for good: the opening's own limit lets go in the end)
+  useEffect(() => {
+    if (!opening() || !host.current?.parentElement?.closest('[data-stage-early]')) return
+    let held = true
+    builds.tail++
+    const release = () => {
+      if (!held) return
+      held = false
+      builds.tail = Math.max(0, builds.tail - 1)
+    }
+    const t = window.setTimeout(release, 15000)
+    return () => {
+      window.clearTimeout(t)
+      release()
+    }
+  }, [])
+
   const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
   return (
     <div ref={host} className={`fc-canvas ${className}`} aria-hidden="true" data-failed={failed ? '' : undefined}>
@@ -170,7 +249,7 @@ export function Stage3D({
         : near && (
             <Boundary key={life} onFail={again}>
               <Canvas
-                frameloop="demand"
+                frameloop={film ? 'never' : 'demand'}
                 shadows={shadows}
                 dpr={[1, dpr]}
                 gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false }}

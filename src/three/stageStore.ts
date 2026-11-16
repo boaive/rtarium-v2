@@ -78,9 +78,7 @@ export const stage = {
   tour: 0,
   /** how far the tour has gone into white light (0..1); the ground and the fog wash to warm white */
   wash: 0,
-  /** on a phone, how many of the cavity's points are named (0..3): one more at each of its own screens */
-  tourPoints: 0,
-  /** on a phone, how far on along the cavity the camera has gone for its points (0..2, a point a step) */
+  /** on a phone, how far the camera has flown on along the cavity (m, from where it came down between the faces; damped) */
   tourDive: 0,
   /** the Tech Space figure under the cursor or focused, if any */
   inspect: null as Inspect | null,

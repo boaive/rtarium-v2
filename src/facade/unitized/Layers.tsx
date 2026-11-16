@@ -21,9 +21,9 @@ import { HintTag, Skip, type Hint } from './StepBar'
  * leaves. As each layer is lowered in front of the last, its card comes up from the foot of the
  * cards' box over the card before, whose heading stays in view; the thin panel comes as RTARIUM
  * first, then its concrete. In the box, quietly: which layer is in (top left), a step back or on
- * (top right), and the six along its foot in the order they stand in the unit, each line filling
- * as its layer comes in, from the frame on the right to the panel on the left. All of it follows
- * the scroll; a step, like a card, takes the page there.
+ * (top right), and the six along its foot in the order they go in, each line filling as its layer
+ * comes in, from the frame on the left to the panel on the right. All of it follows the scroll, back
+ * as well as on (`data-back`: a scroll up goes back a layer); a step, like a card, takes the page there.
  */
 
 export const LAYER_NAME: Record<Layer, string> = {
@@ -60,10 +60,10 @@ const restP = (l: Layer) => (l === 'panel' ? CAST[1] + 0.012 : ARRIVE[BUILD.inde
 const STOPS = [...BUILD.slice(0, -1).map(restP), ARRIVE[BUILD.length - 1][1] + 0.008, restP('panel'), CLOSE[1] + 0.01]
 /** how near a stop counts as at it */
 const NEAR = 0.006
-/** the track along the box's foot reads as the unit stands in it: the thin panel on the left, the frame on the right */
-const SEEN = [...BUILD].reverse()
-/** the camera stands a little further off than the shots ask, so the unit has room round it in the box */
+/** the camera stands a little further off than the shots ask, so the unit has room round it in the box (a phone's
+ * further still: the unit smaller, clear of the heading at the top and the layer's words at the foot) */
 const ROOM = 1.08
+const PHONE_ROOM = 1.3
 /** the word in the box: how to go through the layers */
 const HOW: Hint = { text: 'Scroll or use the arrows', icon: 'scroll' }
 
@@ -80,7 +80,7 @@ export function Layers() {
   const shotAt = useMemo(
     () => (p: number) => {
       const s = burstShot(p, compact)
-      return { ...s, dist: s.dist * ROOM }
+      return { ...s, dist: s.dist * (compact ? PHONE_ROOM : ROOM) }
     },
     [compact],
   )
@@ -226,7 +226,7 @@ export function Layers() {
   }, [])
 
   return (
-    <section ref={section} id="layers" className={`fu-layers on-yellow ${landed ? 'is-landed' : ''}`} data-stops={STOPS.join(',')} data-no-top="" aria-labelledby="fu-layers-title" style={{ '--run': RUN } as CSSProperties}>
+    <section ref={section} id="layers" className={`fu-layers on-yellow ${landed ? 'is-landed' : ''}`} data-stops={STOPS.join(',')} data-no-top="" data-back="all" aria-labelledby="fu-layers-title" style={{ '--run': RUN } as CSSProperties}>
       <div className="fu-layers__pin">
         <div className="fu-layers__copy">
           <h2 id="fu-layers-title" className="fu-layers__title">
@@ -284,11 +284,11 @@ export function Layers() {
               {/* how to go through them: the scroll, or the arrows */}
               <HintTag hint={HOW} className="fu-sheet__hint" />
 
-              {/* the six along the foot, in the order they stand in the unit (the frame, which goes on first, on
-                  the right): each line fills from the right as its layer comes in */}
+              {/* the six along the foot, in the order they go in (the frame first, on the left): each line fills from
+                  the left as its layer comes in, and empties again as the page goes back */}
               <ol className="fu-track" aria-label="Go to a layer">
-                {SEEN.map((l) => (
-                  <li key={l} ref={(el) => void (track.current[BUILD.indexOf(l)] = el)} className="fu-track__cell" data-state="next">
+                {BUILD.map((l, k) => (
+                  <li key={l} ref={(el) => void (track.current[k] = el)} className="fu-track__cell" data-state="next">
                     <button type="button" className="fu-track__btn" {...point(l)}>
                       <span className="fu-track__line" aria-hidden="true" />
                       <span className="fu-track__name">{LAYER_NAME[l]}</span>

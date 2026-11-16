@@ -71,12 +71,30 @@
     padding: 0 var(--gutter) clamp(40px, 8svh, 64px);
     border-bottom: 1px solid var(--eb-rule);
   }
+  /* the step's name heads its row, on the bar between hairlines */
   .eb-row__num {
     margin: 0 calc(-1 * var(--gutter)) clamp(18px, 3svh, 26px);
     padding: 14px var(--gutter);
     border-bottom: 1px solid var(--eb-rule);
-    font-size: 0.78rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  /* the step's number, set on a small block of the inverse colour before its name */
+  .eb-row__n {
+    display: inline-grid;
+    place-items: center;
+    min-width: 26px;
+    height: 20px;
+    padding: 0 5px;
+    background: var(--eb-fg);
+    color: var(--eb-bg);
+    font-size: 0.66rem;
     letter-spacing: 0.04em;
   }
   /* Innovation's steps are headed by their own names: the label would only repeat them */
@@ -140,15 +158,23 @@
     padding-top: 12px;
     border-top: 1px solid var(--eb-rule);
   }
+  /* Thickness options: its name and its values on one line */
+  .eb .eb-row .figure {
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 12px;
+  }
   .eb .eb-row .figure__label {
+    white-space: nowrap;
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
   }
   .eb .eb-row .figure__value {
-    font-size: 1.35rem;
+    font-size: clamp(1rem, 4.6vw, 1.3rem);
     font-weight: 500;
+    white-space: nowrap;
   }
   .eb .eb-row .chain {
     border-left-width: 1px;
@@ -285,6 +311,175 @@
     color: var(--eb-fg);
   }
 
+  /* the chapter bar and the chips belong to About's and Innovation's layout only */
+  .eb-row__bar,
+  .figure__chips {
+    display: none;
+  }
+
+  /*
+   * About and Innovation, set as About's reference: on warm white, each part opened by a bar (the chapter's name, which of how many and a
+   * yellow line drawn in that far), its number on a yellow block before its name, a firm headline, the thicknesses as
+   * chips, the mesh with no frame across the full width
+   */
+  :is(#about, #innovation) .eb__head {
+    display: none;
+  }
+  :root :is(#about, #innovation) .eb-row:first-of-type {
+    padding-top: var(--nav-h);
+  }
+  :is(#about, #innovation) .eb-row__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0 0;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--eb-fg2);
+  }
+  :is(#about, #innovation) .eb-row__pos {
+    display: grid;
+    justify-items: end;
+    gap: 6px;
+    letter-spacing: 0.06em;
+  }
+  :is(#about, #innovation) .eb-row__track {
+    display: block;
+    width: 34px;
+    height: 2px;
+    background: var(--eb-rule);
+  }
+  :is(#about, #innovation) .eb-row__track i {
+    display: block;
+    height: 100%;
+    background: var(--yellow);
+  }
+  :root :is(#about, #innovation) .eb-row__num {
+    margin: clamp(18px, 3.4svh, 28px) 0 10px;
+    padding: 0;
+    border: 0;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+  }
+  :is(#about, #innovation) .eb-row__n {
+    min-width: 28px;
+    height: 22px;
+    border-radius: 3px;
+    background: var(--yellow);
+    color: var(--black);
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  :is(#about, #innovation) .eb-row .lines {
+    font-size: clamp(1.75rem, 8.2vw, 2.25rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.04;
+  }
+  :is(#about, #innovation) .eb-row .lead {
+    color: var(--on-light-2);
+  }
+  /* (no thickness options on a phone) */
+  :root :is(#about, #innovation) .eb-row .figure {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 8px;
+    padding-top: 0;
+    border-top: 0;
+  }
+  :is(#about, #innovation) .eb-row .figure__label {
+    font-size: 0.64rem;
+    letter-spacing: 0.14em;
+    color: var(--eb-fg2);
+  }
+  :is(#about, #innovation) .eb-row .figure__value {
+    display: none;
+  }
+  :is(#about, #innovation) .figure__chips {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  :is(#about, #innovation) .figure__chips li {
+    padding: 9px 0;
+    border: 1px solid rgb(8 8 8 / 0.12);
+    border-radius: 6px;
+    background: rgb(255 255 255 / 0.45);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  /*
+   * one part, one whole screen: its bar clear of the header, the words, and the mesh taking all the room left down to
+   * the screen's foot (as tall as the screen gets with its address bar slid away, on every phone)
+   */
+  :root :is(#about, #innovation) .eb-row,
+  :root :is(#about, #innovation) .eb-row:first-of-type {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100lvh;
+    padding-top: var(--nav-h);
+    /* (the mesh runs to the foot: kept clear of the address bar, it left a bare band there once the bar slid away; with
+       the bar showing, only the mesh's lowest edge is behind it) */
+    padding-bottom: 0;
+  }
+  :root :is(#about, #innovation) .eb-row .eb-fig {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+  }
+  :root :is(#about, #innovation) .eb-row .eb-fig__view {
+    flex: 1 1 0;
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+
+  /* Material: how it is made, four stations along one line across, a dot on the line over each, small, the mesh under */
+  #about .eb-row .chain {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    row-gap: 0;
+    margin: 4px 0 0;
+    padding: 0;
+    border: 0;
+    border-top: 1px solid currentColor;
+  }
+  #about .eb-row .chain__step {
+    padding: 12px 8px 0 0;
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--black);
+  }
+  #about .eb-row .chain__step::before {
+    top: -5px;
+    left: 0;
+    width: 9px;
+    height: 9px;
+    margin: 0;
+  }
+
+  /* the mesh with no frame, across the full width */
+  :root :is(#about, #innovation) .eb-fig {
+    margin-inline: calc(-1 * var(--gutter));
+  }
+  :root :is(#about, #innovation) .eb-fig__view {
+    box-shadow: none;
+    background: none;
+  }
+  :is(#about, #innovation) .eb-fig__tick {
+    display: none;
+  }
+
   /*
    * About: each part a screen of its own, a swipe each (Hero's swipes step on through them): the heading and the first
    * part share the first screen, the next ones clear the bar at the top, and the figure takes whatever room is left
@@ -330,7 +525,7 @@
   }
   #about .eb-row .chain__step,
   #innovation .eb-row .chain__step {
-    font-size: 0.86rem;
+    font-size: 0.74rem;
   }
   #about .eb-row .pourfilm,
   #innovation .eb-row .pourfilm,
@@ -412,36 +607,35 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
   }
+  /* (small: a row of pills that takes only the width it needs, so the system below has the room) */
   .eb .system__seg {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: inline-grid;
+    justify-self: start;
+    grid-template-columns: repeat(4, auto);
     gap: 0;
-    padding: 0;
+    padding: 2px;
     border: 1px solid var(--eb-fg);
-    border-radius: 0;
+    border-radius: 999px;
     background: transparent;
   }
   .eb .system__seg-btn {
-    height: 42px;
-    line-height: 42px;
-    padding: 0;
+    height: 30px;
+    line-height: 30px;
+    padding: 0 13px;
     border: 0;
-    border-radius: 0;
+    border-radius: 999px;
     background: transparent;
     color: var(--eb-fg);
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
     transition:
       background-color var(--d-fast) var(--ease-out),
       color var(--d-fast) var(--ease-out);
   }
-  .eb .system__seg-btn + .system__seg-btn {
-    border-left: 1px solid var(--eb-fg);
-  }
   .eb .system__seg-btn small {
     margin-left: 2px;
-    font-size: 0.68rem;
+    font-size: 0.62rem;
   }
   .eb .system__seg-btn[aria-pressed='true'] {
     background: var(--eb-fg);
@@ -456,9 +650,10 @@
   .system-m__sheet {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
-    min-height: 42px;
-    padding: 0 14px;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 13px;
+    border-radius: 999px;
     box-shadow: inset 0 0 0 1px var(--eb-fg);
     color: var(--eb-fg);
     font-size: 0.76rem;
@@ -471,10 +666,14 @@
     background: none;
     color: var(--eb-fg);
     font: inherit;
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     text-decoration: underline;
     text-underline-offset: 3px;
     cursor: pointer;
+  }
+  .system-m__sheet svg {
+    width: 13px;
+    height: 13px;
   }
 
   /* ---- Flooring, the layer: each block a window of hairline panes (Layer: LayerPhone) ----------------------------- */
@@ -909,10 +1108,14 @@
     pointer-events: none;
     transition:
       background-color var(--d-mid) var(--ease-out),
-      height 0.6s var(--ease-out);
+      height 0.6s var(--ease-out),
+      opacity var(--d-mid) var(--ease-out);
   }
   .sline.on-black {
     --ink: var(--yellow);
+  }
+  .sline.is-away {
+    opacity: 0;
   }
   /* the part read, filling down from the top */
   .sline__fill {
@@ -994,56 +1197,10 @@
       opacity 0.5s var(--ease-out) 0.1s,
       visibility 0s linear 0s;
   }
-  /* the cavity's line: top left, on the yellow above the mesh, just under the header */
+  /* the cavity's line: centred across the screen, in the middle of the yellow above the mesh (under the header) */
   .hero__say--tr {
-    top: calc(var(--nav-h) + clamp(48px, 9svh, 80px));
-    right: auto;
-    justify-items: start;
-    text-align: left;
+    top: calc(var(--nav-h) + clamp(56px, 12svh, 112px));
     transform: none;
-  }
-  .hero__say--tr .lines {
-    justify-items: start;
-  }
-  /*
-   * The cavity's points, a screen each after its line (the line is gone by then): a ring pulsing on the mesh where
-   * the point is, a fine warm-white leader out to a small black tag, its number in yellow, its name in plain type.
-   */
-  .pin.pin--point .pin__n {
-    display: inline;
-  }
-  .pin--point::before {
-    left: -6px;
-    top: -6px;
-    width: 12px;
-    height: 12px;
-    background: var(--yellow);
-    box-shadow: 0 0 0 1.5px var(--black);
-    animation: pin-pulse 2s var(--ease-out) infinite;
-  }
-  .pin--point .pin__lead {
-    height: 1px;
-    background: var(--white);
-    box-shadow: 0 0 0 0.5px rgb(8 8 8 / 0.6);
-  }
-  .pin--point .pin__words {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 8px 12px;
-    background: var(--black);
-    color: var(--white);
-    box-shadow: none;
-    font-size: 0.82rem;
-    font-weight: 600;
-    letter-spacing: -0.005em;
-    text-transform: none;
-  }
-  .pin--point .pin__n {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    color: var(--yellow);
   }
   .hero__screen:not(.is-active) .hero__say {
     opacity: 0;
@@ -1216,6 +1373,52 @@
     font-weight: 500;
   }
 
+  /* ---- applications as "Three ways onto a building": the heading over a hairline, one picture, the picker under it ---- */
+  .apps.apps--pick {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+    padding: 0;
+  }
+  .apps--pick .apps__head {
+    padding: calc(var(--nav-h) + clamp(28px, 5svh, 44px)) var(--gutter) clamp(22px, 3.6svh, 32px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .apps--pick .apps__title {
+    font-size: clamp(2rem, 9.4vw, 2.6rem);
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    line-height: 1.02;
+  }
+  .apps__stage {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: clamp(18px, 3svh, 28px);
+    padding-top: clamp(22px, 4svh, 36px);
+    touch-action: pan-y;
+  }
+  /* (the model takes the room the words leave, whatever it is: the picker under it never moves) */
+  .apps__model {
+    position: relative;
+    flex: 1 1 0;
+    min-height: clamp(260px, 40svh, 420px);
+  }
+  .apps__model .fc-canvas {
+    position: absolute;
+    inset: 0;
+  }
+  .apps__model canvas {
+    display: block;
+  }
+  .apps__still {
+    position: absolute;
+    inset: 0 var(--gutter);
+    width: calc(100% - 2 * var(--gutter));
+    height: 100%;
+    object-fit: cover;
+  }
+
   /* ---- applications: Enerblock's solution rows, the picture framed under the words ---------------------------- */
 
   .apps__title {
@@ -1302,34 +1505,435 @@
   .apps[data-reveal] .app.is-in .app__img {
     clip-path: inset(0);
   }
+
+  /* Home's applications as the façade's cards (Applications: PhoneApplications): the model's canvas fills its part of the card */
+  #applications.ways {
+    position: relative;
+    z-index: 1;
+  }
+  #applications .ways__model .fc-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+  #applications .ways__model canvas {
+    display: block;
+  }
+
+  /* ---- the header: one bar of smoked glass across the screen, the name and the menu on it, on every ground ---- */
+  :root .nav .nav__bar {
+    position: relative;
+    isolation: isolate;
+  }
+  :root .nav.nav .nav__bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 1;
+    background: linear-gradient(180deg, rgb(10 10 10 / 0.88), rgb(10 10 10 / 0.8));
+    box-shadow:
+      inset 0 -1px 0 rgb(255 255 255 / 0.08),
+      0 12px 28px -20px rgb(0 0 0 / 0.55);
+    transition: none;
+  }
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    :root .nav.nav .nav__bar::before {
+      background: linear-gradient(180deg, rgb(8 8 8 / 0.9), rgb(8 8 8 / 0.82));
+      -webkit-backdrop-filter: blur(18px) saturate(1.6);
+      backdrop-filter: blur(18px) saturate(1.6);
+    }
+  }
+  /* (on the bar the names need no capsule of their own, and the menu is a ring of the glass) */
+  :root .nav.nav .nav__home,
+  :root .nav.nav.is-tucked .nav__home,
+  :root .nav.nav.on-black .nav__home {
+    margin-left: 0;
+    padding: 6px 0;
+    background: none;
+    box-shadow: none;
+  }
+  /* (the menu: the three lines alone, white on the glass, no ring round them) */
+  :root .nav.nav .nav__menu-cell,
+  :root .nav.nav.is-open .nav__menu-cell {
+    width: 40px;
+    height: 40px;
+    background: none;
+    box-shadow: none;
+    color: var(--white);
+  }
+  :root .nav.nav .nav__menu-icon,
+  :root .nav.nav .nav__menu-icon i {
+    width: 22px;
+  }
+
+  /*
+   * About, Innovation and Tech Space: the words and the controls stand in place as a part comes up, no rise or fade of
+   * their own (played as each part landed, after its swipe, they read as a jolt; on a phone that missed the moment they
+   * stayed half there, the controls flickering)
+   */
+  :root :is(#about, #innovation, #tech) .rv,
+  :root :is(#about, #innovation, #tech) .scene.is-active .rv {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  :root :is(#about, #innovation, #tech) .word__in,
+  :root :is(#about, #innovation, #tech) .scene.is-active .word__in {
+    transform: none;
+    animation: none;
+  }
+
+  /* the opening: no chevron at the foot, Scroll to explore alone says the way on */
+  :root .hero__screen--open::after {
+    content: none;
+    animation: none;
+  }
+
+  /*
+   * ---- the opening tour's two lines: high on the left, large, over the mesh; each comes and goes with the page's own
+   * move through its screen (--p), never wiped in and out again as the page settles or the swipe turns back ----
+   */
+  :root .hero__screen .hero__say--br,
+  :root .hero__screen .hero__say--tr {
+    position: fixed;
+    top: calc(var(--nav-h) + clamp(40px, 9svh, 84px));
+    bottom: auto;
+    left: var(--gutter);
+    right: var(--gutter);
+    display: grid;
+    justify-items: start;
+    text-align: left;
+    transform: none;
+    visibility: visible;
+    pointer-events: none;
+    transition: none;
+  }
+  :root .hero__screen .hero__say .lines {
+    justify-items: start;
+    font-size: clamp(2rem, 9.4vw, 2.9rem);
+    line-height: 1.04;
+  }
+  :root .hero__screen .hero__say .lines--slab .lines__line {
+    clip-path: inset(0);
+    animation: none;
+  }
+  /* (the mesh built out: its line in the middle of the screen, over the weave) */
+  :root .hero__screen .hero__say--br {
+    top: 50%;
+    justify-items: center;
+    text-align: center;
+    transform: translateY(-50%);
+  }
+  :root .hero__screen .hero__say--br .lines {
+    justify-items: center;
+  }
+  :root .hero__screen--built .hero__say {
+    opacity: min(clamp(0, calc((var(--p, 0) - 0.55) * 4), 1), clamp(0, calc((1.4 - var(--p, 0)) * 5), 1));
+  }
+  :root .hero__screen--inside .hero__say {
+    opacity: min(clamp(0, calc((var(--p, 0) - 1.45) * 5), 1), clamp(0, calc((1.95 - var(--p, 0)) * 6), 1));
+  }
+
+  /* ---- the black statement: its words in at a brisk reading pace, the whole of it there in about a second ---- */
+  .scene--challenge.is-active .statement .word__in {
+    animation-duration: 0.5s;
+    animation-delay: calc(0.05s + var(--w, 0) * 38ms);
+  }
+
+  /*
+   * ---- What it replaces: each card comes to rest on the hairline of the one under it, so the number and the strength of
+   * every card under it stay whole in view ----
+   */
+  .vs {
+    --strength: clamp(1.55rem, 7.4vw, 2.1rem);
+    --line: calc(22px + 18px + 14px + var(--strength) * 1.15 + 14px);
+    --peek: var(--line);
+    --card-h: clamp(236px, 35svh, 300px);
+  }
+  .vs__card,
+  .vs__card.is-in {
+    align-content: start;
+    gap: 14px;
+    padding: 22px 20px 24px;
+    border-radius: 14px;
+  }
+  .vs__top {
+    height: 18px;
+    min-height: 0;
+    align-items: center;
+  }
+  .vs__count,
+  .vs__count b {
+    font-size: 0.86rem;
+    line-height: 18px;
+  }
+  .vs__strength {
+    font-size: var(--strength);
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  .vs__other {
+    padding-top: 14px;
+  }
+  .vs__name {
+    font-size: 1.06rem;
+  }
+  .vs__weak {
+    font-size: 1rem;
+  }
+  .vs__what {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+
+  /* depth: lit from above, a hairline of light along the top edge, lifted off the page on a soft warm shadow; the ones
+     tucked under the front a shade deeper, as if in its shadow */
+  /* the deck on yellow (Why: a phone's ground), its cards white on it */
+  #replaces.on-yellow {
+    background: var(--yellow);
+  }
+  .vs__card,
+  .vs__card.is-in {
+    border: 1px solid rgb(8 8 8 / 0.07);
+    background: linear-gradient(180deg, #ffffff 0%, #fdfcf8 62%, #f8f6f0 100%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.95),
+      0 -10px 22px -14px rgb(8 8 8 / 0.28),
+      0 2px 4px -1px rgb(40 30 10 / 0.08),
+      0 26px 44px -24px rgb(40 30 10 / 0.5);
+  }
+  .vs__card.is-tucked {
+    background: linear-gradient(180deg, #fdfcf8 0%, #f5f3ec 100%);
+  }
+  /* its number on a yellow chip, as About's and Innovation's parts are numbered */
+  .vs__count b {
+    display: inline-block;
+    margin-right: 2px;
+    padding: 0 6px;
+    border-radius: 3px;
+    background: var(--yellow);
+    color: var(--black);
+    font-weight: 800;
+  }
+  /* the strength's own drawing, top right */
+  .vs__glyph {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+  }
+  .vs__glyph svg {
+    width: 40px;
+    height: 40px;
+    fill: none;
+    stroke: var(--black);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .vs__glyph .vs__glyph-fill {
+    fill: var(--yellow);
+    stroke: var(--black);
+  }
+}
+/* a short phone (or one with its browser bars showing): the heading over the deck tightens so the bigger cards keep their room */
+@media (max-width: 860px) and (max-height: 700px) {
+  #replaces .ledger__in {
+    padding-top: calc(var(--nav-h) + 12px);
+  }
+  #replaces .ledger__title {
+    font-size: clamp(1.5rem, 7vw, 2rem);
+  }
+  .vs__word {
+    margin-block: 10px 14px;
+    font-size: calc((100vw - 2 * var(--gutter)) * 0.11);
+  }
 }
 
-/* the points' numbers are the phone's: the wide screen names its points as before */
+/* the wide screen names the cavity's points without their numbers (a phone names nothing there) */
 .pin--point .pin__n {
   display: none;
 }
-@keyframes pin-pulse {
-  0% {
-    box-shadow:
-      0 0 0 1.5px var(--black),
-      0 0 0 0 rgb(253 208 1 / 0.6);
-  }
-  70%,
-  100% {
-    box-shadow:
-      0 0 0 1.5px var(--black),
-      0 0 0 14px rgb(253 208 1 / 0);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .pin--point::before {
-    animation: none;
-  }
   .eb-fig__tick {
     transform: none !important;
   }
   .apps[data-reveal] .app__img {
     clip-path: none !important;
+  }
+}
+
+/*
+ * The Façade overview's story on a phone as a deck (Lineage: LineageCards), Home's "One mesh in place of three
+ * compromises" deck carried over: on yellow, white cards dealt one onto another by the scroll while the screen holds
+ * still, each a band lower so the ones under it keep their number and name; a card's parts one open at a time, each
+ * with its sign, the first open (a minus)
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fdeck {
+    position: relative;
+    height: calc(100lvh + (var(--n) - 1) * var(--run) * 1svh);
+    background: var(--yellow);
+    color: var(--black);
+  }
+  .fdeck__in {
+    position: sticky;
+    top: 0;
+    box-sizing: border-box;
+    height: 100lvh;
+    overflow: hidden;
+    padding: calc(var(--nav-h) + clamp(14px, 2.6svh, 26px)) var(--gutter) 0;
+  }
+  .fdeck__title {
+    max-width: 15em;
+    margin-bottom: clamp(14px, 2.6svh, 24px);
+    font-size: clamp(1.5rem, 6.8vw, 2.1rem);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 1.04;
+    text-wrap: balance;
+  }
+  .fdeck .vs {
+    --strength: clamp(1.35rem, 6.2vw, 1.7rem);
+    --peek: calc(20px + 18px + 10px + var(--strength) * 1.15 + 8px);
+    --card-h: clamp(300px, 44svh, 350px);
+    height: calc(var(--card-h) + (var(--n) - 1) * var(--peek));
+    gap: 0;
+  }
+  .fdeck .vs__card,
+  .fdeck .vs__card.is-in {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 18px 18px;
+  }
+  .fdeck .vs__top {
+    flex: none;
+  }
+  .fdeck__name {
+    flex: none;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .fdeck__full {
+    margin-top: -6px;
+    font-size: 0.84rem;
+    color: var(--on-light-2);
+  }
+  /* RTARIUM's emblem alone, the size of the others' drawings */
+  .fdeck__logo {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 34px;
+    height: 34px;
+  }
+  .fdeck__parts {
+    border-top: 1px solid rgb(8 8 8 / 0.1);
+  }
+  .fdeck__part {
+    border-bottom: 1px solid rgb(8 8 8 / 0.1);
+  }
+  .fdeck__part-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 40px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .fdeck__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  /* its sign, as the cards before had it: a thin plus that turns into a minus as its part folds open, no ring */
+  .fdeck__sign {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin-right: -6px;
+  }
+  .fdeck__icon {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .fdeck__icon::before,
+  .fdeck__icon::after {
+    content: '';
+    position: absolute;
+    background: currentColor;
+    transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  /* the upright stroke, laid flat as the icon turns: the minus */
+  .fdeck__icon::before {
+    top: 0;
+    left: calc(50% - 0.75px);
+    width: 1.5px;
+    height: 100%;
+  }
+  /* the flat stroke, drawn back into its left end as the icon turns */
+  .fdeck__icon::after {
+    top: calc(50% - 0.75px);
+    left: 0;
+    width: 100%;
+    height: 1.5px;
+    transform-origin: left center;
+  }
+  .fdeck__part.is-open .fdeck__icon {
+    transform: rotate(90deg);
+  }
+  .fdeck__part.is-open .fdeck__icon::after {
+    transform: scaleX(0);
+  }
+  /* what a part says: folded to nothing, opening to its own height */
+  .fdeck__body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .fdeck__part.is-open .fdeck__body {
+    grid-template-rows: 1fr;
+  }
+  .fdeck__body-in {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .fdeck__body p {
+    padding: 0 0 12px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+  .fdeck__foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    margin-top: auto;
+    font-size: 0.76rem;
+    color: var(--on-light-2);
+  }
+  .fdeck__tag {
+    width: 100%;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 }

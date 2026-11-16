@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { scrollToY, stepScreens } from '../lib/scroll'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import type { Ground } from '../three/stageStore'
@@ -143,6 +143,8 @@ export interface LineageWords {
   used: string
   replaced: string
   claim: string
+  /** over RTARIUM's line, where a phone sets it apart (its cards) */
+  line?: string
 }
 const FACADE_WORDS: LineageWords = {
   title: 'What RTARIUM replaces in a façade panel',
@@ -150,6 +152,7 @@ const FACADE_WORDS: LineageWords = {
   used: 'Why it was used',
   replaced: 'Why it is replaced',
   claim: 'Why it replaces them',
+  line: 'In a façade panel',
 }
 
 const VERSIONS: Version[] = [
@@ -259,6 +262,16 @@ function Panel({ k, compact }: { k: number; compact: boolean }) {
   )
 }
 
+/** RTARIUM's way on: `#id` glides to that part of the page, under the header */
+function goTo(e: MouseEvent<HTMLAnchorElement>, to: string | undefined) {
+  if (!to?.startsWith('#')) return
+  const el = document.querySelector<HTMLElement>(to)
+  if (!el) return
+  e.preventDefault()
+  const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
+  scrollToY(el.getBoundingClientRect().top + window.scrollY - navH)
+}
+
 /** a line revealed by a block of its own colour: the block runs across it, the words come up under it, it runs off */
 function Masked({ k, children }: { k: number; children: ReactNode }) {
   return (
@@ -296,15 +309,7 @@ function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: Line
       el.classList.remove('is-armed', 'is-in')
     }
   }, [])
-  const go = (e: MouseEvent<HTMLAnchorElement>) => {
-    const to = v.more?.to
-    if (!to?.startsWith('#')) return
-    const el = document.querySelector<HTMLElement>(to)
-    if (!el) return
-    e.preventDefault()
-    const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
-    scrollToY(el.getBoundingClientRect().top + window.scrollY - navH)
-  }
+  const go = (e: MouseEvent<HTMLAnchorElement>) => goTo(e, v.more?.to)
   return (
     <article
       ref={(el) => {
@@ -371,10 +376,214 @@ function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: Line
  * (the last is RTARIUM), its own model for the panel's box and its own words; the boxes, the rows and
  * the motion are the same.
  */
-type LineageProps = Parameters<typeof LineageGrid>[0]
+type LineageProps = Parameters<typeof LineageGrid>[0] & {
+  /** how a phone sets it: a window a screen tall for each version (by default), or cards stacked one over another */
+  phone?: 'screens' | 'cards'
+}
 
-export function Lineage(props: LineageProps) {
-  return useIsCompact() ? <LineagePhone {...props} /> : <LineageGrid {...props} />
+export function Lineage({ phone = 'screens', ...props }: LineageProps) {
+  if (!useIsCompact()) return <LineageGrid {...props} />
+  return phone === 'cards' ? <LineageCards {...props} /> : <LineagePhone {...props} />
+}
+
+/** a card's two parts, each its own heading and its sign, what it says folded until the sign is pressed */
+type Part = { label: string; text: string }
+
+/**
+ * a card's drawing, top right, as the deck on Home draws its strengths: plain hairlines, a touch of yellow, read at a
+ * glance and nothing a specialist needs to know. Steel bar: two ribbed bars. Glass fibre: short strands, loose. Steel
+ * micro-fibre: a block of concrete, short fibres through it.
+ */
+const ICONS: Record<string, ReactNode> = {
+  steel: (
+    <svg viewBox="0 0 40 40">
+      <path d="M6 28 28 6M12 34 34 12" />
+      <path d="M10 22l4 4M15 17l4 4M20 12l4 4M16 28l4 4M21 23l4 4M26 18l4 4" />
+      <circle className="vs__glyph-fill" cx="30" cy="31" r="3.2" />
+    </svg>
+  ),
+  grc: (
+    <svg viewBox="0 0 40 40">
+      <path d="M7 12l9 3M22 7l3 9M30 14l4 8M9 25l8-3M24 24l6 7M13 33l6-4M27 31l7-1" />
+      <circle className="vs__glyph-fill" cx="20" cy="20" r="3.4" />
+    </svg>
+  ),
+  uhpc: (
+    <svg viewBox="0 0 40 40">
+      <path className="vs__glyph-fill" d="M20 6 33 13 20 20 7 13Z" />
+      <path d="M7 13v14l13 7 13-7V13M20 20v14" />
+      <path d="M11 22l3 2M25 25l3-2M13 29l3 1M26 30l3-2" />
+    </svg>
+  ),
+}
+
+/** how far of the screen's height the scroll deals each card */
+const DECK_RUN = 75
+
+/**
+ * The story on a phone as a deck, as Home's "One mesh in place of three compromises" deals its cards (Why: Cards): on
+ * yellow, white cards, the section holding still while the scroll deals them one onto another, a band lower each time,
+ * so every card passed still shows its number and name; the cards keep their order (no shuffling). A
+ * card: its number on a yellow chip and its drawing top right (RTARIUM, its own name and mark), its name and what it
+ * is, and two parts, one open at a time, each with its sign: why it is replaced, open first (a minus), and why it was
+ * used (RTARIUM: why it replaces them, open first, and what that comes to in a façade panel); RTARIUM's foot names what
+ * it replaces, struck through.
+ */
+function LineageCards({ sectionRef, versions = VERSIONS, words = FACADE_WORDS, id = 'lineage' }: LineageProps) {
+  const n = versions.length
+  const parts = (v: Version): Part[] =>
+    v.claim
+      ? [
+          { label: words.claim, text: v.claim },
+          ...(v.line ? [{ label: words.line ?? 'What it comes to', text: v.line }] : []),
+        ]
+      : [
+          ...(v.replaced ? [{ label: words.replaced, text: v.replaced }] : []),
+          ...(v.used ? [{ label: words.used, text: v.used }] : []),
+        ]
+  /** which part of each card is open: the first, to begin with */
+  const [open, setOpen] = useState<number[]>(() => versions.map(() => 0))
+  const flip = (i: number, k: number) => setOpen((o) => o.map((x, a) => (a === i ? (x === k ? -1 : k) : x)))
+  const section = useRef<HTMLElement | null>(null)
+  const list = useRef<HTMLOListElement>(null)
+
+  // the deal: the section's run, read as the page scrolls, `--deck` 0 to n - 1 (the deck's own CSS, as Home's)
+  useEffect(() => {
+    const el = section.current
+    const deck = list.current
+    if (!el || !deck) return
+    if (prefersReducedMotion()) return void deck.style.setProperty('--deck', String(n - 1))
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      const pin = el.querySelector<HTMLElement>('.fdeck__in')
+      const run = Math.max(1, r.height - (pin?.offsetHeight ?? window.innerHeight))
+      deck.style.setProperty('--deck', (Math.min(1, Math.max(0, -r.top / run)) * (n - 1)).toFixed(4))
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [n])
+
+  /**
+   * a tap on a card under the one in front: the page goes back to that card's own step, where it was the one in front
+   * (the cards over it slide back down off it), as the scroll dealt it
+   */
+  const goToCard = (i: number) => {
+    const el = section.current
+    const deck = list.current
+    if (!el || !deck) return
+    const now = Math.round(Number(deck.style.getPropertyValue('--deck') || 0))
+    if (i >= now) return
+    const pin = el.querySelector<HTMLElement>('.fdeck__in')
+    const run = Math.max(1, el.offsetHeight - (pin?.offsetHeight ?? window.innerHeight))
+    scrollToY(el.getBoundingClientRect().top + window.scrollY + (run * i) / Math.max(1, n - 1))
+  }
+
+  /** what RTARIUM replaces: what the others are reinforced with */
+  const struck = versions.slice(0, -1).map((v) => v.material)
+  return (
+    <section
+      ref={(el) => {
+        section.current = el
+        if (sectionRef) (sectionRef as { current: HTMLElement | null }).current = el
+      }}
+      id={id}
+      className="fdeck on-yellow"
+      data-ground="yellow"
+      data-flow=""
+      style={{ '--n': n, '--run': DECK_RUN } as CSSProperties}
+      aria-labelledby={`${id}-title`}
+    >
+      <div className="fdeck__in">
+        <h2 id={`${id}-title`} className="fdeck__title">
+          {words.title}
+        </h2>
+        <ol ref={list} className="vs vs--deck fdeck__list">
+          {versions.map((v, i) => {
+            const ours = !!v.claim
+            return (
+              <li key={v.id} className="vs__card fdeck__card" style={{ '--i': i, '--pos': i } as CSSProperties} aria-labelledby={`fs-${v.id}`} onClick={() => goToCard(i)}>
+                <div className="vs__top">
+                  <span className="vs__count num">
+                    <b>0{i + 1}</b> / 0{n}
+                  </span>
+                  {ours ? (
+                    <img className="fdeck__logo" src="/brand/rtarium-emblem.png" alt="RTARIUM" width={256} height={256} loading="lazy" decoding="async" />
+                  ) : (
+                    ICONS[v.id] && (
+                      <span className="vs__glyph" aria-hidden="true">
+                        {ICONS[v.id]}
+                      </span>
+                    )
+                  )}
+                </div>
+                <h3 id={`fs-${v.id}`} className="vs__strength fdeck__name">
+                  {v.name}
+                </h3>
+                <p className="fdeck__full">{v.full}</p>
+                <div className="fdeck__parts">
+                  {parts(v).map((p, k) => {
+                    const on = open[i] === k
+                    const body = `${id}-${v.id}-part${k}`
+                    return (
+                      <div key={p.label} className={`fdeck__part ${on ? 'is-open' : ''}`}>
+                        <button
+                          type="button"
+                          className="fdeck__part-head"
+                          aria-expanded={on}
+                          aria-controls={body}
+                          onClick={(e) => {
+                            // (a sign opens or closes its part; it never moves the deck)
+                            e.stopPropagation()
+                            flip(i, k)
+                          }}
+                        >
+                          <span className="fdeck__label">{p.label}</span>
+                          <span className="fdeck__sign" aria-hidden="true">
+                            <span className="fdeck__icon" />
+                          </span>
+                        </button>
+                        <div id={body} className="fdeck__body" role="region" aria-label={p.label} inert={!on}>
+                          <div className="fdeck__body-in">
+                            <p>{p.text}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="fdeck__foot">
+                  {ours ? (
+                    <>
+                      <span className="fdeck__tag">Replaces</span>
+                      {struck.map((m) => (
+                        <s key={m}>{m}</s>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <span className="fdeck__tag">In a panel</span>
+                      <span>{v.thick} mm thick</span>
+                    </>
+                  )}
+                </p>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
+    </section>
+  )
 }
 
 /** the grounds of the windows on a phone, in turn: yellow, black, warm white */

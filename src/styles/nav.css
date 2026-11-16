@@ -607,3 +607,75 @@
     opacity: 0;
   }
 }
+
+/*
+ * The menu's alignment, as a clean shop's side menu is set: the rows inset from the sheet's edges on hairlines of their
+ * own, every name in small spaced capitals, a chevron at the right of a section with pages (turning down as they fold
+ * out), and the pages listed under it in smaller capitals, no rules between them.
+ */
+.menu__list {
+  margin: 0 clamp(18px, 5vw, 36px);
+  border-top: 1px solid var(--rule);
+}
+.menu__item,
+.menu__item:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+.menu__row {
+  padding: 0;
+}
+.menu__link {
+  min-height: 56px;
+  padding: 10px 0;
+}
+.menu__label {
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+/* the chevron: two short strokes meeting at a point, turned down while the pages show */
+.menu__toggle {
+  width: 40px;
+  height: 40px;
+  margin-right: -8px;
+  transition: transform 0.45s var(--ease-out);
+}
+.menu__toggle i,
+.menu__toggle i:last-child,
+.menu__toggle[aria-expanded='true'] i:last-child {
+  width: 8px;
+  height: 1.5px;
+  transform-origin: 100% 50%;
+}
+.menu__toggle i:first-child {
+  transform: translate(-2px, 0) rotate(40deg);
+}
+.menu__toggle i:last-child,
+.menu__toggle[aria-expanded='true'] i:last-child {
+  transform: translate(-2px, 0) rotate(-40deg);
+}
+.menu__toggle[aria-expanded='true'] {
+  transform: rotate(90deg);
+}
+.menu__sub {
+  padding-bottom: 0;
+}
+.menu__item.is-shown .menu__sub {
+  padding-bottom: 14px;
+}
+.menu__sub a {
+  min-height: 32px;
+  padding: 0;
+  border-top: 0;
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.menu__sub a svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0.6;
+}

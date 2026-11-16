@@ -35,7 +35,8 @@
         position: fixed;
         inset: 0;
         z-index: 2147483000;
-        animation: opener-bail 0.6s 12s forwards;
+        /* (a fail-safe, should the script never run: a phone's Home may hold it up to 18 s while it makes every scene) */
+        animation: opener-bail 0.6s 20s forwards;
         transition: --em 1.25s var(--ease);
       }
       @keyframes opener-bail {
@@ -123,10 +124,12 @@
         transition: opacity 0.45s ease;
       }
     </style>
-    <!-- the opening plays once a visit: on the site's first page, not on a reload or the pages after it -->
+    <!-- the opening plays once a visit: on the site's first page, not on a reload or the pages after it; except a phone's
+         Home, where it plays on every load, every scene of the page made and its openings played behind it -->
     <script>
       try {
-        if (sessionStorage.getItem('rtarium:opened')) document.documentElement.classList.add('is-opened')
+        var phoneHome = location.pathname === '/' && matchMedia('(max-width: 860px), (max-aspect-ratio: 4/5)').matches
+        if (sessionStorage.getItem('rtarium:opened') && !phoneHome) document.documentElement.classList.add('is-opened')
       } catch (e) {}
     </script>
     <style>

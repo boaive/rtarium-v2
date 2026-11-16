@@ -51,6 +51,10 @@ export interface YarnUniforms {
   uXray: THREE.IUniform<number>
   /** cells drawn, across the warp (x) and the weft (z), centred on the sheet */
   uWin: THREE.IUniform<THREE.Vector2>
+  /** 1: the window is round, uWin.x across, so a piece turned about its middle keeps one outline at every angle */
+  uRound: THREE.IUniform<number>
+  /** the build window's middle, off the sheet's (cells): a piece grown from one edge */
+  uWinShift: THREE.IUniform<THREE.Vector2>
   /** how many rings of cells are still landing at the edge of the window (≥ 0.5) */
   uBand: THREE.IUniform<number>
   /** height (m) a landing cell drops from */
@@ -82,6 +86,8 @@ uniform vec2 uFlexScale;
 uniform float uFlex;
 uniform vec2 uPressBand;
 uniform vec2 uWin;
+uniform float uRound;
+uniform vec2 uWinShift;
 uniform float uBand;
 uniform float uLift;
 uniform vec2 uWeave;
@@ -107,10 +113,11 @@ float rtHeight(vec2 xz) {
 void rtDeform(inout vec3 p, inout vec3 n) {
   // the build window: 1 = in place, 0 = not built yet
   vec3 rtO = rtOrigin();
-  vec2 rtC = vec2(rtO.x / 0.012 + 0.5, rtO.z / 0.012);
+  vec2 rtC = vec2(rtO.x / 0.012 + 0.5, rtO.z / 0.012) - uWinShift;
   float rtEx = uWin.x * 0.5 - abs(rtC.x);
   float rtEz = uWin.y * 0.5 - abs(rtC.y);
-  vBuild = clamp(min(rtEx, rtEz) / uBand, 0.0, 1.0);
+  float rtE = uRound > 0.5 ? uWin.x * 0.5 - length(rtC) : min(rtEx, rtEz);
+  vBuild = clamp(rtE / uBand, 0.0, 1.0);
   // weaving on: how far out across its cell this point lies, from the side facing the built sheet
   // (0) to the open side (1), along whichever edge of the window the cell is on; each part of the
   // mesh follows the one before it (upper face, lower face, then the fibres between them)
@@ -272,6 +279,8 @@ export function createYarnUniforms(): YarnUniforms {
     uPressGlow: { value: 0 },
     uXray: { value: 0 },
     uWin: { value: new THREE.Vector2(18, 18) },
+    uRound: { value: 0 },
+    uWinShift: { value: new THREE.Vector2() },
     uBand: { value: 0.5 },
     uLift: { value: 0.03 },
     uWeave: { value: new THREE.Vector2(1, 1) },

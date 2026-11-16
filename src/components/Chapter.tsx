@@ -163,19 +163,23 @@ export function Track(props: { id: string; title: string; steps: Step[]; classNa
  * figure's box: `useStageRegion` with `box`), a drawing's title block along the figure's foot. The step whose figure
  * holds the middle of the screen is the one playing.
  */
+/** the phone chapters that go a part a swipe (Hero's useSwipePager) */
+const PAGED = new Set(['about', 'innovation', 'tech'])
+
 export function Rows({ id, title, steps, ground = 'light' }: { id: string; title: string; steps: Step[]; ground?: Ground }) {
   CHAPTERS.set(id, { title, labels: steps.map((s) => s.label) })
   const section = useRef<HTMLElement>(null)
   // holding the middle of the screen, read on every scroll as the other sections are, the header takes this ground
   useScreen(section, id, ground)
   return (
-    <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground}>
+    // (About's, Innovation's and Tech Space's parts go a part a swipe, both ways: Hero's useSwipePager, `data-swipe-rows`;
+    // Tech Space's one screen a swipe in and a swipe on, never left resting part way where a fling ran out)
+    <section ref={section} id={id} className={`eb on-${ground}`} aria-label={title} data-screen={ground} data-swipe-rows={PAGED.has(id) ? '' : undefined}>
       <header className="eb__head">
         <p className="eb__title">{title}</p>
-        {steps.length > 1 && <p className="eb__count num">{two(steps.length)} parts</p>}
       </header>
       {steps.map((s, i) => (
-        <Row key={s.id} chapter={id} title={title} step={s} index={i} ground={ground} />
+        <Row key={s.id} chapter={id} title={title} count={steps.length} step={s} index={i} ground={ground} />
       ))}
     </section>
   )
@@ -255,7 +259,7 @@ function Loop({ pose }: { pose: PoseId }) {
   )
 }
 
-function Row({ chapter, title, step, index, ground }: { chapter: string; title: string; step: Step; index: number; ground: Ground }) {
+function Row({ chapter, title, count, step, index, ground }: { chapter: string; title: string; count: number; step: Step; index: number; ground: Ground }) {
   const row = useRef<HTMLElement>(null)
   const box = useRef<HTMLDivElement>(null)
   const none = useRef<HTMLDivElement>(null)
@@ -265,17 +269,23 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
   // the figure is the live 3D, sharp at any size (only the one most in view turns: StageScene);
   // its film stands in only where there is no 3D (no WebGL, or the scene failed), in place of a still
   // (in development ?films shows the films, to check them)
+  // (Tech Space's system is drawn live too: a film in its place went black for a moment each time the thickness changed
+  // it for another; the live card is kept light instead, its turn held while the page moves: StageScene)
   const filmed = Boolean(LOOPS[step.pose]) && (failed || (import.meta.env.DEV && new URLSearchParams(window.location.search).has('films')))
   // pressed and held, the card's mesh turns in the hand (its own, eased back to its pose once let go: StageScene)
   const [turn] = useState<Turn>(() => ({ yaw: 0, pitch: 0, dragging: false, touch: { x: 0, y: 0, down: false } }))
   useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true, turn })
-  useOrbitDrag(filmed ? none : box, turn)
+  // (a paged chapter's cards are not turned or pressed by hand: a finger anywhere on them only ever moves the page, and
+  // their mesh turns on, slowly, under it; Tech Space's system dented under the finger and swung round in the hand as the
+  // page was swiped through it)
+  const handled = !filmed && !PAGED.has(chapter)
+  useOrbitDrag(handled ? box : none, turn)
   // a finger on the card presses the sheet where it is, as the cursor does on a wide screen (StageScene, where the
   // figure's pose takes a press); it springs back once the finger lifts or goes off to scroll
   useEffect(() => {
     const el = box.current
     const t = turn.touch
-    if (filmed || !el || !t) return
+    if (!handled || !el || !t) return
     let id = -1
     const at = (e: PointerEvent) => {
       const r = el.getBoundingClientRect()
@@ -307,7 +317,7 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
       window.removeEventListener('pointercancel', up)
       t.down = false
     }
-  }, [filmed, turn])
+  }, [handled, turn])
   useEffect(() => {
     const el = row.current
     if (!el) return
@@ -322,22 +332,29 @@ function Row({ chapter, title, step, index, ground }: { chapter: string; title: 
   const still = failed ? STILLS[step.pose] : undefined
   return (
     <article ref={row} id={`${chapter}-${step.id}`} className={`eb-row scene scene--${step.id} on-${ground} ${active ? 'is-active' : seen ? 'is-seen' : ''}`}>
-      <p className="eb-row__num num">{two(index + 1)} /</p>
-      <h3 className="eb-row__label">{step.label}</h3>
+      {/* (About: which of how many, under the chapter's name, a line drawn in as far as this part) */}
+      <div className="eb-row__bar" aria-hidden="true">
+        <span className="eb-row__chapter">{title}</span>
+        <span className="eb-row__pos num">
+          {two(index + 1)} / {two(count)}
+          <i className="eb-row__track">
+            <i style={{ width: `${((index + 1) / count) * 100}%` }} />
+          </i>
+        </span>
+      </div>
+      <h3 className="eb-row__num">
+        <span className="eb-row__n num" aria-hidden="true">{two(index + 1)}</span>
+        {step.label}
+      </h3>
       <div className="eb-row__copy">{step.render(active)}</div>
       <figure className="eb-fig">
         <div ref={box} className="eb-fig__view" data-screen={ground}>
           {/* the 3D is drawn into the card's own canvas (StageScene), so it scrolls with the card */}
           {filmed ? <Loop pose={step.pose} /> : still ? <img className="eb-fig__still" src={still} alt="" /> : <canvas className="eb-fig__canvas" aria-hidden="true" />}
-          {!filmed && !still && <TouchHint id="hold-card" when={active} icon="hold" text="Hold and drag to turn" className="eb-fig__hint" />}
+          {handled && !still && <TouchHint id="hold-card" when={active} icon="hold" text="Drag to turn" className="eb-fig__hint" />}
           <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
           <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />
         </div>
-        <figcaption className="eb-fig__block">
-          <span className="eb-fig__name">{title}</span>
-          <span>Fig. {two(index + 1)}</span>
-          <span>{step.label}</span>
-        </figcaption>
       </figure>
     </article>
   )
