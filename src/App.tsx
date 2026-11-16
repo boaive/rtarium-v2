@@ -18,7 +18,7 @@ import { COMPACT_QUERY, useIsCompact } from './lib/motion'
 import { ScrollLine } from './components/ScrollLine'
 import { Consent } from './components/Consent'
 import { PrivacyPage } from './pages/Privacy'
-import { trackPage, useConsent } from './lib/analytics'
+import { startSectionTimer, trackPage, useConsent } from './lib/analytics'
 
 /** Façade & Cladding (overview and its three systems): its own chunk, loaded only on those pages */
 const FacadeRoutes = lazy(() => import('./facade/FacadeRoutes'))
@@ -129,6 +129,16 @@ function PageViews() {
     if (choice !== 'granted') return
     const t = window.setTimeout(() => trackPage(path), 700)
     return () => window.clearTimeout(t)
+  }, [path, choice])
+  // time on each section of the page, once it has laid out
+  useEffect(() => {
+    if (choice !== 'granted') return
+    let stop = () => {}
+    const t = window.setTimeout(() => (stop = startSectionTimer(path)), 900)
+    return () => {
+      window.clearTimeout(t)
+      stop()
+    }
   }, [path, choice])
   return null
 }

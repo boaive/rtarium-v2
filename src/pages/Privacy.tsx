@@ -51,8 +51,9 @@ export function PrivacyPage() {
         <div className="legal__section">
           <h2>Analytics, only if you accept</h2>
           <p>
-            If you accept, we use Google Analytics to count visits and see which pages and sections are read, how people
-            arrive, and the kind of device and browser they use, so we can improve the site. It sets two cookies,{' '}
+            If you accept, we use Google Analytics to count visits and see which pages and sections are read and for how
+            long, which links and buttons are used, how people arrive, and the kind of device and browser they use, so we
+            can improve the site. It sets two cookies,{' '}
             <code>_ga</code> and <code>{cookie}</code>. We do not send what you type into the enquiry form, or your name or
             email address.
           </p>
