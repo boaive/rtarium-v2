@@ -774,8 +774,21 @@ html[data-ground='black'] .pin__text {
   font-weight: 500;
   text-decoration: none;
 }
-.footer__map a:hover {
+.footer__map a:hover,
+.footer__link:hover {
   text-decoration: underline;
+}
+/* "Cookie settings": a button that reads as the links around it */
+.footer__link {
+  display: inline-block;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
 }
 .footer__legal {
   justify-self: end;

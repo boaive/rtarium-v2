@@ -16,6 +16,9 @@ import { setShared } from './three/stageStore'
 import { startSmoothScroll, stepScreens } from './lib/scroll'
 import { COMPACT_QUERY, useIsCompact } from './lib/motion'
 import { ScrollLine } from './components/ScrollLine'
+import { Consent } from './components/Consent'
+import { PrivacyPage } from './pages/Privacy'
+import { trackPage, useConsent } from './lib/analytics'
 
 /** Façade & Cladding (overview and its three systems): its own chunk, loaded only on those pages */
 const FacadeRoutes = lazy(() => import('./facade/FacadeRoutes'))
@@ -92,7 +95,9 @@ function Page() {
   return (
     <>
       <Nav />
-      <main id="main">{app ? <ApplicationPage id={app.id} /> : path === '/contact' ? <ContactPage /> : <NotFound />}</main>
+      <main id="main">
+        {app ? <ApplicationPage id={app.id} /> : path === '/contact' ? <ContactPage /> : path === '/privacy' ? <PrivacyPage /> : <NotFound />}
+      </main>
       <Footer />
     </>
   )
@@ -103,11 +108,28 @@ function PhoneLine() {
   return useIsCompact() ? <ScrollLine /> : null
 }
 
+/**
+ * One page view per route, once the visitor has accepted analytics. It waits a moment so the page has set its own
+ * title (the lazy pages set it as they load), and the first one goes out the moment consent is given.
+ */
+function PageViews() {
+  const { path } = useRoute()
+  const { choice } = useConsent()
+  useEffect(() => {
+    if (choice !== 'granted') return
+    const t = window.setTimeout(() => trackPage(path), 700)
+    return () => window.clearTimeout(t)
+  }, [path, choice])
+  return null
+}
+
 export function App() {
   return (
     <Router>
       <Page />
       <PhoneLine />
+      <PageViews />
+      <Consent />
     </Router>
   )
 }
