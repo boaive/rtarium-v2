@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { damp, lerp, prefersReducedMotion } from '../../lib/motion'
+import { damp, lerp, prefersReducedMotion, useIsCompact } from '../../lib/motion'
+import { DeckCards, type DeckItem } from '../../facade/DeckCards'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
 import { createBus } from '../../facade/three/kit'
 import { smooth } from '../../facade/progress'
@@ -90,7 +91,81 @@ function Model() {
  * The ledger; the Data & AI Centres page's by default. Another application brings its own bands and
  * the model its consultant's band shows.
  */
-export function Voices({ bands = BANDS, model = <Model /> }: { bands?: Band[]; model?: ReactNode }) {
+/** a phone's card drawings, as the façade pages' decks: plain hairlines, a touch of yellow */
+const VOICE_ICONS: Record<string, ReactNode> = {
+  // a set square on a drawing: the one who specifies it
+  consultant: (
+    <svg viewBox="0 0 40 40">
+      <path d="M7 33V7l26 26z" />
+      <path d="M12 28V19l9 9z" />
+      <path className="vs__glyph-fill" d="M26 8h6v6h-6z" />
+    </svg>
+  ),
+  // the building and what it holds: the one who owns it
+  owner: (
+    <svg viewBox="0 0 40 40">
+      <path d="M6 34h28M9 34V14l11-7 11 7v20" />
+      <path className="vs__glyph-fill" d="M15 20h4v14h-4zM21 20h4v14h-4z" />
+    </svg>
+  ),
+  // a hard hat: the one who builds it
+  contractor: (
+    <svg viewBox="0 0 40 40">
+      <path d="M5 28h30M8 28c0-8 5-14 12-14s12 6 12 14" />
+      <path className="vs__glyph-fill" d="M17 10h6v8h-6z" />
+    </svg>
+  ),
+  // a leaf: what it saves
+  carbon: (
+    <svg viewBox="0 0 40 40">
+      <path d="M8 32C8 18 18 8 33 8c0 15-10 25-25 24z" />
+      <path className="vs__glyph-fill" d="M8 32l14-14 2 2-14 14z" />
+    </svg>
+  ),
+}
+
+/** a card's name on a phone, short enough for one line (the role in full goes under it) */
+const VOICE_SHORT: Record<string, string> = { consultant: 'Consultant', owner: 'Owner', contractor: 'Contractor', carbon: 'Sustainability' }
+
+/**
+ * a phone: the ledger as a deck, as the façade overview's story (DeckCards), on yellow: a card for each of the people who
+ * sign the floor off, then the sustainability win; each with its drawing. The carbon meter is the last card's foot: two
+ * bars, a conventional floor's and RTARIUM's, the second shorter (relative: the client gives no figure)
+ */
+function VoicesCards({ bands }: { bands: Band[] }) {
+  const items: DeckItem[] = bands.map((b) => ({
+    id: b.id,
+    // (a card says one thing: whose it is, and the line for them; the longer message stays on the wide screen)
+    name: VOICE_SHORT[b.id] ?? b.role,
+    icon: VOICE_ICONS[b.id] && (
+      <span className="vs__glyph" aria-hidden="true">
+        {VOICE_ICONS[b.id]}
+      </span>
+    ),
+    parts: [{ label: b.id === 'carbon' ? 'Embodied carbon' : 'For them', text: b.head }],
+    foot:
+      b.id === 'carbon' ? (
+        // two flat bars, one for each: a conventional floor's, and RTARIUM's, shorter
+        <span className="fdc-meter" role="img" aria-label="Embodied carbon: RTARIUM's well under a conventional floor's">
+          <span className="fdc-meter__name">Conventional</span>
+          <span className="fdc-meter__pill">
+            <span className="fdc-meter__fill" style={{ '--w': 1 } as CSSProperties} />
+          </span>
+          <span className="fdc-meter__name">RTARIUM</span>
+          <span className="fdc-meter__pill">
+            <span className="fdc-meter__fill is-ours" style={{ '--w': LOW } as CSSProperties} />
+          </span>
+        </span>
+      ) : undefined,
+  }))
+  return <DeckCards id="voices" title="Specified. Approved. Built." items={items} />
+}
+
+export function Voices(props: { bands?: Band[]; model?: ReactNode }) {
+  return useIsCompact() ? <VoicesCards bands={props.bands ?? BANDS} /> : <VoicesLedger {...props} />
+}
+
+function VoicesLedger({ bands = BANDS, model = <Model /> }: { bands?: Band[]; model?: ReactNode }) {
   const N = bands.length
   const section = useRef<HTMLElement>(null)
   const list = useRef<HTMLOListElement>(null)

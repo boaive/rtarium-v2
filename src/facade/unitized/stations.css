@@ -268,7 +268,8 @@
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
   .fu-unit .fst--solution {
     --gutter: clamp(20px, 5.6vw, 24px);
-    --fst-bg: #fedd04;
+    /* (RTARIUM's own yellow, as every other yellow ground on the site) */
+    --fst-bg: var(--yellow);
     --fst-fg: #0b0b0b;
     --fst-2: #49402f;
     --fst-track: rgb(155 120 0 / 0.2);
@@ -282,7 +283,7 @@
     padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
     overflow: visible;
   }
-  .fu-unit .fst--solution .fst__title {
+  .fst--solution .fst__title {
     max-width: 9em;
     font-size: clamp(34px, 9.25vw, 38px);
     font-weight: 700;
@@ -292,18 +293,15 @@
   }
   .fst--solution .fst__head {
     gap: 0;
-    min-height: 110px;
+    min-height: 92px;
     margin-top: 22px;
   }
+  /* (no "Answer n" over the name: the heading, the answer's name and its line alone) */
   .fst--solution .fst__label {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    line-height: 1.4;
-    color: var(--fst-fg);
+    display: none;
   }
   .fst--solution .fst__name {
-    margin-top: 10px;
+    margin-top: 0;
     font-size: clamp(21px, 5.8vw, 24px);
     font-weight: 700;
     line-height: 1.15;
@@ -320,13 +318,136 @@
     aspect-ratio: 1.27;
     margin-top: 22px;
     border-radius: 30px;
-    background: radial-gradient(ellipse at 48% 42%, #fff7e4 24%, #fcebd2 78%, #f9e5ca 100%);
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.62), 0 9px 16px -9px rgb(94 64 0 / 0.34);
+    /* (as the reference: a pale cream lit in the middle, warming to peach at the corners) */
+    background: radial-gradient(ellipse 75% 70% at 52% 46%, #fdf4e2 0%, #f9e9cb 48%, #f1d6a6 100%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.55), 0 14px 24px -14px rgb(94 64 0 / 0.42);
     touch-action: pan-y;
   }
+  /* Wall Panels' answers: a warm yellow, lit in the middle and a step deeper than the page at the corners, so the white
+     panels stand out of it and the card still reads as a card on the yellow ground */
+  #wall-answers.fst--solution .fst__card {
+    background: radial-gradient(ellipse 75% 70% at 52% 46%, #ffe98a 0%, #ffd84a 50%, #f2bd12 100%);
+  }
+  #wall-answers.fst--solution .fst__thumb-img {
+    background: #ffd84a;
+  }
+  /* (the card moved midway between its step's words and the bar: Stations, `center`; eased as the words change) */
+  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__card {
+    transition: transform 0.5s var(--ease-out);
+  }
+  /* the bar and the count, slight: hairline dashes, the count small and spaced */
+  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__bar {
+    gap: 5px;
+  }
+  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__seg {
+    height: 2px;
+  }
+  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__ctrl {
+    margin-top: 10px;
+  }
+  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__count {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: rgb(11 11 11 / 0.5);
+  }
+  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__count b {
+    font-weight: 700;
+    color: var(--fst-fg);
+  }
+  /* (the card's scene in a layer of its own, filling it, so the side arrows sit over it) */
+  .fst__card-in {
+    position: absolute;
+    inset: 0;
+  }
+  /* Wall Panels' panels on a phone (Panels: PanelsPhone), the answers' card on white: a light grey card, so the pale
+     concrete reads against it, and the way to the technical sheet under the strip */
+  :is(#panels, #panels-sip).fst--solution {
+    --fst-bg: #ffffff;
+    --fst-fg: #0b0b0b;
+    --fst-2: #5c5a54;
+    --fst-track: rgb(11 11 11 / 0.14);
+    --fst-fill: #0b0b0b;
+    --fst-ring: #0b0b0b;
+    background: #ffffff;
+  }
+  :is(#panels, #panels-sip).fst--solution .fst__card {
+    background: radial-gradient(ellipse 75% 70% at 52% 46%, #f7f6f2 0%, #e9e7e0 55%, #d6d3ca 100%);
+    box-shadow: 0 14px 24px -14px rgb(40 36 28 / 0.35);
+  }
+  :is(#panels, #panels-sip).fst--solution .fst__thumb-img {
+    background: #e9e7e0;
+  }
+  :is(#panels, #panels-sip).fst--solution .fst__seg.is-now {
+    background: rgb(11 11 11 / 0.35);
+  }
+  .wpp__sheet {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    margin-top: 10px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--fst-fg);
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  /* the small controls: three bare icons, a hairline ring each, in the count's ink */
+  .fst--solution .fst__mini {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .fst--solution .fst__mini-btn {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid rgb(11 11 11 / 0.22);
+    border-radius: 999px;
+    background: none;
+    color: var(--fst-fg);
+    transition: background-color 0.2s ease;
+  }
+  .fst--solution .fst__mini-btn:active {
+    background: rgb(11 11 11 / 0.08);
+  }
+  /* once played through: a swipe across the card goes to the next */
+  .fst--solution .fst__swipe {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 0 auto;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    animation: fst-swipe-in 0.45s var(--ease-out) both;
+  }
+  .fst--solution .fst__swipe svg {
+    animation: fst-swipe-nudge 1.6s var(--ease-in-out) infinite;
+  }
+  @keyframes fst-swipe-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 6px, 0);
+    }
+  }
+  @keyframes fst-swipe-nudge {
+    50% {
+      transform: translateX(4px);
+    }
+  }
+  /* (the whole of each clip in its window, never cut at the top or the foot: the clips are square, the window wider) */
   .fst--solution .fst__clip {
-    object-fit: cover;
-    transform: scale(0.9);
+    object-fit: contain;
+    transform: none;
   }
   /* The six-metre panel needs the full square render as it grows. */
   .fst--solution .fst__card[data-step='5'] .fst__clip {
@@ -375,10 +496,12 @@
     margin-bottom: 7px;
     border-radius: 14px;
     background: #fff6e7;
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.55), 0 4px 7px -4px rgb(94 64 0 / 0.3);
+    /* (no inset ring: over the still it read as a white line along its top and foot) */
+    box-shadow: 0 4px 7px -4px rgb(94 64 0 / 0.3);
   }
+  /* (the still fills its window edge to edge: the stills are cut to its shape, so nothing of the window shows round it) */
   .fst--solution .fst__thumb-img img {
-    object-fit: contain;
+    object-fit: cover;
   }
   .fst--solution .fst__thumb.is-on .fst__thumb-img {
     box-shadow: 0 0 0 1.75px #0b0b0b, 0 4px 7px -4px rgb(94 64 0 / 0.3);
@@ -413,5 +536,73 @@
   }
   .fst__clip {
     transition: none;
+  }
+}
+
+/* a live scene in the card in place of the clips (Rainscreen's bridge), filling it */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fst__live,
+  .fst__live .fc-canvas {
+    position: absolute;
+    inset: 0;
+  }
+}
+
+/* steps with no still of their own (a live scene): no empty picture in the strip; the one in play marked by a rule over
+   its number and name instead */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fst__thumb-img:empty {
+    display: none;
+  }
+  .fst__thumb-btn:has(.fst__thumb-img:empty) {
+    padding-top: 8px;
+    box-shadow: inset 0 2px 0 var(--fst-track);
+  }
+  .fst__thumb.is-on .fst__thumb-btn:has(.fst__thumb-img:empty) {
+    box-shadow: inset 0 2px 0 var(--fst-ring);
+  }
+}
+
+/*
+ * the solution's card on any phone: the whole of it on one screen, whatever the screen's height (the browser's bar
+ * showing or not): the card gives up height first (it is as tall as its width allows, less on a short screen), and the
+ * gaps between the parts close a little with the screen. The section heading, the step's name and line, the card, the
+ * bar and every step in the strip stay on the screen.
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fst--solution .fst__pin {
+    height: 100svh;
+    min-height: 540px;
+    padding-top: calc(var(--nav-h) + clamp(12px, 2.6svh, 22px));
+    padding-bottom: max(clamp(14px, 2.6svh, 24px), env(safe-area-inset-bottom, 0px));
+    overflow: hidden;
+  }
+  .fst--solution .fst__title {
+    font-size: clamp(28px, min(9.25vw, 4.6svh), 38px);
+  }
+  /* (as tall as a two-line name and a three-line line, whatever the step says: the card never moves between steps) */
+  .fst--solution .fst__head {
+    flex: none;
+    min-height: calc(clamp(21px, 5.8vw, 24px) * 1.15 * 2 + 8px + clamp(15px, 4.1vw, 16px) * 1.45 * 3);
+    margin-top: clamp(10px, 2.4svh, 22px);
+  }
+  .fst--solution .fst__card {
+    flex: 1 1 auto;
+    min-height: 120px;
+    max-height: calc((100vw - 2 * var(--gutter)) / 1.27);
+    aspect-ratio: auto;
+    margin-top: clamp(12px, 2.4svh, 22px);
+  }
+  .fst--solution .fst__bar {
+    flex: none;
+    margin-top: clamp(10px, 2svh, 18px);
+  }
+  .fst--solution .fst__ctrl {
+    flex: none;
+    margin-top: clamp(6px, 1.4svh, 12px);
+  }
+  .fst--solution .fst__strip {
+    flex: none;
+    margin-top: clamp(10px, 2svh, 18px);
   }
 }

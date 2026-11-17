@@ -1,10 +1,11 @@
+import { release } from '../../lib/settle'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
 import { createBus } from '../three/kit'
 import { ScrubRig } from '../three/ScrubRig'
-import { FollowScroll, smooth, useScrollProgress } from '../progress'
+import { FollowScroll, smooth, useScrollProgress, type Progress } from '../progress'
 import { ARRIVE, BurstUnit, CAST, CLOSE, NUMBER, burstAt, burstShot } from '../three/unit/BurstUnit'
 import { BUILD, type Layer } from '../three/unit/parts'
 import { REVIEW } from '../content'
@@ -64,6 +65,8 @@ const NEAR = 0.006
  * further still: the unit smaller, clear of the heading at the top and the layer's words at the foot) */
 const ROOM = 1.08
 const PHONE_ROOM = 1.3
+/** a phone's film of the layers: how long each takes to come in, and how long it is held before the next (ms) */
+const PLAY = { move: 1100, hold: 1300 }
 /** the word in the box: how to go through the layers */
 const HOW: Hint = { text: 'Scroll or use the arrows', icon: 'scroll' }
 
@@ -73,7 +76,107 @@ export function Layers() {
   const box = useRef<HTMLDivElement>(null)
   const rx = useRef<HTMLSpanElement>(null)
   const ry = useRef<HTMLSpanElement>(null)
-  const [progress] = useScrollProgress(section, 1, 'run')
+  const [scrolled] = useScrollProgress(section, 1, 'run')
+  /*
+   * A phone plays the layers as a film: one screen, the layers coming in by themselves, each held a moment, on to the
+   * unit closed, where it stops (`ended`); a dash picked plays on from its layer to the end again. A wide screen follows
+   * the scroll through its run, as it always has.
+   */
+  const played = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
+  // (a phone too is put together by the scroll now, a layer a swipe, as the wide screen: played by itself it ran ahead of
+  // the visitor, its opening gone and its unit closed before they had come to it. The film is kept, off)
+  // (on again, the user's, 17 Nov 2026: on a natively scrolled phone a fling ran past layers; the page now settles on the
+  // section, src/lib/settle.ts, and it plays from the first layer, with a skip to the end)
+  const film = compact
+  /*
+   * A phone scrolls natively (motion.ts `nativeScroll`): no stepper takes it past the run's opening stretch, where no layer
+   * has come in yet, so the page could rest on an empty screen. Its run starts at the first layer in place (`STOPS[0]`)
+   * and goes on to the end over the section's whole scroll.
+   */
+  const phoneRun = useMemo<Progress>(() => ({ value: STOPS[0], listeners: new Set() }), [])
+  useEffect(() => {
+    if (!compact || film) return
+    const follow = () => {
+      const v = STOPS[0] + scrolled.value * (1 - STOPS[0])
+      if (phoneRun.value === v) return
+      phoneRun.value = v
+      phoneRun.listeners.forEach((f) => f())
+    }
+    follow()
+    scrolled.listeners.add(follow)
+    return () => void scrolled.listeners.delete(follow)
+  }, [compact, film, scrolled, phoneRun])
+  const progress = film && compact ? played : compact ? phoneRun : scrolled
+  const [ended, setEnded] = useState(false)
+  /** a phone, the scroll at the unit closed: the dashes say they can be picked, as the systems' builds end */
+  const [closed, setClosed] = useState(false)
+  /** a step picked since it played through: the dashes stop rippling, the one picked lit */
+  const [picked] = useState(false)
+  /** play on from stop `i` to the end (a phone) */
+  const playFrom = useRef<(i: number) => void>(() => {})
+  /** show stop `i` and hold there (a phone: a dash picked once the film has played) */
+  const showAt = useRef<(i: number) => void>(() => {})
+  useEffect(() => {
+    const el = section.current
+    if (!film || !compact || !el) return
+    let raf = 0
+    let timer = 0
+    let started = false
+    const set = (v: number) => {
+      played.value = v
+      played.listeners.forEach((f) => f())
+    }
+    const tween = (to: number, ms: number, done: () => void) => {
+      const from = played.value
+      const t0 = performance.now()
+      const f = (now: number) => {
+        const t = Math.min(1, (now - t0) / ms)
+        set(from + (to - from) * (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2))
+        if (t < 1) raf = requestAnimationFrame(f)
+        else done()
+      }
+      raf = requestAnimationFrame(f)
+    }
+    /*
+     * a part a scroll (the user's, 18 Nov 2026): held on the screen (src/lib/settle.ts, `data-hold`), each swipe on or back
+     * is a layer, told here (`holdstep`); its first and last say so (`data-hold-at`), so a swipe back from the first or on
+     * from the last is the page's, natural. A dash picked, or the skip, goes straight to its layer.
+     */
+    const last = STOPS.length - 1
+    let cur = 0
+    const go = (i: number) => {
+      cur = Math.max(0, Math.min(last, i))
+      el.dataset.holdAt = cur === 0 ? 'first' : cur === last ? 'last' : 'mid'
+      // (gone through to the end once: let go for the visit, the page scrolls past it freely both ways: never held again)
+      if (cur === last) release(el)
+      cancelAnimationFrame(raf)
+      window.clearTimeout(timer)
+      setEnded(cur === last)
+      tween(STOPS[cur], PLAY.move, () => {})
+    }
+    el.dataset.holdAt = 'first'
+    showAt.current = go
+    playFrom.current = go
+    const onStep = (e: Event) => go(cur + ((e as CustomEvent<number>).detail > 0 ? 1 : -1))
+    el.addEventListener('holdstep', onStep)
+    // (its first layer comes in once it holds half the screen, the first time)
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (started || e.intersectionRatio < 0.5) return
+        started = true
+        set(0)
+        go(0)
+      },
+      { threshold: [0, 0.5] },
+    )
+    io.observe(el)
+    return () => {
+      io.disconnect()
+      el.removeEventListener('holdstep', onStep)
+      cancelAnimationFrame(raf)
+      window.clearTimeout(timer)
+    }
+  }, [film, compact, played])
   const bus = useMemo(createBus, [])
   const live = useLive(box)
   const [focus, setFocus] = useState<Layer | null>(null)
@@ -124,10 +227,13 @@ export function Layers() {
       back.current?.setAttribute('aria-disabled', String(atStart))
       on.current?.setAttribute('aria-disabled', String(atEnd))
       const now = latest < 0 ? '' : all ? 'all' : `${BUILD[latest]}${BUILD[latest] === 'panel' && cast < 0.5 ? '-mesh' : ''}`
+      setClosed(compact && all)
       if (now !== shown) {
         shown = now
-        const n = now === 'all' ? 'One unit' : latest < 0 ? '' : `${String(NUMBER[BUILD[latest]]).padStart(2, '0')} / 06`
-        const name = now === 'all' ? 'Six layers, closed' : latest < 0 ? '' : now === 'panel-mesh' ? 'RTARIUM, before the concrete' : LAYER_NAME[BUILD[latest]]
+        // (a phone: the number alone, large, its "/ 06" beside it, as the systems' builds count their steps: StepFloor)
+        const n = now === 'all' ? (compact ? '06' : 'One unit') : latest < 0 ? '' : compact ? String(NUMBER[BUILD[latest]]).padStart(2, '0') : `${String(NUMBER[BUILD[latest]]).padStart(2, '0')} / 06`
+        // (a phone's names short, to sit beside the dashes on the narrowest screens)
+        const name = now === 'all' ? (compact ? 'One unit' : 'Six layers, closed') : latest < 0 ? '' : now === 'panel-mesh' ? (compact ? 'RTARIUM mesh' : 'RTARIUM, before the concrete') : LAYER_NAME[BUILD[latest]]
         const said = now === 'all' ? 'Six layers in one unit, hung from slab to slab.' : latest < 0 ? '' : now === 'panel-mesh' ? 'The RTARIUM textile, before its concrete is cast round it.' : LAYER_LINE[BUILD[latest]]
         if (count.current) count.current.textContent = n
         if (current.current) current.current.textContent = name
@@ -141,13 +247,15 @@ export function Layers() {
       progress.listeners.delete(paint)
       window.removeEventListener('resize', paint)
     }
-  }, [progress])
+  }, [progress, compact])
 
   /** the page's scroll for a point of the run */
   const yAt = (p: number) => {
     const el = section.current
     if (!el) return 0
-    return el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * p
+    // (a phone's run starts at the first layer: its point of the run back to its share of the scroll)
+    const q = compact && !film ? Math.max(0, (p - STOPS[0]) / (1 - STOPS[0])) : p
+    return el.getBoundingClientRect().top + window.scrollY + (el.offsetHeight - window.innerHeight) * q
   }
   const restAt = (l: Layer) => yAt(restP(l))
 
@@ -165,7 +273,8 @@ export function Layers() {
   stepRef.current = step
   useEffect(() => {
     const el = box.current
-    if (!compact || !el) return
+    // (a phone plays the layers by itself now: no swipe through them)
+    if (compact || !el) return
     const g = { id: -1, x: 0, y: 0 }
     const down = (e: globalThis.PointerEvent) => {
       if (e.pointerType === 'mouse') return
@@ -197,9 +306,12 @@ export function Layers() {
   const point = (l: Layer) => ({
     onPointerEnter: (e: PointerEvent) => e.pointerType === 'mouse' && setFocus(l),
     onPointerLeave: (e: PointerEvent) => e.pointerType === 'mouse' && setFocus(null),
-    onFocus: () => setFocus(l),
+    // (the keyboard's focus only: a tap on a phone focuses the button too, and the layers left dimmed stayed so until the
+    // next tap somewhere else, the unit drawn at a seventh of its strength)
+    onFocus: (e: { currentTarget: HTMLElement }) => e.currentTarget.matches(':focus-visible') && setFocus(l),
     onBlur: () => setFocus(null),
-    onClick: () => scrollToY(restAt(l)),
+    // (a phone: shows that layer and holds on it, the page staying where it is; a wide screen: the page goes there)
+    onClick: () => (film && compact ? showAt.current(l === 'panel' ? BUILD.length : BUILD.indexOf(l)) : scrollToY(restAt(l))),
   })
 
   // the title comes in as the section takes the screen, before the frame and its card: not while the opening above
@@ -226,7 +338,7 @@ export function Layers() {
   }, [])
 
   return (
-    <section ref={section} id="layers" className={`fu-layers on-yellow ${landed ? 'is-landed' : ''}`} data-stops={STOPS.join(',')} data-no-top="" data-back="all" aria-labelledby="fu-layers-title" style={{ '--run': RUN } as CSSProperties}>
+    <section ref={section} id="layers" className={`fu-layers on-yellow ${landed ? 'is-landed' : ''}`} data-stops={film && compact ? '0' : STOPS.join(',')} data-settle={film && compact ? '' : undefined} data-hold={film && compact ? '' : undefined} data-no-top="" data-back="all" aria-labelledby="fu-layers-title" style={{ '--run': film && compact ? 1 : RUN } as CSSProperties}>
       <div className="fu-layers__pin">
         <div className="fu-layers__copy">
           <h2 id="fu-layers-title" className="fu-layers__title">
@@ -265,7 +377,15 @@ export function Layers() {
 
               {/* which layer is in: its number of the six, and its name */}
               <p className="fu-sheet__now" aria-live="polite">
-                <span ref={count} className="num" />
+                {compact ? (
+                  // (a phone: the number large and its "/ 06" beside it, at the foot by the dashes)
+                  <span className="fu-sheet__big">
+                    <span ref={count} className="num" />
+                    <span className="fu-sheet__of num">/ 06</span>
+                  </span>
+                ) : (
+                  <span ref={count} className="num" />
+                )}
                 <span ref={current} className="fu-sheet__name" />
                 <span ref={line} className="fu-sheet__line" />
               </p>
@@ -283,12 +403,30 @@ export function Layers() {
 
               {/* how to go through them: the scroll, or the arrows */}
               <HintTag hint={HOW} className="fu-sheet__hint" />
+              {/* (a phone, played through: as the wide screen's bar says it, over the track, which ripples; unitized-phone.css) */}
+              {/* (a phone, while it plays: the way straight to the unit closed) */}
+              {film && compact && !ended && !picked && (
+                <button type="button" className="fu-sheet__again fu-sheet__skipto" onClick={() => showAt.current(STOPS.length - 1)}>
+                  Skip to the end
+                  <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                    <path d="M2.5 8h10M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+                  </svg>
+                </button>
+              )}
+              {((film && compact && (ended || picked)) || closed) && (
+                <p className="fu-sheet__again" role="status">
+                  Tap to view a layer
+                  <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                    <path d="M8 2.5v10M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+                  </svg>
+                </p>
+              )}
 
               {/* the six along the foot, in the order they go in (the frame first, on the left): each line fills from
                   the left as its layer comes in, and empties again as the page goes back */}
-              <ol className="fu-track" aria-label="Go to a layer">
+              <ol className={`fu-track ${(film && compact && ended && !picked) || closed ? 'is-ended' : ''}`} aria-label="Go to a layer">
                 {BUILD.map((l, k) => (
-                  <li key={l} ref={(el) => void (track.current[k] = el)} className="fu-track__cell" data-state="next">
+                  <li key={l} ref={(el) => void (track.current[k] = el)} className="fu-track__cell" data-state="next" style={{ '--k': k } as CSSProperties}>
                     <button type="button" className="fu-track__btn" {...point(l)}>
                       <span className="fu-track__line" aria-hidden="true" />
                       <span className="fu-track__name">{LAYER_NAME[l]}</span>

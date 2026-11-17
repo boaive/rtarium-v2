@@ -8,6 +8,7 @@ import { StepBar } from '../facade/unitized/StepBar'
 import { EnvelopeScene, spanAt, zoomAt } from './three/EnvelopeScene'
 import type { Room } from './three/fit'
 import { ANSWERS } from './content'
+import { RunStations } from '../flooring/RunStations'
 
 /**
  * A smarter approach to wall systems, on yellow, as the Unitized page runs RTARIUM's answers: one pinned screen, the words
@@ -93,7 +94,7 @@ function goTo(k: number) {
   scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight)
 }
 
-export function Answers() {
+function AnswersWide() {
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const words = useRef<(HTMLDivElement | null)[]>([])
@@ -325,5 +326,29 @@ export function Answers() {
         <StepBar label="A smarter approach to wall systems" names={ANSWERS.map((a) => a.bar)} step={step} onGo={goTo} cellRef={(k, el) => void (cells.current[k] = el)} hints="run" />
       </div>
     </section>
+  )
+}
+
+/**
+ * a phone: the slides as the Unitized page's answers (RunStations: Stations, the solution's card), each played live in
+ * the card, no labels over it (the step's name and line under the card say it), the whole scene inside the card
+ */
+export function Answers() {
+  return useIsCompact() ? (
+    <RunStations
+      id="wall-answers"
+      title="A smarter approach to wall systems."
+      steps={ANSWERS.map((a) => ({ id: a.id, name: a.head.join(' '), line: a.line, labels: [] }))}
+      stretch={STRETCH.map((x) => x / 1.5)}
+      labels={LABELS}
+      scene={(t, bus, room) => <EnvelopeScene t={t} bus={bus} room={room as { current: Room }} />}
+      fallback={null}
+      thumbs="/img/walls/answer-step"
+      zoom={[1.08, 1.08, 1.08, 0.95, 1.08, 1.08]}
+      center
+      controls
+    />
+  ) : (
+    <AnswersWide />
   )
 }

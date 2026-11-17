@@ -9,5 +9,5 @@
   width: min(41rem, 36vw);
 }
 .fsc-build .fu-ans__shot {
-  height: clamp(72px, calc((100svh - var(--words-top) - var(--words-foot) - var(--block)) / 2 - var(--say) - var(--t-lead) * 1.6), 190px);
+  height: clamp(72px, calc((100lvh - var(--words-top) - var(--words-foot) - var(--block)) / 2 - var(--say) - var(--t-lead) * 1.6), 190px);
 }

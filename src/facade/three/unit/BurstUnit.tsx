@@ -75,7 +75,8 @@ export function burstShot(p: number, compact: boolean): Shot {
     azim: 54 - spread * 34 - close * 20 - after * 6,
     elev: 13 - close * 4,
     // (the nearest layers loom largest, on the left: the unit stands a little right of the middle while it is apart)
-    frame: [0.5 + spread * 0.06, 0.52],
+    // (a phone: a little lower, clear of the layer's name and line over it)
+    frame: [0.5 + spread * 0.06, compact ? 0.58 : 0.52],
   }
 }
 
@@ -326,7 +327,7 @@ export function BurstUnit({ progress, focus, bus, live }: { progress: Progress; 
         {/* the textile where the skin is cut back to it */}
         <Anchor bus={bus} id="b-mesh" position={[(PANEL_CUT[0] + PANEL_CUT[2]) / 2, PANEL_CUT[1] + (PANEL_CUT[3] - PANEL_CUT[1]) * 0.62, zm]} />
       </group>
-      <StudioFog />
+      <StudioFog follow />
       {/* the studio floor: a fine grid that goes into the dark, and the shadows on it */}
       <gridHelper args={[18, 36, '#2e2e2e', '#232323']} position={[U.w / 2, -0.012, 1.4]} />
       <mesh position={[U.w / 2, -0.01, 1.4]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -337,12 +338,23 @@ export function BurstUnit({ progress, focus, bus, live }: { progress: Progress; 
   )
 }
 
-/** the studio's air: what is far off goes into the container's own dark */
-export function StudioFog({ color = '#121212', near = 13, far = 30 }: { color?: string; near?: number; far?: number }) {
+/**
+ * the studio's air: what is far off goes into the container's own dark. `follow`: its start kept just behind the model,
+ * however far the camera stands back (a phone stands back from the six layers spread apart, twice as far as a wide
+ * screen: the fog set from the camera took the unit itself into the dark, every layer dim until it closed)
+ */
+export function StudioFog({ color = '#121212', near = 13, far = 30, follow = false }: { color?: string; near?: number; far?: number; follow?: boolean }) {
   const scene = useThree((s) => s.scene)
   useEffect(() => {
     scene.fog = new THREE.Fog(color, near, far)
     return () => void (scene.fog = null)
   }, [scene, color, near, far])
+  useFrame(({ camera }) => {
+    if (!follow || !(scene.fog instanceof THREE.Fog)) return
+    // (the model stands about the origin: the fog starts a little past it, and thickens over the same depth as before)
+    const d = camera.position.length()
+    scene.fog.near = Math.max(near, d + 3)
+    scene.fog.far = scene.fog.near + (far - near)
+  })
   return null
 }

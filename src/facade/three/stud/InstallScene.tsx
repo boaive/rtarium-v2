@@ -104,6 +104,12 @@ export function installShot(p: number, compact: boolean, settle = 0): Shot {
   // finished: round a little, so the bands are seen wrapping the end
   // (far enough back that the crane, left standing, clears the header)
   const fin: Shot = { target: [TOWER_W * 0.55, (MAST_H + HEAD) * 0.5, -TOWER.r], dist: 133 * kw, azim: -42, elev: 11, frame: [0.5, 0.5] }
+  // a phone: from the bay out to the tower and its crane as the element is brought, and held there to the finish (as the
+  // Unitized page's slab to slab): back in at the bay, the tower's drawing would stand all round it, a screen of lines
+  if (compact) {
+    const out = mixShot(mixShot(near, wide, smooth(INSTALL.seats[1] + 0.01, INSTALL.seats[1] + 0.07, p)), done, settle)
+    return mixShot(out, fin, smooth(INSTALL.finish[0], INSTALL.finish[1], p))
+  }
   let s = mixShot(near, lift, smooth(INSTALL.crane[0] - 0.02, INSTALL.lift[0] + 0.04, p))
   s = mixShot(s, back, smooth(INSTALL.lift[1] - 0.07, INSTALL.hook[1], p))
   s = mixShot(s, look, lean)

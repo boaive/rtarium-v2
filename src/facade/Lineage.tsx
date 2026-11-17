@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { scrollToY, stepScreens } from '../lib/scroll'
+import { DeckCards, type DeckItem } from './DeckCards'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import type { Ground } from '../three/stageStore'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from './three/Stage3D'
@@ -386,9 +387,6 @@ export function Lineage({ phone = 'screens', ...props }: LineageProps) {
   return phone === 'cards' ? <LineageCards {...props} /> : <LineagePhone {...props} />
 }
 
-/** a card's two parts, each its own heading and its sign, what it says folded until the sign is pressed */
-type Part = { label: string; text: string }
-
 /**
  * a card's drawing, top right, as the deck on Home draws its strengths: plain hairlines, a touch of yellow, read at a
  * glance and nothing a specialist needs to know. Steel bar: two ribbed bars. Glass fibre: short strands, loose. Steel
@@ -417,9 +415,6 @@ const ICONS: Record<string, ReactNode> = {
   ),
 }
 
-/** how far of the screen's height the scroll deals each card */
-const DECK_RUN = 75
-
 /**
  * The story on a phone as a deck, as Home's "One mesh in place of three compromises" deals its cards (Why: Cards): on
  * yellow, white cards, the section holding still while the scroll deals them one onto another, a band lower each time,
@@ -430,160 +425,42 @@ const DECK_RUN = 75
  * it replaces, struck through.
  */
 function LineageCards({ sectionRef, versions = VERSIONS, words = FACADE_WORDS, id = 'lineage' }: LineageProps) {
-  const n = versions.length
-  const parts = (v: Version): Part[] =>
-    v.claim
-      ? [
-          { label: words.claim, text: v.claim },
-          ...(v.line ? [{ label: words.line ?? 'What it comes to', text: v.line }] : []),
-        ]
-      : [
-          ...(v.replaced ? [{ label: words.replaced, text: v.replaced }] : []),
-          ...(v.used ? [{ label: words.used, text: v.used }] : []),
-        ]
-  /** which part of each card is open: the first, to begin with */
-  const [open, setOpen] = useState<number[]>(() => versions.map(() => 0))
-  const flip = (i: number, k: number) => setOpen((o) => o.map((x, a) => (a === i ? (x === k ? -1 : k) : x)))
-  const section = useRef<HTMLElement | null>(null)
-  const list = useRef<HTMLOListElement>(null)
-
-  // the deal: the section's run, read as the page scrolls, `--deck` 0 to n - 1 (the deck's own CSS, as Home's)
-  useEffect(() => {
-    const el = section.current
-    const deck = list.current
-    if (!el || !deck) return
-    if (prefersReducedMotion()) return void deck.style.setProperty('--deck', String(n - 1))
-    let raf = 0
-    const read = () => {
-      raf = 0
-      const r = el.getBoundingClientRect()
-      const pin = el.querySelector<HTMLElement>('.fdeck__in')
-      const run = Math.max(1, r.height - (pin?.offsetHeight ?? window.innerHeight))
-      deck.style.setProperty('--deck', (Math.min(1, Math.max(0, -r.top / run)) * (n - 1)).toFixed(4))
-    }
-    const on = () => {
-      if (!raf) raf = requestAnimationFrame(read)
-    }
-    read()
-    window.addEventListener('scroll', on, { passive: true })
-    window.addEventListener('resize', on)
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('scroll', on)
-      window.removeEventListener('resize', on)
-    }
-  }, [n])
-
-  /**
-   * a tap on a card under the one in front: the page goes back to that card's own step, where it was the one in front
-   * (the cards over it slide back down off it), as the scroll dealt it
-   */
-  const goToCard = (i: number) => {
-    const el = section.current
-    const deck = list.current
-    if (!el || !deck) return
-    const now = Math.round(Number(deck.style.getPropertyValue('--deck') || 0))
-    if (i >= now) return
-    const pin = el.querySelector<HTMLElement>('.fdeck__in')
-    const run = Math.max(1, el.offsetHeight - (pin?.offsetHeight ?? window.innerHeight))
-    scrollToY(el.getBoundingClientRect().top + window.scrollY + (run * i) / Math.max(1, n - 1))
-  }
-
   /** what RTARIUM replaces: what the others are reinforced with */
   const struck = versions.slice(0, -1).map((v) => v.material)
-  return (
-    <section
-      ref={(el) => {
-        section.current = el
-        if (sectionRef) (sectionRef as { current: HTMLElement | null }).current = el
-      }}
-      id={id}
-      className="fdeck on-yellow"
-      data-ground="yellow"
-      data-flow=""
-      style={{ '--n': n, '--run': DECK_RUN } as CSSProperties}
-      aria-labelledby={`${id}-title`}
-    >
-      <div className="fdeck__in">
-        <h2 id={`${id}-title`} className="fdeck__title">
-          {words.title}
-        </h2>
-        <ol ref={list} className="vs vs--deck fdeck__list">
-          {versions.map((v, i) => {
-            const ours = !!v.claim
-            return (
-              <li key={v.id} className="vs__card fdeck__card" style={{ '--i': i, '--pos': i } as CSSProperties} aria-labelledby={`fs-${v.id}`} onClick={() => goToCard(i)}>
-                <div className="vs__top">
-                  <span className="vs__count num">
-                    <b>0{i + 1}</b> / 0{n}
-                  </span>
-                  {ours ? (
-                    <img className="fdeck__logo" src="/brand/rtarium-emblem.png" alt="RTARIUM" width={256} height={256} loading="lazy" decoding="async" />
-                  ) : (
-                    ICONS[v.id] && (
-                      <span className="vs__glyph" aria-hidden="true">
-                        {ICONS[v.id]}
-                      </span>
-                    )
-                  )}
-                </div>
-                <h3 id={`fs-${v.id}`} className="vs__strength fdeck__name">
-                  {v.name}
-                </h3>
-                <p className="fdeck__full">{v.full}</p>
-                <div className="fdeck__parts">
-                  {parts(v).map((p, k) => {
-                    const on = open[i] === k
-                    const body = `${id}-${v.id}-part${k}`
-                    return (
-                      <div key={p.label} className={`fdeck__part ${on ? 'is-open' : ''}`}>
-                        <button
-                          type="button"
-                          className="fdeck__part-head"
-                          aria-expanded={on}
-                          aria-controls={body}
-                          onClick={(e) => {
-                            // (a sign opens or closes its part; it never moves the deck)
-                            e.stopPropagation()
-                            flip(i, k)
-                          }}
-                        >
-                          <span className="fdeck__label">{p.label}</span>
-                          <span className="fdeck__sign" aria-hidden="true">
-                            <span className="fdeck__icon" />
-                          </span>
-                        </button>
-                        <div id={body} className="fdeck__body" role="region" aria-label={p.label} inert={!on}>
-                          <div className="fdeck__body-in">
-                            <p>{p.text}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <p className="fdeck__foot">
-                  {ours ? (
-                    <>
-                      <span className="fdeck__tag">Replaces</span>
-                      {struck.map((m) => (
-                        <s key={m}>{m}</s>
-                      ))}
-                    </>
-                  ) : (
-                    <>
-                      <span className="fdeck__tag">In a panel</span>
-                      <span>{v.thick} mm thick</span>
-                    </>
-                  )}
-                </p>
-              </li>
-            )
-          })}
-        </ol>
-      </div>
-    </section>
-  )
+  const items: DeckItem[] = versions.map((v) => {
+    const ours = !!v.claim
+    return {
+      id: v.id,
+      name: v.name,
+      full: v.full,
+      icon: ours ? (
+        <img className="fdeck__logo" src="/brand/rtarium-emblem.png" alt="RTARIUM" width={256} height={256} loading="lazy" decoding="async" />
+      ) : (
+        ICONS[v.id] && (
+          <span className="vs__glyph" aria-hidden="true">
+            {ICONS[v.id]}
+          </span>
+        )
+      ),
+      parts: ours
+        ? [{ label: words.claim, text: v.claim ?? '' }, ...(v.line ? [{ label: words.line ?? 'What it comes to', text: v.line }] : [])]
+        : [...(v.replaced ? [{ label: words.replaced, text: v.replaced }] : []), ...(v.used ? [{ label: words.used, text: v.used }] : [])],
+      foot: ours ? (
+        <>
+          <span className="fdeck__tag">Replaces</span>
+          {struck.map((m) => (
+            <s key={m}>{m}</s>
+          ))}
+        </>
+      ) : (
+        <>
+          <span className="fdeck__tag">In a panel</span>
+          <span>{v.thick} mm thick</span>
+        </>
+      ),
+    }
+  })
+  return <DeckCards id={id} title={words.title} items={items} sectionRef={sectionRef} />
 }
 
 /** the grounds of the windows on a phone, in turn: yellow, black, warm white */

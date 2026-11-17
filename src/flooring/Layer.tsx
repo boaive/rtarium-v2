@@ -7,6 +7,7 @@ import { createBus } from '../facade/three/kit'
 import { CellRig, type CellShot } from '../facade/three/CellRig'
 import { smooth, STORY_STEP } from '../facade/progress'
 import { FloorSample, type SampleKind } from './three/FloorSample'
+import { DeckCards, type DeckItem } from '../facade/DeckCards'
 
 /**
  * The layer: what RTARIUM is in a floor, in the Façade overview's story (Lineage), its boxes and its
@@ -177,47 +178,58 @@ function Sample({ k, compact }: { k: number; compact: boolean }) {
 }
 
 export function Layer(props: { sectionRef: RefObject<HTMLElement | null>; paged?: boolean }) {
-  return useIsCompact() ? <LayerPhone sectionRef={props.sectionRef} /> : <LayerGrid {...props} />
+  return useIsCompact() ? <LayerCards sectionRef={props.sectionRef} /> : <LayerGrid {...props} />
 }
 
-/** the grounds of the three windows on a phone: yellow, black, warm white, as the wide screen's blocks trade them */
-const PHONE_GROUND: Ground[] = ['yellow', 'black', 'light']
+/** a phone's card drawings, as the Unitized page's problems: plain hairlines, a touch of yellow */
+const LAYER_ICONS: Record<string, ReactNode> = {
+  // a slab dropped at its joint, the crack up through the screed
+  headache: (
+    <svg viewBox="0 0 40 40">
+      <path d="M5 16h30M5 22h14M21 26h14M19 22v4" />
+      <path className="vs__glyph-fill" d="M19 16l-2 3 3 1-2 2h3l1-3-2-1 1-2z" />
+      <path d="M5 30h14M21 34h14" />
+    </svg>
+  ),
+  // the mesh between the slab and the screed
+  layer: (
+    <svg viewBox="0 0 40 40">
+      <path d="M5 12h30M5 28h30M5 34h30" />
+      <path className="vs__glyph-fill" d="M5 18h30v4H5z" />
+      <path d="M10 16v8M18 16v8M26 16v8" />
+    </svg>
+  ),
+  // the premix poured over it
+  premix: (
+    <svg viewBox="0 0 40 40">
+      <path d="M12 5h10l-2 8h-6z" />
+      <path className="vs__glyph-fill" d="M15 14h4l1 9h-6z" />
+      <path d="M5 26h30M5 30h30M5 34h30" />
+    </svg>
+  ),
+}
 
-/**
- * The layer on a phone: not the wide screen's boxes opening and closing about a crossing, but each block a window,
- * framed in hairlines, read down the page at the finger's own speed. Its number and what it is in small capitals over
- * a ruled line; its name in plain weight; and under them the panes: the floor sample, its own 3D, across the top;
- * the photograph and the one line that matters beside each other under it. Nothing else: the wide screen's longer
- * sentence stays there.
- */
-function LayerPhone({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
-  return (
-    <section ref={sectionRef} id="layer" className="lw" aria-labelledby="ffl-title">
-      <h2 id="ffl-title" className="visually-hidden">
-        The layer between the slab and the screed
-      </h2>
-      {BLOCKS.map((v, i) => (
-        <article key={v.id} className={`lw__block on-${PHONE_GROUND[i]}`} data-screen={PHONE_GROUND[i]} aria-labelledby={`ffl-${v.id}`}>
-          <p className="lw__num">
-            <span className="num">0{i + 1} /</span>
-            <span>{v.label || 'With your premix'}</span>
-          </p>
-          <h3 id={`ffl-${v.id}`} className="lw__name">
-            {v.name}
-          </h3>
-          <div className="lw__panes">
-            <div className="lw__pane lw__pane--3d">
-              <Sample k={i} compact />
-            </div>
-            <figure className="lw__pane lw__pane--photo">
-              <img src={v.photo.src} alt={v.photo.alt} loading="lazy" width={640} height={480} />
-            </figure>
-            <p className="lw__pane lw__pane--line">{v.line}</p>
-          </div>
-        </article>
-      ))}
-    </section>
-  )
+/** a card's name on a phone, short enough for one line (the block's own name goes under it) */
+const LAYER_SHORT: Record<string, string> = { headache: 'Cracked screed', layer: 'Basalt mesh', premix: 'Your premix' }
+
+/** a phone: the three dealt as the façade overview's story is (DeckCards, Home's deck), on yellow */
+function LayerCards({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
+  const items: DeckItem[] = BLOCKS.map((b) => ({
+    id: b.id,
+    name: LAYER_SHORT[b.id] ?? b.name,
+    full: b.name,
+    icon: (
+      <span className="vs__glyph" aria-hidden="true">
+        {LAYER_ICONS[b.id]}
+      </span>
+    ),
+    parts: [
+      { label: b.label || 'With your premix', text: b.line },
+      { label: 'In detail', text: b.full },
+    ],
+  }))
+  // (on yellow, as the façade overview's story)
+  return <DeckCards id="layer" title="The layer between the slab and the screed." items={items} sectionRef={sectionRef} />
 }
 
 function LayerGrid({ sectionRef, paged = false }: { sectionRef: RefObject<HTMLElement | null>; paged?: boolean }) {

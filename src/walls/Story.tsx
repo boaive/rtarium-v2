@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode, type RefObject } from 'react'
 import { Lineage, type LineageWords, type Version } from '../facade/Lineage'
+import { DeckCards, type DeckItem } from '../facade/DeckCards'
+import { useIsCompact } from '../lib/motion'
 import { Stage3D, MovingKeyLight } from '../facade/three/Stage3D'
 import { CellRig, type CellShot } from '../facade/three/CellRig'
 import { FACT_SIZE, FactScene, type Fact } from './three/FactScenes'
@@ -120,7 +122,57 @@ function FactCell({ fact, name, compact, dark }: { fact: Fact; name: string; com
   )
 }
 
+/** a phone's card drawings, as the Unitized page's problems: plain hairlines, a touch of yellow */
+const STORY_ICONS: Record<string, ReactNode> = {
+  muscle: (
+    <svg viewBox="0 0 40 40">
+      <path d="M8 8h24M14 8v6M26 8v6" />
+      <path className="vs__glyph-fill" d="M10 14h20v8H10z" />
+      <path d="M16 22v6M24 22v6M13 28h6v5h-6zM21 28h6v5h-6z" />
+    </svg>
+  ),
+  mesh: (
+    <svg viewBox="0 0 40 40">
+      <path d="M6 12h28M6 20h28M6 28h28M12 6v28M20 6v28M28 6v28" />
+      <circle className="vs__glyph-fill" cx="20" cy="20" r="3.4" />
+    </svg>
+  ),
+  made: (
+    <svg viewBox="0 0 40 40">
+      <path d="M6 30h28M6 30v-6M34 30v-6M10 30v-3M14 30v-3M18 30v-3M22 30v-3M26 30v-3M30 30v-3" />
+      <path className="vs__glyph-fill" d="M9 10h22v10H9z" />
+    </svg>
+  ),
+}
+
+/** a phone: the three dealt as the Unitized page's problems are (DeckCards, Home's deck), on black */
+function StoryCards({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
+  const items: DeckItem[] = BLOCKS.map((b) => ({
+    id: b.id,
+    name: b.name,
+    full: b.full,
+    icon: (
+      <span className="vs__glyph" aria-hidden="true">
+        {STORY_ICONS[b.id]}
+      </span>
+    ),
+    parts: [{ label: b.label ?? 'What it gives', text: b.replaced ?? '' }],
+    foot: (
+      <>
+        <span className="fdeck__tag">In a panel</span>
+        <span>{b.thick} mm thick</span>
+      </>
+    ),
+  }))
+  return <DeckCards id="walls-story" title={`${WORDS.title}.`} items={items} sectionRef={sectionRef} ground="black" />
+}
+
 export function Story({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
+  if (useIsCompact()) return <StoryCards sectionRef={sectionRef} />
+  return <StoryGrid sectionRef={sectionRef} />
+}
+
+function StoryGrid({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
   // the two boxes along the foot read left to right, first fact first: the blocks take turns at which box is on the
   // left (the photograph's on the even ones, the panel's on the odd); on a phone the panel's box stands above. A
   // photograph always goes in the photograph's box, framed as the story frames its photographs (it opens out of its corner)

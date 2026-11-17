@@ -15,7 +15,8 @@
   .fu-unit .fu-h,
   .fu-unit .fu-hero .fu-hero__name,
   .fu-unit .fu-layers .fu-layers__title,
-  .fu-unit .ways__title {
+  .fu-unit .ways__title,
+  .fu-unit #problems .fdeck__title {
     display: block;
     width: auto;
     max-width: 13em;
@@ -39,20 +40,53 @@
     gap: 10px;
   }
   .fu-unit .fu-hero .fu-hero__kind {
-    font-size: clamp(0.98rem, 4.2vw, 1.08rem);
+    font-size: clamp(1.02rem, 4.5vw, 1.15rem);
     line-height: 1.4;
-    color: var(--on-yellow-2);
+    color: var(--black);
+  }
+  /* the name heavy and large, as the statement at the foot is */
+  .fu-unit .fu-hero .fu-hero__name {
+    font-size: clamp(2.2rem, 10vw, 2.9rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1;
   }
   .fu-unit .fu-hero .fu-mega {
     font-size: clamp(1.93rem, 9.2vw, 2.82rem);
   }
+  /* where there is no 3D (no WebGL, or a scene that could not run): the panel's photograph framed in the room between
+     the heading and the statement, never the wide screen's narrow strip at the right edge, over the words */
+  .fu-unit .fu-hero__stage .fu-still {
+    position: absolute;
+    top: 30%;
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    width: min(58vw, 260px);
+    height: 38%;
+    transform: translateX(-50%);
+    object-fit: cover;
+    border-radius: 14px;
+    box-shadow: 0 24px 40px -24px rgb(60 40 0 / 0.55);
+  }
 
-  /* ---- six layers: the section's heading at the top, the layer in at the foot, no count ---- */
+  /*
+   * ---- six layers, as the systems' builds set a step (StepFloor, "Hang. Seal. Join. Done."): the section's heading at
+   * the top the whole way through, what the layer in does a plain line under it; the unit in the room below; along the
+   * foot the dashes on the left, and on the right the layer's number large, its "/ 06" beside it, its name under them in
+   * small capitals ----
+   */
 
+  .fu-unit .fu-layers {
+    /* the heading's two lines, for the line under them */
+    --lay-h: clamp(1.95rem, 8.6vw, 2.5rem);
+    --lay-top: calc(var(--nav-h) + clamp(18px, 3.4svh, 30px));
+    --lay-foot: clamp(16px, 3lvh, 28px);
+  }
   .fu-unit .fu-layers .fu-layers__copy {
     position: absolute;
     z-index: 4;
-    top: calc(var(--nav-h) + clamp(18px, 3.4svh, 30px));
+    top: var(--lay-top);
     left: var(--gutter);
     right: var(--gutter);
     display: block;
@@ -63,18 +97,167 @@
   .fu-unit .fu-layers .fu-deck {
     display: none;
   }
+  /* (its three parts each set where it goes, in the screen, not in a box of their own) */
   .fu-unit .fu-layers .fu-sheet__now {
-    inset: auto var(--gutter) calc(clamp(16px, 3svh, 28px) + 46px) var(--gutter);
-    gap: 6px;
-  }
-  .fu-unit .fu-layers .fu-sheet__now .num {
-    display: none;
-  }
-  .fu-unit .fu-layers .fu-sheet__name {
-    font-size: clamp(1.3rem, 5.8vw, 1.6rem);
+    display: contents;
   }
   .fu-unit .fu-layers .fu-sheet__line {
-    margin-top: 0;
+    position: absolute;
+    z-index: 5;
+    top: calc(var(--lay-top) + 2 * 1.04 * var(--lay-h) + 12px);
+    left: var(--gutter);
+    right: var(--gutter);
+    max-width: 24rem;
+    font-size: clamp(0.98rem, 4.2vw, 1.08rem);
+    line-height: 1.45;
+    color: rgb(242 240 233 / 0.72);
+  }
+  .fu-unit .fu-layers .fu-sheet__big {
+    position: absolute;
+    z-index: 5;
+    right: var(--gutter);
+    bottom: calc(var(--lay-foot) + 18px);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--yellow);
+  }
+  .fu-unit .fu-layers .fu-sheet__big > .num:first-child {
+    font-size: clamp(2.2rem, 10vw, 2.8rem);
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 0.86;
+  }
+  .fu-unit .fu-layers .fu-sheet__of {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: rgb(242 240 233 / 0.6);
+  }
+  .fu-unit .fu-layers .fu-sheet__name {
+    position: absolute;
+    z-index: 5;
+    right: var(--gutter);
+    bottom: var(--lay-foot);
+    /* (clear of the dashes, six of 22 px and their gaps, on the narrowest screens: one line, never over them) */
+    max-width: calc(100% - 2 * var(--gutter) - 170px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: rgb(242 240 233 / 0.6);
+  }
+  /* the dashes level with the number */
+  .fu-unit .fu-layers .fu-track {
+    bottom: calc(var(--lay-foot) + 14px) !important;
+  }
+
+  /* the track as the reference sets it: a short dash a layer, on the left, all grey but the one in, yellow; no names */
+  .fu-unit .fu-layers .fu-track {
+    right: auto;
+    display: flex;
+    gap: 8px;
+  }
+  .fu-unit .fu-layers .fu-track::before {
+    content: none;
+  }
+  .fu-unit .fu-layers .fu-track__cell {
+    width: 22px;
+  }
+  .fu-unit .fu-layers .fu-track__btn {
+    gap: 0;
+    padding: 12px 0;
+  }
+  .fu-unit .fu-layers .fu-track__name {
+    display: none;
+  }
+  .fu-unit .fu-layers .fu-track__line {
+    height: 3px;
+    border-radius: 2px;
+    background: rgb(242 240 233 / 0.22);
+    transition: background-color 0.35s var(--ease-out);
+  }
+  .fu-unit .fu-layers .fu-track__line::after {
+    content: none;
+  }
+  .fu-unit .fu-layers .fu-track__cell[data-state='now'] .fu-track__line {
+    background: var(--yellow);
+  }
+
+  /*
+   * played through to the unit closed (a phone plays the layers as a film): as the wide screen's bar says it, over the
+   * dashes, a small arrow pointing down at them; and the dashes ripple one after another, to show they can be picked
+   */
+  .fu-unit .fu-layers .fu-sheet__again {
+    position: absolute;
+    z-index: 5;
+    left: var(--gutter);
+    bottom: calc(var(--lay-foot) + 50px);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(242 240 233 / 0.72);
+    pointer-events: none;
+    animation: fu-again-in 0.45s var(--ease-out) both;
+  }
+  /* the skip: the same small line, a button, its arrow pointing on and still */
+  .fu-unit .fu-layers .fu-sheet__skipto {
+    min-height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    pointer-events: auto;
+  }
+  .fu-unit .fu-layers .fu-sheet__skipto svg {
+    animation: none;
+  }
+  .fu-unit .fu-layers .fu-sheet__again svg {
+    color: var(--yellow);
+    animation: fu-point 1.4s var(--ease-in-out) infinite;
+  }
+  @keyframes fu-again-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 6px, 0);
+    }
+  }
+  @keyframes fu-point {
+    50% {
+      transform: translateY(3px);
+    }
+  }
+  .fu-unit .fu-layers .fu-track.is-ended .fu-track__line {
+    animation: fu-wave 2.4s var(--ease-in-out) calc(var(--k) * 0.12s) infinite;
+  }
+  @keyframes fu-wave {
+    0%,
+    40%,
+    100% {
+      transform: none;
+      background: rgb(242 240 233 / 0.22);
+    }
+    18% {
+      transform: translateY(-4px) scaleY(1.6);
+      background: var(--yellow);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fu-unit .fu-layers .fu-sheet__again,
+    .fu-unit .fu-layers .fu-sheet__again svg,
+    .fu-unit .fu-layers .fu-track.is-ended .fu-track__line {
+      animation: none;
+    }
   }
 
   /*

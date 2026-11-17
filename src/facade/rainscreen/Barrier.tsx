@@ -89,7 +89,8 @@ const LISTINGS: Listing[] = [
 ]
 const N = LISTINGS.length
 /** how many rows a listing's stage stands under: the last leaves its own row's slot empty, so its row is lowered into free space, over nothing */
-const under = (k: number) => (k === N - 1 ? N : k)
+const under = (k: number, compact = false) => (compact ? k + 1 : k === N - 1 ? N : k)
+/* (a phone: each listing's row is its header, there as the listing arrives, so its stage stands under its own row too) */
 
 /** screens of scroll per listing, and the stretch of its hold in which its 3D plays (screens into the hold) */
 const RUN = 3.1
@@ -144,25 +145,38 @@ function ListingView({ item, k, L, compact, refs }: { item: Listing; k: number; 
   const live = useLive(view)
   const { Scene } = item
   return (
-    <article ref={(el) => void (refs.block[k] = el)} className="fr-bw__block" style={{ '--k': under(k), '--run': k === N - 1 ? RUN_LAST : RUN } as CSSProperties} aria-labelledby={`fr-bw-${item.id}`}>
+    <article ref={(el) => void (refs.block[k] = el)} className="fr-bw__block" style={{ '--k': under(k, compact), '--run': k === N - 1 ? RUN_LAST : RUN } as CSSProperties} aria-labelledby={`fr-bw-${item.id}`}>
       <div ref={(el) => void (refs.stage[k] = el)} className="fr-bw__stage">
         {/* the words, on the yellow: they stand still; the boxes' edges pass them */}
         <div className="fr-bw__words" style={{ '--x': L.words[0], '--y': L.words[1], '--w': L.words[2], '--h': L.words[3] } as CSSProperties}>
-          <div className="fr-bw__top">
-            {/* said once, on the first listing */}
-            {k === 0 ? (
-              <h2 id="fr-bw-title" className="fr-kicker">
-                A perfect weather-resistance barrier
-              </h2>
-            ) : (
-              <span aria-hidden="true" />
-            )}
-            <p className="fr-count num" aria-hidden="true">
-              0{k + 1} <span>/ 0{N}</span>
-            </p>
-          </div>
+          {/* (a phone: no kicker and no count over the words; the section's line the first point's heading, its 90% said
+              in the line under it) */}
+          {!compact && (
+            <div className="fr-bw__top">
+              {/* said once, on the first listing */}
+              {k === 0 ? (
+                <h2 id="fr-bw-title" className="fr-kicker">
+                  A perfect weather-resistance barrier
+                </h2>
+              ) : (
+                <span aria-hidden="true" />
+              )}
+              <p className="fr-count num" aria-hidden="true">
+                0{k + 1} <span>/ 0{N}</span>
+              </p>
+            </div>
+          )}
           <div id={`fr-bw-${item.id}`} className="fr-bw__beat">
-            {item.head}
+            {compact && k === 0 ? (
+              <>
+                <h2 id="fr-bw-title" className="fr-name">
+                  A perfect weather-resistance barrier
+                </h2>
+                <p className="fr-say">90% of the rain and wind, turned away at the face.</p>
+              </>
+            ) : (
+              item.head
+            )}
           </div>
         </div>
 
@@ -223,7 +237,7 @@ export function Barrier() {
         if (!b || !stage) return
         const r = b.getBoundingClientRect()
         const sr = stage.getBoundingClientRect()
-        const rest = navH + under(k) * rowH
+        const rest = navH + under(k, compact) * rowH
         // where the listing is: 1 its stage at the foot of the screen, 0 held, −1 gone above
         const p = (sr.top - rest) / Math.max(1, sr.height)
         // its boxes: out of the corner as it comes up, back into it as it goes (the overview's timings)
@@ -266,7 +280,9 @@ export function Barrier() {
         // the last as its own listing arrives, so its slot is never left empty
         const row = rows.current[k]
         if (row) {
-          const lastOne = k === N - 1
+          const lastOne = compact || k === N - 1
+          // (a phone: every row, the first too, drops into its slot as its listing comes up; the first's slot is the band
+          // left over its words at the section's top, so it never crosses them)
           const d = reduced ? Number(lastOne ? p < 0.15 : p < -0.1) : ease(lastOne ? smooth(0.6, 0.15, p) : smooth(-0.02, -0.3, p))
           row.style.transform = `translate3d(0, ${((d - 1) * 100).toFixed(3)}%, 0)`
           row.style.visibility = d > 0.002 ? 'visible' : 'hidden'
@@ -277,6 +293,9 @@ export function Barrier() {
       // the rows leave with the section, never riding on into the next one
       const sec = section.current?.getBoundingClientRect()
       if (sec && rowsLayer.current) rowsLayer.current.style.transform = `translate3d(0, ${Math.min(0, sec.bottom - vh).toFixed(1)}px, 0)`
+      // (a phone: the cap stands over the screen above the section until the section reaches the header; shown only then)
+      const cap = section.current?.querySelector<HTMLElement>('.fr-bw__cap')
+      if (sec && cap) cap.style.visibility = !compact || sec.top <= navH + 0.5 ? 'visible' : 'hidden'
       if (moving) raf = requestAnimationFrame(tick)
     }
     const kick = () => {
@@ -293,7 +312,7 @@ export function Barrier() {
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
     }
-  }, [refs, L])
+  }, [refs, L, compact])
 
   // one scroll a step, by the page's stepper: each listing as it arrives, then its 3D played out, a scroll of its own
   useEffect(() => {
@@ -302,14 +321,14 @@ export function Barrier() {
     const write = () => {
       const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
       const rowH = rows.current[0]?.offsetHeight ?? 0
-      listingStops(el, refs.block, (k) => navH + under(k) * rowH, PLAY[1])
+      listingStops(el, refs.block, (k) => navH + under(k, compact) * rowH, PLAY[1])
     }
     // going up, back through it the same way, a listing at a time (as the overview's story), never over it whole
     el.dataset.back = 'all'
     write()
     window.addEventListener('resize', write)
     return () => window.removeEventListener('resize', write)
-  }, [refs, L])
+  }, [refs, L, compact])
 
   /** a row takes you back to where its listing's 3D has played out */
   const go = (k: number) => {
@@ -317,11 +336,11 @@ export function Barrier() {
     if (!b) return
     const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
     const rowH = rows.current[0]?.offsetHeight ?? 0
-    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + under(k) * rowH) + PLAY[1] * window.innerHeight)
+    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + under(k, compact) * rowH) + PLAY[1] * window.innerHeight)
   }
 
   return (
-    <section ref={section} id="barrier" className="fr-bw" aria-labelledby="fr-bw-title" style={{ '--run': RUN } as CSSProperties}>
+    <section ref={section} id="barrier" className="fr-bw" data-settle={compact ? '' : undefined} aria-labelledby="fr-bw-title" style={{ '--run': RUN } as CSSProperties}>
       {/* the outcomes reached, under the header, on the yellow: never struck, and the way back */}
       <nav ref={rowsLayer} className="fr-bw__rows" aria-label="What the rainscreen ends">
         <ol>

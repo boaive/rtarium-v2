@@ -9,6 +9,7 @@ import { FLOORING, FLOORING_APPS, type FlooringAppId } from '../content'
 import { FlooringTrio } from '../three/FlooringTrio'
 import { PhonePick } from '../../facade/PhonePick'
 import { useIsCompact } from '../../lib/motion'
+import { WaysCards } from '../../facade/WaysCards'
 
 /**
  * Two more ways onto a floor, in the Façade system pages' close (`fu-more`, the overview's `fct`
@@ -16,7 +17,34 @@ import { useIsCompact } from '../../lib/motion'
  * applications in the next two, each with its floor over it as the overview shows it, its number, its
  * line and Explore. Pointing at a column fills it yellow and turns its floor towards the visitor.
  */
-export function More({ current, id, sectionRef }: { current: FlooringAppId | null; id?: string; sectionRef?: RefObject<HTMLElement | null> }) {
+type MoreProps = { current: FlooringAppId | null; id?: string; sectionRef?: RefObject<HTMLElement | null> }
+
+export function More(props: MoreProps) {
+  return useIsCompact() ? <MoreCards {...props} /> : <MoreWide {...props} />
+}
+
+/** On a phone: Home's row of cards, as the façade pages' close (WaysCards), a floor on each */
+function MoreCards({ current, id, sectionRef }: MoreProps) {
+  const pick = FLOORING_APPS.map((_, n) => n).filter((n) => FLOORING_APPS[n].id !== current)
+  const all = pick.length === FLOORING_APPS.length
+  return (
+    <WaysCards
+      id={id ?? 'fdc-more'}
+      sectionRef={sectionRef}
+      lines={all ? ['Three ways', 'onto a floor.'] : ['Two more ways', 'onto a floor.']}
+      overview={all ? undefined : { to: FLOORING.path, label: 'Advanced Flooring overview' }}
+      label="The flooring applications"
+      items={pick.map((n) => ({ id: FLOORING_APPS[n].id, title: FLOORING_APPS[n].title, path: FLOORING_APPS[n].path, num: n + 1, of: FLOORING_APPS.length }))}
+      model={(i, front, play, live) => (
+        <Stage3D shadows keyLight={false} fallback={<img className="ways__still" src="/img/flooring/dc-site-strip.webp" alt="" />}>
+          <FlooringTrio play={play} hover={front ? 0 : null} live={live} pick={[pick[i]]} />
+        </Stage3D>
+      )}
+    />
+  )
+}
+
+function MoreWide({ current, id, sectionRef }: MoreProps) {
   const pick = FLOORING_APPS.map((_, n) => n).filter((n) => FLOORING_APPS[n].id !== current)
   // with none left out (the overview itself): all three, "Three ways onto a floor", and no way back
   const all = pick.length === FLOORING_APPS.length

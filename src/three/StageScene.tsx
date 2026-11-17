@@ -122,6 +122,15 @@ const anchorPt: [number, number, number] = [0, 0, 0]
 /** where each screen is this frame: read once, used by the choice of the active screen and by the views */
 const rects = new Map<Region, DOMRect>()
 /** what each phone card's own canvas holds (its view's figures, as the idle check takes them) */
+/**
+ * The stage's own clears, always to transparent: three's shadow pass leaves the clear value opaque (1, 1, 1, 1), and the
+ * renderer starts out opaque until the scene's setup has run; a card drawn after either took an opaque ground into its
+ * own canvas (a black card, kept until its picture next changed: the flash at a tap)
+ */
+function clearClear(gl: THREE.WebGLRenderer) {
+  gl.setClearColor(0x000000, 0)
+  gl.clear()
+}
 const cardSigs = new WeakMap<Region, number[]>()
 /** a piece cut flush, square (Pose.cut): its four planes, set each frame from the tile's place */
 const CUT_PLANES = [new THREE.Plane(new THREE.Vector3(1, 0, 0)), new THREE.Plane(new THREE.Vector3(-1, 0, 0)), new THREE.Plane(new THREE.Vector3(0, 0, 1)), new THREE.Plane(new THREE.Vector3(0, 0, -1))]
@@ -477,7 +486,7 @@ export function StageScene({ compact, reduced }: Props) {
     gl.setScissorTest(false)
     if (!drawn.length) {
       if (!cleared.current) {
-        gl.clear()
+        clearClear(gl)
         cleared.current = true
       }
       for (const el of stage.labels.values()) if (el.style.opacity !== '0') el.style.opacity = '0'
@@ -527,7 +536,7 @@ export function StageScene({ compact, reduced }: Props) {
             m.frustumCulled = kept[i].culled
           })
           gl.setScissorTest(false)
-          gl.clear()
+          clearClear(gl)
         }
         scene.remove(probe)
         // and with the key light casting (the opening's shadow): the yarn's program with a shadow and its depth pass, made
@@ -540,7 +549,7 @@ export function StageScene({ compact, reduced }: Props) {
           gl.setScissor(0, 0, 1, 1)
           gl.render(scene, camera)
           gl.setScissorTest(false)
-          gl.clear()
+          clearClear(gl)
           key.castShadow = false
         }
       }
@@ -603,7 +612,7 @@ export function StageScene({ compact, reduced }: Props) {
       if (idle) return
     }
     sigNow.length = 0
-    gl.clear()
+    clearClear(gl)
     const rv = reduced ? 1 : clamp01(since / 1.6)
     // the opening piece is woven out from its middle
     const intro = reduced ? 1 : smoothstep(INTRO.delay, INTRO.delay + INTRO.duration, since)
@@ -617,7 +626,7 @@ export function StageScene({ compact, reduced }: Props) {
       gl.render(scene, camera)
       gl.setScissorTest(false)
       for (const m of hidden) m.visible = false
-      gl.clear()
+      clearClear(gl)
     }
 
     // ---- shared: the drag on the opening and the settle as it is woven ----------------------
@@ -1131,7 +1140,7 @@ export function StageScene({ compact, reduced }: Props) {
         gl.setScissorTest(true)
         gl.setViewport(0, 0, w, h)
         gl.setScissor(0, 0, w, h)
-        gl.clear()
+        clearClear(gl)
         gl.render(scene, camera)
         if (own.width !== pw || own.height !== ph) {
           own.width = pw
@@ -1142,7 +1151,7 @@ export function StageScene({ compact, reduced }: Props) {
           ctx.clearRect(0, 0, pw, ph)
           ctx.drawImage(gl.domElement, 0, gl.domElement.height - ph, pw, ph, 0, 0, pw, ph)
         }
-        gl.clear()
+        clearClear(gl)
         gl.setViewport(0, 0, vw, vh)
         camera.aspect = vw / vh
         continue

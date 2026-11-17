@@ -84,13 +84,36 @@ function wedge(x0: number, x1: number, y0: number, y1: number, root: number, tip
 
 /** a plate with the tie holes through it, `t` thick from z = 0, its faces and edges grouped */
 function holed(x0: number, y0: number, x1: number, y1: number, t: number, holes: [number, number][]) {
-  const g = plate(x0, y0, x1, y1, t, holes.map(([x, y]) => [x, y, HOLE] as [number, number, number]))
+  const g = plate(
+    x0,
+    y0,
+    x1,
+    y1,
+    t,
+    holes.map(([x, y]) => [x, y, HOLE] as [number, number, number]),
+  )
   const out = faceEdge(g)
   g.dispose()
   return out
 }
 
-export function HeroPanel({ bus, live, onPhase, zoom }: { bus: LabelBus; live: { current: boolean }; onPhase: (p: HeroPhase) => void; zoom: { current: number } }) {
+/** a phone's opening: the 100 mm SIP panel whole, out of its loop (the camera back out, before it goes back to 30 mm) */
+export const HERO_SIP = 13
+
+export function HeroPanel({
+  bus,
+  live,
+  onPhase,
+  zoom,
+  hold,
+}: {
+  bus: LabelBus
+  live: { current: boolean }
+  onPhase: (p: HeroPhase) => void
+  zoom: { current: number }
+  /** held at this point of the loop, floating gently instead of playing it (a phone, as the other pages' openings) */
+  hold?: number
+}) {
   const invalidate = useThree((s) => s.invalidate)
   const reduced = useMemo(() => prefersReducedMotion(), [])
   const tex = useWallTextures()
@@ -134,16 +157,27 @@ export function HeroPanel({ bus, live, onPhase, zoom }: { bus: LabelBus; live: {
   const core = useRef<THREE.Group>(null)
   /** the tongue halves, each scaled down onto its root: along y (the top's) or x (the far end's), and z */
   const tongues = useRef<{ el: THREE.Group | null; along: 'x' | 'y' }[]>([])
-  const clock = useRef(reduced ? STILL : 0)
+  const clock = useRef(hold ?? (reduced ? STILL : 0))
+  /** a held panel's float: bobbing a little and turning a touch either way, about its middle */
+  const floater = useRef<THREE.Group>(null)
+  const floatT = useRef(0)
   const said = useRef<HeroPhase | null>(null)
   const say = useRef(onPhase)
   say.current = onPhase
 
   useFrame((_, delta) => {
     // the loop runs only while the opening is on screen (it resumes where it stopped)
-    if (!reduced && live.current) clock.current = (clock.current + Math.min(delta, 1 / 20)) % LOOP
+    if (hold !== undefined) clock.current = hold
+    else if (!reduced && live.current) clock.current = (clock.current + Math.min(delta, 1 / 20)) % LOOP
     const t = clock.current
-    zoom.current = reduced ? 0 : heroZoomAt(t)
+    zoom.current = reduced || hold !== undefined ? 0 : heroZoomAt(t)
+    const f = floater.current
+    if (f && hold !== undefined && !reduced) {
+      if (live.current) floatT.current += Math.min(delta, 1 / 20)
+      const u = floatT.current
+      f.position.y = Math.sin(u * 0.9) * 0.05
+      f.rotation.y = Math.sin(u * 0.35) * 0.08
+    }
     // how far each leaf stands off the middle, the core's thickness and where it is along the panel
     let d = 0
     let coreT = 0
@@ -208,37 +242,56 @@ export function HeroPanel({ bus, live, onPhase, zoom }: { bus: LabelBus; live: {
 
   return (
     <group>
-      {/* the inner leaf: its face looks out along +z, the ferrules in it */}
-      <group ref={front}>
-        <mesh geometry={g.leaf} material={conc} castShadow receiveShadow />
-        <instancedMesh args={[g.sleeveLeaf, m.sleeve, holes.length]} ref={placeAt(holes, 0)} />
-        {tongue(0, g.tongueTop, conc, 'y')}
-        {tongue(1, g.tongueEnd, conc, 'x')}
-        {/* the ferrules' mouths, flush with the face (drawn a little larger than they are, so they read) */}
-        <group scale={[1.25, 1.25, 1]}>
-          <instancedMesh args={[g.rim, m.zinc, ferrules.length]} ref={placeAt(ferrules.map(([x, y]) => [x / 1.25, y / 1.25]), LEAF + 0.0003)} />
-          <instancedMesh args={[g.bore, m.bore, ferrules.length]} ref={placeAt(ferrules.map(([x, y]) => [x / 1.25, y / 1.25]), LEAF + 0.0007)} />
+      {/* (about the panel's middle, so a held panel floats in place: `floater`) */}
+      <group position={HERO_TARGET}>
+        <group ref={floater}>
+          <group position={[-HERO_TARGET[0], -HERO_TARGET[1], -HERO_TARGET[2]]}>
+            {/* the inner leaf: its face looks out along +z, the ferrules in it */}
+            <group ref={front}>
+              <mesh geometry={g.leaf} material={conc} castShadow receiveShadow />
+              <instancedMesh args={[g.sleeveLeaf, m.sleeve, holes.length]} ref={placeAt(holes, 0)} />
+              {tongue(0, g.tongueTop, conc, 'y')}
+              {tongue(1, g.tongueEnd, conc, 'x')}
+              {/* the ferrules' mouths, flush with the face (drawn a little larger than they are, so they read) */}
+              <group scale={[1.25, 1.25, 1]}>
+                <instancedMesh
+                  args={[g.rim, m.zinc, ferrules.length]}
+                  ref={placeAt(
+                    ferrules.map(([x, y]) => [x / 1.25, y / 1.25]),
+                    LEAF + 0.0003,
+                  )}
+                />
+                <instancedMesh
+                  args={[g.bore, m.bore, ferrules.length]}
+                  ref={placeAt(
+                    ferrules.map(([x, y]) => [x / 1.25, y / 1.25]),
+                    LEAF + 0.0007,
+                  )}
+                />
+              </group>
+              {/* (the thickness: the top's far corner, in the middle of the 30 mm) */}
+              <Anchor bus={bus} id="hp-thick" position={[L, W, 0]} />
+              {/* (the tie hole at the near end, top: its words stand off that end, clear of the panel) */}
+              <Anchor bus={bus} id="hp-hole" position={[holes[1][0], holes[1][1], LEAF]} />
+              <Anchor bus={bus} id="hp-ferrule" position={[ferrules[ferrules.length - 2][0], ferrules[ferrules.length - 2][1], LEAF]} />
+            </group>
+            {/* the outer leaf, the inner one turned about */}
+            <group ref={back}>
+              <group scale={[1, 1, -1]}>
+                <mesh geometry={g.leaf} material={turned} castShadow receiveShadow />
+                <instancedMesh args={[g.sleeveLeaf, m.sleeve, holes.length]} ref={placeAt(holes, 0)} />
+                {tongue(2, g.tongueTop, turned, 'y')}
+                {tongue(3, g.tongueEnd, turned, 'x')}
+              </group>
+            </group>
+            {/* the EPS/SPS core, stay-in-place, its holes in line with the leaves' */}
+            <group ref={core} visible={false}>
+              <mesh geometry={g.core} material={m.core} castShadow receiveShadow />
+              <instancedMesh args={[g.sleeveCore, m.sleeve, holes.length]} ref={placeAt(holes, 0)} />
+              <Anchor bus={bus} id="hp-core" position={[L + STEP, W + STEP, CORE / 2]} />
+            </group>
+          </group>
         </group>
-        {/* (the thickness: the top's far corner, in the middle of the 30 mm) */}
-        <Anchor bus={bus} id="hp-thick" position={[L, W, 0]} />
-        {/* (the tie hole at the near end, top: its words stand off that end, clear of the panel) */}
-        <Anchor bus={bus} id="hp-hole" position={[holes[1][0], holes[1][1], LEAF]} />
-        <Anchor bus={bus} id="hp-ferrule" position={[ferrules[ferrules.length - 2][0], ferrules[ferrules.length - 2][1], LEAF]} />
-      </group>
-      {/* the outer leaf, the inner one turned about */}
-      <group ref={back}>
-        <group scale={[1, 1, -1]}>
-          <mesh geometry={g.leaf} material={turned} castShadow receiveShadow />
-          <instancedMesh args={[g.sleeveLeaf, m.sleeve, holes.length]} ref={placeAt(holes, 0)} />
-          {tongue(2, g.tongueTop, turned, 'y')}
-          {tongue(3, g.tongueEnd, turned, 'x')}
-        </group>
-      </group>
-      {/* the EPS/SPS core, stay-in-place, its holes in line with the leaves' */}
-      <group ref={core} visible={false}>
-        <mesh geometry={g.core} material={m.core} castShadow receiveShadow />
-        <instancedMesh args={[g.sleeveCore, m.sleeve, holes.length]} ref={placeAt(holes, 0)} />
-        <Anchor bus={bus} id="hp-core" position={[L + STEP, W + STEP, CORE / 2]} />
       </group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[L / 2, -0.001, 0]} material={catcher} receiveShadow>
         <planeGeometry args={[10, 10]} />

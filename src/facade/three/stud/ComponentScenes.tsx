@@ -46,6 +46,9 @@ const COLD = -0.015
 /** the view every listing opens on, and the one it comes in to: behind the element, to the last stud */
 const OPEN: Shot = { target: [0, 0.27, 0.29], dist: 8.8, azim: 150, elev: 16 }
 const CLOSE: Shot = { target: [0.15, 0.26, 0.26], dist: 6.2, azim: 140, elev: 15 }
+/** a phone: the element, as a box (x, y, z from and to), and how much of the screen's width it takes on the open view */
+const BOX = [-LEN / 2, -0.14, 0, LEN / 2, 0.6, 0.6] as const
+const PHONE_FIT = 0.74
 
 /** the light, set by a scene every frame: the sun's strength and colour, the sky's */
 interface Mood {
@@ -76,6 +79,35 @@ function Studio({
   const reach = useRef(3)
   const mood = useRef<Mood>({ intensity: 3, color: NOON.sun.clone(), sky: NOON.sky.clone(), skyI: 0 })
   const sky = useRef<THREE.HemisphereLight>(null)
+  // a phone: the zoom that sets the element at PHONE_FIT of the screen's width on the open view, whatever the screen's
+  // shape (the camera stands further off in a tall box, so one zoom for every phone left it a speck on some, cut on others);
+  // the same zoom held as the camera comes in, so the close look still comes closer
+  const fitFor = useMemo(() => {
+    const memo = { aspect: 0, w: 0, h: 0, zoom: 1 }
+    return (aspect: number) => {
+      if (!compact) return 1
+      if (memo.aspect === aspect && memo.w === size.width && memo.h === size.height) return memo.zoom
+      const cam = new THREE.PerspectiveCamera(26, aspect, 0.1, 100)
+      const pull = Math.max(1, ASPECT / (size.width / Math.max(1, size.height))) * 1.15
+      const az = open.azim * DEG
+      const el = open.elev * DEG
+      const d = open.dist * pull
+      const [tx, ty, tz] = open.target
+      cam.position.set(tx + d * Math.cos(el) * Math.sin(az), ty + d * Math.sin(el), tz + d * Math.cos(el) * Math.cos(az))
+      cam.lookAt(tx, ty, tz)
+      cam.updateMatrixWorld()
+      const c = new THREE.Vector3()
+      let x0 = Infinity
+      let x1 = -Infinity
+      for (let i = 0; i < 8; i++) {
+        c.set(BOX[i & 1 ? 3 : 0], BOX[i & 2 ? 4 : 1], BOX[i & 4 ? 5 : 2]).project(cam)
+        x0 = Math.min(x0, c.x)
+        x1 = Math.max(x1, c.x)
+      }
+      Object.assign(memo, { aspect, w: size.width, h: size.height, zoom: x1 > x0 ? (2 * PHONE_FIT) / (x1 - x0) : 1 })
+      return memo.zoom
+    }
+  }, [compact, size.width, size.height, open])
   const catcher = useMemo(() => new THREE.ShadowMaterial({ color: '#000000', transparent: true, opacity: 0.42, depthWrite: false }), [])
   useEffect(() => () => catcher.dispose(), [catcher])
   useEffect(() => {
@@ -97,6 +129,7 @@ function Studio({
     camera.position.set(tx + d * Math.cos(el) * Math.sin(az), ty + d * Math.sin(el), tz + d * Math.cos(el) * Math.cos(az))
     camera.lookAt(tx, ty, tz)
     camera.fov = 26
+    camera.zoom = fitFor(camera.aspect)
     camera.clearViewOffset()
     camera.updateProjectionMatrix()
     focus.current.set(tx, ty, tz)
@@ -112,11 +145,12 @@ function Studio({
 
   return (
     <>
-      <StudioFog color="#080808" near={7} far={18} />
+      <StudioFog color="#080808" near={7} far={18} follow />
       <Sun focus={focus} reach={reach} offset={[-5, 10, 7]} intensity={3} tone={mood} />
       <hemisphereLight ref={sky} args={['#ffffff', '#080808', 0]} />
       {children}
-      <gridHelper args={[14, 56, '#2e2e2e', '#232323']} position={[0, FLOOR, 0.3]} />
+      {/* (a phone: the piece alone on the black, no floor grid) */}
+      {!compact && <gridHelper args={[14, 56, '#2e2e2e', '#232323']} position={[0, FLOOR, 0.3]} />}
       <mesh position={[0, FLOOR + 0.002, 0.3]} rotation={[-Math.PI / 2, 0, 0]} material={catcher} receiveShadow>
         <planeGeometry args={[14, 14]} />
       </mesh>

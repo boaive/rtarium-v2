@@ -16,9 +16,12 @@ import { App } from './App'
 import { startSmoothScroll } from './lib/scroll'
 import { startAnalytics } from './lib/analytics'
 import { runOpener } from './opener'
+import { startSettle } from './lib/settle'
 
 startSmoothScroll()
 startAnalytics()
+// (a phone: a pinned section that reads best at rest on a stop is glided there slowly once the scroll stops)
+startSettle()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -28,3 +31,6 @@ createRoot(document.getElementById('root')!).render(
 
 // the opening: the emblem fills as the page loads, then opens onto it
 runOpener()
+
+// a scroll recorder for testing on a real phone, only with ?probe in the address (src/dev/probe.ts)
+if (new URLSearchParams(window.location.search).has('probe')) void import('./dev/probe').then((m) => m.startProbe())

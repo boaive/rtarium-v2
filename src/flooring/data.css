@@ -31,7 +31,7 @@
 
 .fdc-v {
   position: relative;
-  height: calc((var(--rows, 4) + 0.7) * 100svh);
+  height: calc((var(--rows, 4) + 0.7) * 100lvh);
   background: var(--white);
   color: var(--black);
 }
@@ -41,7 +41,7 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: clamp(18px, 4vh, 44px);
-  height: 100svh;
+  height: 100lvh;
   --pin-foot: clamp(18px, 3.4vh, 32px);
   padding: calc(var(--nav-h) + clamp(16px, 3vh, 32px)) var(--gutter) var(--pin-foot);
   overflow: hidden;

@@ -59,8 +59,8 @@ html.sheet-open {
 .wp-sheet {
   width: min(1180px, 100vw);
   max-width: 100vw;
-  height: 100svh;
-  max-height: 100svh;
+  height: 100lvh;
+  max-height: 100lvh;
   margin: 0 0 0 auto;
   padding: 0;
   border: 0;
@@ -244,7 +244,7 @@ html.sheet-open {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
-  min-height: 100svh;
+  min-height: 100lvh;
   padding-top: var(--nav-h);
   background: var(--white);
   color: var(--black);
@@ -811,7 +811,7 @@ html.sheet-open {
 .wp-built {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
-  min-height: 100svh;
+  min-height: 100lvh;
   padding-top: var(--nav-h);
   background: var(--white);
   color: var(--black);
@@ -964,7 +964,7 @@ html.sheet-open {
     padding-top: 0;
   }
   .wp-built__stage {
-    min-height: 60svh;
+    min-height: 60lvh;
     margin: 0 var(--gutter) var(--s-6);
   }
 }
@@ -979,7 +979,7 @@ html.sheet-open {
 
 /* the envelope's photograph under its words: small, clear of the bar */
 .wp-ans .fu-ans__shot {
-  height: clamp(80px, calc((100svh - var(--words-top) - var(--words-foot) - var(--block)) / 2 - var(--say) - 24px), 150px);
+  height: clamp(80px, calc((100lvh - var(--words-top) - var(--words-foot) - var(--block)) / 2 - var(--say) - 24px), 150px);
 }
 
 

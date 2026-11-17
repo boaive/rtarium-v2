@@ -48,8 +48,44 @@ function oldBrowserFallbacks() {
 }
 oldBrowserFallbacks.postcss = true
 
+/**
+ * `ahead.json`: the files each family of pages needs (its chunk, the chunks it imports and their styles), for Home to
+ * fetch into the browser's cache without running them or applying their styles (src/lib/pages.ts, fetchAhead). Running
+ * them on Home (an `import()`) put three pages' code and their stylesheets into Home itself.
+ */
+type Chunk = { type: 'chunk'; fileName: string; isEntry: boolean; facadeModuleId: string | null; imports: string[]; viteMetadata?: { importedCss: Set<string> } }
+function aheadList() {
+  return {
+    name: 'ahead-list',
+    generateBundle(_: unknown, bundle: Record<string, Chunk | { type: 'asset' }>) {
+      const chunks = Object.values(bundle).filter((c): c is Chunk => c.type === 'chunk')
+      const byFile = new Map(chunks.map((c) => [c.fileName, c]))
+      const entry = chunks.find((c) => c.isEntry)
+      // (what Home already has: the entry and everything it imports)
+      const have = new Set<string>()
+      const walk = (f: string, into: Set<string>) => {
+        if (into.has(f)) return
+        into.add(f)
+        const c = byFile.get(f)
+        c?.imports.forEach((i) => walk(i, into))
+        c?.viteMetadata?.importedCss.forEach((css) => into.add(css))
+      }
+      if (entry) walk(entry.fileName, have)
+      const files = new Set<string>()
+      for (const c of chunks) {
+        if (!/\/src\/(facade\/FacadeRoutes|flooring\/FlooringRoutes|walls\/WallPanels)\.tsx$/.test(c.facadeModuleId ?? '')) continue
+        const need = new Set<string>()
+        walk(c.fileName, need)
+        need.forEach((f) => !have.has(f) && files.add(`/${f}`))
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(this as any).emitFile({ type: 'asset', fileName: 'ahead.json', source: JSON.stringify([...files]) })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), aheadList()],
   css: {
     postcss: { plugins: [oldBrowserFallbacks()] },
   },

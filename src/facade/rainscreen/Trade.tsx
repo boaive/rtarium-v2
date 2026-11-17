@@ -9,6 +9,7 @@ import { TradePanel } from '../three/rain/TradePanel'
 import { CardNav, cardState, loopAt, OPEN_REACH, useCardClock, useCardFocus, useOpenCard, useReplay } from '../unitized/CardOpen'
 import { useLive } from '../unitized/live'
 import { RiseWords, useRise } from '../unitized/Rise'
+import { DeckCards, type DeckItem } from '../DeckCards'
 
 /**
  * The trade-offs, on black, on one screen, in the cards of the Unitized page's four problems (`Flaws`): the title
@@ -25,11 +26,11 @@ import { RiseWords, useRise } from '../unitized/Rise'
  * kg/m² (manufacturer data); aluminium composite about 4 mm and a few kilograms a square metre.
  */
 const MATERIALS = [
-  { id: 'precast', name: 'Precast concrete', thick: '125–150 mm', weight: '~350 kg/m²', costs: 'Heavy on the frame and the foundations.' },
-  { id: 'stone', name: 'Natural stone', thick: '20–30 mm', weight: '75–85 kg/m²', costs: 'Heavy, and only in small sizes.' },
-  { id: 'grc', name: 'GRC', thick: '12–20 mm', weight: '30–45 kg/m²', costs: 'Its glass fibre loses strength with age.' },
-  { id: 'uhpc', name: 'UHPC', thick: '15–30 mm', weight: '33–66 kg/m²', costs: 'A costly mix, its steel fibres can corrode.' },
-  { id: 'acp', name: 'Metal / ACP', thick: '3–4 mm', weight: 'Under 10 kg/m²', costs: 'Dents, fades, and it isn’t concrete.' },
+  { id: 'precast', name: 'Precast concrete', thick: '125–150 mm', weight: '~350 kg/m²', costs: 'Heavy on the frame and the foundations.', fix: 'A 12 mm panel, under 30 kg/m².' },
+  { id: 'stone', name: 'Natural stone', thick: '20–30 mm', weight: '75–85 kg/m²', costs: 'Heavy, and only in small sizes.', fix: 'Panels up to 6 m tall, cast in one piece.' },
+  { id: 'grc', name: 'GRC', thick: '12–20 mm', weight: '30–45 kg/m²', costs: 'Its glass fibre loses strength with age.', fix: 'A basalt textile that keeps its strength.' },
+  { id: 'uhpc', name: 'UHPC', thick: '15–30 mm', weight: '33–66 kg/m²', costs: 'A costly mix, its steel fibres can corrode.', fix: 'Basalt, which does not corrode.' },
+  { id: 'acp', name: 'Metal / ACP', thick: '3–4 mm', weight: 'Under 10 kg/m²', costs: 'Dents, fades, and it isn’t concrete.', fix: 'A solid concrete face.' },
 ]
 
 const LABELS: LabelSpec[] = [
@@ -109,7 +110,11 @@ function Card({ k, progress, live, compact, open, onOpen }: { k: number; progres
 }
 
 export function Trade() {
-  const compact = useIsCompact()
+  return useIsCompact() ? <TradeCards /> : <TradeGrid />
+}
+
+function TradeGrid() {
+  const compact = false
   const section = useRef<HTMLElement>(null)
   const progress = useCardClock(section)
   const live = useLive(section)
@@ -135,4 +140,53 @@ export function Trade() {
       </div>
     </section>
   )
+}
+
+/**
+ * a phone: the five as the Unitized page's four problems are dealt (FlawsCards: DeckCards, Home's deck), each with a
+ * drawing of its own in place of its 3D: plain hairlines, a touch of yellow. Precast: a thick slab on its frame. Stone:
+ * small tiles, many joints. GRC: glass fibre, broken as it ages. UHPC: steel fibre, rust on it. Metal: a thin sheet, dented.
+ */
+const MATERIAL_ICONS = [
+  <svg key="precast" viewBox="0 0 40 40">
+    <path d="M6 6v28M6 12h4M6 28h4" />
+    <path className="vs__glyph-fill" d="M12 7h16v26H12z" />
+    <path d="M32 9v22M30 11l2-2 2 2M30 29l2 2 2-2" />
+  </svg>,
+  <svg key="stone" viewBox="0 0 40 40">
+    <path d="M7 7h26v26H7zM7 16h26M7 25h26M16 7v9M25 7v9M12 16v9M21 16v9M29 16v9M16 25v8M25 25v8" />
+    <path className="vs__glyph-fill" d="M21 16h8v9h-8z" />
+  </svg>,
+  <svg key="grc" viewBox="0 0 40 40">
+    <path d="M6 12h28M6 20h11M23 20h11M6 28h28" />
+    <path className="vs__glyph-fill" d="M17 17l3 2-2 2 3 2 2-6z" />
+  </svg>,
+  <svg key="uhpc" viewBox="0 0 40 40">
+    <path d="M8 10l10 4M22 8l9 6M7 22l11 2M24 21l9 4M10 32l9-3M23 30l10 2" />
+    <circle className="vs__glyph-fill" cx="18" cy="24" r="2.6" />
+    <circle className="vs__glyph-fill" cx="31" cy="14" r="2.2" />
+  </svg>,
+  <svg key="acp" viewBox="0 0 40 40">
+    <path d="M8 8h24M8 32h24M8 8v24M32 8v24" />
+    <path className="vs__glyph-fill" d="M15 17c3-2 7-2 9 1-2 3-6 4-9 2z" />
+  </svg>,
+]
+
+function TradeCards() {
+  const items: DeckItem[] = MATERIALS.map((m, k) => ({
+    id: m.id,
+    name: m.name,
+    full: `${m.thick} thick · ${m.weight}`,
+    icon: (
+      <span className="vs__glyph" aria-hidden="true">
+        {MATERIAL_ICONS[k]}
+      </span>
+    ),
+    parts: [
+      { label: 'The trade-off', text: m.costs },
+      { label: 'With RTARIUM', text: m.fix },
+    ],
+  }))
+  // (on black, its cards white, as the Unitized page's problems)
+  return <DeckCards id="tradeoffs" title="Every material has its trade-offs." items={items} ground="black" />
 }

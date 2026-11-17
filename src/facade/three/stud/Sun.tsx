@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
+import { useIsCompact } from '../../../lib/motion'
 
 /**
  * The Gulf's midday sun: a hard, high key light that casts crisp shadows, kept at the same angle to
@@ -22,6 +23,7 @@ export function Sun({
   intensity?: number
   tone?: { current: { intensity: number; color: THREE.Color } }
 }) {
+  const compact = useIsCompact()
   const light = useRef<THREE.DirectionalLight>(null)
   const scene = useThree((s) => s.scene)
   useEffect(() => {
@@ -62,7 +64,7 @@ export function Sun({
       intensity={intensity}
       color="#ffffff"
       castShadow
-      shadow-mapSize={[2048, 2048]}
+      shadow-mapSize={compact ? [1024, 1024] : [2048, 2048]}
       shadow-bias={-0.0003}
       shadow-normalBias={0.02}
       shadow-radius={1}

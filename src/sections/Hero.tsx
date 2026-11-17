@@ -4,7 +4,7 @@ import { setShared, stage, useStageValue } from '../three/stageStore'
 import { PHONE_TRAVEL, tourWash } from '../three/poses'
 import { Lines } from '../components/Chapter'
 import { Link } from '../lib/router'
-import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
+import { damp, nativeScroll, prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY, setAsideSmoothScroll } from '../lib/scroll'
 
 /** the screens of the opening tour: the piece, the mesh built out, the cavity, the light */
@@ -83,11 +83,12 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
       // the window, which grows as the bar slides away, the page at rest on a screen would read as part way to it)
       const at = Math.min(screens, Math.max(0, -r.top / (phone ? screenH(el) : vh)))
       const target = phone ? phoneTour(at) : at
-      // (a phone scrolls natively, the finger's own pace: the tour keeps up with it, a hair behind to smooth the steps)
-      p = p < 0 || prefersReducedMotion() ? target : damp(p, target, phone ? 30 : 10, dt)
+      // (a phone scrolls natively, the finger's own pace: the tour eases after it at veedo.space's rate, 9.5 a second, so a
+      // fling's uneven steps never show in the picture)
+      p = p < 0 || prefersReducedMotion() ? target : damp(p, target, phone ? 9.5 : 10, dt)
       if (Math.abs(p - target) < 1e-4) p = target
       const deep = phone ? phoneDive(at) : 0
-      dive = dive < 0 || prefersReducedMotion() ? deep : damp(dive, deep, phone ? 30 : 10, dt)
+      dive = dive < 0 || prefersReducedMotion() ? deep : damp(dive, deep, phone ? 9.5 : 10, dt)
       if (Math.abs(dive - deep) < 1e-4) dive = deep
       stage.tour = p
       stage.tourDive = dive
@@ -304,6 +305,9 @@ function pagedZones(tour: HTMLElement): Zone[] {
   const aboutTop = Math.round(tour.offsetTop + tour.offsetHeight)
   // (the flight and the white are no stops: from the line one swipe flies through them to About)
   const zones: Zone[] = [{ stops: [...PHONE_STOPS.map((k) => Math.round(tour.offsetTop + k * sh)), aboutTop], after: null, tour: true }]
+  // (a phone that scrolls natively, motion.ts `nativeScroll`: only the tour goes a stop a swipe, its flight to About
+  // playing by itself; from About on, the browser's own scroll alone)
+  if (nativeScroll()) return zones
   for (const p of document.querySelectorAll<HTMLElement>('[data-swipe-stops], [data-swipe-rows]')) {
     const top = p.getBoundingClientRect().top + window.scrollY
     // a chapter of screen-tall parts: a stop at each part's top, and on out of the last to the section after it
@@ -369,6 +373,20 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
      */
     let drag: { base: number; y0: number } | null = null
     let decided = false
+    /*
+     * The browser's bar (Chrome's address bar, Safari's toolbar) slides away only under the browser's own scroll by a
+     * finger, never under a page moved by a script: with every swipe in the tour taken, it never went. So while it still
+     * shows, a swipe down the tour is left to the browser (`native`), which scrolls with the finger and slides the bar
+     * away; once that swipe's fling has run out, the page is brought to the nearer stop (`settle`), the one after the
+     * other, never both at once (rule 1). The bar gone, the swipes are taken again; a taken swipe never brings it back.
+     * Whether it shows: the window shorter than the screen gets with the bar slid away (a probe 100lvh tall).
+     */
+    let native = false
+    const probe = document.createElement('div')
+    probe.setAttribute('aria-hidden', 'true')
+    probe.style.cssText = 'position:fixed;top:0;left:-10px;width:1px;height:100lvh;visibility:hidden;pointer-events:none'
+    document.body.appendChild(probe)
+    const barShowing = () => probe.offsetHeight - window.innerHeight > 24
     /** where the last glide was going, and until when it runs (ms) */
     let aim: number | null = null
     let aimUntil = 0
@@ -464,8 +482,15 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
         // (a sheet or the menu over the page scrolls on its own: never taken)
         if ((e.target as Element | null)?.closest?.('dialog, [data-lenis-prevent]') || document.querySelector('dialog[open]')) return
         const dir = Math.sign(dy)
+        // (a pull down at the very top of the page is the browser's own: its pull to refresh)
+        if (dir < 0 && window.scrollY <= 1) return
         const zones = pagedZones(section.current ?? el)
         const zone = zoneAt(zones, touch.from, dir)
+        // (the browser's bar still showing: a swipe down the tour is the browser's, to slide it away; see `native`)
+        if (dir > 0 && zone?.tour && barShowing()) {
+          native = true
+          return
+        }
         // (a swipe in a stretch is always taken, even one that leaves it for where the page goes freely: left to the
         // browser, its fling ran on up through the sections above, each catching it as it passed, a jitter all the way)
         if (!zone && entry(zones, touch.from, dir) === null) return
@@ -481,6 +506,7 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
     const start = (e: TouchEvent) => {
       drag = null
       decided = false
+      native = false
       touch.multi = e.touches.length !== 1
       const t = e.touches[0]
       if (!t) return
@@ -496,6 +522,11 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       touch.down = false
       const taken = drag !== null
       drag = null
+      // (a swipe left to the browser to slide its bar away: its fling runs out, then `settle` brings the page to a stop)
+      if (native) {
+        native = false
+        return
+      }
       const t = e.changedTouches[0]
       if (turnedBack) {
         turnedBack = false
@@ -654,6 +685,7 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       window.removeEventListener('touchend', end)
       window.removeEventListener('touchcancel', cancel)
       window.removeEventListener('scroll', scrolled)
+      probe.remove()
       bringBack()
     }
   }, [section, phone, back])
@@ -670,6 +702,8 @@ export function Hero() {
   useTour(section, setAt, compact)
   const curtain = useRef<HTMLDivElement>(null)
   const back = useRef<((to: number) => void) | null>(null)
+  // (a phone: the tour alone goes a screen a swipe, and from its line one swipe flies through the cavity and the white to
+  // About by itself, under the white's curtain; from About on the page scrolls natively, as veedo.space: pagedZones)
   useWhiteHandoff(section, curtain, compact, back)
   useSwipePager(section, compact, back)
 

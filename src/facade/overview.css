@@ -10,7 +10,7 @@
 
 .fco-hero {
   position: relative;
-  height: 100svh;
+  height: 100lvh;
   min-height: 560px;
   overflow: hidden;
   background: var(--yellow);
@@ -157,8 +157,8 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  height: 100svh;
-  margin-bottom: -100svh;
+  height: 100lvh;
+  margin-bottom: -100lvh;
   pointer-events: none;
 }
 .fs-rows ol {
@@ -226,17 +226,17 @@
 /* a block: one screen under the rows already passed (RTARIUM's under the header) */
 .fs-block {
   position: relative;
-  height: calc(100svh - var(--nav-h) - var(--i) * var(--row));
+  height: calc(100lvh - var(--nav-h) - var(--i) * var(--row));
   overflow: hidden;
   container-type: size;
 }
 .fs-block--last {
-  height: calc(100svh - var(--nav-h));
+  height: calc(100lvh - var(--nav-h));
 }
 /* RTARIUM's closing card: a full screen, over the yellow under the header as it comes up; its words clear of the header */
 .fs-duo.fs-block--last {
   z-index: 10;
-  height: 100svh;
+  height: 100lvh;
 }
 @media (min-width: 861px) {
   .fs-duo.fs-block--last .fs-duo__panel {
@@ -632,7 +632,7 @@
 .fct__inner {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  min-height: 100svh;
+  min-height: 100lvh;
   padding-top: calc(var(--nav-h) + clamp(24px, 5vh, 56px));
 }
 .fct__head {
@@ -669,7 +669,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   height: 100%;
-  min-height: clamp(520px, 68svh, 760px);
+  min-height: clamp(520px, 68lvh, 760px);
 }
 .fct-col {
   display: flex;
@@ -833,12 +833,12 @@
     font-size: clamp(1rem, min(26cqh, 5cqw), 1.25rem);
   }
   .fct__canvas {
-    height: 24svh;
+    height: 24lvh;
   }
   .fct__cols {
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
-    padding-top: 24svh;
+    padding-top: 24lvh;
   }
   .fct-col {
     border-right: 0;

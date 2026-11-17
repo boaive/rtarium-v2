@@ -6,6 +6,7 @@ import { FollowScroll, type Progress } from '../progress'
 import { FlawPanel, type FlawMix } from '../three/unit/FlawPanel'
 import { CardNav, cardState, loopAt, OPEN_REACH, useCardClock, useCardFocus, useOpenCard, useReplay } from './CardOpen'
 import { useLive } from './live'
+import { DeckCards, type DeckItem } from '../DeckCards'
 import { RiseWords, useRise } from './Rise'
 
 /**
@@ -140,30 +141,49 @@ function FlawsGrid() {
  * panel played out (rendered from the 3D, not the 3D itself); then its name, large, its line, and at its foot, under a
  * hairline, the RTARIUM answer to it (the answers further down the page).
  */
+/**
+ * a phone: the four as Home's deck deals its cards (DeckCards), each with a drawing of its own in place of its panel's
+ * still: plain hairlines, a touch of yellow. Direction weakness: fibres all one way, a crack across them. Clumping: the
+ * fibre bunched, bare between. Isolated anchorage: a fixing on its small cone of concrete. Length to weight: a tall panel,
+ * the weight it takes on as it grows.
+ */
+const FLAW_ICONS = [
+  <svg key="dir" viewBox="0 0 40 40">
+    <path d="M7 10h26M7 16h26M7 22h26M7 28h26" />
+    <path className="vs__glyph-fill" d="M20 5l-3 9 5 3-4 9 3 3-2 7 7-11-5-3 4-8z" />
+  </svg>,
+  <svg key="clump" viewBox="0 0 40 40">
+    <path d="M7 9l6 4M9 14l5-4M6 12h8M26 25l6 4M28 30l5-4M25 28h8" />
+    <circle className="vs__glyph-fill" cx="10" cy="12" r="3.4" />
+    <circle className="vs__glyph-fill" cx="29" cy="28" r="3.4" />
+    <path d="M17 33l6-26" strokeDasharray="2 3" />
+  </svg>,
+  <svg key="anchor" viewBox="0 0 40 40">
+    <path d="M6 9h28M20 9v16" />
+    <path className="vs__glyph-fill" d="M20 25l-9 9h18z" />
+    <path d="M16 13h8M16 18h8" />
+  </svg>,
+  <svg key="length" viewBox="0 0 40 40">
+    <path d="M14 5h9v30h-9z" />
+    <path d="M30 6v28M27 9l3-3 3 3M27 31l3 3 3-3" />
+    <path className="vs__glyph-fill" d="M6 30h7v5H6z" />
+  </svg>,
+]
+
 function FlawsCards() {
-  return (
-    <section id="problems" className="fu-pcards on-black" aria-labelledby="fu-pcards-title">
-      <h2 id="fu-pcards-title" className="fu-pcards__title fu-h">
-        Four problems with thin panels.
-      </h2>
-      <ol className="fu-pcards__list">
-        {FLAWS.map((f, k) => (
-          <li key={f.name} className="fu-pcard">
-            <div className="fu-pcard__top">
-              <p className="fu-pcard__count num">
-                <b>0{k + 1}</b> / 0{FLAWS.length}
-              </p>
-              <img className="fu-pcard__img" src={`/img/facade/unitized/problem-${k + 1}.webp`} alt={`A conventional thin panel showing ${f.name.toLowerCase()}`} loading="lazy" decoding="async" width={720} height={540} />
-            </div>
-            <h3 className="fu-pcard__name">{f.name}</h3>
-            <p className="fu-pcard__line">{f.line}</p>
-            <p className="fu-pcard__fix">
-              <span className="fu-pcard__tag">RTARIUM</span>
-              <span>{f.fix}</span>
-            </p>
-          </li>
-        ))}
-      </ol>
-    </section>
-  )
+  const items: DeckItem[] = FLAWS.map((f, k) => ({
+    id: `problem-${k + 1}`,
+    name: f.name,
+    icon: (
+      <span className="vs__glyph" aria-hidden="true">
+        {FLAW_ICONS[k]}
+      </span>
+    ),
+    parts: [
+      { label: 'The problem', text: f.line },
+      { label: 'With RTARIUM', text: `${f.fix}.` },
+    ],
+  }))
+  // (on black, its cards white)
+  return <DeckCards id="problems" title="Four problems with thin panels." items={items} ground="black" />
 }

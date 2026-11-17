@@ -2,18 +2,31 @@
 
 These came out of a jitter at the start of every phone section (Nov 2026). Follow them for any new section.
 
-## 1. One scroll driver at a time
-A page that is being glided by our code must never also be moved by the browser's own momentum.
-- Chrome and Safari keep a finger's fling running off the main thread after `touchend`, and nothing can cancel it.
-  A `scrollTo` loop on top of a fling makes the page shake a few pixels back and forth as it lands.
-- So in any stepped (snap-a-screen) stretch, the swipe is taken on its **first** `touchmove`. Call `preventDefault`
-  (only the first move can be cancelled) and move the page with the finger yourself. Then no fling ever starts.
-  See `useSwipePager` in `src/sections/Hero.tsx`.
-- A new stepped section joins the existing pager: `data-swipe-rows` (screen-tall parts) or `data-swipe-stops`.
-  Never write a second snap or scroll handler.
-- Never use CSS `scroll-snap` or `scroll-behavior: smooth` on top of the pager.
-- Leave alone, for the browser: sideways drags, menus and dialogs (`dialog`, `[data-lenis-prevent]`), and swipes
-  out to where the page scrolls freely.
+## 1. Phones scroll natively (veedo.space's way, Nov 17 2026)
+On a phone or portrait tablet (`nativeScroll()` in `src/lib/motion.ts`, the compact query) only the browser moves the
+page. The reference is veedo.space's source, `C:\DOWNLOADS\vee.build-main` (its `AGENTS.md`, `src/film/Film.tsx`).
+- No Lenis and no stepper (`startSmoothScroll`, `stepScreens` stand aside). Never add a `scrollTo` loop, a snap or a
+  "bring it to the nearer stop" on a phone: any code moving the page during a fling makes it shake and scroll back.
+- One exception, the user's (17 Nov 2026): Home's opening tour still goes a screen a swipe, and from its line one swipe
+  flies through the cavity and the white to About by itself (`useSwipePager` + `useWhiteHandoff`, its swipes taken on
+  the first `touchmove` so no fling starts under the glide). On a phone `pagedZones` returns the tour alone: About,
+  What it replaces, Innovation and Tech Space scroll natively.
+- Pinned parts are `position: sticky` and play by where the page is. Their picture eases toward the scroll target
+  (`damp(v, target, 9.5, dt)`, veedo's `DAMPING`), never set straight from a scroll event.
+- One passive scroll listener per thing, and read layout before writing styles in a frame.
+- `holdScroll` (opening, menu) holds the page with `overflow: hidden` when there is no Lenis.
+- A section that should rest on a stop carries `data-settle` (+ `data-stops`): `src/lib/settle.ts` glides it there
+  slowly, only once the finger is off and the fling has stopped, and a touch cancels it. Used by the rainscreen's
+  listings (Barrier) and the Unitized six layers, which on a phone play by themselves with "Skip to the end".
+- A screen of parts a scroll carries `data-hold` (Unitized six layers, Wall Panels' panels): a fling crossing its top is
+  stopped on it by cutting the page's overflow for two frames (ends the browser's momentum, nothing fights it). Held
+  there, each swipe is taken on its first `touchmove` and sent to the screen as `holdstep` (a part on or back); the
+  screen marks its ends with `data-hold-at` (first, last), where a swipe out is left to the browser. No autoplay.
+  Gone through to its last part once (or skipped there), it is released for the visit (`release` in settle.ts): never
+  caught, stepped or settled onto again.
+- On a phone the loading screen plays on every load and on every page change (`openOnPage` in `src/opener.ts`), so
+  each page's 3D is built behind it, never in a quiet moment mid-scroll.
+- A wide screen is unchanged: Lenis and the stepper as before. The pager code stays for it to be switched back.
 
 ## 2. Nothing first happens mid-swipe
 Everything a section will draw is prepared behind the loading screen, never as it scrolls into view. That covers:
@@ -50,6 +63,11 @@ A live 3D card that turns forever is redrawn every frame, and the page lags unde
   discarded. Keeping the three scenes alive, each with a 2048² shadow map, slowed the hero's flight on a phone even
   though they drew nothing.
 - Rule of thumb: on a phone's Home, the only live WebGL context during scrolling is the main stage.
+- On the product pages (Stage3D), a phone's scene that the page carries along as it moves is not redrawn until the page
+  is still (`Carried`); a pinned scene, played by the scroll, keeps drawing. Phone shadow maps are 1024².
+- Product pages on a phone (after veedo.space, C:\DOWNLOADS\vee.build-main): a scene within 1.75 screens is built in a
+  quiet moment (page still 280 ms), then every other one on the page; at once only if already on the screen. Once built
+  a scene is kept (releasing far ones made the way back up meet scenes still to be built). One sharpness a visit (no `Pace`); a budget phone (src/lib/tier.ts) draws at 1 px per CSS px.
 - Films in place of live 3D were tried and dropped. Swapping a film's source (Three elements' thickness switch) showed
   black until the new one loaded.
 

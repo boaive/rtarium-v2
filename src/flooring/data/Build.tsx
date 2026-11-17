@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { RunStations } from '../RunStations'
 import { damp, prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
@@ -94,7 +95,7 @@ function goToStep(k: number) {
   scrollToY(el.getBoundingClientRect().top + window.scrollY + s * window.innerHeight)
 }
 
-export function Build() {
+function BuildWide() {
   const compact = useIsCompact()
   const [fit, setFit] = useState(1)
   useEffect(() => {
@@ -339,5 +340,23 @@ export function Build() {
         />
       </div>
     </section>
+  )
+}
+
+/** a phone: the steps as the Unitized page's answers (RunStations: Stations, the solution's card), each played live */
+export function Build() {
+  return useIsCompact() ? (
+    <RunStations
+      id="build"
+      title="Built up from the slab"
+      steps={STEPS}
+      stretch={STRETCH}
+      labels={LABELS}
+      scene={(t, bus, room) => <BuildScene t={t} bus={bus} compact={false} room={room} />}
+      fallback={<img className="fu-still" src="/img/flooring/dc-site-strip.webp" alt="" />}
+      thumbs="/img/flooring/data/build-step"
+    />
+  ) : (
+    <BuildWide />
   )
 }

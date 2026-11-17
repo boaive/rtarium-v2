@@ -23,8 +23,8 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  height: 100svh;
-  margin-bottom: -100svh;
+  height: 100lvh;
+  margin-bottom: -100lvh;
   pointer-events: none;
 }
 .fr-bw__rows ol {
@@ -42,12 +42,12 @@
 /* a page: its stage held under the rows docked before it, for its run */
 .fr-bw__block {
   position: relative;
-  height: calc(var(--run, 3.4) * 100svh);
+  height: calc(var(--run, 3.4) * 100lvh);
 }
 .fr-bw__stage {
   position: sticky;
   top: calc(var(--nav-h) + var(--k) * var(--row));
-  height: calc(100svh - var(--nav-h) - var(--k) * var(--row));
+  height: calc(100lvh - var(--nav-h) - var(--k) * var(--row));
   overflow: hidden;
 }
 .fr-bw__slot {
@@ -454,7 +454,7 @@
   position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  height: 100svh;
+  height: 100lvh;
   min-height: 600px;
   padding-top: var(--nav-h);
   background: var(--black);
@@ -603,5 +603,125 @@
   .fr-wts__credit {
     position: static;
     padding: 0 var(--gutter) 16px;
+  }
+}
+
+/*
+ * The barrier on a phone, as its own idea (approved direction): the whole section on black, the words in yellow at the
+ * top, each outcome added under the header one by one as it is reached (its name and a thin plus), and the 3D in the
+ * black below them, centred there (BarrierScenes). No coordinates read out over the 3D.
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fr-bw {
+    --rule: rgb(253 208 1 / 0.22);
+    background: var(--black);
+    color: var(--yellow);
+  }
+  .fr-bw__cap {
+    background: var(--black);
+  }
+  .fr-row {
+    background: var(--black);
+    color: var(--yellow);
+    border-bottom-color: var(--rule);
+  }
+  .fr-row:focus-visible {
+    outline-color: var(--yellow);
+  }
+  .fr-row:hover .fr-row__name,
+  .fr-row:focus-visible .fr-row__name {
+    color: var(--white);
+  }
+  /* each outcome added: its name on the left, a thin plus on the right, between hairlines; no tag after it; the newest in
+     yellow, the ones before it in white */
+  .fr-row {
+    justify-content: space-between;
+    color: rgb(242 240 233 / 0.92);
+  }
+  .fr-row__num,
+  .fr-row__tag {
+    display: none;
+  }
+  .fr-row__name {
+    margin-right: 0;
+    font-size: clamp(1.05rem, 4.6vw, 1.2rem);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .fr-row::after {
+    content: '+';
+    font-size: 1.7rem;
+    font-weight: 200;
+    line-height: 1;
+  }
+  .fr-bw__slot:has(.fr-row[data-docked]):not(:has(~ .fr-bw__slot .fr-row[data-docked])) .fr-row {
+    color: var(--yellow);
+  }
+  /* the part on screen now: its row open, a minus */
+  .fr-bw__slot:has(.fr-row[data-docked]):not(:has(~ .fr-bw__slot .fr-row[data-docked])) .fr-row::after {
+    content: '\2212';
+  }
+  /* and no empty band over it as the section comes up: the rows' layer sticks under the header rather than at the top
+     of the screen, its slots counted from its own top, so the first row is the section's very top; the cap takes no
+     room and shows only once it is under the header (Barrier's tick); the first listing starts a row down, under it */
+  .fr-bw__rows {
+    top: var(--nav-h);
+  }
+  .fr-bw__slot {
+    top: calc(var(--k) * var(--row));
+  }
+  .fr-bw__cap {
+    margin-bottom: calc(-1 * var(--nav-h));
+  }
+  .fr-bw > article:first-of-type {
+    margin-top: var(--row);
+  }
+  /* no skip on a phone: the rows are the way through */
+  .fr-bw .fr-skip {
+    display: none;
+  }
+  /* the words at the top, in yellow */
+  .fr-bw__words,
+  .fr-bw .fr-kicker,
+  .fr-bw .fr-count,
+  .fr-bw .fr-fig,
+  .fr-bw .fr-name {
+    color: var(--yellow);
+  }
+  .fr-bw .fr-count span {
+    color: rgb(253 208 1 / 0.5);
+  }
+  .fr-bw .fr-say,
+  .fr-bw .fr-bw__beat .fr-say {
+    color: rgb(242 240 233 / 0.72);
+    font-weight: 400;
+    font-size: clamp(0.98rem, 4.2vw, 1.08rem);
+    line-height: 1.45;
+  }
+  /* the point said large and light, as a heading set in a book's weight, not a poster's */
+  .fr-bw .fr-name,
+  .fr-bw .fr-fig {
+    font-weight: 400;
+    letter-spacing: -0.025em;
+  }
+  .fr-bw .fr-name {
+    font-size: clamp(2rem, 9vw, 2.5rem);
+    line-height: 1.1;
+  }
+  /* the words pulled up, straight under the rows, not left at the foot of their band */
+  .fr-bw__words {
+    padding-top: clamp(14px, 2.6lvh, 22px);
+  }
+  .fr-bw__beat {
+    align-content: start;
+    margin-top: 0;
+  }
+  /* the 3D in the black under them, seamless with the ground: no box edge, no read-out */
+  .fr-bw__box--view {
+    background: var(--black);
+    box-shadow: none;
+  }
+  .fr-bw__dot {
+    display: none;
   }
 }

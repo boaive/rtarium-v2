@@ -58,6 +58,11 @@ export function HeroUnit({ bus, play }: { bus: LabelBus; play: boolean }) {
   useFrame((_, delta) => {
     const dt = Math.min(delta, 1 / 20)
     const s = t.current
+    // (not played, a phone's opening: the unit in its place and whole, its cover never drawn back off the cut)
+    if (!play) {
+      s.rise = 1
+      s.open = 0
+    }
     let moving = false
     if (started && s.rise < 1) {
       s.rise = Math.min(1, s.rise + dt / 1.1)

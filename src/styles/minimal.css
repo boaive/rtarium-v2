@@ -1937,3 +1937,357 @@
     text-transform: uppercase;
   }
 }
+
+/* the Unitized page's four problems on a phone (Flaws: DeckCards): their cards carry no foot, so they stand shorter */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  #problems.fdeck .vs {
+    --card-h: clamp(236px, 33svh, 270px);
+  }
+}
+
+/* a deck that would not fit the screen whole (DeckCards measures it): each card's top drawn closer, its name a little
+   smaller, so the band each card passed shows still holds its number and name */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fdeck .vs.is-tight {
+    --strength: clamp(1.2rem, 5.6vw, 1.45rem);
+  }
+  .fdeck .vs.is-tight .vs__card,
+  .fdeck .vs.is-tight .vs__card.is-in {
+    gap: 6px;
+    padding-top: 13px;
+  }
+  .fdeck .vs.is-tight .fdeck__full {
+    margin-top: -2px;
+  }
+}
+
+/* a deck on black (the Unitized page's problems): the ground and its heading turned, the cards white as ever */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fdeck.on-black {
+    background: var(--black);
+    color: var(--white);
+  }
+  .fdeck.on-black .vs__card {
+    color: var(--black);
+  }
+}
+
+/*
+ * Every system and application page's opening on a phone, as the Unitized page's (approved): the page's name a heading,
+ * heavy and large, what it is a plain line under it in black, the model in the room below, the statement heavy at the
+ * foot. (`:root`: over each page's own phone rules, which load after these.)
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  :root .fu-hero .fu-hero__name,
+  :root .fco-hero .fco-head__name {
+    display: block;
+    width: auto;
+    max-width: 13em;
+    font-size: clamp(2.2rem, 10vw, 2.9rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1;
+    text-transform: none;
+    white-space: normal;
+    text-wrap: balance;
+  }
+  :root .fu-hero .fu-hero__name::before,
+  :root .fu-hero .fu-hero__name::after,
+  :root .fco-hero .fco-head__name::before,
+  :root .fco-hero .fco-head__name::after {
+    content: none;
+  }
+  :root .fu-hero .fu-hero__head,
+  :root .fco-hero .fco-head {
+    top: calc(var(--nav-h) + clamp(22px, 4svh, 36px));
+    gap: 10px;
+  }
+  :root .fu-hero .fu-hero__kind,
+  :root .fco-hero .fco-head__kind {
+    max-width: 22em;
+    font-size: clamp(1.02rem, 4.5vw, 1.15rem);
+    font-weight: 400;
+    line-height: 1.4;
+    color: var(--black);
+  }
+}
+
+/* a system page's deck of problems (DeckCards): its heading set as the Unitized page's (unitized-phone.css: `.fu-h`) */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fdeck.on-black .fdeck__title {
+    display: block;
+    width: auto;
+    max-width: 13em;
+    font-size: clamp(1.95rem, 8.6vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.04;
+    text-transform: none;
+    white-space: normal;
+    text-wrap: balance;
+  }
+}
+
+/* the flooring pages' sustainability card on a phone (Voices: VoicesCards): its foot a carbon meter, two flat bars: a
+   conventional floor's in warm grey, RTARIUM's in black, shorter */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fdc-meter {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 9px 12px;
+    width: 100%;
+  }
+  .fdc-meter__pill {
+    position: relative;
+    display: block;
+    height: 8px;
+  }
+  .fdc-meter__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--w, 1) * 100%);
+    background: #d9d3c6;
+  }
+  .fdc-meter__fill.is-ours {
+    background: #0b0b0b;
+  }
+  .fdc-meter__name {
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--black);
+  }
+}
+
+/* the flooring pages' "Where the screed fails" on a phone (FailCards: FailScreen), as the Unitized page's six layers: one
+   black screen held while the page scrolls, the reason in play at the top, its scene in the middle, a dash each at the foot */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .ffail {
+    position: relative;
+    height: calc((var(--n, 5) + 1) * 100lvh);
+    background: var(--black);
+    color: var(--white);
+  }
+  .ffail__pin {
+    position: sticky;
+    top: 0;
+    height: 100lvh;
+    overflow: hidden;
+  }
+  .ffail__stage {
+    position: absolute;
+    inset: 0;
+  }
+  .ffail__stage .fc-canvas {
+    position: absolute;
+    inset: 0;
+  }
+  .ffail__words {
+    position: absolute;
+    top: calc(var(--nav-h) + clamp(14px, 3lvh, 28px));
+    left: var(--gutter);
+    right: var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    animation: ffail-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .ffail__num {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--yellow);
+  }
+  .ffail__name {
+    font-size: clamp(1.6rem, 7.4vw, 2.2rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    color: var(--yellow);
+  }
+  .ffail__line {
+    max-width: 26rem;
+    font-size: clamp(0.95rem, 4vw, 1.05rem);
+    line-height: 1.45;
+    color: rgb(242 240 233 / 0.82);
+  }
+  .ffail__dashes {
+    position: absolute;
+    left: var(--gutter);
+    bottom: clamp(16px, 3lvh, 28px);
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ffail__dashes li {
+    width: 24px;
+    height: 3px;
+    background: rgb(242 240 233 / 0.28);
+    transition: background 0.3s ease;
+  }
+  .ffail__dashes li.is-past {
+    background: rgb(242 240 233 / 0.6);
+  }
+  .ffail__dashes li.is-now {
+    background: var(--yellow);
+  }
+  @keyframes ffail-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}
+
+/* Wall Panels' panels on a phone (Panels: PanelsPhone), one black screen as the Unitized page's six layers are on one:
+   the panel's name at the top, the part's line under it and the technical sheet under that; along the foot the dashes on
+   the left, a part each, and on the right the part's number large with its name under it; over the dashes, "Skip to the
+   end" while it plays, "Pick a step to see it again" once it has */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .wpp {
+    --wpp-foot: clamp(16px, 3lvh, 28px);
+  }
+  .wpp__top {
+    position: absolute;
+    z-index: 4;
+    top: calc(var(--nav-h) + clamp(18px, 3.4svh, 30px));
+    left: var(--gutter);
+    right: var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .wpp__title {
+    margin: 0;
+    max-width: 13em;
+    font-size: clamp(1.95rem, 8.6vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.04;
+    color: var(--white);
+  }
+  .wpp__line {
+    margin: 0;
+    max-width: 24rem;
+    font-size: clamp(0.98rem, 4.2vw, 1.08rem);
+    line-height: 1.45;
+    color: rgb(242 240 233 / 0.72);
+    animation: ffail-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .wpp__more {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: rgb(242 240 233 / 0.82);
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    pointer-events: auto;
+  }
+  /* the dashes: short, close, so eight leave room for the part's name beside them */
+  .wpp .wpp__dashes {
+    bottom: calc(var(--wpp-foot) + 14px);
+    gap: 6px;
+  }
+  .wpp .wpp__dashes li {
+    position: relative;
+    width: 18px;
+  }
+  .wpp__dashes.is-ended li {
+    animation: wpp-wave 2.4s ease-in-out calc(var(--i) * 0.12s) infinite;
+  }
+  @keyframes wpp-wave {
+    0%,
+    40%,
+    100% {
+      opacity: 1;
+    }
+    20% {
+      opacity: 0.45;
+    }
+  }
+  .wpp__dash {
+    position: absolute;
+    inset: -20px -3px;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .wpp__again {
+    position: absolute;
+    z-index: 5;
+    left: var(--gutter);
+    bottom: calc(var(--wpp-foot) + 34px);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(242 240 233 / 0.72);
+  }
+  .wpp__again svg {
+    color: var(--yellow);
+  }
+  .wpp__big {
+    position: absolute;
+    z-index: 5;
+    right: var(--gutter);
+    bottom: calc(var(--wpp-foot) + 18px);
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 0;
+    color: var(--yellow);
+  }
+  .wpp__big b {
+    font-size: clamp(2.2rem, 10vw, 2.8rem);
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 0.86;
+  }
+  .wpp__of {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: rgb(242 240 233 / 0.6);
+  }
+  .wpp__name {
+    position: absolute;
+    z-index: 5;
+    right: var(--gutter);
+    bottom: var(--wpp-foot);
+    max-width: calc(100% - 2 * var(--gutter) - 196px);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: rgb(242 240 233 / 0.6);
+  }
+}

@@ -3,6 +3,8 @@ import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/th
 import { createBus } from '../../facade/three/kit'
 import { FollowScroll, smooth, usePlay } from '../../facade/progress'
 import { REPLAY_HINT, StepBar } from '../../facade/unitized/StepBar'
+import { useIsCompact } from '../../lib/motion'
+import { FrameStations } from '../FrameStations'
 import type { BuildRoom } from '../data/three/BuildScene'
 import { FRAME, FrameScene } from './three/FrameScene'
 
@@ -28,7 +30,7 @@ const LABELS: LabelSpec[] = [
   { id: 'floor', anchor: 'fw-floor', text: 'The RTARIUM floor', dx: 60, dy: 70 },
 ]
 
-export function FloorFrame() {
+function FloorFrameWide() {
   const section = useRef<HTMLElement>(null)
   const pin = useRef<HTMLDivElement>(null)
   const [progress, seek] = usePlay(section, PLAY)
@@ -98,5 +100,31 @@ export function FloorFrame() {
         <StepBar label="From the floor to the building" names={PHASES.map((ph) => ph.name)} step={step} onGo={(i) => seek(holds[i], i ? holds[i - 1] : 0)} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
       </div>
     </section>
+  )
+}
+
+/** a phone: what each step does, in a line (StepFloor) */
+const LINES = [
+  'The floor the build ended on takes its racks.',
+  'The aisles run out across it.',
+  'The high bay frame goes up over them.',
+  'The fulfilment centre is drawn round it.',
+]
+
+export function FloorFrame() {
+  return useIsCompact() ? (
+    <FrameStations
+      id="frame"
+      title="Frame to floor."
+      sub="Four steps — floor to fulfilment centre"
+      phases={PHASES.map((ph, i) => ({ name: ph.name, line: LINES[i], to: ph.to }))}
+      play={PLAY}
+      Scene={FrameScene}
+      labels={LABELS}
+      shownAt={(p) => [...(p > FRAME.racks[1] - 0.02 && p < FRAME.grow[0] ? ['piece'] : []), ...(p > FRAME.plant[1] - 0.02 ? ['floor'] : [])]}
+      fallback={<img className="fu-still" src="/img/flooring/aw-highbay.webp" alt="" />}
+    />
+  ) : (
+    <FloorFrameWide />
   )
 }

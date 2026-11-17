@@ -1,4 +1,4 @@
-import { Component, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Component, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer } from '@react-three/drei'
@@ -6,6 +6,7 @@ import { hasWebGL2 } from '../../three/Stage'
 import { prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { approach, type LabelBus, type Shot } from './kit'
 import { builds, opening } from '../../lib/builds'
+import { isLite } from '../../lib/tier'
 
 class Boundary extends Component<{ children: ReactNode; onFail: () => void }, { failed: boolean }> {
   state = { failed: false }
@@ -44,6 +45,11 @@ export function holdPump() {
   }
 }
 const idle = (f: () => void) => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(f, { timeout: 500 }) : setTimeout(f, 100))
+/** when the page last moved (onPageMove): a canvas is built ahead only once it has been still this long (ms) */
+let movedAt = 0
+const QUIET = 280
+/** a phone's product page (not Home, whose scenes are made behind its opening and kept): scenes built ahead and let go */
+const productPhone = (compact: boolean) => compact && window.location.pathname !== '/'
 /** while the opening shows, nothing scrolls: every canvas is built then, back to back, the opening waiting for them */
 const count = () => void (builds.waiting = waiting.length + (pumping ? 1 : 0))
 function pump() {
@@ -57,6 +63,12 @@ function pump() {
     if (held) {
       pumping = false
       return count()
+    }
+    // (the page still moving: a build would stall it under the finger; asked again once it has been still a moment)
+    if (!fast && performance.now() - movedAt < QUIET) {
+      pumping = false
+      count()
+      return void window.setTimeout(pump, QUIET)
     }
     waiting.sort((a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top)
     const next = waiting.shift()
@@ -132,15 +144,30 @@ export function Stage3D({
     tries.current++
     window.setTimeout(() => setLife((n) => n + 1), 500 * tries.current)
   }, [])
+  /** a scene that has run this long since it was made counts as well: its tries start again (ms) */
+  const steady = useRef(0)
+  useEffect(() => () => window.clearTimeout(steady.current), [])
   // a context the browser takes back (too many on the page, a driver reset) leaves a blank canvas: make a new one
+  // (a phone takes every page's contexts back when the visitor leaves the browser for another app, a screenshot, a
+  // call: that is no failure of the scene's. Made again once the page is back, never counted; and a scene that has run
+  // a while has its count cleared, so a few of those over a visit never leave the photograph in its place for good)
   const onCreated = useCallback(
     ({ gl }: { gl: THREE.WebGLRenderer }) => {
       gl.setClearColor(0x000000, 0)
+      window.clearTimeout(steady.current)
+      steady.current = window.setTimeout(() => void (tries.current = 0), 8000)
       gl.domElement.addEventListener(
         'webglcontextlost',
         (e) => {
           e.preventDefault()
-          again()
+          window.clearTimeout(steady.current)
+          if (!document.hidden) return again()
+          const back = () => {
+            if (document.hidden) return
+            document.removeEventListener('visibilitychange', back)
+            setLife((n) => n + 1)
+          }
+          document.addEventListener('visibilitychange', back)
         },
         { once: true },
       )
@@ -169,14 +196,20 @@ export function Stage3D({
      * the browser is idle (never while an opening plays: holdPump); at once if it shows first
      */
     const ahead = el.parentElement?.closest<HTMLElement>('[data-stage-ahead]') ?? null
+    // (a phone's product page: within reach, built ahead in a quiet moment, nearest first; built at once only if it is
+    // already on the screen. Elsewhere, as before: made as it comes within two and a half screens)
+    const ahead2 = productPhone(compact)
+    if (ahead2) watchMoves()
     const io = new IntersectionObserver(
       (entries) => {
-        for (const e of entries) if (e.isIntersecting) (e.target === el ? make : queue)()
+        for (const e of entries) if (e.isIntersecting) (e.target === el && !ahead2 ? make : queue)()
       },
-      { rootMargin: '250% 0px' },
+      { rootMargin: ahead2 ? '175% 0px' : '250% 0px' },
     )
     io.observe(el)
     if (ahead) io.observe(ahead)
+    const seen = ahead2 ? new IntersectionObserver(([e]) => e.isIntersecting && make()) : null
+    seen?.observe(el)
     // (a section that asks to be made early, `data-stage-early`: Home's row of cards on a phone, made one at a time while
     // the browser is idle once the opening has gone, as the visitor reads the first screen; never mid-scroll as it came
     // near, and never holding the opening up)
@@ -186,6 +219,8 @@ export function Stage3D({
     // (behind the opening when it shows: made now, the opening waiting for it, and a little longer for its own opening to
     // play out, so once the opening has gone it is finished and still: `builds.tail`)
     if (opening() && ahead?.hasAttribute('data-stage-early')) queue()
+    // (a phone's product page reached first, the site's opening showing: every scene on it built behind the opening)
+    else if (compact && opening() && window.location.pathname !== '/') queue()
     else if (ahead?.hasAttribute('data-stage-early')) {
       let lastY = window.scrollY
       let stillSince = performance.now()
@@ -204,8 +239,9 @@ export function Stage3D({
       }
       early = window.setTimeout(start, 300)
     }
-    // on a large screen, made ahead while the browser is idle (a phone keeps to its sections' approach)
-    if (!compact) {
+    // made ahead while the browser is idle, every scene on the page, nearest first (a phone's product page too: once built
+    // a scene is kept, so the way back up never meets one still to be built; Home's phone keeps to its sections' approach)
+    if (!compact || ahead2) {
       whenSettled(() => {
         if (!host.current) return
         queue()
@@ -214,6 +250,7 @@ export function Stage3D({
     return () => {
       window.clearTimeout(early)
       io.disconnect()
+      seen?.disconnect()
       if (queued) {
         const i = waiting.indexOf(entry)
         if (i >= 0) waiting.splice(i, 1)
@@ -241,7 +278,9 @@ export function Stage3D({
     }
   }, [])
 
-  const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
+  // (a phone: one sharpness for the visit, never softer while it moves, as veedo.space; a budget phone, src/lib/tier.ts,
+  // a pixel to the CSS pixel)
+  const dpr = compact && isLite() ? 1 : Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
   return (
     <div ref={host} className={`fc-canvas ${className}`} aria-hidden="true" data-failed={failed ? '' : undefined}>
       {failed
@@ -259,7 +298,8 @@ export function Stage3D({
                 <Suspense fallback={null}>
                   <Lights keyLight={keyLight} />
                   <Settle />
-                  {!sharp && <Pace full={dpr} />}
+                  {!sharp && !compact && <Pace full={dpr} />}
+                  {compact && !film && <Carried host={host} />}
                   {children}
                   <Warm />
                 </Suspense>
@@ -268,6 +308,82 @@ export function Stage3D({
           )}
     </div>
   )
+}
+
+/**
+ * A phone: a scene carried along by the page as it moves (one that scrolls with its section, not one pinned to the screen
+ * and played by the scroll) is not drawn again until the page is still: it scrolls as a picture, as the cards on a phone's
+ * Home do (CLAUDE.md 4b), and its own animation picks up where its clock has got to. A pinned scene (it holds its place
+ * on the screen while the page moves under it: the Rainscreen barrier's, the Stud Frame components') keeps drawing.
+ */
+function Carried({ host }: { host: RefObject<HTMLDivElement | null> }) {
+  const setFrameloop = useThree((s) => s.setFrameloop)
+  const invalidate = useThree((s) => s.invalidate)
+  useEffect(() => {
+    const el = host.current
+    if (!el) return
+    // pinned or carried: decided from the page's styles once (and again as the window changes), never by reading where
+    // the canvas stands in the middle of a scroll, which made the browser lay the page out in the middle of a frame
+    let pinned = false
+    const decide = () => {
+      pinned = false
+      for (let a: HTMLElement | null = el; a && a !== document.body; a = a.parentElement) {
+        const p = getComputedStyle(a).position
+        // (a sticky part pins only where what holds it is taller than it: one as tall as its section is carried along)
+        if (p === 'fixed' || (p === 'sticky' && (a.parentElement?.offsetHeight ?? 0) > a.offsetHeight * 1.1)) {
+          pinned = true
+          break
+        }
+      }
+    }
+    decide()
+    let held = false
+    let t = 0
+    const resume = () => {
+      held = false
+      setFrameloop('demand')
+      invalidate()
+    }
+    const off = onPageMove(() => {
+      if (pinned) return
+      if (!held) {
+        held = true
+        setFrameloop('never')
+      }
+      window.clearTimeout(t)
+      t = window.setTimeout(resume, 160)
+    })
+    window.addEventListener('resize', decide)
+    return () => {
+      off()
+      window.removeEventListener('resize', decide)
+      window.clearTimeout(t)
+      if (held) resume()
+    }
+  }, [host, setFrameloop, invalidate])
+  return null
+}
+
+/** one passive scroll listener for every canvas on the page, each told the page has moved (Carried) */
+const movers = new Set<() => void>()
+let moverBound = false
+function onPageMove(f: () => void) {
+  watchMoves()
+  movers.add(f)
+  return () => void movers.delete(f)
+}
+function watchMoves() {
+  if (!moverBound) {
+    moverBound = true
+    window.addEventListener(
+      'scroll',
+      () => {
+        movedAt = performance.now()
+        movers.forEach((m) => m())
+      },
+      { passive: true },
+    )
+  }
 }
 
 /**
@@ -414,6 +530,7 @@ export const KEY = { offset: [-6, 9, 7] as [number, number, number], intensity: 
  */
 export function MovingKeyLight({ focus, reach = 8, offset = KEY.offset }: { focus: [number, number, number]; reach?: number; offset?: [number, number, number] }) {
   const light = useRef<THREE.DirectionalLight>(null)
+  const compact = useIsCompact()
   const scene = useThree((s) => s.scene)
   const invalidate = useThree((s) => s.invalidate)
   useEffect(() => {
@@ -436,7 +553,7 @@ export function MovingKeyLight({ focus, reach = 8, offset = KEY.offset }: { focu
       intensity={KEY.intensity}
       color={KEY.color}
       castShadow
-      shadow-mapSize={[2048, 2048]}
+      shadow-mapSize={compact ? [1024, 1024] : [2048, 2048]}
       shadow-bias={-0.0004}
       shadow-normalBias={0.025}
       shadow-camera-left={-reach}

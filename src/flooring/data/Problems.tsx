@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { Say } from '../../components/Say'
+import { DeckCards, type DeckItem } from '../../facade/DeckCards'
 
 /**
  * Conventional screed against RTARIUM. The title stands alone on a black screen first (`Say`), where it falls apart and
@@ -53,7 +54,35 @@ const ANSWER = 'RTARIUM was.'
 const FROM = 0.3
 const SPAN = 0.36
 
-export function Problems({ problems = PROBLEMS, title = TITLE, answer = ANSWER }: { problems?: Problem[]; title?: string; answer?: string }) {
+export function Problems(props: { problems?: Problem[]; title?: string; answer?: string }) {
+  return useIsCompact() ? <ProblemsCards {...props} /> : <ProblemsTable {...props} />
+}
+
+/**
+ * a phone: the problems dealt as the Unitized page's four problems are (FlawsCards: DeckCards, Home's deck), on black,
+ * each card its problem and, under it, what RTARIUM does about it
+ */
+function ProblemsCards({ problems = PROBLEMS, title = TITLE, answer = ANSWER }: { problems?: Problem[]; title?: string; answer?: string }) {
+  const items: DeckItem[] = problems.map((pr) => ({
+    id: pr.id,
+    name: pr.name,
+    parts: [
+      { label: 'The problem', text: pr.problem },
+      { label: 'With RTARIUM', text: `${pr.head} ${pr.line}` },
+    ],
+  }))
+  // the title alone on its black screen first, falling apart for RTARIUM's answer, as the wide screen has it (Say); then
+  // the deck under a short heading of its own, as the façade pages' decks have
+  const count = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'][problems.length] ?? String(problems.length)
+  return (
+    <>
+      <Say label={`${title} ${answer}`} text={title} then={answer} />
+      <DeckCards id="problems" title={`${count} problems with traditional screeds.`} items={items} ground="black" />
+    </>
+  )
+}
+
+function ProblemsTable({ problems = PROBLEMS, title = TITLE, answer = ANSWER }: { problems?: Problem[]; title?: string; answer?: string }) {
   const section = useRef<HTMLElement>(null)
   const rows = useRef<HTMLOListElement>(null)
   const compact = useIsCompact()
