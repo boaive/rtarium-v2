@@ -28,4 +28,10 @@ export const COMPACT_QUERY = '(max-width: 860px), (max-aspect-ratio: 4/5)'
 export const useReducedMotion = () => useMediaQuery(REDUCED_QUERY)
 export const useIsCompact = () => useMediaQuery(COMPACT_QUERY)
 export const useCoarsePointer = () => useMediaQuery('(pointer: coarse)')
+/**
+ * A phone or a portrait tablet scrolls the browser's own way, as veedo.space does (C:\DOWNLOADS\vee.build-main): no
+ * smooth-scroll library, no swipe pager, no stepper, nothing that ever moves the page under the finger or its fling.
+ * Pinned parts are sticky and play by where the page is, their pictures easing towards it. A wide screen is unchanged.
+ */
+export const nativeScroll = () => typeof window !== 'undefined' && window.matchMedia(COMPACT_QUERY).matches
 export const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia(REDUCED_QUERY).matches

@@ -124,12 +124,13 @@
         transition: opacity 0.45s ease;
       }
     </style>
-    <!-- the opening plays once a visit: on the site's first page, not on a reload or the pages after it; except a phone's
-         Home, where it plays on every load, every scene of the page made and its openings played behind it -->
+    <!-- the opening plays once a visit: on the site's first page, not on a reload or the pages after it; except on a phone,
+         where it plays on every load (and every page opened after it: src/opener.ts `openOnPage`), every scene of the page
+         made and its openings played behind it, none left to be built as the page scrolls -->
     <script>
       try {
-        var phoneHome = location.pathname === '/' && matchMedia('(max-width: 860px), (max-aspect-ratio: 4/5)').matches
-        if (sessionStorage.getItem('rtarium:opened') && !phoneHome) document.documentElement.classList.add('is-opened')
+        var phone = matchMedia('(max-width: 860px), (max-aspect-ratio: 4/5)').matches
+        if (sessionStorage.getItem('rtarium:opened') && !phone) document.documentElement.classList.add('is-opened')
       } catch (e) {}
     </script>
     <style>

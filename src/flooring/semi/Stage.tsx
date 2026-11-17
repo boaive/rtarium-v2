@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { RunStations } from '../RunStations'
 import { damp, prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
@@ -31,7 +32,7 @@ export interface Step {
 /** the stage's scene: its run as steps, the label bus, whether on a phone, the room it keeps to, whether on screen */
 export type SceneOf = (t: Progress, bus: LabelBus, compact: boolean, room: { current: BuildRoom }, live: { current: boolean }) => ReactNode
 
-export function Stage({
+function StageWide({
   id,
   title,
   steps,
@@ -303,5 +304,24 @@ export function Stage({
         <StepBar label={barLabel} names={steps.map((s) => s.name)} step={step} onGo={goToStep} cellRef={(k, el) => void (cells.current[k] = el)} hints="run" />
       </div>
     </section>
+  )
+}
+
+/** a phone: the steps as the Unitized page's answers (RunStations: Stations, the solution's card), each played live */
+export function Stage(props: { id: string; title: string; steps: Step[]; stretch: number[]; labels: LabelSpec[]; barLabel: string; fallback: ReactNode; scene: SceneOf; /** a phone: each step's zoom in the card */ phoneZoom?: number[] }) {
+  return useIsCompact() ? (
+    <RunStations
+      id={props.id}
+      title={props.title}
+      steps={props.steps}
+      stretch={props.stretch}
+      labels={props.labels}
+      scene={(t, bus, room, live) => props.scene(t, bus, false, room as { current: BuildRoom }, live)}
+      fallback={props.fallback}
+      thumbs={`/img/flooring/semi/${props.id}-step`}
+      zoom={props.phoneZoom}
+    />
+  ) : (
+    <StageWide id={props.id} title={props.title} steps={props.steps} stretch={props.stretch} labels={props.labels} barLabel={props.barLabel} fallback={props.fallback} scene={props.scene} />
   )
 }

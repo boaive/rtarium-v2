@@ -21,7 +21,7 @@ const LABELS: LabelSpec[] = [{ id: 'h-mesh', anchor: 'hr-mesh', text: 'RTARIUM',
 function shots(compact: boolean): [Shot, Shot] {
   return compact
     ? [
-        { target: HERO_TARGET, dist: 34, azim: 36, elev: 7, frame: [0.5, 0.51] },
+        { target: HERO_TARGET, dist: 41, azim: 36, elev: 7, frame: [0.5, 0.54] },
         { target: HERO_TARGET, dist: 30, azim: 48, elev: 12, frame: [0.5, 0.34] },
       ]
     : [
@@ -59,7 +59,8 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
           <FollowScroll progress={progress} />
           <LabelProjector bus={bus} bottom={compact ? 260 : 60} />
         </Stage3D>
-        <Labels bus={bus} labels={LABELS} shown={LABELS.map((l) => l.id)} />
+        {/* (a phone: no label on the model, as every opening there) */}
+        {!compact && <Labels bus={bus} labels={LABELS} shown={LABELS.map((l) => l.id)} />}
       </div>
 
       <header className="fu-hero__head">

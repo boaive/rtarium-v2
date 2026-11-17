@@ -113,6 +113,11 @@ export function setShared(patch: Partial<Shared>) {
   listeners.forEach((l) => l())
 }
 
+export function subscribeShared(l: () => void) {
+  listeners.add(l)
+  return () => void listeners.delete(l)
+}
+
 export function getShared() {
   return shared
 }

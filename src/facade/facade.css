@@ -33,18 +33,18 @@
 .fc-story__stage {
   position: sticky;
   top: 0;
-  height: 100svh;
+  height: 100lvh;
   overflow: hidden;
 }
 .fc-story__steps {
   position: relative;
   z-index: 3;
-  margin-top: -100svh;
+  margin-top: -100lvh;
   pointer-events: none;
 }
 .fc-step {
   position: relative;
-  height: 100svh;
+  height: 100lvh;
 }
 .fc-step__copy {
   position: absolute;
@@ -568,7 +568,7 @@ button.fc-go {
     right: var(--gutter);
     top: calc(var(--nav-h) + 72px);
     width: auto;
-    height: 40svh;
+    height: 40lvh;
     aspect-ratio: auto;
     transform: none;
   }
@@ -612,7 +612,7 @@ button.fc-go {
 
 /* the overview's opening: the name and the line top left, the cut panel lower right */
 .fc-hero {
-  min-height: 100svh;
+  min-height: 100lvh;
   overflow: hidden;
 }
 .fc-hero__stage {
@@ -694,7 +694,7 @@ button.fc-go {
 }
 .fc-split--even .fc-figure img {
   aspect-ratio: 3 / 4;
-  max-height: 72svh;
+  max-height: 72lvh;
 }
 .fc-figure {
   display: grid;
@@ -901,7 +901,7 @@ button.fc-go {
   .fc-hero__stage {
     position: relative;
     order: 2;
-    height: 54svh;
+    height: 54lvh;
   }
   .fc-elev__panel text {
     display: none;

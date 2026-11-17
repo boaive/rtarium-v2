@@ -6,6 +6,7 @@ import '../semi.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../../facade/Shell'
 import { usePageSteps } from '../../facade/pageSteps'
+import { useIsCompact } from '../../lib/motion'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
 import { createBus } from '../../facade/three/kit'
 import { useLive } from '../../facade/unitized/live'
@@ -186,6 +187,7 @@ function Model() {
 
 /** the section whose run plays with the scroll itself, left to the scroll: the build */
 const FREE = ['build']
+const NONE: string[] = []
 
 export default function SemiconductorPlant() {
   usePageMeta(
@@ -225,7 +227,10 @@ export default function SemiconductorPlant() {
   }, [])
 
   // one scroll, one step, the whole page through, as the façade pages (usePageSteps), the build playing with the scroll
-  usePageSteps(FREE)
+  // (a phone plays its build's steps in a card by themselves, not with the scroll: nothing of it runs free there. Left
+  // free, its one stop and the free run's hold kept pulling the page back to its top)
+  const compact = useIsCompact()
+  usePageSteps(compact ? NONE : FREE)
 
   return (
     <FacadePage>
@@ -261,6 +266,7 @@ export default function SemiconductorPlant() {
           barLabel="How the floor is built"
           fallback={<img className="fu-still" src="/img/flooring/dc-site-strip.webp" alt="" />}
           scene={buildScene}
+          phoneZoom={[1.45, 1.45, 1.15, 1.45, 1.15, 1.45, 1.45]}
         />
       </div>
       <div className="fu" data-ground="light">

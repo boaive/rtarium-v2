@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { scrollToY, stepScreens } from '../lib/scroll'
 import { STORY_STEP } from './progress'
+import { COMPACT_QUERY } from '../lib/motion'
 
 /**
  * One scroll, one step, the whole page through, as the façade overview's story: the façade system pages (Unitized,
@@ -33,14 +34,19 @@ export function usePageSteps(free: readonly string[]) {
         const h = el.offsetHeight
         const run = Math.max(0, h - vh)
         const at = el.dataset.stops
-        if (FREE.includes(el.id)) {
+        if (el.dataset.restTop !== undefined && run < vh * 0.5) {
+          // a section a little taller than its screen that reads from its top (`data-rest-top`: a phone's solution card
+          // under a heading of two lines; on a phone it no longer plays with the scroll): it rests at its top alone
+          ys.push(top)
+        } else if (FREE.includes(el.id)) {
           // its top and where it is done; going up, the page stops at where it is done (held as it stands, never played
           // back), and the next step up leaves it whole for the section before it
           const done = top + run * Number(el.dataset.done ?? 1)
           ys.push(...(back ? [done] : [top, done]))
         } else if (at) {
           const parts = at.split(',').map((p) => top + run * Number(p))
-          if (back && el.dataset.back !== 'all') ys.push(parts[parts.length - 1])
+          // (a phone steps back through every part too, as down: passed whole, the way up skipped whole sections)
+          if (back && el.dataset.back !== 'all' && !window.matchMedia(COMPACT_QUERY).matches) ys.push(parts[parts.length - 1])
           else {
             if (el.dataset.noTop === undefined) ys.push(top)
             ys.push(...parts)

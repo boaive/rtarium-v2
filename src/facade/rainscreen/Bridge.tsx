@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { Zoom } from '../unitized/Zoom'
 import { damp, prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../three/Stage3D'
@@ -8,6 +9,7 @@ import { BridgeScene, heightAt, type BridgeAxis } from '../three/rain/BridgeScen
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { StepBar } from '../unitized/StepBar'
+import { Stations } from '../unitized/Stations'
 
 /**
  * How RTARIUM bridges the gap, on yellow, in the Unitized answers' own stage (EnduroSat's space
@@ -101,7 +103,11 @@ function goToAnswer(k: number) {
 }
 
 export function Bridge() {
-  const compact = useIsCompact()
+  return useIsCompact() ? <BridgePhone /> : <BridgeWide />
+}
+
+function BridgeWide() {
+  const compact = false
   const section = useRef<HTMLElement>(null)
   const words = useRef<(HTMLDivElement | null)[]>([])
   const cells = useRef<(HTMLLIElement | null)[]>([])
@@ -325,5 +331,71 @@ export function Bridge() {
         />
       </div>
     </section>
+  )
+}
+
+/** a phone: how long each answer's step runs, its hold included (ms): the next comes in as it ends (as Unitized's answers) */
+const STEP_MS = STRETCH.map((st, k) => Math.round(st * 2000 + (k === N - 1 ? 1200 : 400)))
+
+/**
+ * a phone's scene, live in the card: the step in play played out from where the last left off, on the step's own clock,
+ * the panel in the middle of the card; its labels up once it has played out
+ */
+/** a phone: each answer's panel drawn as large as the Unitized page's answers in their card (a close look less) */
+const BRIDGE_ZOOM = [1.55, 0.5, 1.4, 0.6, 1.35, 1.25]
+
+function BridgeLive({ k, turn }: { k: number; turn: number }) {
+  const t = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
+  const bus = useMemo(createBus, [])
+  const axis = useRef<BridgeAxis>({ x: 0.5, y: 0.5 })
+  const [lit, setLit] = useState('')
+  useEffect(() => {
+    setLit('')
+    const from = k === 0 ? 0 : Math.min(t.value, k)
+    const to = k + (k === N - 1 ? LAST_AT : 0.76)
+    const ms = Math.max(400, STEP_MS[k] - (k === N - 1 ? 1200 : 400))
+    const t0 = performance.now()
+    let raf = 0
+    const tick = (now: number) => {
+      const u = Math.min(1, (now - t0) / ms)
+      t.value = from + (to - from) * (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2)
+      t.listeners.forEach((f) => f())
+      if (u < 1) raf = requestAnimationFrame(tick)
+      else setLit(ANSWERS[k].id)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [k, turn, t])
+  // (the labels change after the frame that moved the scene: one more frame, so they are placed for the new step)
+  useEffect(() => {
+    t.listeners.forEach((f) => f())
+  }, [lit, t])
+  const shown = ANSWERS.find((a) => a.id === lit)?.labels ?? []
+  return (
+    <div className="fst__live" aria-hidden="true">
+      <Stage3D shadows fallback={<img className="fu-still" src="/img/facade/panel-face.webp" alt="" />}>
+        <BridgeScene t={t} bus={bus} compact axis={axis} />
+        <Zoom by={BRIDGE_ZOOM[k]} />
+        <LabelProjector bus={bus} bottom={8} />
+      </Stage3D>
+      <Labels bus={bus} labels={LABELS} shown={shown} />
+    </div>
+  )
+}
+
+/** a phone: the answers as the Unitized page's (Stations, the solution's card), each played live in the card */
+function BridgePhone() {
+  const section = useRef<HTMLElement>(null)
+  return (
+    <Stations
+      sectionRef={section}
+      id="bridge"
+      title="RTARIUM bridges the gap"
+      label="Answer"
+      ground="yellow"
+      presentation="solution"
+      scene={(k, turn) => <BridgeLive k={k} turn={turn} />}
+      items={ANSWERS.map((a, i) => ({ name: a.name, line: a.line, clip: '', ms: STEP_MS[i], thumb: `/img/facade/rainscreen/bridge-step-${i + 1}.webp` }))}
+    />
   )
 }

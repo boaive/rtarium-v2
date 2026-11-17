@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { useIsCompact } from '../../lib/motion'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
 import { createBus } from '../three/kit'
@@ -142,11 +142,43 @@ function HangWide() {
  */
 const CLIP_MS = [2617, 2617, 3034, 3034, 5700]
 
-/** a phone: the steps on a floor, playing themselves, each step a clip of the scene (StepFloor) */
+/**
+ * a phone's scene, live: the step in play played out from where the last left off, on the step's own clock (as its clip
+ * ran), the whole of it framed in the middle of the screen
+ */
+function HangLive({ k, turn, section }: { k: number; turn: number; section: RefObject<HTMLElement | null> }) {
+  const progress = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
+  const live = useLive(section)
+  useEffect(() => {
+    // (back to the start as it comes round; on from where it is otherwise)
+    const from = k === 0 ? 0 : progress.value
+    const to = PHASES[k].to
+    const ms = CLIP_MS[k] * 0.85
+    const t0 = performance.now()
+    let raf = 0
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - t0) / ms)
+      progress.value = from + (to - from) * (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
+      progress.listeners.forEach((f) => f())
+      if (t < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [k, turn, progress])
+  return (
+    <div className="fsf__live" aria-hidden="true">
+      <HangStage progress={progress} live={live} compact />
+    </div>
+  )
+}
+
+/** a phone: the steps on a floor, playing themselves, the scene live (StepFloor) */
 function HangStations() {
   const section = useRef<HTMLElement>(null)
   return (
     <StepFloor
+      scene={(k, turn) => <HangLive k={k} turn={turn} section={section} />}
+      once
       sectionRef={section}
       id="hang"
       title="Hang. Seal. Join. Done."
@@ -155,7 +187,8 @@ function HangStations() {
       items={PHASES.map((ph, i) => ({
         name: ph.name,
         line: ph.line,
-        clip: `/img/facade/unitized/hang-step-${i + 1}.webp`,
+        // (played live on a phone, HangLive: no clip to fetch; the clips stay for the dev film page's renders)
+        clip: '',
         ms: CLIP_MS[i],
       }))}
     />

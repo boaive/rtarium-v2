@@ -360,13 +360,15 @@ export function hangShot(p: number, compact: boolean, settle = 0): Shot {
     dist: (11.6 - smooth(0, 0.5, a) * 0.9 + smooth(0.6, 1, a) * 2.6) * k,
     azim: -60 + a * 14,
     elev: 21 - a * 7,
-    // held a little high, so the unit hanging under the slab stays clear of the bar
-    frame: [0.5, 0.44],
+    // held a little high, so the unit hanging under the slab stays clear of the bar (a phone: a touch right, so the slab
+    // and the unit together sit in the middle of the screen)
+    frame: [compact ? 0.555 : 0.5, 0.44],
   }
-  const mid: Shot = { target: [ox, oy + U.h * 0.95, 0.2], dist: 30 * kw, azim: -34, elev: 11, frame: [0.5, 0.52] }
+  const cx = compact ? 0.52 : 0.5
+  const mid: Shot = { target: [ox, oy + U.h * 0.95, 0.2], dist: 30 * kw, azim: -34, elev: 11, frame: [cx, 0.52] }
   // the block and its crane together, then the finished block, a little closer
-  const wide: Shot = { target: [W * 0.5, (MAST_H + HEAD) * 0.5, -2], dist: 117 * kw, azim: -27, elev: 9, frame: [0.5, 0.525] }
-  const done: Shot = { target: [W * 0.5, levelY(FLOORS) * 0.5, -3], dist: 97 * kw, azim: -30, elev: 10, frame: [0.5, 0.52] }
+  const wide: Shot = { target: [W * 0.5, (MAST_H + HEAD) * 0.5, -2], dist: 117 * kw, azim: -27, elev: 9, frame: [cx, 0.525] }
+  const done: Shot = { target: [W * 0.5, levelY(FLOORS) * 0.5, -3], dist: 97 * kw, azim: -30, elev: 10, frame: [cx, 0.52] }
   let s = mixShot(near, mid, smooth(HANG.pull[0], HANG.pull[1], p))
   s = mixShot(s, wide, smooth(HANG.block[0] + 0.04, HANG.crane[1] + 0.02, p))
   return mixShot(s, done, settle)

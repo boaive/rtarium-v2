@@ -127,7 +127,7 @@ const FLOOR_Y = -0.34
 
 /** (drawn again only when its own things change: its section draws itself again for each part picked, and the piece is
  * large; everything it shows it reads from `t`, `focus` and the room every frame) */
-export const PieceStage = memo(function PieceStage({ t, bus, room, focus, live }: { t: Progress; bus: LabelBus; room: { current: Room }; focus: { current: string | null }; live: { current: boolean } }) {
+export const PieceStage = memo(function PieceStage({ t, bus, room, focus, live, floor = 'dark' }: { t: Progress; bus: LabelBus; room: { current: Room }; focus: { current: string | null }; live: { current: boolean }; /** the grid's ink: on the black box, or on a light card (a phone's) */ floor?: 'dark' | 'light' }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
@@ -199,7 +199,7 @@ export const PieceStage = memo(function PieceStage({ t, bus, room, focus, live }
     <group>
       <MovingKeyLight focus={CENTRE} reach={3.4} offset={[-3, 6, 6]} />
       {/* the studio floor, as the six layers' box has it: a fine grid that goes into the dark, and the shadows on it */}
-      <gridHelper args={[18, 36, '#2e2e2e', '#232323']} position={[CENTRE[0], FLOOR_Y - 0.002, CENTRE[2]]} />
+      <gridHelper args={floor === 'light' ? [18, 36, '#cfccc4', '#dcd9d1'] : [18, 36, '#2e2e2e', '#232323']} position={[CENTRE[0], FLOOR_Y - 0.002, CENTRE[2]]} />
       <mesh position={[CENTRE[0], FLOOR_Y, CENTRE[2]]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[18, 18]} />
         <shadowMaterial color="#000000" opacity={0.42} transparent depthWrite={false} />

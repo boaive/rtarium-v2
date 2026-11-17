@@ -6,7 +6,7 @@ import { createBus, type Shot } from '../facade/three/kit'
 import { ScrubRig, mixShot } from '../facade/three/ScrubRig'
 import { FollowScroll, useScrollProgress } from '../facade/progress'
 import { useLive } from '../facade/unitized/live'
-import { HERO_END, HERO_TARGET, HeroPanel } from './three/HeroPanel'
+import { HERO_END, HERO_SIP, HERO_TARGET, HeroPanel } from './three/HeroPanel'
 
 /**
  * The opening, on yellow, laid out as the Façade & Cladding and Advanced Flooring overviews open (fco-hero): the page's
@@ -23,8 +23,10 @@ const noPhase = () => {}
 function shots(compact: boolean): [Shot, Shot, Shot] {
   return compact
     ? [
-        { target: HERO_TARGET, dist: 10.4, azim: 44, elev: 28, frame: [0.5, 0.5] },
-        { target: HERO_TARGET, dist: 9.4, azim: 52, elev: 33, frame: [0.5, 0.34] },
+        // (a phone: the SIP panel whole, floating, the whole of it in the screen between the words, as the other openings)
+        // (framed as the Façade overview's opening on a phone: low, turned, in the screen's middle, clear of the words)
+        { target: HERO_TARGET, dist: 11.8, azim: 56, elev: 10, frame: [0.5, 0.48] },
+        { target: HERO_TARGET, dist: 11.0, azim: 62, elev: 20, frame: [0.5, 0.4] },
         { target: HERO_END, dist: 2.6, azim: 80, elev: 18, frame: [0.6, 0.5] },
       ]
     : [
@@ -52,7 +54,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
         <Stage3D shadows keyLight={false} fallback={<img className="fco-still" src="/img/shoot/load-hang.webp" alt="" />}>
           <ScrubRig progress={progress} shotAt={shotAt} sway={1.5} live={live} aspect={compact ? 0.56 : 1.6} />
           <MovingKeyLight focus={HERO_TARGET} reach={3.2} offset={[-4, 9, 6]} />
-          <HeroPanel bus={bus} live={live} onPhase={noPhase} zoom={zoom} />
+          <HeroPanel bus={bus} live={live} onPhase={noPhase} zoom={zoom} hold={compact ? HERO_SIP : undefined} />
           <FollowScroll progress={progress} />
         </Stage3D>
       </div>
@@ -65,7 +67,7 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
       </header>
 
       <div className="fco-hero__copy">
-        <Words as="p" className="fco-mega" lines={['Wall panels, insulated', 'and interlocked.']} />
+        <Words as="p" className="fco-mega" lines={compact ? ['Wall panels,', 'insulated and', 'interlocked.'] : ['Wall panels, insulated', 'and interlocked.']} />
       </div>
       <span className="fco-cue" aria-hidden="true">
         Scroll

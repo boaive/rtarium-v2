@@ -18,7 +18,7 @@
 
 .fu-hero {
   position: relative;
-  height: 100svh;
+  height: 100lvh;
   min-height: 600px;
   overflow: hidden;
   background: var(--yellow);
@@ -132,7 +132,7 @@
 
 .fu-layers {
   position: relative;
-  height: calc(var(--run, 5) * 100svh);
+  height: calc(var(--run, 5) * 100lvh);
   background: var(--yellow);
   color: var(--black);
 }
@@ -141,7 +141,7 @@
   --room: clamp(84px, 12.5vh, 130px);
   position: sticky;
   top: 0;
-  height: 100svh;
+  height: 100lvh;
   display: grid;
   /* the unit's box keeps to the right gutter, and takes a little more of the screen to its left */
   grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr);
@@ -298,7 +298,7 @@
   margin: 0;
 }
 .fu-sheet__box {
-  height: calc(100svh - var(--nav-h) - clamp(20px, 4vh, 44px) - var(--room));
+  height: calc(100lvh - var(--nav-h) - clamp(20px, 4vh, 44px) - var(--room));
 }
 .fu-sheet__view {
   --pad: clamp(18px, 1.8vw, 28px);
@@ -327,6 +327,10 @@
   font-weight: 700;
 }
 /* a layer back or on, at its top right */
+/* (a phone's hint that the scroll takes the unit on: unitized-phone.css shows it) */
+.fu-sheet__scroll {
+  display: none;
+}
 .fu-sheet__steps {
   position: absolute;
   z-index: 3;
@@ -456,14 +460,14 @@
 
 .fu-hang {
   position: relative;
-  height: calc(var(--run, 3) * 100svh);
+  height: calc(var(--run, 3) * 100lvh);
   background: var(--white);
   color: var(--black);
 }
 .fu-hang__pin {
   position: sticky;
   top: 0;
-  height: 100svh;
+  height: 100lvh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   padding: calc(var(--nav-h) + clamp(16px, 3vh, 32px)) var(--gutter) clamp(20px, 4vh, 44px);
@@ -503,7 +507,7 @@
 
 .fu-flaws {
   position: relative;
-  height: 100svh;
+  height: 100lvh;
   min-height: 600px;
   background: var(--black);
   color: var(--yellow);
@@ -908,7 +912,7 @@
 
 .fu-ans {
   position: relative;
-  height: calc((var(--run, 7) + 1) * 100svh);
+  height: calc((var(--run, 7) + 1) * 100lvh);
   background: var(--yellow);
   color: var(--black);
 }
@@ -925,7 +929,7 @@
   --block: calc(var(--name) * 1.88 + var(--say) + var(--t-lead) * 2.84);
   position: sticky;
   top: 0;
-  height: 100svh;
+  height: 100lvh;
   overflow: hidden;
 }
 .fu-ans__stage {
@@ -967,7 +971,7 @@
   display: grid;
   justify-items: start;
   gap: var(--say);
-  margin-top: max(0px, calc((100svh - var(--words-top) - var(--words-foot) - var(--block)) / 2));
+  margin-top: max(0px, calc((100lvh - var(--words-top) - var(--words-foot) - var(--block)) / 2));
   pointer-events: auto;
   will-change: opacity, transform;
 }
@@ -1013,7 +1017,7 @@
  */
 .fu-ans__shot {
   position: relative;
-  height: clamp(88px, calc((100svh - var(--words-top) - var(--words-foot) - var(--block)) / 2 - var(--say)), 216px);
+  height: clamp(88px, calc((100lvh - var(--words-top) - var(--words-foot) - var(--block)) / 2 - var(--say)), 216px);
   aspect-ratio: 16 / 9;
   margin: 0;
 }
@@ -1079,7 +1083,7 @@
  * left under them (`--photo-h`, which the section measures), never taller than wide.
  */
 .fu-made.is-screen {
-  height: 100svh;
+  height: 100lvh;
   min-height: 560px;
 }
 .fu-made.is-screen .fu-made__inner {
@@ -1220,7 +1224,7 @@
 }
 .fu-more .fu-more__cols {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  min-height: max(480px, calc(100svh - var(--nav-h) - 1px));
+  min-height: max(480px, calc(100lvh - var(--nav-h) - 1px));
 }
 /* the models stand a little way under the section's line, clear of the words below them */
 .fu-more .fct__canvas {
@@ -1230,7 +1234,7 @@
 /* the façade systems' models are tall: their band starts at the line and takes more of a taller section,
    the scene keeping room clear above each (SystemsTrio's headroom) */
 .fu-more--tall .fu-more__cols {
-  min-height: max(600px, calc(100svh - var(--nav-h) - 1px));
+  min-height: max(600px, calc(100lvh - var(--nav-h) - 1px));
 }
 .fu-more--tall .fct__canvas {
   height: 52%;
@@ -1279,12 +1283,12 @@
     display: none;
   }
   .fu-sheet__box {
-    height: 42svh;
+    height: 42lvh;
   }
   /* problems on a phone: the 3D at the top, the list under it */
   .fu-flaws {
     height: auto;
-    min-height: 100svh;
+    min-height: 100lvh;
   }
   .fu-probs {
     height: auto;
@@ -1298,7 +1302,7 @@
   }
   .fu-prob.is-open {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 46svh auto;
+    grid-template-rows: 46lvh auto;
   }
   .fu-prob.is-open .fu-prob__text {
     order: 0;
@@ -1317,11 +1321,11 @@
     min-height: 0;
   }
   .fu-flaws__pin {
-    --stage-h: 34svh;
+    --stage-h: 34lvh;
     --foot: 20px;
     display: flex;
     flex-direction: column;
-    min-height: 100svh;
+    min-height: 100lvh;
     padding: calc(var(--nav-h) + var(--stage-h)) var(--gutter) var(--foot);
   }
   .fu-flaws__stage {
@@ -1448,15 +1452,15 @@
   }
   .fu-more .fu-more__cols {
     grid-template-columns: minmax(0, 1fr);
-    min-height: clamp(480px, 66svh, 720px);
+    min-height: clamp(480px, 66lvh, 720px);
   }
   .fu-more--tall .fu-more__cols {
-    min-height: clamp(600px, 80svh, 880px);
+    min-height: clamp(600px, 80lvh, 880px);
   }
   /* the models in the overview's band above the stacked columns */
   .fu-more .fct__canvas {
     top: 0;
-    height: 24svh;
+    height: 24lvh;
   }
 }
 
@@ -1516,7 +1520,7 @@
   /* (the line keeps well clear of the track under it: a line and a half of room) */
   .fu-layers .fu-sheet__now {
     position: absolute;
-    inset: calc(var(--nav-h) + clamp(14px, 3svh, 28px)) var(--gutter) calc(clamp(16px, 3svh, 28px) + 58px);
+    inset: calc(var(--nav-h) + clamp(14px, 3lvh, 28px)) var(--gutter) calc(clamp(16px, 3lvh, 28px) + 58px);
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -1547,6 +1551,6 @@
     color: rgb(242 240 233 / 0.82);
   }
   .fu-layers .fu-track {
-    bottom: clamp(16px, 3svh, 28px);
+    bottom: clamp(16px, 3lvh, 28px);
   }
 }

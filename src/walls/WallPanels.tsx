@@ -7,6 +7,7 @@ import './walls.css'
 import { setShared, type Ground } from '../three/stageStore'
 import { FacadePage, usePageMeta } from '../facade/Shell'
 import { usePageSteps } from '../facade/pageSteps'
+import { useIsCompact } from '../lib/motion'
 import { Hero } from './Hero'
 import { Story } from './Story'
 import { Answers } from './Answers'
@@ -32,6 +33,7 @@ import { PAIRED, SOLID } from './content'
  */
 /** the section whose run plays with the scroll itself, left to the scroll: the answers */
 const FREE = ['wall-answers']
+const NONE: string[] = []
 
 export default function WallPanels() {
   usePageMeta(
@@ -71,7 +73,10 @@ export default function WallPanels() {
   }, [])
 
   // one scroll, one step, the whole page through, as the façade pages (usePageSteps), the answers playing with the scroll
-  usePageSteps(FREE)
+  // (a phone plays its build's steps in a card by themselves, not with the scroll: nothing of it runs free there. Left
+  // free, its one stop and the free run's hold kept pulling the page back to its top)
+  const compact = useIsCompact()
+  usePageSteps(compact ? NONE : FREE)
 
   return (
     <FacadePage>
@@ -87,13 +92,13 @@ export default function WallPanels() {
       <div className="fu" data-ground="black">
         <Say kicker={SOLID.name} label={SOLID.name} text={SOLID.usp} />
       </div>
-      <div className="fu" data-ground="yellow">
+      <div className="fu" data-ground={compact ? 'light' : 'yellow'}>
         <Panels which={30} />
       </div>
       <div className="fu" data-ground="black">
         <Say kicker={PAIRED.name} label={PAIRED.name} text={PAIRED.usp} />
       </div>
-      <div className="fu" data-ground="yellow">
+      <div className="fu" data-ground={compact ? 'light' : 'yellow'}>
         <Panels which={100} />
       </div>
       <div className="fu" data-ground="light">

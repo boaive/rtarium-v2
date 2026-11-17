@@ -1,3 +1,4 @@
+import { RunStations } from '../flooring/RunStations'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY } from '../lib/scroll'
@@ -104,8 +105,146 @@ const WORDS: Record<Which, Record<'intro' | 'whole', { head: string; about: stri
   },
 }
 
+/** the panel's technical sheet, its diagrams large, and the way to open it (the wide screen's and a phone's) */
+function usePanelSheet(which: Which) {
+  const [sheet, openSheet] = useSheet()
+  // (the technical sheet, its diagrams large: made again only when its panel or its dialog changes, never on each step)
+  const sheetEl = useMemo(
+    () =>
+      which === 30 ? (
+        <Sheet dialog={sheet} kicker="Technical details" title={`${SOLID.name}, ${SOLID.thick} mm`}>
+          <div className="wp-sheet__grid">
+            <Block label="Section">
+              <Section30 />
+            </Block>
+            <div className="wp-sheet__side">
+              <Block label="Panel construction">
+                <Steps items={SOLID.construction} />
+              </Block>
+              <Block label="Panel dimensions">
+                <Figures rows={SOLID.dimensions} />
+              </Block>
+              <Block label="Panel dynamics">
+                <Figures rows={SOLID.dynamics} />
+              </Block>
+            </div>
+            <Block label="Plan: GRP grid, ferrules, tie holes" wide>
+              <PanelPlan kind="solid" />
+            </Block>
+          </div>
+        </Sheet>
+      ) : (
+        <Sheet dialog={sheet} kicker="Technical details" title={`${PAIRED.name}, ${PAIRED.thick} mm`} review={REVIEW.core}>
+          <div className="wp-sheet__grid">
+            <Block label="Section">
+              <Section100 />
+            </Block>
+            <div className="wp-sheet__side">
+              <Block label="Panel construction">
+                <Steps items={PAIRED.construction} />
+              </Block>
+              <Block label="Panel dimensions">
+                <Figures rows={PAIRED.dimensions} />
+              </Block>
+              <Block label="Panel dynamics">
+                <Figures rows={PAIRED.dynamics} />
+              </Block>
+            </div>
+            <Block label="Plan: tie-clips, ferrules, tie holes" wide>
+              <PanelPlan kind="sip" />
+            </Block>
+            <Block label="GI tie-clip" wide>
+              <TiePlate />
+            </Block>
+          </div>
+        </Sheet>
+      ),
+    [which, sheet],
+  )
+  return [sheetEl, openSheet] as const
+}
+
 export function Panels({ which }: { which: Which }) {
-  const compact = useIsCompact()
+  return useIsCompact() ? <PanelsPhone which={which} /> : <PanelsWide which={which} />
+}
+
+/**
+ * A phone: the panel as Wall Panels' answers are (RunStations: the solution's card), on white: the panel's name, the step's
+ * name and its line, the panel in a light card, the bar, the count with pause, back and on, and a still a step along the
+ * strip; the technical sheet's way under it. Its steps: the panel opened, each part seen alone, the panel closed up whole.
+ * It plays through once by itself; a step picked by hand is held on.
+ */
+function PanelsPhone({ which }: { which: Which }) {
+  const parts = which === 30 ? PARTS30 : PARTS100
+  const panel = which === 30 ? SOLID : PAIRED
+  const n = parts.length
+  const [sheetEl, openSheet] = usePanelSheet(which)
+  const steps = useMemo(
+    () => [
+      { id: 'open', name: WORDS[which].intro.head, line: WORDS[which].intro.about, labels: [] },
+      ...parts.map((p) => ({ id: p.id, name: p.head, line: p.about, labels: [] })),
+      { id: 'whole', name: WORDS[which].whole.head, line: WORDS[which].whole.about, labels: [] },
+    ],
+    [which, parts],
+  )
+  // (the opening the longest, the SIP panel's longer still: it divides and takes its core first; each part a short hold)
+  const stretch = useMemo(() => [OPEN_S[which] / 1.6, ...parts.map(() => 0.9), CLOSE_S / 1.4], [which, parts])
+  return (
+    <>
+      <RunStations
+        id={which === 30 ? 'panels' : 'panels-sip'}
+        title={panel.name}
+        steps={steps}
+        stretch={stretch}
+        labels={NO_LABELS}
+        scene={(t, bus, room, live) => <PanelRun which={which} n={n} parts={parts} t={t} bus={bus} room={room as { current: Room }} live={live} />}
+        fallback={null}
+        zoom={steps.map(() => 1.35)}
+        keyLight={false}
+        thumbs={`/img/walls/panel${which}-step`}
+        center
+        controls
+        foot={
+          <button type="button" className="wpp__sheet" onClick={openSheet}>
+            Technical details
+            <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+              <path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </button>
+        }
+      />
+      {sheetEl}
+    </>
+  )
+}
+const NO_LABELS: LabelSpec[] = []
+
+/**
+ * The card's scene: the card's run (a step a unit, each played to 0.76 of it, the last to 0.9) read as the panel's own
+ * story: the first step opens it, each part's step holds it opened with that part alone, the last closes it up.
+ */
+function PanelRun({ which, n, parts, t, bus, room, live }: { which: Which; n: number; parts: Part[]; t: Progress; bus: ReturnType<typeof createBus>; room: { current: Room }; live: { current: boolean } }) {
+  const piece = useMemo<Progress>(() => ({ value: tAt(which, 0), listeners: new Set() }), [which])
+  const focus = useRef<string | null>(null)
+  useEffect(() => {
+    const S = n + 2
+    const on = () => {
+      const v = t.value
+      const k = Math.max(0, Math.min(S - 1, Math.floor(v + 1e-6)))
+      const f = Math.min(1, Math.max(0, (v - k) / (k === S - 1 ? 0.9 : 0.76)))
+      focus.current = k >= 1 && k <= n ? parts[k - 1].id : null
+      piece.value = k === 0 ? tAt(which, f) : k <= n ? tAt(which, 1) : tAt(which, 1 + f)
+      piece.listeners.forEach((g) => g())
+    }
+    on()
+    t.listeners.add(on)
+    return () => void t.listeners.delete(on)
+  }, [t, piece, which, n, parts])
+  return <PieceStage t={piece} bus={bus} room={room} focus={focus} live={live} floor="light" />
+}
+
+function PanelsWide({ which }: { which: Which }) {
+  const compact = false
   const section = useRef<HTMLElement>(null)
   const box = useRef<HTMLDivElement>(null)
   const rx = useRef<HTMLSpanElement>(null)
@@ -128,7 +267,6 @@ export function Panels({ which }: { which: Which }) {
   const focus = useRef<string | null>(null)
   /** the room the panel keeps to in its box: clear of the read-out at the top left, its rows of numbers, the hint at the foot */
   const room = useRef<Room>({ x: 0.04, y: 0.15, w: 0.92, h: 0.66 })
-  const [sheet, openSheet] = useSheet()
 
   const parts = which === 30 ? PARTS30 : PARTS100
   const panel = which === 30 ? SOLID : PAIRED
@@ -270,59 +408,7 @@ export function Panels({ which }: { which: Which }) {
     if (Number.isInteger(i) && i >= 0 && i < parts.length) pick(i)
   }
 
-  // the technical sheet, its diagrams large: made again only when its panel or its dialog changes, never on each step
-  const sheetEl = useMemo(
-    () =>
-      which === 30 ? (
-        <Sheet dialog={sheet} kicker="Technical details" title={`${SOLID.name}, ${SOLID.thick} mm`}>
-          <div className="wp-sheet__grid">
-            <Block label="Section">
-              <Section30 />
-            </Block>
-            <div className="wp-sheet__side">
-              <Block label="Panel construction">
-                <Steps items={SOLID.construction} />
-              </Block>
-              <Block label="Panel dimensions">
-                <Figures rows={SOLID.dimensions} />
-              </Block>
-              <Block label="Panel dynamics">
-                <Figures rows={SOLID.dynamics} />
-              </Block>
-            </div>
-            <Block label="Plan: GRP grid, ferrules, tie holes" wide>
-              <PanelPlan kind="solid" />
-            </Block>
-          </div>
-        </Sheet>
-      ) : (
-        <Sheet dialog={sheet} kicker="Technical details" title={`${PAIRED.name}, ${PAIRED.thick} mm`} review={REVIEW.core}>
-          <div className="wp-sheet__grid">
-            <Block label="Section">
-              <Section100 />
-            </Block>
-            <div className="wp-sheet__side">
-              <Block label="Panel construction">
-                <Steps items={PAIRED.construction} />
-              </Block>
-              <Block label="Panel dimensions">
-                <Figures rows={PAIRED.dimensions} />
-              </Block>
-              <Block label="Panel dynamics">
-                <Figures rows={PAIRED.dynamics} />
-              </Block>
-            </div>
-            <Block label="Plan: tie-clips, ferrules, tie holes" wide>
-              <PanelPlan kind="sip" />
-            </Block>
-            <Block label="GI tie-clip" wide>
-              <TiePlate />
-            </Block>
-          </div>
-        </Sheet>
-      ),
-    [which, sheet],
-  )
+  const [sheetEl, openSheet] = usePanelSheet(which)
 
   const closed = goal === 2
   // every number while none is picked; the one picked alone

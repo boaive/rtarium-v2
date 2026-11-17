@@ -1,5 +1,7 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef } from 'react'
+import { FacadeRoutes, FlooringRoutes, WallPanels, fetchAhead } from './lib/pages'
 import { Router, useRoute } from './lib/router'
+import { openOnPage } from './opener'
 import { Nav } from './components/Nav'
 import { Footer } from './components/Footer'
 import { Progress } from './components/Progress'
@@ -16,15 +18,16 @@ import { setShared } from './three/stageStore'
 import { startSmoothScroll, stepScreens } from './lib/scroll'
 import { COMPACT_QUERY, useIsCompact } from './lib/motion'
 import { ScrollLine } from './components/ScrollLine'
+import { Consent } from './components/Consent'
+import { PrivacyPage } from './pages/Privacy'
+import { startSectionTimer, trackPage, useConsent } from './lib/analytics'
+import { startStepTimer } from './lib/stepTimer'
 
-/** Façade & Cladding (overview and its three systems): its own chunk, loaded only on those pages */
-const FacadeRoutes = lazy(() => import('./facade/FacadeRoutes'))
+/** Façade & Cladding (overview and its three systems): its own chunk (src/lib/pages.ts) */
 const isFacade = (path: string) => path === '/facade-cladding' || path.startsWith('/facade-cladding/')
 /** Advanced Flooring (overview and its three applications): the same, its own chunk */
-const FlooringRoutes = lazy(() => import('./flooring/FlooringRoutes'))
 const isFlooring = (path: string) => path === '/advanced-flooring' || path.startsWith('/advanced-flooring/')
 /** Wall Panels: one page, its own chunk */
-const WallPanels = lazy(() => import('./walls/WallPanels'))
 /** development only (never in a build): the Unitized page's scenes rendered a frame at a time, for its phone clips */
 const FilmUnitized = import.meta.env.DEV ? lazy(() => import('./dev/FilmUnitized')) : null
 const isWalls = (path: string) => path === '/wall-panels'
@@ -36,6 +39,8 @@ function Home() {
     document.title = 'RTARIUM by HEMISPHERE ONE · Three-dimensional basalt reinforcement mesh'
     // arriving on /#chapter: land on it once the page has laid out
     if (window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
+    // every other page's code fetched ahead, while the opening shows (src/lib/pages.ts)
+    fetchAhead()
   }, [])
   // a phone reads Home as EnduroSat's reads: one free, native scroll over the fixed 3D, nothing snapping to a screen.
   // A wide screen steps a screen a scroll, decided again whenever the window changes between the two: a page that
@@ -67,6 +72,13 @@ function Home() {
 function Page() {
   const { path } = useRoute()
   const app = APPLICATIONS.find((a) => a.path === path)
+  // (a phone, on to another page: the opening plays over it while its scenes are built; a layout effect, so it is up
+  // before any scene of the new page asks whether it is: src/opener.ts `openOnPage`)
+  const first = useRef(true)
+  useLayoutEffect(() => {
+    if (first.current) return void (first.current = false)
+    openOnPage()
+  }, [path])
   useEffect(() => {
     if (path !== '/') setShared({ chapter: 'page', step: 0, ground: 'light' })
   }, [path])
@@ -102,7 +114,9 @@ function Page() {
   return (
     <>
       <Nav />
-      <main id="main">{app ? <ApplicationPage id={app.id} /> : path === '/contact' ? <ContactPage /> : <NotFound />}</main>
+      <main id="main">
+        {app ? <ApplicationPage id={app.id} /> : path === '/contact' ? <ContactPage /> : path === '/privacy' ? <PrivacyPage /> : <NotFound />}
+      </main>
       <Footer />
     </>
   )
@@ -113,11 +127,48 @@ function PhoneLine() {
   return useIsCompact() ? <ScrollLine /> : null
 }
 
+/**
+ * One page view per route, once the visitor has accepted analytics. It waits a moment so the page has set its own
+ * title (the lazy pages set it as they load), and the first one goes out the moment consent is given.
+ */
+function PageViews() {
+  const { path } = useRoute()
+  const { choice } = useConsent()
+  useEffect(() => {
+    if (choice !== 'granted') return
+    const t = window.setTimeout(() => trackPage(path), 700)
+    return () => window.clearTimeout(t)
+  }, [path, choice])
+  // time on each section of the page, once it has laid out
+  useEffect(() => {
+    if (choice !== 'granted') return
+    let stop = () => {}
+    const t = window.setTimeout(() => (stop = startSectionTimer(path)), 900)
+    return () => {
+      window.clearTimeout(t)
+      stop()
+    }
+  }, [path, choice])
+  // time on each step of the stepped sections
+  useEffect(() => {
+    if (choice !== 'granted') return
+    let stop = () => {}
+    const t = window.setTimeout(() => (stop = startStepTimer(path)), 900)
+    return () => {
+      window.clearTimeout(t)
+      stop()
+    }
+  }, [path, choice])
+  return null
+}
+
 export function App() {
   return (
     <Router>
       <Page />
       <PhoneLine />
+      <PageViews />
+      <Consent />
     </Router>
   )
 }

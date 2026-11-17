@@ -265,3 +265,181 @@
     transition: none;
   }
 }
+
+/*
+ * Pared back: the heading and the step's line over the clip, the clip itself filling the whole screen under them
+ * (no fade drawn over its edges, no edge of it showing), the dashes along the foot on the left and, across from them on the right, which
+ * step it is, large, as veedo's "600 SQ.FT.": the number, its "/ 05" small beside it, the step's name small under them.
+ * No floor drawn under the clip, no small lines over the heading.
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fsf__floor,
+  .fsf__kicker,
+  .fsf__sub {
+    display: none;
+  }
+  .fsf__pin {
+    position: relative;
+  }
+  .fsf__title,
+  .fsf__line {
+    position: relative;
+    z-index: 2;
+  }
+  /* the clip the whole screen, under the words and the foot: as tall as the screen, centred, its sides running off it, so
+     no edge of it shows as a box */
+  .fsf__stage {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    flex: none;
+    margin: 0;
+  }
+  .fsf__clip {
+    /* (square, the screen's width, in the middle of the screen: the whole model, centred, as the reference has it) */
+    left: 50%;
+    top: 50%;
+    width: 100cqw;
+    max-width: none;
+    height: 100cqw;
+    max-height: none;
+    translate: -50% -50%;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  /* (no pause: the steps simply play) */
+  .fsf__play {
+    display: none;
+  }
+  .fsf__foot {
+    position: relative;
+    z-index: 2;
+    margin-top: auto;
+    display: grid;
+    /* (the dashes take the room on the left, the number keeps to the right edge) */
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'dashes big'
+      'dashes name';
+    align-items: center;
+    gap: 0 16px;
+  }
+  .fsf__dashes {
+    margin: 0 0 0 -2px;
+  }
+  .fsf__big {
+    justify-self: end;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .fsf__big b {
+    font-size: clamp(2rem, 9vw, 2.4rem);
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+  .fsf__of {
+    margin-top: 0.4em;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+  }
+  /* (the step's name one small line under its number: the two a block level with the dashes) */
+  .fsf__name {
+    align-self: start;
+    font-size: 0.56rem;
+    letter-spacing: 0.16em;
+    white-space: nowrap;
+  }
+  .fsf__big {
+    align-self: end;
+  }
+}
+
+/* the live scene (Hang), the whole screen under the words and the foot */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fsf__live,
+  .fsf__live .fc-canvas {
+    position: absolute;
+    inset: 0;
+  }
+}
+
+/*
+ * played through once and held on the building: as the wide screen's bar says it, "Pick a step to see it again" over the
+ * dashes, a small arrow pointing down at them; and the dashes ripple, one after another, a wave along them, to show they
+ * can be picked
+ */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fsf__again {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 6px);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fsf-2);
+    animation: fsf-in 0.45s var(--ease-out) both;
+  }
+  .fsf__again svg {
+    animation: fsf-point 1.4s var(--ease-in-out) infinite;
+  }
+  /* the skip: the same small line, a button, its arrow pointing on and still */
+  .fsf__skip {
+    min-height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .fsf__skip svg {
+    animation: none;
+  }
+  @keyframes fsf-point {
+    50% {
+      transform: translateY(3px);
+    }
+  }
+  .fsf__dashes.is-ended .fsf__dash::before {
+    animation: fsf-wave 2.4s var(--ease-in-out) calc(var(--i) * 0.12s) infinite;
+  }
+  @keyframes fsf-wave {
+    0%,
+    40%,
+    100% {
+      transform: none;
+      background: var(--fsf-track);
+    }
+    18% {
+      transform: translateY(-4px) scaleY(1.6);
+      background: var(--fsf-fg);
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fsf__again svg,
+  .fsf__dashes.is-ended .fsf__dash::before {
+    animation: none;
+  }
+}
+
+/* every page's steps heading set as the Unitized page's (unitized-phone.css: `.fu-h`), on whatever page they stand */
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .fsf .fsf__title.fu-h {
+    display: block;
+    width: auto;
+    max-width: 13em;
+    font-size: clamp(1.95rem, 8.6vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.04;
+    text-transform: none;
+    white-space: normal;
+    text-wrap: balance;
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useIsCompact } from '../lib/motion'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three/Stage3D'
 import { createBus, type LabelBus } from '../facade/three/kit'
@@ -107,8 +107,103 @@ function Card({ k, total, beat, reason, labels, scene, fallback, play, live, ope
   )
 }
 
-export function FailCards({ id, title, label, reasons, beats, labels, scene, fallback }: { id: string; title: string; label: string; reasons: Reason[]; beats: [number, number][]; labels: LabelSpec[]; scene: FailSceneOf; fallback: ReactNode }) {
-  const compact = useIsCompact()
+type FailCardsProps = { id: string; title: string; label: string; reasons: Reason[]; beats: [number, number][]; labels: LabelSpec[]; scene: FailSceneOf; fallback: ReactNode }
+
+export function FailCards(props: FailCardsProps) {
+  return useIsCompact() ? <FailScreen {...props} /> : <FailGrid {...props} />
+}
+
+/** a phone: the scene keeps to the room under the words and over the dashes */
+const PHONE_ROOM: BuildRoom = { x: 0.04, y: 0.3, w: 0.92, h: 0.52 }
+
+/**
+ * A phone: the reasons as the Unitized page's six layers are on one (Layers): one black screen held while the page
+ * scrolls, the reason in play at the top (its number and name in yellow, its line), its piece of the scene in the middle,
+ * a dash a reason along the foot. The scroll plays the scene on, a reason a swipe (the page's stepper rests where each
+ * has played out: `data-stops`); between two, the scene runs on into the next one's stretch.
+ */
+function FailScreen({ id, title, reasons, beats, labels, scene, fallback }: FailCardsProps) {
+  const n = reasons.length
+  const section = useRef<HTMLElement>(null)
+  const live = useLive(section)
+  const bus = useMemo(createBus, [])
+  const t = useMemo<Progress>(() => ({ value: beats[0][0], listeners: new Set() }), [beats])
+  const room = useRef<BuildRoom>(PHONE_ROOM)
+  const [k, setK] = useState(0)
+  const [lit, setLit] = useState(false)
+  /** each reason's stretch of the scene: from its beat's start on to the next one's (the last, to its own end) */
+  const span = useMemo(() => beats.map((b, i) => [b[0], i < n - 1 ? beats[i + 1][0] : b[1]] as [number, number]), [beats, n])
+  /** where in its stretch each reason has played out (its beat's end): the page rests there */
+  const rest = useMemo(() => beats.map((b, i) => Math.min(0.96, (b[1] - span[i][0]) / Math.max(1e-3, span[i][1] - span[i][0]))), [beats, span])
+  const stops = useMemo(() => rest.map((a, i) => ((i + a) / n).toFixed(4)).join(','), [rest, n])
+
+  useEffect(() => {
+    const el = section.current
+    if (!el) return
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      const run = Math.max(1, r.height - window.innerHeight)
+      const s = Math.min(n - 1e-4, Math.max(0, (-r.top / run) * n))
+      const i = Math.floor(s)
+      const a = s - i
+      const v = span[i][0] + (span[i][1] - span[i][0]) * a
+      if (t.value !== v) {
+        t.value = v
+        t.listeners.forEach((f) => f())
+      }
+      setK(i)
+      setLit(a >= rest[i] * 0.85)
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [n, span, rest, t])
+
+  const reason = reasons[k]
+  return (
+    <section ref={section} id={id} className="ffail on-black" data-ground="black" data-stops={stops} data-no-top="" data-back="all" aria-labelledby={`${id}-title`} style={{ '--n': n } as CSSProperties}>
+      <div className="ffail__pin">
+        <h2 id={`${id}-title`} className="visually-hidden">
+          {title}
+        </h2>
+        <div className="ffail__stage" aria-hidden="true">
+          <Stage3D shadows fallback={fallback}>
+            <Wake live={live} />
+            {/* (framed in its room under the words: a scene's own phone framing was the old cards') */}
+            {scene(t, bus, false, room, live)}
+            <LabelProjector bus={bus} bottom={8} />
+          </Stage3D>
+          <Labels bus={bus} labels={labels} shown={lit ? reason.labels : []} />
+        </div>
+        <div key={reason.id} className="ffail__words" aria-live="polite">
+          <p className="ffail__num num">
+            0{k + 1} / 0{n}
+          </p>
+          <h3 className="ffail__name">{reason.name}</h3>
+          <p className="ffail__line">{reason.line}</p>
+        </div>
+        <ol className="ffail__dashes" aria-hidden="true">
+          {reasons.map((r, i) => (
+            <li key={r.id} className={i < k ? 'is-past' : i === k ? 'is-now' : ''} />
+          ))}
+        </ol>
+      </div>
+    </section>
+  )
+}
+
+function FailGrid({ id, title, label, reasons, beats, labels, scene, fallback }: FailCardsProps) {
+  const compact = false
   const section = useRef<HTMLElement>(null)
   const head = useRef<HTMLHeadingElement>(null)
   const rail = useRef<HTMLDivElement>(null)

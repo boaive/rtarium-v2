@@ -324,7 +324,7 @@ export function TradePanel({ k, act, hover, bus, live, compact = false, card = f
         </group>
       )}
       {/* the studio: a fine grid going into the dark, the shadows on it */}
-      <StudioFog color="#0b0b0b" near={7} far={16} />
+      <StudioFog color="#0b0b0b" near={7} far={16} follow />
       <gridHelper args={[14, 56, '#2e2e2e', '#232323']} position={[0, -0.98, 0]} />
       <mesh position={[0, -0.975, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[14, 14]} />

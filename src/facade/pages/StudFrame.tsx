@@ -5,6 +5,7 @@ import '../studframe.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../Shell'
 import { usePageSteps } from '../pageSteps'
+import { useIsCompact } from '../../lib/motion'
 import { Hero } from '../studframe/Hero'
 import { Components } from '../studframe/Components'
 import { Cast } from '../studframe/Cast'
@@ -31,6 +32,7 @@ import { More } from '../unitized/More'
  */
 /** the section whose run plays with the scroll itself, left to the scroll: the casting */
 const FREE = ['casting']
+const NONE: string[] = []
 
 export default function StudFrame() {
   usePageMeta(
@@ -69,7 +71,10 @@ export default function StudFrame() {
   }, [])
 
   // one scroll, one step, the whole page through, as the Unitized page (usePageSteps), the casting playing with the scroll
-  usePageSteps(FREE)
+  // (a phone plays its solution's steps in a card by themselves, not with the scroll: no section of it runs free there.
+  // Left free, the way back past it, and down to it again, jumped the page to where it was left)
+  const compact = useIsCompact()
+  usePageSteps(compact ? NONE : FREE)
 
   return (
     <FacadePage>

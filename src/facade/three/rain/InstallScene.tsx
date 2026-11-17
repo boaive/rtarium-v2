@@ -80,15 +80,24 @@ export function installShot(p: number, compact: boolean, settle = 0): Shot {
   const cx = BX + G.pw / 2
   const cy = BY + G.fh / 2
   const a = smooth(0, 0.34, p)
+  // a phone: framed as the Unitized page's slab to slab (hangShot): the bay a little under the middle, clear of the
+  // words; the lift, the block and the finished block just under it
+  const fb = compact ? 0.68 : 0.47
+  const fw = compact ? 0.58 : 0.52
+  // (and a touch right on a phone, as hangShot's close look: the bay and its slabs together in the middle)
+  const fx = compact ? 0.555 : 0.5
   // the bay small on the page, with room round it (the Unitized slab to slab's spacing)
-  const near: Shot = { target: [cx - 0.1, cy - 0.15, 0.12], dist: (20 + a * 1.5) * k, azim: -40 + a * 10, elev: 13 - a * 4, frame: [0.5, 0.47] }
-  const lift: Shot = { target: [cx + 1, BY * 0.86, 3.5], dist: 58 * kw, azim: -36, elev: 7, frame: [0.5, 0.47] }
+  const near: Shot = { target: [cx - 0.1, cy - 0.15, 0.12], dist: (20 + a * 1.5) * k, azim: -40 + a * 10, elev: 13 - a * 4, frame: [fx, fb] }
+  const lift: Shot = { target: [cx + 1, BY * 0.86, 3.5], dist: 58 * kw, azim: -36, elev: 7, frame: [0.5, compact ? 0.52 : 0.47] }
   // back at the bay as the panel hooks on, a little closer while RTARIUM shows
-  const back: Shot = { target: [cx, cy + 0.4, 0.15], dist: 29 * k, azim: -28, elev: 15, frame: [0.5, 0.48] }
+  const back: Shot = { target: [cx, cy + 0.4, 0.15], dist: 29 * k, azim: -28, elev: 15, frame: [fx, compact ? fb : 0.48] }
   const lean = smooth(INSTALL.look[0], INSTALL.look[0] + 0.04, p) * (1 - smooth(INSTALL.look[1] - 0.04, INSTALL.look[1], p))
   const look: Shot = { ...back, dist: back.dist * 0.88, azim: -27 }
-  const wide: Shot = { target: [W * 0.5, (MAST_H + HEAD) * 0.5, -2], dist: 112 * kw, azim: -28, elev: 9, frame: [0.5, 0.52] }
-  const done: Shot = { target: [W * 0.5, H * 0.5, -3], dist: 98 * kw, azim: -30, elev: 9, frame: [0.5, 0.5] }
+  const wide: Shot = { target: [W * 0.5, (MAST_H + HEAD) * 0.5, -2], dist: 112 * kw, azim: -28, elev: 9, frame: [0.5, compact ? fw + 0.04 : fw] }
+  const done: Shot = { target: [W * 0.5, H * 0.5, -3], dist: 98 * kw, azim: -30, elev: 9, frame: [0.5, compact ? fw : 0.5] }
+  // a phone: from the bay out to the block and its crane as the panel is brought, and held there (as the Unitized page's
+  // slab to slab): back in at the bay, the block's drawing would stand all round it, a screen of lines
+  if (compact) return mixShot(mixShot(near, wide, smooth(INSTALL.crane[0] - 0.02, INSTALL.lift[0] + 0.04, p)), done, settle)
   let s = mixShot(near, lift, smooth(INSTALL.crane[0] - 0.02, INSTALL.lift[0] + 0.04, p))
   s = mixShot(s, back, smooth(INSTALL.lift[1] - 0.07, INSTALL.hook[1], p))
   s = mixShot(s, look, lean)

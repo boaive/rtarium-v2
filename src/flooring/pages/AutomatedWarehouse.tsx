@@ -6,6 +6,7 @@ import '../warehouse.css'
 import { setShared, type Ground } from '../../three/stageStore'
 import { FacadePage, usePageMeta } from '../../facade/Shell'
 import { usePageSteps } from '../../facade/pageSteps'
+import { useIsCompact } from '../../lib/motion'
 import { More } from '../data/More'
 import { Hero } from '../warehouse/Hero'
 import { Problems } from '../warehouse/Problems'
@@ -57,6 +58,7 @@ const failScene: FailSceneOf = (t, bus, compact, room, live) => <FailScene t={t}
  */
 /** the section whose run plays with the scroll itself, left to the scroll: the solution */
 const FREE = ['solution']
+const NONE: string[] = []
 
 export default function AutomatedWarehouse() {
   usePageMeta(
@@ -95,7 +97,10 @@ export default function AutomatedWarehouse() {
   }, [])
 
   // one scroll, one step, the whole page through, as the façade pages (usePageSteps), the solution playing with the scroll
-  usePageSteps(FREE)
+  // (a phone plays its build's steps in a card by themselves, not with the scroll: nothing of it runs free there. Left
+  // free, its one stop and the free run's hold kept pulling the page back to its top)
+  const compact = useIsCompact()
+  usePageSteps(compact ? NONE : FREE)
 
   return (
     <FacadePage>

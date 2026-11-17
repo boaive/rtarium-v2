@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { RunStations } from '../RunStations'
 import { damp, prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../../facade/three/Stage3D'
@@ -84,7 +85,7 @@ function goToStep(k: number) {
   scrollToY(el.getBoundingClientRect().top + window.scrollY + (START[k] + STRETCH[k] * (k === N - 1 ? 0.8 : 0.8)) * window.innerHeight)
 }
 
-export function Solution() {
+function SolutionWide() {
   const compact = useIsCompact()
   const section = useRef<HTMLElement>(null)
   const words = useRef<(HTMLDivElement | null)[]>([])
@@ -303,5 +304,25 @@ export function Solution() {
         <StepBar label="How the floor is built" names={STEPS.map((s) => s.name)} step={step} onGo={goToStep} cellRef={(k, el) => void (cells.current[k] = el)} hints="run" />
       </div>
     </section>
+  )
+}
+
+/** a phone: the steps as the Unitized page's answers (RunStations: Stations, the solution's card), each played live */
+export function Solution() {
+  return useIsCompact() ? (
+    <RunStations
+      id="solution"
+      title="How RTARIUM holds"
+      // (the labels up where a step has played out: those still up at its end)
+      steps={STEPS.map((st) => ({ ...st, labels: st.labels.filter((l) => l[2] >= 0.75).map((l) => l[0]) }))}
+      stretch={STRETCH}
+      labels={LABELS}
+      scene={(t, bus, room, live) => <SolveScene t={t} bus={bus} compact={false} room={room} live={live} />}
+      fallback={<img className="fu-still" src="/img/flooring/aw-site-pour.webp" alt="" />}
+      thumbs="/img/flooring/warehouse/solve-step"
+      zoom={[1.45, 1.45, 1.45, 1.1, 1.45, 1.45, 1.0]}
+    />
+  ) : (
+    <SolutionWide />
   )
 }

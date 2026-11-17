@@ -1,6 +1,6 @@
 import { DefaultLoadingManager } from 'three'
 import { holdScroll } from './lib/scroll'
-import { prefersReducedMotion } from './lib/motion'
+import { COMPACT_QUERY, prefersReducedMotion } from './lib/motion'
 import { builds } from './lib/builds'
 
 /**
@@ -24,9 +24,13 @@ const STILL = 450
 const HOLD = 380
 const PART = 1250
 
+/** the opening as it first stands, kept to play again over a page opened later (a phone: `openOnPage`) */
+let blank: HTMLElement | null = null
+
 export function runOpener() {
   const el = document.getElementById('opener')
   if (!el) return
+  blank = el.cloneNode(true) as HTMLElement
   // once a visit (index.html hides it from the first paint when it has played)
   const root0 = document.documentElement
   if (root0.classList.contains('is-opened')) return el.remove()
@@ -35,6 +39,25 @@ export function runOpener() {
   } catch {
     /* (private modes without storage: it plays each time) */
   }
+  play(el, LEAST, MOST)
+}
+
+/**
+ * A phone, going to another page of the site: the opening plays again over it, so every scene of the new page is built
+ * (and its openings played) behind it, never as the page scrolls to it. Nothing on a wide screen, or under one already
+ * playing.
+ */
+export function openOnPage() {
+  if (!blank || !window.matchMedia(COMPACT_QUERY).matches) return
+  const root = document.documentElement
+  if (root.classList.contains('is-opening')) return
+  root.classList.remove('is-opened')
+  const el = blank.cloneNode(true) as HTMLElement
+  document.body.appendChild(el)
+  play(el, 900, 9000)
+}
+
+function play(el: HTMLElement, least: number, most: number) {
   const reduced = prefersReducedMotion()
   const root = document.documentElement
   root.classList.add('is-opening')
@@ -98,9 +121,9 @@ export function runOpener() {
     // (and the page's 3D scenes, built while it shows: none is left to be built as the visitor scrolls)
     const busy = total > loaded || builds.waiting > 0 || builds.stage > 0 || builds.tail > 0
     if (busy || !page || !fonts) stillSince = now
-    const ready = (now - t0 > LEAST && now - stillSince > STILL) || now - t0 > MOST
+    const ready = (now - t0 > least && now - stillSince > STILL) || now - t0 > most
     // how far it has come: the page and its fonts a share each, the 3D the rest; never quite full until all is in
-    const part = (page ? 0.25 : 0) + (fonts ? 0.15 : 0) + (total ? (0.5 * loaded) / total : 0.5 * Math.min(1, (now - t0) / LEAST))
+    const part = (page ? 0.25 : 0) + (fonts ? 0.15 : 0) + (total ? (0.5 * loaded) / total : 0.5 * Math.min(1, (now - t0) / least))
     const target = ready ? 1 : Math.min(0.9, Math.max(part, 0.08 + 0.55 * Math.min(1, (now - t0) / 4000)))
     shown += (target - shown) * (ready ? 0.2 : 0.07)
     el.style.setProperty('--p', shown.toFixed(4))

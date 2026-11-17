@@ -1,6 +1,6 @@
 import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
-import { prefersReducedMotion } from './motion'
+import { nativeScroll, prefersReducedMotion } from './motion'
 
 /**
  * How the page scrolls, on every page. The wheel glides: Lenis eases the page towards where the wheel
@@ -16,7 +16,8 @@ const WHEEL = 1
 const LERP = 0.13
 
 export function startSmoothScroll() {
-  if (lenis || prefersReducedMotion()) return
+  // (a phone scrolls natively: no library between the finger and the page, motion.ts `nativeScroll`)
+  if (lenis || prefersReducedMotion() || nativeScroll()) return
   lenis = new Lenis({ lerp: LERP, wheelMultiplier: WHEEL, smoothWheel: true, autoRaf: true })
 }
 
@@ -205,7 +206,8 @@ export function stepScreens(
   } = {},
 ) {
   const glide = lenis
-  if (!glide) return () => {}
+  // (a phone never steps: the browser's own scroll, nothing else moving the page, motion.ts `nativeScroll`)
+  if (!glide || nativeScroll()) return () => {}
 
   const stopsOf = own ?? screenStops
   /**
@@ -556,6 +558,19 @@ export function stepScreens(
    */
   const finger = { x: 0, y: 0, decided: true, taken: false }
   /*
+   * The browser's bar (Chrome's address bar, Safari's toolbar) slides away only under the browser's own scroll by a
+   * finger, never under a page moved by a script: with every swipe taken by the steps, it never went (Home's tour, the
+   * same: Hero's useSwipePager). So while it still shows, a swipe down the page is left to the browser, which scrolls
+   * with the finger and slides the bar away; once its fling has run out, `rest` brings the page to the nearer stop: one
+   * driver, then the other, never both. The bar gone, the swipes are taken again; a taken swipe never brings it back.
+   * Whether it shows: the window shorter than the screen gets with the bar slid away (a probe 100lvh tall).
+   */
+  const probe = document.createElement('div')
+  probe.setAttribute('aria-hidden', 'true')
+  probe.style.cssText = 'position:fixed;top:0;left:-10px;width:1px;height:100lvh;visibility:hidden;pointer-events:none'
+  document.body.appendChild(probe)
+  const barShowing = () => probe.offsetHeight - window.innerHeight > 24
+  /*
    * A swipe the steps have taken is theirs alone: Lenis (which leaves a finger to the browser, `syncTouch` off) stops
    * its own animation at every touch it sees, and the step's glide is a Lenis animation, so the swipe's next move killed
    * the glide it had just started and the page stayed where it was. Its moves and its end are marked for Lenis to pass
@@ -585,6 +600,8 @@ export function stepScreens(
     if (Math.abs(dy) < 10 && Math.abs(dx) < 10) return
     finger.decided = true
     if (Math.abs(dx) > Math.abs(dy)) return
+    // (the browser's bar still showing: a swipe down is the browser's, to slide it away; see `barShowing`)
+    if (dy > 0 && barShowing()) return
     // a section that steps through its parts (it carries a step bar) is stepped by a sideways swipe (StepBar): an
     // upright swipe there goes past it whole, on to the next section or back to the one before, never through its steps
     const vh = window.innerHeight
@@ -648,12 +665,17 @@ export function stepScreens(
     window.removeEventListener('touchmove', touchMove, { capture: true })
     window.removeEventListener('touchend', touchOff, { capture: true })
     window.removeEventListener('touchcancel', touchOff, { capture: true })
+    probe.remove()
   }
 }
 
 /** while an overlay (the menu) is open, the page underneath does not scroll */
 export function holdScroll(held: boolean) {
-  if (!lenis) return
+  if (!lenis) {
+    // (no Lenis, a phone: the page itself is held, so a finger under the opening or the menu never scrolls it)
+    document.documentElement.style.overflow = held ? 'hidden' : ''
+    return
+  }
   if (held) lenis.stop()
   else lenis.start()
 }

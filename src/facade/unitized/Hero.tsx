@@ -20,9 +20,11 @@ const LABELS: LabelSpec[] = [{ id: 'h-mesh', anchor: 'hu-mesh', text: 'RTARIUM',
 function shots(compact: boolean): [Shot, Shot] {
   return compact
     ? [
-        // (a phone: a little smaller than it was, in the middle of the room between the heading and the statement)
-        { target: HERO_TARGET, dist: 19.6, azim: 34, elev: 7, frame: [0.5, 0.52] },
-        { target: HERO_TARGET, dist: 17.3, azim: 46, elev: 13, frame: [0.5, 0.36] },
+        // (a phone: large and nearly front on, its right edge showing its depth, in the middle of the room between the
+        // heading and the statement)
+        // (a little further back and lower: clear room under the heading's line, and over the statement at the foot)
+        { target: HERO_TARGET, dist: 23.5, azim: 20, elev: 6, frame: [0.5, 0.53] },
+        { target: HERO_TARGET, dist: 18, azim: 28, elev: 10, frame: [0.5, 0.48] },
       ]
     : [
         // (every opening's place and size: see the Façade overview's heroShots)
@@ -42,14 +44,15 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
   return (
     <section ref={sectionRef} className="fu-hero on-yellow" aria-labelledby="fu-title">
       <div className="fu-hero__stage">
-        <Stage3D shadows keyLight={false} fallback={<img className="fu-still" src="/img/facade/panel-face.webp" alt="" />}>
+        <Stage3D shadows keyLight={false} fallback={<img className="fu-still" src="/img/facade/panel-ivory.webp" alt="" />}>
           <ScrubRig progress={progress} shotAt={shotAt} sway={1.5} live={live} aspect={compact ? 0.56 : 1.6} turn={HERO_TURN} />
           <MovingKeyLight focus={HERO_TARGET} reach={4.2} offset={[6, 9, 7]} />
+          {/* (a phone: the panel whole, its cover never drawn back off the cut, and no label on it) */}
           <HeroUnit bus={bus} play />
           <FollowScroll progress={progress} />
           <LabelProjector bus={bus} bottom={compact ? 260 : 60} />
         </Stage3D>
-        <Labels bus={bus} labels={LABELS} shown={LABELS.map((l) => l.id)} />
+        {!compact && <Labels bus={bus} labels={LABELS} shown={LABELS.map((l) => l.id)} />}
       </div>
 
       <header className="fu-hero__head">

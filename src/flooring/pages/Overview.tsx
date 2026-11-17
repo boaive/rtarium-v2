@@ -45,6 +45,7 @@ const STATEMENT = 'RTARIUM is the first independent three-dimensional mineral re
 
 /** the section whose run plays with the scroll itself, left to the scroll: the features */
 const FREE = ['features']
+const NONE: string[] = []
 
 export default function Overview() {
   usePageMeta(
@@ -76,14 +77,17 @@ export default function Overview() {
   // the header takes the ground of whatever is under it, the footer included, read on every scroll
   useEffect(() => {
     const footer = document.querySelector<HTMLElement>('.footer')
-    const sections: [HTMLElement, Ground][] = [
-      [hero.current!, 'yellow'],
-      [say.current!, 'black'],
-      [layer.current!, 'yellow'],
-      [features.current!, 'yellow'],
-      [ways.current!, 'light'],
-      ...(footer ? [[footer, 'yellow'] as [HTMLElement, Ground]] : []),
-    ]
+    // (a phone has no statement, and its features are a card of their own: what is not there is left out)
+    const sections = (
+      [
+        [hero.current, 'yellow'],
+        [say.current, 'black'],
+        [layer.current, 'yellow'],
+        [features.current ?? document.getElementById('features'), 'yellow'],
+        [ways.current, 'light'],
+        [footer, 'yellow'],
+      ] as [HTMLElement | null, Ground][]
+    ).filter((x): x is [HTMLElement, Ground] => !!x[0])
     document.documentElement.setAttribute('data-own-ground', '')
     let raf = 0
     const read = () => {
@@ -111,7 +115,8 @@ export default function Overview() {
 
   // one scroll, one step, the whole page through, as the façade pages (usePageSteps): the layer stepped through by it,
   // the features playing with the scroll
-  usePageSteps(FREE)
+  // (a phone plays the features in a card by themselves: nothing runs free there)
+  usePageSteps(compact ? NONE : FREE)
 
   return (
     <FacadePage>
@@ -141,7 +146,8 @@ export default function Overview() {
       </section>
 
       {/* ---- the statement, alone on the screen ---- */}
-      <Say sectionRef={say} label="RTARIUM in industrial flooring" text={STATEMENT} />
+      {/* (a phone goes from the opening straight to the layer, as the façade overview goes to its story) */}
+      {!compact && <Say sectionRef={say} label="RTARIUM in industrial flooring" text={STATEMENT} />}
 
       {/* ---- the layer between the slab and the screed ---- */}
       <Layer sectionRef={layer} paged />

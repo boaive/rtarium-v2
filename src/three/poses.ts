@@ -434,7 +434,8 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   // close over it from a high angle, the strands large (some four across the card), running off its sides and its foot;
   // it does not turn: it grows, woven on from the card's foot up the card as the row comes up the screen (`grow`), its
   // far edge one straight line of whole cells, low in the card, clear of the words, once the row has come to rest
-  mineral: card('mineral', { tgt: [0, 0, 0.006], elev: 74, azim: 0, dist: 0.145, distCompact: 0.145, fov: 38, frameBox: [0.5, 0.42], win: [14, 5], grow: { near: 5 }, fog: [6, 8], shadow: 1 }),
+  // (turned a little to the left: the strands lean, never square to the card)
+  mineral: card('mineral', { tgt: [0, 0, 0.006], elev: 74, azim: 12, dist: 0.145, distCompact: 0.145, fov: 38, frameBox: [0.5, 0.42], win: [14, 5], grow: { near: 5 }, fog: [6, 8], shadow: 1 }),
   // Tech Space: the system pulled apart, turning one way about its middle, slowly, on and on (once round in a minute)
   stack: card('stack', { spin: 6 }),
 }

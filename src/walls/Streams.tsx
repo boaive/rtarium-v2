@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { scrollToY } from '../lib/scroll'
-import { useIsCompact } from '../lib/motion'
+import { useIsCompact, COMPACT_QUERY } from '../lib/motion'
 import { Arrow } from '../facade/Shell'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three/Stage3D'
-import { createBus } from '../facade/three/kit'
-import { FollowScroll, smooth, usePlay } from '../facade/progress'
+import { createBus, type LabelBus } from '../facade/three/kit'
+import { FollowScroll, smooth, usePlay, type Progress } from '../facade/progress'
 
 /** where each of a build's four steps has played out, as points of the section's run */
 const STREAM_ENDS = [0, 1, 2, 3].map((i) => Math.min(1, (i + 0.95) / 4))
@@ -18,6 +18,8 @@ import type { Room } from './three/fit'
 import { Block, Figures, Sheet, Steps, useSheet } from './Sheet'
 import { HomePlan, InfillSection, PortalSection, ShedElevation } from './Diagrams'
 import { CASES, REVIEW, STREAMS, type StreamId } from './content'
+import { WaysCards } from '../facade/WaysCards'
+import { FrameStations } from '../flooring/FrameStations'
 
 /**
  * Streams, on warm white. First the choice: three cards, as the overview's systems stand, each with a still of its
@@ -143,27 +145,83 @@ function Built({
   )
 }
 
+/** a phone: what each step of a build does, in a line (StepFloor) */
+const LINES: Record<BuildId, [string, string, string, string]> = {
+  housing: [
+    'One panel stands in its U-track; the slab and the frame are drawn round it.',
+    'The front wall goes up, panels laid flat over each opening.',
+    'Full-height panels close the sides and the rear.',
+    'The partitions go in; the roof is left as its frame.',
+  ],
+  hub: [
+    'One panel in its place; the steel columns go up round it at 5.8 m.',
+    'One bay: 100 mm SIP to 3.6 m, 30 mm solid above it to 8 m.',
+    'The loading face: a lintel over the bay, a shutter in the side.',
+    'The walls close round the whole hub.',
+  ],
+  rc: ['One panel in its place; the RC frame is drawn round it.', 'Vertical SIP fills one bay, slab to beam.', 'The infill goes on, floor by floor.', 'The frame closed in, the windows go in last.'],
+  peb: [
+    'One panel in its place; the tapered steel portal goes up round it.',
+    'Outside the frame: SIP to 3.6 m, solid above.',
+    'The side wall goes on, a shutter cut into it.',
+    'Gable panels cut to the roof’s pitch close it in.',
+  ],
+}
+
+type Built3D = ReturnType<typeof buildingOf>
+const NO_LABELS: LabelSpec[] = []
+const NO_SHOWN: string[] = []
+
+/**
+ * A phone's build, as the warehouse's frame to floor is on one (FrameStations: the Unitized page's slab to slab), the
+ * steps playing themselves one after another on a floor, each played out from where the last left off over its share
+ * of the wide screen's play, its marks up once it has.
+ */
+function BuildPhone({ which, building, title, still }: { which: BuildId; building: Built3D; title: string; still: string }) {
+  const Scene = useMemo(
+    () =>
+      function Scene({ progress, bus, room }: { progress: Progress; bus: LabelBus; room: { current: unknown } }) {
+        return <StreamScene progress={progress} bus={bus} room={room as { current: Room }} building={building} />
+      },
+    [building],
+  )
+  return (
+    <FrameStations
+      key={which}
+      id="stream-build"
+      title={`${title}.`}
+      sub={`Four steps — ${building.steps[0].toLowerCase()} to ${building.steps[3].toLowerCase()}`}
+      phases={building.steps.map((name, i) => ({
+        name,
+        line: LINES[which][i],
+        to: STREAM_ENDS[i],
+      }))}
+      play={PLAY}
+      Scene={Scene}
+      // (no labels on a phone: the step's line under the heading says what is going on)
+      labels={NO_LABELS}
+      shownAt={() => NO_SHOWN}
+      fallback={<img className="fu-still" src={still} alt="" />}
+    />
+  )
+}
+
 function Build({ id }: { id: StreamId }) {
   const compact = useIsCompact()
-  const section = useRef<HTMLElement>(null)
-  const pin = useRef<HTMLDivElement>(null)
   const [frame, setFrame] = useState<'rc' | 'peb'>('rc')
   const which: BuildId = id === 'housing' ? 'housing' : id === 'industrial' ? 'hub' : frame
   const building = useMemo(() => buildingOf(which), [which])
-  const [progress, seek] = usePlay(section, PLAY)
-  const bus = useMemo(createBus, [])
-  const cells = useRef<(HTMLLIElement | null)[]>([])
-  const [step, setStep] = useState(0)
-  /** played to its end: its bar says its steps can be picked to be seen again */
-  const [ended, setEnded] = useState(false)
-  const [shown, setShown] = useState<string[]>([])
-  const room = useRef<Room>({ x: 0.05, y: 0.2, w: 0.9, h: 0.62 })
   const [sheet, openSheet] = useSheet()
-  const edge = useRef<HTMLDivElement>(null)
   const study = CASES[which]
   const stream = STREAMS.find((s) => s.id === id)!
   // the finished build's still (the frame stream's card shows the RC frame; its steel portal has its own)
-  const still = which === 'peb' ? { src: '/img/walls/streams/peb.webp', alt: 'The steel portal built in 3D: RTARIUM panels outside its frame, a door in its side wall' } : stream.still
+  const still =
+    which === 'peb'
+      ? {
+          src: '/img/walls/streams/peb.webp',
+          alt: 'The steel portal built in 3D: RTARIUM panels outside its frame, a door in its side wall',
+        }
+      : stream.still
   const labels: LabelSpec[] = useMemo(
     () =>
       building.marks.map((k) => ({
@@ -200,6 +258,102 @@ function Build({ id }: { id: StreamId }) {
     return rows
   }, [building])
 
+  return (
+    <>
+      {compact ? (
+        <BuildPhone which={which} building={building} title={study.title} still={still.src} />
+      ) : (
+        <BuildPinned id={id} which={which} building={building} labels={labels} title={study.title} frame={frame} setFrame={setFrame} />
+      )}
+      <Sheet dialog={sheet} kicker="Illustrative case study" title={study.title} review={REVIEW.caseStudy}>
+        <p className="wp-sheet__lede">{study.brief}</p>
+        <div className="wp-sheet__grid">
+          <Block label="The challenge">
+            <p className="wp-sheet__para">{study.challenge}</p>
+          </Block>
+          <div className="wp-sheet__side">
+            <Block label="The RTARIUM wall">
+              <ul className="wp-list">
+                {study.wall.map((n) => (
+                  <li key={n}>{n}</li>
+                ))}
+              </ul>
+            </Block>
+          </div>
+          <Block label="Quantities, from the panels’ own figures" wide>
+            <Figures rows={figures} />
+          </Block>
+          <Block label="How it goes up">
+            <Steps items={study.sequence} />
+          </Block>
+          <div className="wp-sheet__side">
+            <Block label="What it needs">
+              <ul className="wp-list">
+                {study.needs.map((n) => (
+                  <li key={n}>{n}</li>
+                ))}
+              </ul>
+            </Block>
+          </div>
+          <Block label="Drawing" wide>
+            {which === 'housing' ? <HomePlan /> : which === 'hub' ? <ShedElevation /> : which === 'rc' ? <InfillSection /> : <PortalSection />}
+          </Block>
+          <Block label="The build, finished" wide>
+            <img className="wp-sheet__still" src={still.src} alt={still.alt} loading="lazy" decoding="async" />
+          </Block>
+          <Block label="Advantages">
+            <ul className="wp-list wp-list--plus">
+              {study.pros.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </Block>
+          <Block label="Limitations">
+            <ul className="wp-list wp-list--minus">
+              {study.limits.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </Block>
+        </div>
+      </Sheet>
+      {/* once it is built: the building itself, finished, turning; what it is, its figures counted off the model as the
+          screen arrives, what it has going for it, and the way into its case study */}
+      <Built which={which} title={study.title} brief={study.brief} pros={study.pros} totals={totals} openSheet={openSheet} frame={id === 'frame' ? { on: frame, set: setFrame } : undefined} />
+    </>
+  )
+}
+
+/** the wide screen's build: pinned, played by the scroll, the bar along the foot */
+function BuildPinned({
+  id,
+  which,
+  building,
+  labels,
+  title,
+  frame,
+  setFrame,
+}: {
+  id: StreamId
+  which: BuildId
+  building: Built3D
+  labels: LabelSpec[]
+  title: string
+  frame: 'rc' | 'peb'
+  setFrame: (f: 'rc' | 'peb') => void
+}) {
+  const section = useRef<HTMLElement>(null)
+  const pin = useRef<HTMLDivElement>(null)
+  const [progress, seek] = usePlay(section, PLAY)
+  const bus = useMemo(createBus, [])
+  const cells = useRef<(HTMLLIElement | null)[]>([])
+  const [step, setStep] = useState(0)
+  /** played to its end: its bar says its steps can be picked to be seen again */
+  const [ended, setEnded] = useState(false)
+  const [shown, setShown] = useState<string[]>([])
+  const room = useRef<Room>({ x: 0.05, y: 0.2, w: 0.9, h: 0.62 })
+  const edge = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     const measure = () => {
       const p = pin.current?.getBoundingClientRect()
@@ -208,7 +362,12 @@ function Build({ id }: { id: StreamId }) {
       if (!p || !head || !bar || !p.width || !p.height) return
       const y0 = head.bottom + 20
       const y1 = bar.top - 24
-      const r = (room.current = { x: (bar.left - p.left) / p.width, y: (y0 - p.top) / p.height, w: bar.width / p.width, h: (y1 - y0) / p.height })
+      const r = (room.current = {
+        x: (bar.left - p.left) / p.width,
+        y: (y0 - p.top) / p.height,
+        w: bar.width / p.width,
+        h: (y1 - y0) / p.height,
+      })
       // the room's edge, shown while the camera is in on the first panel
       const e = edge.current
       if (e) {
@@ -221,7 +380,7 @@ function Build({ id }: { id: StreamId }) {
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
-  }, [compact])
+  }, [])
 
   useEffect(() => {
     const paint = () => {
@@ -249,94 +408,36 @@ function Build({ id }: { id: StreamId }) {
   const go = (i: number) => seek(STREAM_ENDS[i], i ? STREAM_ENDS[i - 1] : 0)
 
   return (
-    <>
-      <section ref={section} id="stream-build" className="fu-hang wp-build on-light" aria-labelledby="wp-build-title" style={{ '--run': 1 } as CSSProperties}>
-        <div ref={pin} className="fu-hang__pin">
-          <div className="wp-build__head">
-            <h2 id="wp-build-title" className="fu-hang__title">
-              {study.title}.
-            </h2>
-            <div className="wp-build__tools">
-              {id === 'frame' && (
-                <div className="wp-switch" role="group" aria-label="Frame">
-                  {(['rc', 'peb'] as const).map((f) => (
-                    <button key={f} type="button" aria-pressed={frame === f} className={frame === f ? 'is-on' : ''} onClick={() => setFrame(f)}>
-                      {f === 'rc' ? 'RC frame' : 'Steel portal (PEB)'}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+    <section ref={section} id="stream-build" className="fu-hang wp-build on-light" aria-labelledby="wp-build-title" style={{ '--run': 1 } as CSSProperties}>
+      <div ref={pin} className="fu-hang__pin">
+        <div className="wp-build__head">
+          <h2 id="wp-build-title" className="fu-hang__title">
+            {title}.
+          </h2>
+          <div className="wp-build__tools">
+            {id === 'frame' && (
+              <div className="wp-switch" role="group" aria-label="Frame">
+                {(['rc', 'peb'] as const).map((f) => (
+                  <button key={f} type="button" aria-pressed={frame === f} className={frame === f ? 'is-on' : ''} onClick={() => setFrame(f)}>
+                    {f === 'rc' ? 'RC frame' : 'Steel portal (PEB)'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="fu-hang__stage" aria-hidden="true">
-            <Stage3D shadows keyLight={false}>
-              <StreamScene progress={progress} bus={bus} room={room} building={building} />
-              <FollowScroll progress={progress} />
-              <LabelProjector bus={bus} bottom={110} />
-            </Stage3D>
-            <Labels key={which} bus={bus} labels={labels} shown={shown} />
-            <div ref={edge} className="wp-edge" />
-          </div>
-          <StepBar label={`${study.title}, step by step`} names={building.steps} step={step} onGo={go} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
         </div>
-
-        <Sheet dialog={sheet} kicker="Illustrative case study" title={study.title} review={REVIEW.caseStudy}>
-          <p className="wp-sheet__lede">{study.brief}</p>
-          <div className="wp-sheet__grid">
-            <Block label="The challenge">
-              <p className="wp-sheet__para">{study.challenge}</p>
-            </Block>
-            <div className="wp-sheet__side">
-              <Block label="The RTARIUM wall">
-                <ul className="wp-list">
-                  {study.wall.map((n) => (
-                    <li key={n}>{n}</li>
-                  ))}
-                </ul>
-              </Block>
-            </div>
-            <Block label="Quantities, from the panels’ own figures" wide>
-              <Figures rows={figures} />
-            </Block>
-            <Block label="How it goes up">
-              <Steps items={study.sequence} />
-            </Block>
-            <div className="wp-sheet__side">
-              <Block label="What it needs">
-                <ul className="wp-list">
-                  {study.needs.map((n) => (
-                    <li key={n}>{n}</li>
-                  ))}
-                </ul>
-              </Block>
-            </div>
-            <Block label="Drawing" wide>
-              {which === 'housing' ? <HomePlan /> : which === 'hub' ? <ShedElevation /> : which === 'rc' ? <InfillSection /> : <PortalSection />}
-            </Block>
-            <Block label="The build, finished" wide>
-              <img className="wp-sheet__still" src={still.src} alt={still.alt} loading="lazy" decoding="async" />
-            </Block>
-            <Block label="Advantages">
-              <ul className="wp-list wp-list--plus">
-                {study.pros.map((n) => (
-                  <li key={n}>{n}</li>
-                ))}
-              </ul>
-            </Block>
-            <Block label="Limitations">
-              <ul className="wp-list wp-list--minus">
-                {study.limits.map((n) => (
-                  <li key={n}>{n}</li>
-                ))}
-              </ul>
-            </Block>
-          </div>
-        </Sheet>
-      </section>
-      {/* once it is built: the building itself, finished, turning; what it is, its figures counted off the model as the
-          screen arrives, what it has going for it, and the way into its case study */}
-      <Built which={which} title={study.title} brief={study.brief} pros={study.pros} totals={totals} openSheet={openSheet} frame={id === 'frame' ? { on: frame, set: setFrame } : undefined} />
-    </>
+        <div className="fu-hang__stage" aria-hidden="true">
+          <Stage3D shadows keyLight={false}>
+            <StreamScene progress={progress} bus={bus} room={room} building={building} />
+            <FollowScroll progress={progress} />
+            <LabelProjector bus={bus} bottom={110} />
+          </Stage3D>
+          <Labels key={which} bus={bus} labels={labels} shown={shown} />
+          <div ref={edge} className="wp-edge" />
+        </div>
+        <StepBar label={`${title}, step by step`} names={building.steps} step={step} onGo={go} cellRef={(i, el) => void (cells.current[i] = el)} hint={ended ? REPLAY_HINT : null} />
+      </div>
+    </section>
   )
 }
 
@@ -349,7 +450,46 @@ const TRIO: BuildId[] = ['housing', 'hub', 'rc']
  * when its column is pointed at; its number, its name, its line and the way in. `leave`: the stream already shown,
  * left out, so the block is the other two.
  */
-function StreamsBlock({ id, title, leave, chosen, onChoose }: { id: string; title: string; leave?: StreamId; chosen: StreamId | null; onChoose: (id: StreamId) => void }) {
+type BlockProps = {
+  id: string
+  title: string
+  leave?: StreamId
+  chosen: StreamId | null
+  onChoose: (id: StreamId) => void
+}
+
+function StreamsBlock(props: BlockProps) {
+  return useIsCompact() ? <StreamsCards {...props} /> : <StreamsColumns {...props} />
+}
+
+/** a phone: the systems as every family's close is (WaysCards, Home's row of cards), a building on each; its way in opens
+ * the system's build under the row, as the wide screen's Explore does */
+function StreamsCards({ id, title, leave, onChoose }: BlockProps) {
+  const pick = STREAMS.map((_, n) => n).filter((n) => STREAMS[n].id !== leave)
+  const words = title.replace(/\.$/, '').split(' ')
+  const cut = Math.ceil(words.length / 2)
+  return (
+    <WaysCards
+      id={id}
+      lines={[words.slice(0, cut).join(' '), `${words.slice(cut).join(' ')}.`]}
+      label="The wall panel systems"
+      items={pick.map((n) => ({
+        id: STREAMS[n].id,
+        title: STREAMS[n].name,
+        num: n + 1,
+        of: STREAMS.length,
+        go: () => onChoose(STREAMS[n].id),
+      }))}
+      model={(i, front, play, live) => (
+        <Stage3D shadows keyLight={false}>
+          <WallsTrio ids={[TRIO[pick[i]]]} play={play} hover={front ? 0 : null} live={live} fill={0.9} />
+        </Stage3D>
+      )}
+    />
+  )
+}
+
+function StreamsColumns({ id, title, leave, chosen, onChoose }: BlockProps) {
   const pick = STREAMS.map((_, n) => n).filter((n) => STREAMS[n].id !== leave)
   const ids = useMemo(() => pick.map((n) => TRIO[n]), [pick.join()]) // eslint-disable-line react-hooks/exhaustive-deps
   const [cols, inView] = useInView<HTMLOListElement>('0px 0px -20% 0px')
@@ -408,7 +548,7 @@ function StreamsBlock({ id, title, leave, chosen, onChoose }: { id: string; titl
                   {s.head[1]}
                 </h3>
                 <p className="wp-stream__line">{s.line}</p>
-                <button type="button" className="fc-go wp-stream__go" aria-pressed={chosen === s.id} onClick={() => onChoose(s.id)}>
+                <button type="button" className="fc-go wp-stream__go" data-track={`Explore ${s.head.join(' ')}`} aria-pressed={chosen === s.id} onClick={() => onChoose(s.id)}>
                   <span className="fc-go__label">{chosen === s.id ? 'Exploring' : 'Explore'}</span>
                   <span className="fc-go__cell" aria-hidden="true">
                     <Arrow />
@@ -432,7 +572,12 @@ export function Streams() {
     pending.current = false
     const id = window.setTimeout(() => {
       const el = document.getElementById('stream-build')
-      if (el) scrollToY(el.getBoundingClientRect().top + window.scrollY)
+      if (!el) return
+      const y = el.getBoundingClientRect().top + window.scrollY
+      // (a phone: straight there; its smooth scroll is set aside while the page steps a swipe at a time, and a glide asked of
+      // it went nowhere, and so did a jump through it)
+      if (window.matchMedia(COMPACT_QUERY).matches) window.scrollTo({ top: y, behavior: 'instant' })
+      else scrollToY(y)
     }, 60)
     return () => window.clearTimeout(id)
   }, [chosen])

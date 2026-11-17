@@ -6,6 +6,7 @@ import { createBus } from '../facade/three/kit'
 import { smooth, type Progress } from '../facade/progress'
 import { StepBar } from '../facade/unitized/StepBar'
 import { FeatureScene, N_FEATURES, type FeatureAxis } from './three/FeatureScene'
+import { RunStations } from './RunStations'
 
 /**
  * The core features, on yellow, in the Rainscreen bridge's stage (and the Unitized answers'): one
@@ -81,7 +82,38 @@ function goToFeature(k: number) {
 
 
 export function Features({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
-  const compact = useIsCompact()
+  return useIsCompact() ? <FeaturesPhone /> : <FeaturesWide sectionRef={sectionRef} />
+}
+
+/** a phone's scene keeps to the middle of the card */
+const PHONE_AXIS = { current: { x: 0.5, y: 0.5 } as FeatureAxis }
+
+/**
+ * The core features on a phone, set as the façade pages' solution (Stations, as Rainscreen's "RTARIUM bridges the gap"
+ * and Unitized's answers): each feature played out by itself in the card, the bar, the features as a strip; the page
+ * scrolls past it as past any screen. The scene is the wide screen's, played on the card's own clock.
+ */
+function FeaturesPhone() {
+  return (
+    <RunStations
+      id="features"
+      title="Core features"
+      steps={FEATURES.map((f) => ({ id: f.id, name: f.name, line: f.line, labels: f.labels }))}
+      stretch={STRETCH}
+      scene={(t, bus) => <FeatureScene t={t} bus={bus} compact axis={PHONE_AXIS} />}
+      labels={LABELS}
+      fallback={<img className="fu-still" src="/img/site-strip.webp" alt="" />}
+      zoom={PHONE_ZOOM}
+      thumbs="/img/flooring/overview/feature-step"
+    />
+  )
+}
+
+/** a phone: each feature's floor drawn as large as the other step cards' scenes */
+const PHONE_ZOOM = [2.3, 2.3, 1.45, 2.3, 2.3, 2.3]
+
+function FeaturesWide({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
+  const compact = false
   const words = useRef<(HTMLDivElement | null)[]>([])
   const cells = useRef<(HTMLLIElement | null)[]>([])
   const pin = useRef<HTMLDivElement>(null)

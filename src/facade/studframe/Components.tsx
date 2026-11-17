@@ -76,7 +76,9 @@ const LISTINGS: Listing[] = [
 ]
 const N = LISTINGS.length
 /** how many rows a listing's stage stands under: the last leaves its own row's slot empty, so its row is lowered into free space, over nothing */
-const under = (k: number) => (k === N - 1 ? N : k)
+const under = (k: number, compact = false) => (compact ? k + 1 : k === N - 1 ? N : k)
+/* (a phone: each listing's row is its header, there as the listing arrives, so its stage stands under its own row too:
+   as the Rainscreen barrier's) */
 
 /** the barrier's timings: screens of scroll per listing, the stretch of its hold in which its 3D plays, the last's row drawn in while it still holds */
 const RUN = 3.1
@@ -124,22 +126,31 @@ function ListingView({ item, k, L, compact, refs }: { item: Listing; k: number; 
   const live = useLive(view)
   const { Scene } = item
   return (
-    <article ref={(el) => void (refs.block[k] = el)} className="fr-bw__block" style={{ '--k': under(k), '--run': k === N - 1 ? RUN_LAST : RUN } as CSSProperties} aria-labelledby={`fs-bw-${item.id}`}>
+    <article ref={(el) => void (refs.block[k] = el)} className="fr-bw__block" style={{ '--k': under(k, compact), '--run': k === N - 1 ? RUN_LAST : RUN } as CSSProperties} aria-labelledby={`fs-bw-${item.id}`}>
       <div ref={(el) => void (refs.stage[k] = el)} className="fr-bw__stage">
         <div className="fr-bw__words" style={{ '--x': L.words[0], '--y': L.words[1], '--w': L.words[2], '--h': L.words[3] } as CSSProperties}>
-          <div className="fr-bw__top">
-            {/* said once, on the first listing */}
-            {k === 0 ? (
-              <h2 id="fs-bw-title" className="fr-kicker">
+          {/* (a phone: no count over the words, the rows say where it is; the section's line kept for screen readers only) */}
+          {compact ? (
+            k === 0 && (
+              <h2 id="fs-bw-title" className="visually-hidden">
                 Built to breathe with the heat
               </h2>
-            ) : (
-              <span aria-hidden="true" />
-            )}
-            <p className="fr-count num" aria-hidden="true">
-              0{k + 1} <span>/ 0{N}</span>
-            </p>
-          </div>
+            )
+          ) : (
+            <div className="fr-bw__top">
+              {/* said once, on the first listing */}
+              {k === 0 ? (
+                <h2 id="fs-bw-title" className="fr-kicker">
+                  Built to breathe with the heat
+                </h2>
+              ) : (
+                <span aria-hidden="true" />
+              )}
+              <p className="fr-count num" aria-hidden="true">
+                0{k + 1} <span>/ 0{N}</span>
+              </p>
+            </div>
+          )}
           <div id={`fs-bw-${item.id}`} className="fr-bw__beat">
             {item.head}
           </div>
@@ -198,7 +209,7 @@ export function Components() {
         if (!b || !stage) return
         const r = b.getBoundingClientRect()
         const sr = stage.getBoundingClientRect()
-        const rest = navH + under(k) * rowH
+        const rest = navH + under(k, compact) * rowH
         // where the listing is: 1 its stage at the foot of the screen, 0 held, −1 gone above
         const p = (sr.top - rest) / Math.max(1, sr.height)
         const [a, z] = k === 0 ? FIRST : [1, OPENED]
@@ -236,7 +247,7 @@ export function Components() {
         }
         const row = rows.current[k]
         if (row) {
-          const lastOne = k === N - 1
+          const lastOne = compact || k === N - 1
           const d = reduced ? Number(lastOne ? p < 0.15 : p < -0.1) : ease(lastOne ? smooth(0.6, 0.15, p) : smooth(-0.02, -0.3, p))
           row.style.transform = `translate3d(0, ${((d - 1) * 100).toFixed(3)}%, 0)`
           row.style.visibility = d > 0.002 ? 'visible' : 'hidden'
@@ -246,6 +257,9 @@ export function Components() {
       })
       const sec = section.current?.getBoundingClientRect()
       if (sec && rowsLayer.current) rowsLayer.current.style.transform = `translate3d(0, ${Math.min(0, sec.bottom - vh).toFixed(1)}px, 0)`
+      // (a phone: the cap stands over the screen above the section until the section reaches the header; shown only then)
+      const cap = section.current?.querySelector<HTMLElement>('.fr-bw__cap')
+      if (sec && cap) cap.style.visibility = !compact || sec.top <= navH + 0.5 ? 'visible' : 'hidden'
       if (moving) raf = requestAnimationFrame(tick)
     }
     const kick = () => {
@@ -262,7 +276,7 @@ export function Components() {
       window.removeEventListener('resize', kick)
       cancelAnimationFrame(raf)
     }
-  }, [refs, L])
+  }, [refs, L, compact])
 
   // one scroll a step, by the page's stepper: each listing as it arrives, then its 3D played out, a scroll of its own
   useEffect(() => {
@@ -271,12 +285,14 @@ export function Components() {
     const write = () => {
       const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
       const rowH = rows.current[0]?.offsetHeight ?? 0
-      listingStops(el, refs.block, (k) => navH + under(k) * rowH, PLAY[1])
+      listingStops(el, refs.block, (k) => navH + under(k, compact) * rowH, PLAY[1])
     }
+    // going up, back through it the same way, a listing at a time (as the Rainscreen barrier), never over it whole
+    el.dataset.back = 'all'
     write()
     window.addEventListener('resize', write)
     return () => window.removeEventListener('resize', write)
-  }, [refs, L])
+  }, [refs, L, compact])
 
   /** a row takes you back to where its listing's 3D has played out */
   const go = (k: number) => {
@@ -284,7 +300,7 @@ export function Components() {
     if (!b) return
     const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
     const rowH = rows.current[0]?.offsetHeight ?? 0
-    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + under(k) * rowH) + PLAY[1] * window.innerHeight)
+    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + under(k, compact) * rowH) + PLAY[1] * window.innerHeight)
   }
 
   return (

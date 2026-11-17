@@ -30,7 +30,9 @@ import { ALL, ARM_X, Caps, FACE, H, INK, PieceMeshes, W, ZM_CAV, airLines, flowM
  */
 
 /** the part of the black box the scene keeps to, as a share of its height (and the same part of its width) */
-const AREA = { wide: 0.68, narrow: 0.88 }
+const AREA = { wide: 0.68, narrow: 1.25 }
+/** a phone: the share of the box's width and height the whole cut piece fills, on every shot */
+const FIT = 0.84
 const LENS = Math.tan((13 * Math.PI) / 180)
 
 /** where every page opens: the whole piece, a little from the near end, in the middle of its box */
@@ -75,6 +77,8 @@ function useScene(t: Progress, keys: [number, Shot][], cut: Box, p: Piece, compa
     return () => void t.listeners.delete(on)
   }, [t, invalidate])
   const box = useMemo<Box>(() => [0, 0, 0, 0, 0, 0], [])
+  const mid = useMemo(() => new THREE.Vector3(), [])
+  const corner = useMemo(() => new THREE.Vector3(), [])
   useFrame(() => {
     const v = Math.min(1, Math.max(0, t.value))
     const now = reduced ? 2.4 : (performance.now() - t0.current) / 1000
@@ -83,6 +87,38 @@ function useScene(t: Progress, keys: [number, Shot][], cut: Box, p: Piece, compa
     placeCamera(camera, size, shot, k)
     camera.fov = (2 * Math.atan(LENS / (compact ? AREA.narrow : AREA.wide)) * 180) / Math.PI
     camera.updateProjectionMatrix()
+    // (a phone: what is drawn, the cut piece, centred in the room under the words: the camera looks at the cut's corner,
+    // so the view is slid until the middle of the piece stands in the middle of the screen)
+    // and the lens set so the whole cut piece fits the box, FIT of its width and height, on every shot: never cut by the
+    // box's edges, never shrunk to a speck
+    if (compact && box[3] > box[0]) {
+      camera.clearViewOffset()
+      camera.updateMatrixWorld()
+      let x0 = Infinity
+      let x1 = -Infinity
+      let y0 = Infinity
+      let y1 = -Infinity
+      let ok = true
+      for (let i = 0; i < 8 && ok; i++) {
+        corner.set(box[i & 1 ? 3 : 0], box[i & 2 ? 4 : 1], box[i & 4 ? 5 : 2]).applyMatrix4(camera.matrixWorldInverse)
+        if (corner.z > -camera.near) ok = false
+        corner.applyMatrix4(camera.projectionMatrix)
+        x0 = Math.min(x0, corner.x)
+        x1 = Math.max(x1, corner.x)
+        y0 = Math.min(y0, corner.y)
+        y1 = Math.max(y1, corner.y)
+      }
+      if (ok && x1 > x0 && y1 > y0) {
+        const s = Math.min((2 * FIT) / (x1 - x0), (2 * FIT) / (y1 - y0))
+        camera.fov = (2 * Math.atan(Math.tan((camera.fov * Math.PI) / 360) / s) * 180) / Math.PI
+        camera.updateProjectionMatrix()
+      }
+      mid.set((box[0] + box[3]) / 2, (box[1] + box[4]) / 2, (box[2] + box[5]) / 2).project(camera)
+      if (Number.isFinite(mid.x) && Number.isFinite(mid.y)) {
+        camera.setViewOffset(size.width, size.height, (mid.x * size.width) / 2, (-mid.y * size.height) / 2, size.width, size.height)
+        camera.updateProjectionMatrix()
+      }
+    }
     const close = keys[keys.length - 1][1]
     const grow = (shot.dist / close.dist) * k
     const open = Math.pow(1 - smooth(keys[1][0], keys[2][0], v), 8)

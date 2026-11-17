@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
+import { trackEnquiry, trackForm } from '../lib/analytics'
 import { ENQUIRY_FIELDS, INTERESTS, cleanField, enquiryField, fieldProblem, type Enquiry } from '../content/enquiry'
 import { ENQUIRY_ADDRESS, SITE, TURNSTILE_SITE_KEY } from '../content/site'
 import { Turnstile, type TurnstileHandle } from '../components/Turnstile'
@@ -152,6 +153,13 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
   const [verifyTry, setVerifyTry] = useState(0)
   /** moved on or back by the visitor (not the page's first showing): the step's first field takes the cursor */
   const moved = useRef(false)
+  const started = useRef(false)
+  /** the first time a visitor touches the form (once a visit) */
+  const begin = () => {
+    if (started.current) return
+    started.current = true
+    trackForm('form_start')
+  }
   const last = step === STEPS.length - 1
 
   // the words come in as the closing card's do, once, as the page opens; once in, they stay. Never left hidden: it plays
@@ -199,6 +207,7 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
       return next
     })
     const first = STEPS[s].keys.find((k) => w[k])
+    if (first) trackForm('form_error', { field: first, step_name: STEPS[s].name })
     if (first && s === step) page.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus()
     return !first
   }
@@ -209,6 +218,7 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
     if (to > step && !check(step)) return
     moved.current = true
     setStep(to)
+    trackForm('form_step', { step_number: to + 1, step_name: STEPS[to].name })
   }
 
   const submit = async (e: FormEvent) => {
@@ -223,6 +233,7 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
         return
       }
     if (!token) {
+      trackForm('form_send_failed', { reason: 'verification' })
       setState({
         kind: 'error',
         text: trouble
@@ -247,9 +258,13 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
         signal: stop.signal,
       })
       const out = (await r.json().catch(() => ({}))) as { ok?: boolean; ref?: string; error?: string; field?: string }
-      if (r.ok && out.ok) setState({ kind: 'sent', ref: out.ref })
+      if (r.ok && out.ok) {
+        trackEnquiry(v.interest)
+        setState({ kind: 'sent', ref: out.ref })
+      }
       else {
         fresh()
+        trackForm('form_send_failed', { reason: 'server', ...(out.field ? { field: out.field } : {}) })
         // the server found a field wrong: back to its step, said under it as the form says it
         const k = ENQUIRY_FIELDS.find((f) => f.key === out.field)?.key
         if (k && out.error) {
@@ -261,6 +276,7 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
       }
     } catch {
       fresh()
+      trackForm('form_send_failed', { reason: stop.signal.aborted ? 'timeout' : 'network' })
       setState({
         kind: 'error',
         text: stop.signal.aborted ? 'This is taking too long. Please try again.' : 'No connection. Please try again.',
@@ -394,7 +410,7 @@ export function Contact({ labelledBy, points }: { labelledBy: string; points?: R
             </button>
           </div>
         ) : (
-          <form className="ct-form ct-rise" style={{ '--d': '0.3s' } as CSSProperties} onSubmit={submit} noValidate>
+          <form className="ct-form ct-rise" style={{ '--d': '0.3s' } as CSSProperties} onSubmit={submit} noValidate onFocusCapture={begin} onInputCapture={begin}>
             {/* the second way, after the email beside it */}
             <p className="ct-alt">Or fill in the enquiry, and we&rsquo;ll contact you soon.</p>
             {/* where the visitor is: the step's number and name, and a thin line filling a third a step */}

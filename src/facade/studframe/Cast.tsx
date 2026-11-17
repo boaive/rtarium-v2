@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import { Zoom } from '../unitized/Zoom'
 import { damp, prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { scrollToY } from '../../lib/scroll'
 import { Stage3D } from '../three/Stage3D'
@@ -8,6 +9,8 @@ import { CastScene, castShot, type RoomAxis } from '../three/stud/CastScene'
 import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { StepBar } from '../unitized/StepBar'
+import { Stations } from '../unitized/Stations'
+import { useLive } from '../unitized/live'
 
 /**
  * Cast in five steps, on yellow, in the stage of the rainscreen's "RTARIUM bridges the gap" (the
@@ -67,7 +70,11 @@ function goToStep(k: number) {
 }
 
 export function Cast() {
-  const compact = useIsCompact()
+  return useIsCompact() ? <CastPhone /> : <CastWide />
+}
+
+function CastWide() {
+  const compact = false
   const section = useRef<HTMLElement>(null)
   const pin = useRef<HTMLDivElement>(null)
   const room = useRef<HTMLDivElement>(null)
@@ -256,3 +263,64 @@ export function Cast() {
     </section>
   )
 }
+
+/** a phone: how long each step runs, its hold included (ms): the next comes in as it ends (as Unitized's answers) */
+const STEP_MS = STRETCH.map((st, k) => Math.round(st * 1800 + (k === N - 1 ? 1000 : 400)))
+
+/**
+ * a phone's scene, live in the card: the step in play played out from where the last left off, on the step's own clock,
+ * the casting in the middle of the card
+ */
+/** a phone: each step's casting drawn as large as the Unitized page's answers in their card */
+const CAST_ZOOM = [1.45, 1.45, 1.45, 1.45, 1.45]
+
+function CastLive({ k, turn, section }: { k: number; turn: number; section: RefObject<HTMLElement | null> }) {
+  const progress = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
+  const live = useLive(section)
+  const axis = useRef<RoomAxis>({ x: 0.5, y: 0.5 })
+  const shotAt = useMemo(() => (p: number) => castShot(p, true, axis.current), [])
+  useEffect(() => {
+    // (the run is 0..1, a fifth a step: back to the start as it comes round, on from where it is otherwise)
+    const from = k === 0 ? 0 : Math.min(progress.value, k / N)
+    const to = (k + (k === N - 1 ? 0.97 : 0.8)) / N
+    const ms = Math.max(400, STEP_MS[k] - (k === N - 1 ? 1000 : 400))
+    const t0 = performance.now()
+    let raf = 0
+    const tick = (now: number) => {
+      const u = Math.min(1, (now - t0) / ms)
+      progress.value = from + (to - from) * (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2)
+      progress.listeners.forEach((f) => f())
+      if (u < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [k, turn, progress])
+  return (
+    <div className="fst__live" aria-hidden="true">
+      <Stage3D shadows keyLight={false} fallback={<img className="fu-still" src="/img/facade/mesh-on-face-coat.webp" alt="" />}>
+        <ScrubRig progress={progress} shotAt={shotAt} sway={0.6} live={live} aspect={1.27} />
+        <CastScene progress={progress} live={live} />
+        <FollowScroll progress={progress} />
+        <Zoom by={CAST_ZOOM[k]} />
+      </Stage3D>
+    </div>
+  )
+}
+
+/** a phone: the five steps as the Unitized page's answers (Stations, the solution's card), each played live in the card */
+function CastPhone() {
+  const section = useRef<HTMLElement>(null)
+  return (
+    <Stations
+      sectionRef={section}
+      id="casting"
+      title="Cast in 5 steps."
+      label="Step"
+      ground="yellow"
+      presentation="solution"
+      scene={(k, turn) => <CastLive k={k} turn={turn} section={section} />}
+      items={STEPS.map((st, i) => ({ name: st.name, line: st.line, clip: '', ms: STEP_MS[i], thumb: `/img/facade/studframe/cast-step-${i + 1}.webp` }))}
+    />
+  )
+}
+
