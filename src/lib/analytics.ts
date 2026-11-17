@@ -122,11 +122,27 @@ export function sectionOf(path: string) {
   return GROUPS.has(first) ? first : 'not-found'
 }
 
-/** one page view: the path (never the query or hash), the page's own title, and its section */
+/** the campaign tags a shared link may carry ("?utm_source=linkedin&utm_medium=social&utm_campaign=launch"), and nothing else of the query */
+const CAMPAIGN_TAGS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id']
+function campaignQuery() {
+  const from = new URLSearchParams(window.location.search)
+  const keep = new URLSearchParams()
+  for (const k of CAMPAIGN_TAGS) {
+    const v = from.get(k)
+    if (v) keep.set(k, v.slice(0, 100))
+  }
+  const q = keep.toString()
+  return q ? `?${q}` : ''
+}
+
+/**
+ * one page view: the path (never the hash or any query but the campaign tags, so reports can tell where a visitor came
+ * from), the page's own title, and its section
+ */
 export function trackPage(path: string) {
   if (!granted()) return
   send('event', 'page_view', {
-    page_location: `${window.location.origin}${path === '/' ? '/' : path}`,
+    page_location: `${window.location.origin}${path === '/' ? '/' : path}${campaignQuery()}`,
     page_path: path,
     page_title: document.title,
     content_group: sectionOf(path),
