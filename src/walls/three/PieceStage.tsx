@@ -182,8 +182,12 @@ export const PieceStage = memo(function PieceStage({ t, bus, room, focus, live, 
     const dt = Math.min(delta, 1 / 20)
     let moving = false
     for (const k of Object.keys(to) as (keyof typeof to)[]) if (approach(c, k, to[k], 8, dt, 1e-4)) moving = true
-    const az = (c.azim * Math.PI) / 180
-    const el = (c.elev * Math.PI) / 180
+    // (a phone's card: a slow sway, a few degrees round and a touch up and down, so the step never stands dead still; only
+    // while it is on the screen, and never under reduced motion)
+    const sway = floor === 'light' && !reduced && live.current
+    const now = performance.now() / 1000
+    const az = ((c.azim + (sway ? 3.2 * Math.sin((now * Math.PI * 2) / 11) : 0)) * Math.PI) / 180
+    const el = ((c.elev + (sway ? 1.1 * Math.sin((now * Math.PI * 2) / 15) : 0)) * Math.PI) / 180
     const d = Math.exp(c.ld)
     camera.fov = 26
     camera.near = Math.max(0.01, d * 0.02)
@@ -192,7 +196,7 @@ export const PieceStage = memo(function PieceStage({ t, bus, room, focus, live, 
     camera.lookAt(c.tx, c.ty, c.tz)
     camera.setViewOffset(size.width, size.height, -(c.fx - 0.5) * size.width, -(c.fy - 0.5) * size.height, size.width, size.height)
     camera.updateProjectionMatrix()
-    if (moving) invalidate()
+    if (moving || sway) invalidate()
   }, -1)
 
   return (
@@ -206,7 +210,7 @@ export const PieceStage = memo(function PieceStage({ t, bus, room, focus, live, 
       </mesh>
       <group quaternion={TURN}>
         <group scale={[1, 1, THICK]}>
-          <PanelPiece len={L} pose={pose} bus={bus} wide={ACROSS} dark />
+          <PanelPiece len={L} pose={pose} bus={bus} wide={ACROSS} dark faint={floor === 'light'} />
         </group>
       </group>
     </group>

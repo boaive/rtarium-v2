@@ -77,7 +77,7 @@ function ProblemsCards({ problems = PROBLEMS, title = TITLE, answer = ANSWER }: 
   return (
     <>
       <Say label={`${title} ${answer}`} text={title} then={answer} />
-      <DeckCards id="problems" title={`${count} problems with traditional screeds.`} items={items} ground="black" />
+      <DeckCards id="problems" title={`${count} problems with traditional screeds.`} items={items} ground="light" />
     </>
   )
 }

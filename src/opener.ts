@@ -57,11 +57,54 @@ export function openOnPage() {
   play(el, 900, 9000)
 }
 
+/**
+ * What the opening says under the emblem while the page comes together: a few short lines about the page being made,
+ * one after another, round again until it opens. By the page's path (the longest that fits); the site's, by default.
+ */
+const LINES: [string, string[]][] = [
+  ['/facade-cladding/unitized-thin-concrete-facade', ['Assembling six layers', 'Glazing the window', 'Lifting the unit into place', 'Sealing slab to slab']],
+  ['/facade-cladding/rainscreen-cladding', ['Fixing the brackets', 'Hanging the rails', 'Venting the cavity', 'Shedding the rain']],
+  ['/facade-cladding/stud-frame-cladding', ['Framing the studs', 'Spraying the skin', 'Setting the flex anchors', 'Breathing with the heat']],
+  ['/facade-cladding', ['Casting thin concrete skins', 'Weaving the basalt mesh', 'Hanging the panels', 'Sealing every joint']],
+  ['/advanced-flooring/data-ai-centres', ['Racking the servers', 'Grounding the floor', 'Damping the vibration', 'Keeping it dust-free']],
+  ['/advanced-flooring/automated-warehouse', ['Clearing the aisles', 'Guiding the robots', 'Hardening the surface', 'Running jointless']],
+  ['/advanced-flooring/semiconductor-plant', ['Sealing the cleanroom', 'Holding the line still', 'Calming the tremors', 'Guarding the yield']],
+  ['/advanced-flooring', ['Laying the 3D mesh', 'Pouring the screed', 'Levelling the floor', 'Closing the joints']],
+  ['/wall-panels', ['Casting 30 mm panels', 'Setting the SIP core', 'Tying the leaves together', 'Raising the walls']],
+  ['/', ['Weaving the basalt mesh', 'Tensioning the fibres', 'Setting the concrete', 'Building in 3D']],
+]
+const linesFor = (path: string) => (LINES.find(([p]) => (p === '/' ? path === '/' : path === p || path.startsWith(`${p}/`))) ?? LINES[LINES.length - 1])[1]
+
+/** the lines under the emblem, round and round, each in and out (index.html, `.opener__words`); returns the stop */
+function sayLines(el: HTMLElement, reduced: boolean) {
+  const lines = linesFor(window.location.pathname.replace(/\/+$/, '') || '/')
+  const words = document.createElement('p')
+  words.className = 'opener__words'
+  words.textContent = `${lines[0]}…`
+  el.appendChild(words)
+  if (reduced) return () => {}
+  let i = 0
+  let swap = 0
+  const timer = window.setInterval(() => {
+    words.classList.add('is-out')
+    swap = window.setTimeout(() => {
+      i = (i + 1) % lines.length
+      words.textContent = `${lines[i]}…`
+      words.classList.remove('is-out')
+    }, 260)
+  }, 1500)
+  return () => {
+    window.clearInterval(timer)
+    window.clearTimeout(swap)
+  }
+}
+
 function play(el: HTMLElement, least: number, most: number) {
   const reduced = prefersReducedMotion()
   const root = document.documentElement
   root.classList.add('is-opening')
   holdScroll(true)
+  const quiet = sayLines(el, reduced)
 
   // what the 3D has asked for, and how much of it has come
   let total = 0
@@ -93,6 +136,7 @@ function play(el: HTMLElement, least: number, most: number) {
   let done = false
 
   const finish = () => {
+    quiet()
     DefaultLoadingManager.onStart = before.start
     DefaultLoadingManager.onProgress = before.progress
     DefaultLoadingManager.onLoad = before.load

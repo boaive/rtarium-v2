@@ -266,7 +266,7 @@ export default function SemiconductorPlant() {
           barLabel="How the floor is built"
           fallback={<img className="fu-still" src="/img/flooring/dc-site-strip.webp" alt="" />}
           scene={buildScene}
-          phoneZoom={[1.45, 1.45, 1.15, 1.45, 1.15, 1.45, 1.45]}
+          phoneZoom={[0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]}
         />
       </div>
       <div className="fu" data-ground="light">

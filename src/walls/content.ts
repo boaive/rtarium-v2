@@ -90,6 +90,8 @@ export type StreamId = 'housing' | 'industrial' | 'frame'
 export interface Stream {
   id: StreamId
   name: string
+  /** its own page (a phone opens it from the carousel; Streams: SystemPage) */
+  path: string
   /** the name as it is set, in two lines, so the three start on one line */
   head: [string, string]
   line: string
@@ -99,6 +101,7 @@ export const STREAMS: Stream[] = [
   {
     id: 'housing',
     name: 'Affordable housing',
+    path: '/wall-panels/affordable-housing',
     head: ['Affordable', 'housing'],
     line: 'A single-storey home: vertical SIP walls, a lintel over every opening.',
     still: { src: '/img/walls/streams/housing.webp', alt: 'The single-storey home built in 3D: vertical RTARIUM SIP walls, horizontal lintel panels over the door and windows, a flat roof drawn over them' },
@@ -106,6 +109,7 @@ export const STREAMS: Stream[] = [
   {
     id: 'industrial',
     name: 'Industrial building',
+    path: '/wall-panels/industrial-building',
     head: ['Industrial', 'building'],
     line: 'A logistics hub: SIP to 3.7 m, 30 mm solid above, three loading bays.',
     still: { src: '/img/walls/streams/hub.webp', alt: 'The logistics hub built in 3D: anthracite SIP panels below, light grey solid panels above, three loading bays and an access door in its front, a shutter in its side' },
@@ -113,6 +117,7 @@ export const STREAMS: Stream[] = [
   {
     id: 'frame',
     name: 'Frame structure',
+    path: '/wall-panels/frame-structure',
     head: ['Frame', 'structure'],
     line: 'An RC frame infilled, or a steel portal clad.',
     still: { src: '/img/walls/streams/frame.webp', alt: 'A G+3 RC frame built in 3D, its bays infilled with RTARIUM panels, a window in each' },

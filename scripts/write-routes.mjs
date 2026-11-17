@@ -14,6 +14,9 @@ const ROUTES = [
   'facade-cladding/rainscreen-cladding',
   'facade-cladding/stud-frame-cladding',
   'wall-panels',
+  'wall-panels/affordable-housing',
+  'wall-panels/industrial-building',
+  'wall-panels/frame-structure',
   'contact',
   'privacy',
 ]

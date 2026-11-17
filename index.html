@@ -89,6 +89,30 @@
       .opener.is-cut .opener__mark {
         opacity: 0;
       }
+      /* under the emblem, what the page is being made of, a line at a time (src/opener.ts, sayLines) */
+      .opener__words {
+        position: absolute;
+        left: 24px;
+        right: 24px;
+        top: calc(50% + var(--em) / 2 + 26px);
+        margin: 0;
+        font: 600 11px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        text-align: center;
+        color: rgb(242 240 233 / 0.62);
+        transition:
+          opacity 0.26s ease,
+          transform 0.26s ease;
+      }
+      .opener__words.is-out {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+      .opener.is-cut .opener__words {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
       .opener.is-cut .opener__door {
         -webkit-mask-image: url(/brand/rtarium-emblem.png), linear-gradient(#000 0 0);
         mask-image: url(/brand/rtarium-emblem.png), linear-gradient(#000 0 0);

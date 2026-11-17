@@ -99,7 +99,7 @@ function sheenTexture() {
   return t
 }
 
-export function BurstUnit({ progress, focus, bus, live }: { progress: Progress; focus: Layer | null; bus: LabelBus; live: { current: boolean } }) {
+export function BurstUnit({ progress, focus, bus, live, floor = 'dark' }: { progress: Progress; focus: Layer | null; bus: LabelBus; live: { current: boolean }; /** the studio's floor: in the black box, or on a phone's light card */ floor?: 'dark' | 'light' }) {
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
   const reduced = useMemo(() => prefersReducedMotion(), [])
@@ -327,9 +327,10 @@ export function BurstUnit({ progress, focus, bus, live }: { progress: Progress; 
         {/* the textile where the skin is cut back to it */}
         <Anchor bus={bus} id="b-mesh" position={[(PANEL_CUT[0] + PANEL_CUT[2]) / 2, PANEL_CUT[1] + (PANEL_CUT[3] - PANEL_CUT[1]) * 0.62, zm]} />
       </group>
-      <StudioFog follow />
+      {/* (on a phone's light card, the grid pale and going into the card's own grey) */}
+      <StudioFog follow color={floor === 'light' ? '#e4e2db' : undefined} />
       {/* the studio floor: a fine grid that goes into the dark, and the shadows on it */}
-      <gridHelper args={[18, 36, '#2e2e2e', '#232323']} position={[U.w / 2, -0.012, 1.4]} />
+      <gridHelper args={floor === 'light' ? [18, 36, '#cfccc4', '#dcd9d1'] : [18, 36, '#2e2e2e', '#232323']} position={[U.w / 2, -0.012, 1.4]} />
       <mesh position={[U.w / 2, -0.01, 1.4]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[18, 18]} />
         <shadowMaterial color="#000000" opacity={0.42} transparent depthWrite={false} />

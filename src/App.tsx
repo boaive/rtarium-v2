@@ -30,7 +30,7 @@ const isFlooring = (path: string) => path === '/advanced-flooring' || path.start
 /** Wall Panels: one page, its own chunk */
 /** development only (never in a build): the Unitized page's scenes rendered a frame at a time, for its phone clips */
 const FilmUnitized = import.meta.env.DEV ? lazy(() => import('./dev/FilmUnitized')) : null
-const isWalls = (path: string) => path === '/wall-panels'
+const isWalls = (path: string) => path === '/wall-panels' || path.startsWith('/wall-panels/')
 
 function Home() {
   usePointerTracking()

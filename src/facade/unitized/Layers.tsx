@@ -14,6 +14,7 @@ import { Arrow } from '../Shell'
 import { useCornerBox, useLive } from './live'
 import { paintCards } from './stack'
 import { HintTag, Skip, type Hint } from './StepBar'
+import { RunStations } from '../../flooring/RunStations'
 
 /**
  * Six layers, one unit, on yellow. Pinned for its run: on the left the layers as sticky stacking
@@ -71,7 +72,76 @@ const PLAY = { move: 1100, hold: 1300 }
 const HOW: Hint = { text: 'Scroll or use the arrows', icon: 'scroll' }
 
 export function Layers() {
-  const compact = useIsCompact()
+  return useIsCompact() ? <LayersPhone /> : <LayersWide />
+}
+
+/** a phone's steps: each layer in, RTARIUM's textile, the thin panel cast, the unit closed (the wide screen's stops) */
+const PHONE_STEPS = [
+  ...BUILD.slice(0, -1).map((l) => ({ id: l, name: LAYER_NAME[l], line: LAYER_LINE[l], labels: [] as string[] })),
+  { id: 'textile', name: 'RTARIUM textile', line: 'The 3D basalt textile, laid in before the concrete.', labels: [] as string[] },
+  { id: 'panel', name: LAYER_NAME.panel, line: LAYER_LINE.panel, labels: [] as string[] },
+  { id: 'closed', name: 'Six layers, closed', line: 'Six layers in one unit, hung from slab to slab.', labels: [] as string[] },
+]
+const NO_LABELS: LabelSpec[] = []
+
+/**
+ * A phone: the six layers set as Wall Panels' panels are (RunStations), on black, a dark card: each layer coming in, played
+ * by itself in the card, one after another; the bar, the small controls, a still a step in the strip. The scene is the
+ * wide screen's, played on the card's own clock from one of its stops to the next.
+ */
+function LayersPhone() {
+  return (
+    <RunStations
+      id="layers"
+      title="Six layers, one unit."
+      steps={PHONE_STEPS}
+      stretch={PHONE_STEPS.map(() => 1)}
+      labels={NO_LABELS}
+      scene={(t, bus, _room, live) => <LayerRun t={t} bus={bus} live={live} />}
+      fallback={<img className="fu-still" src="/img/facade/panel-back.webp" alt="" />}
+      zoom={PHONE_STEPS.map(() => 1.6)}
+      keyLight={false}
+      thumbs="/img/facade/unitized/layers-step"
+    />
+  )
+}
+
+/** the card's clock (a step and how far it has played) as the unit's own run, stop to stop */
+function LayerRun({ t, bus, live }: { t: Progress; bus: ReturnType<typeof createBus>; live: { current: boolean } }) {
+  const run = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
+  const shotAt = useMemo(
+    () => (p: number) => {
+      const s = burstShot(p, true)
+      return { ...s, dist: s.dist * PHONE_ROOM }
+    },
+    [],
+  )
+  useEffect(() => {
+    const n = STOPS.length
+    const on = () => {
+      const v = t.value
+      const k = Math.max(0, Math.min(n - 1, Math.floor(v + 1e-6)))
+      const f = Math.min(1, Math.max(0, (v - k) / (k === n - 1 ? 0.9 : 0.76)))
+      const from = k === 0 ? 0 : STOPS[k - 1]
+      run.value = from + (STOPS[k] - from) * f
+      run.listeners.forEach((g) => g())
+    }
+    on()
+    t.listeners.add(on)
+    return () => void t.listeners.delete(on)
+  }, [t, run])
+  return (
+    <>
+      <ScrubRig progress={run} shotAt={shotAt} sway={1.5} live={live} />
+      <MovingKeyLight focus={[1.2, 1.6, 1.6]} reach={6.5} offset={[-5, 10, 8]} />
+      <BurstUnit progress={run} focus={null} bus={bus} live={live} />
+      <FollowScroll progress={run} />
+    </>
+  )
+}
+
+function LayersWide() {
+  const compact = false
   const section = useRef<HTMLElement>(null)
   const box = useRef<HTMLDivElement>(null)
   const rx = useRef<HTMLSpanElement>(null)

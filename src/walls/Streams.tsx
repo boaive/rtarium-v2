@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { scrollToY } from '../lib/scroll'
+import { Link, useRoute } from '../lib/router'
+import { DeckCards, type DeckItem } from '../facade/DeckCards'
 import { useIsCompact, COMPACT_QUERY } from '../lib/motion'
 import { Arrow } from '../facade/Shell'
 import { Stage3D, LabelProjector, Labels, type LabelSpec } from '../facade/three/Stage3D'
@@ -206,7 +208,196 @@ function BuildPhone({ which, building, title, still }: { which: BuildId; buildin
   )
 }
 
-function Build({ id }: { id: StreamId }) {
+/**
+ * A phone: a system on a page of its own (/wall-panels/<system>), as the façade's systems each have one, without their
+ * opening: on yellow, its name and its brief; the systems to go between as a row of pills (and the frame's two frames);
+ * its figures, counted off the building; the way into its case study; the building itself, finished, turning slowly.
+ * Then the build on white, step by step; why it works, dealt as cards on black (DeckCards); the other two systems.
+ */
+/** the systems' names in a pill, short enough for the three to sit on one line */
+const SHORT: Record<StreamId, string> = { housing: 'Housing', industrial: 'Industrial', frame: 'Frame' }
+
+function SystemPage({
+  id,
+  which,
+  building,
+  study,
+  totals,
+  openSheet,
+  still,
+  frame,
+}: {
+  id: StreamId
+  which: BuildId
+  building: Built3D
+  study: (typeof CASES)[BuildId]
+  totals: { panels: number; area: number; tonnes: number }
+  openSheet: () => void
+  still: string
+  frame?: { on: 'rc' | 'peb'; set: (f: 'rc' | 'peb') => void }
+}) {
+  const { go } = useRoute()
+  const live = useMemo(() => ({ current: true }), [])
+  const ids = useMemo(() => [which], [which])
+  const items: DeckItem[] = useMemo(
+    () =>
+      WHYS[which].map((w, i) => ({
+        id: `${which}-${i}`,
+        name: w.name,
+        full: study.title,
+        icon: (
+          <span className="vs__glyph" aria-hidden="true">
+            {WHY_ICONS[w.icon]}
+          </span>
+        ),
+        parts: [{ label: 'Why it works', text: w.text }],
+      })),
+    [which, study.title],
+  )
+  return (
+    <>
+      <div className="fu" data-ground="yellow">
+        <section className="wsys" aria-labelledby="wsys-title">
+        <p className="wsys__kicker">Illustrative case study</p>
+        <h2 id="wsys-title" className="wsys__title">
+          {study.title.includes(',') ? `${study.title}.` : `${study.title}, built.`}
+        </h2>
+        <p className="wsys__lede">{study.brief}</p>
+        <p className="wsys__label">Systems</p>
+        <div className="wsys__pills" role="group" aria-label="Systems">
+          {STREAMS.map((s) => (
+            <button key={s.id} type="button" aria-pressed={s.id === id} className={s.id === id ? 'is-on' : ''} onClick={() => s.id !== id && go(s.path)}>
+              {SHORT[s.id]}
+            </button>
+          ))}
+        </div>
+        {frame && (
+          <>
+            <p className="wsys__label">Frame</p>
+            <div className="wsys__pills" role="group" aria-label="Frame">
+              {(['rc', 'peb'] as const).map((f) => (
+                <button key={f} type="button" aria-pressed={frame.on === f} className={frame.on === f ? 'is-on' : ''} onClick={() => frame.set(f)}>
+                  {f === 'rc' ? 'RC frame' : 'Steel portal'}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        <dl className="wsys__figs">
+          <div>
+            <dt>Panels</dt>
+            <dd className="num">{totals.panels}</dd>
+          </div>
+          <div>
+            <dt>Wall area</dt>
+            <dd className="num">
+              {Math.round(totals.area)}
+              <small>m²</small>
+            </dd>
+          </div>
+          <div>
+            <dt>Weight</dt>
+            <dd className="num">
+              {totals.tonnes.toFixed(1)}
+              <small>t</small>
+            </dd>
+          </div>
+        </dl>
+        <div className="wsys__ways">
+          <button type="button" className="wsys__btn" onClick={openSheet}>
+            Case study
+            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+              <path d="M8 2v11M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+            </svg>
+          </button>
+          <Link to="/wall-panels#streams" className="wsys__link">
+            All systems
+          </Link>
+        </div>
+        <div className="wsys__model" aria-hidden="true">
+          <Stage3D shadows keyLight={false} fallback={<img src={still} alt="" />}>
+            <WallsTrio ids={ids} play hover={null} live={live} fill={0.86} height={0.7} spin />
+          </Stage3D>
+        </div>
+        </section>
+      </div>
+      <div className="fu" data-ground="light">
+        <BuildPhone which={which} building={building} title={study.title} still={still} />
+      </div>
+      <div className="fu" data-ground="black">
+        <DeckCards key={which} id="wsys-why" title="Why it works." items={items} ground="black" />
+      </div>
+      <div className="fu" data-ground="light">
+        <StreamsCards id="other-streams" title="Two more systems." leave={id} chosen={null} onChoose={(s) => go(STREAMS.find((x) => x.id === s)!.path)} />
+      </div>
+    </>
+  )
+}
+
+/** what each build has going for it, a card each: a short name over what it gives (from its case study's advantages) */
+type WhyIcon = 'bolt' | 'warm' | 'shield' | 'thin' | 'dry' | 'floor'
+const WHYS: Record<BuildId, { icon: WhyIcon; name: string; text: string }[]> = {
+  housing: [
+    { icon: 'bolt', name: 'Dry, bolted walls', text: 'No welding and no wet trades for the walls: panels slid into a U-track and bolted.' },
+    { icon: 'warm', name: 'Insulated all round', text: 'A 100 mm SIP panel in every wall, its concrete faces inside and out.' },
+    { icon: 'shield', name: 'Nothing to rust', text: 'Basalt reinforcement: fire-rated, non-magnetic, made to the millimetre to one layout.' },
+  ],
+  hub: [
+    { icon: 'thin', name: 'Slender, wide bays', text: 'Hyper-slender 30 mm solid panels cross 5.8 m bays, up to 8 m.' },
+    { icon: 'warm', name: 'Insulated where needed', text: 'SIP panels only round the conditioned zone at the docks; solid panels above.' },
+    { icon: 'bolt', name: 'Weld-free, tough', text: 'A bolted assembly, with high impact resistance at the working level.' },
+  ],
+  rc: [
+    { icon: 'floor', name: 'Thin, light infill', text: 'At 74 kg/m², a thin wall that leaves more floor inside the same frame.' },
+    { icon: 'bolt', name: 'Dry and bolted', text: 'Set storey by storey, made to the millimetre, bolted to plates in the columns.' },
+    { icon: 'shield', name: 'Nothing to rust', text: 'Rust-proof, fire-rated and non-magnetic.' },
+  ],
+  peb: [
+    { icon: 'bolt', name: 'No welding', text: 'A concrete wall on a steel frame, bolted and cleated.' },
+    { icon: 'dry', name: 'The steel kept dry', text: 'Panels outside the frame: the steel stays inside, out of the weather.' },
+    { icon: 'warm', name: 'Insulated where needed', text: 'SIP panels below, 30 mm solid above. Rust-proof, fire-rated, non-magnetic.' },
+  ],
+}
+const WHY_ICONS: Record<WhyIcon, ReactNode> = {
+  bolt: (
+    <svg viewBox="0 0 40 40">
+      <path d="M8 12h24M8 28h24M14 12v16M26 12v16" />
+      <circle className="vs__glyph-fill" cx="20" cy="20" r="4" />
+    </svg>
+  ),
+  warm: (
+    <svg viewBox="0 0 40 40">
+      <path d="M8 8v24M32 8v24" />
+      <path className="vs__glyph-fill" d="M13 8h14v24H13z" />
+    </svg>
+  ),
+  shield: (
+    <svg viewBox="0 0 40 40">
+      <path d="M20 6l12 5v9c0 7-5 12-12 14-7-2-12-7-12-14v-9z" />
+      <path className="vs__glyph-fill" d="M15 20l4 4 7-8" />
+    </svg>
+  ),
+  thin: (
+    <svg viewBox="0 0 40 40">
+      <path d="M6 32h28M6 8v24M34 8v24" />
+      <path className="vs__glyph-fill" d="M18 8h4v24h-4z" />
+    </svg>
+  ),
+  dry: (
+    <svg viewBox="0 0 40 40">
+      <path d="M8 16l12-9 12 9M12 16v16h16V16" />
+      <path className="vs__glyph-fill" d="M17 22h6v10h-6z" />
+    </svg>
+  ),
+  floor: (
+    <svg viewBox="0 0 40 40">
+      <path d="M6 10h28v20H6zM10 10v20M30 10v20" />
+      <path className="vs__glyph-fill" d="M14 14h12v12H14z" />
+    </svg>
+  ),
+}
+
+function Build({ id, page }: { id: StreamId; /** a phone: the system's own page (SystemPage) */ page?: boolean }) {
   const compact = useIsCompact()
   const [frame, setFrame] = useState<'rc' | 'peb'>('rc')
   const which: BuildId = id === 'housing' ? 'housing' : id === 'industrial' ? 'hub' : frame
@@ -258,6 +449,68 @@ function Build({ id }: { id: StreamId }) {
     return rows
   }, [building])
 
+  const sheetEl = (
+  <Sheet dialog={sheet} kicker="Illustrative case study" title={study.title} review={REVIEW.caseStudy}>
+    <p className="wp-sheet__lede">{study.brief}</p>
+    <div className="wp-sheet__grid">
+      <Block label="The challenge">
+        <p className="wp-sheet__para">{study.challenge}</p>
+      </Block>
+      <div className="wp-sheet__side">
+        <Block label="The RTARIUM wall">
+          <ul className="wp-list">
+            {study.wall.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </Block>
+      </div>
+      <Block label="Quantities, from the panels’ own figures" wide>
+        <Figures rows={figures} />
+      </Block>
+      <Block label="How it goes up">
+        <Steps items={study.sequence} />
+      </Block>
+      <div className="wp-sheet__side">
+        <Block label="What it needs">
+          <ul className="wp-list">
+            {study.needs.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </Block>
+      </div>
+      <Block label="Drawing" wide>
+        {which === 'housing' ? <HomePlan /> : which === 'hub' ? <ShedElevation /> : which === 'rc' ? <InfillSection /> : <PortalSection />}
+      </Block>
+      <Block label="The build, finished" wide>
+        <img className="wp-sheet__still" src={still.src} alt={still.alt} loading="lazy" decoding="async" />
+      </Block>
+      <Block label="Advantages">
+        <ul className="wp-list wp-list--plus">
+          {study.pros.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      </Block>
+      <Block label="Limitations">
+        <ul className="wp-list wp-list--minus">
+          {study.limits.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      </Block>
+    </div>
+  </Sheet>
+  )
+  // a phone: the system on a page of its own (SystemPage)
+  if (compact && page)
+    return (
+      <>
+        <SystemPage id={id} which={which} building={building} study={study} totals={totals} openSheet={openSheet} still={still.src} frame={id === 'frame' ? { on: frame, set: setFrame } : undefined} />
+        {sheetEl}
+      </>
+    )
   return (
     <>
       {compact ? (
@@ -265,58 +518,7 @@ function Build({ id }: { id: StreamId }) {
       ) : (
         <BuildPinned id={id} which={which} building={building} labels={labels} title={study.title} frame={frame} setFrame={setFrame} />
       )}
-      <Sheet dialog={sheet} kicker="Illustrative case study" title={study.title} review={REVIEW.caseStudy}>
-        <p className="wp-sheet__lede">{study.brief}</p>
-        <div className="wp-sheet__grid">
-          <Block label="The challenge">
-            <p className="wp-sheet__para">{study.challenge}</p>
-          </Block>
-          <div className="wp-sheet__side">
-            <Block label="The RTARIUM wall">
-              <ul className="wp-list">
-                {study.wall.map((n) => (
-                  <li key={n}>{n}</li>
-                ))}
-              </ul>
-            </Block>
-          </div>
-          <Block label="Quantities, from the panels’ own figures" wide>
-            <Figures rows={figures} />
-          </Block>
-          <Block label="How it goes up">
-            <Steps items={study.sequence} />
-          </Block>
-          <div className="wp-sheet__side">
-            <Block label="What it needs">
-              <ul className="wp-list">
-                {study.needs.map((n) => (
-                  <li key={n}>{n}</li>
-                ))}
-              </ul>
-            </Block>
-          </div>
-          <Block label="Drawing" wide>
-            {which === 'housing' ? <HomePlan /> : which === 'hub' ? <ShedElevation /> : which === 'rc' ? <InfillSection /> : <PortalSection />}
-          </Block>
-          <Block label="The build, finished" wide>
-            <img className="wp-sheet__still" src={still.src} alt={still.alt} loading="lazy" decoding="async" />
-          </Block>
-          <Block label="Advantages">
-            <ul className="wp-list wp-list--plus">
-              {study.pros.map((n) => (
-                <li key={n}>{n}</li>
-              ))}
-            </ul>
-          </Block>
-          <Block label="Limitations">
-            <ul className="wp-list wp-list--minus">
-              {study.limits.map((n) => (
-                <li key={n}>{n}</li>
-              ))}
-            </ul>
-          </Block>
-        </div>
-      </Sheet>
+      {sheetEl}
       {/* once it is built: the building itself, finished, turning; what it is, its figures counted off the model as the
           screen arrives, what it has going for it, and the way into its case study */}
       <Built which={which} title={study.title} brief={study.brief} pros={study.pros} totals={totals} openSheet={openSheet} frame={id === 'frame' ? { on: frame, set: setFrame } : undefined} />
@@ -563,10 +765,16 @@ function StreamsColumns({ id, title, leave, chosen, onChoose }: BlockProps) {
   )
 }
 
-export function Streams() {
-  const [chosen, setChosen] = useState<StreamId | null>(null)
+/** a phone: a system's own page (/wall-panels/<system>) */
+export function SystemRoute({ id }: { id: StreamId }) {
+  return <Build key={id} id={id} page />
+}
+
+export function Streams({ initial = null }: { /** a wide screen opened on a system's own address: that system, chosen */ initial?: StreamId | null }) {
+  const [chosen, setChosen] = useState<StreamId | null>(initial)
+  const { go } = useRoute()
   // once a stream is chosen (or another one), its build comes up under the choice
-  const pending = useRef(false)
+  const pending = useRef(!!initial)
   useEffect(() => {
     if (!chosen || !pending.current) return
     pending.current = false
@@ -585,6 +793,9 @@ export function Streams() {
     pending.current = true
     setChosen(id)
   }
+  const compact = useIsCompact()
+  // a phone: the carousel, then the footer; a system picked opens its own page (SystemRoute)
+  if (compact) return <StreamsBlock id="streams" title="Explore a system." chosen={null} onChoose={(s) => go(STREAMS.find((x) => x.id === s)!.path)} />
   return (
     <>
       <StreamsBlock id="streams" title="Explore a system." chosen={chosen} onChoose={choose} />

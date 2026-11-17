@@ -188,9 +188,10 @@ export function Stations({
   presentation,
   scene,
   manual = false,
-  center = false,
-  controls = false,
+  center: centerAsked,
+  controls: controlsAsked,
   foot,
+  action,
 }: {
   sectionRef: RefObject<HTMLElement | null>
   id: string
@@ -211,7 +212,13 @@ export function Stations({
   controls?: boolean
   /** what follows the strip (Wall Panels' panels: the way to the technical sheet) */
   foot?: ReactNode
+  /** under the step's words, over the card (Wall Panels' panels: the way to the technical sheet) */
+  action?: ReactNode
 }) {
+  // (a solution's card, on every page alike: midway between its words and the bar, with the small controls, as Wall
+  // Panels' were first made; a section may still ask otherwise)
+  const center = centerAsked ?? presentation === 'solution'
+  const controls = controlsAsked ?? presentation === 'solution'
   const n = items.length
   // (a solution plays its steps through once and stops on the last, as the slab to slab does: round again it read as a
   // loop with no end; a step picked from the strip plays again)
@@ -258,7 +265,8 @@ export function Stations({
       return y
     }
     const place = () => {
-      const line = sec.querySelector<HTMLElement>('.fst__line')
+      // (under the words, or under what follows them: an action over the card)
+      const line = sec.querySelector<HTMLElement>('.fst__action') ?? sec.querySelector<HTMLElement>('.fst__line')
       const card = sec.querySelector<HTMLElement>('.fst__card')
       const bar = sec.querySelector<HTMLElement>('.fst__bar')
       if (!line || !card || !bar) return
@@ -342,6 +350,7 @@ export function Stations({
             {item.line}
           </p>
         </div>
+        {action && <div className="fst__action">{action}</div>}
         <div className="fst__card" data-step={k + 1}>
           <div className="fst__card-in" aria-hidden="true">
             {scene ? (

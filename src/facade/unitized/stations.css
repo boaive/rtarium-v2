@@ -323,35 +323,36 @@
     box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.55), 0 14px 24px -14px rgb(94 64 0 / 0.42);
     touch-action: pan-y;
   }
-  /* Wall Panels' answers: a warm yellow, lit in the middle and a step deeper than the page at the corners, so the white
-     panels stand out of it and the card still reads as a card on the yellow ground */
-  #wall-answers.fst--solution .fst__card {
+  /* every solution's card on yellow (as Wall Panels' answers' first were): a warm yellow, lit in the middle and a step
+     deeper than the page at the corners, so the pale models stand out of it and the card still reads as a card */
+  .fst--yellow.fst--solution .fst__card {
     background: radial-gradient(ellipse 75% 70% at 52% 46%, #ffe98a 0%, #ffd84a 50%, #f2bd12 100%);
   }
-  #wall-answers.fst--solution .fst__thumb-img {
+  .fst--yellow.fst--solution .fst__thumb-img {
     background: #ffd84a;
   }
   /* (the card moved midway between its step's words and the bar: Stations, `center`; eased as the words change) */
-  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__card {
+  .fst--solution .fst__card {
     transition: transform 0.5s var(--ease-out);
   }
-  /* the bar and the count, slight: hairline dashes, the count small and spaced */
-  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__bar {
+  /* the bar and the count, slight, on every solution's card (as Wall Panels' first were): hairline dashes, the count small
+     and spaced */
+  .fst--solution .fst__bar {
     gap: 5px;
   }
-  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__seg {
+  .fst--solution .fst__seg {
     height: 2px;
   }
-  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__ctrl {
+  .fst--solution .fst__ctrl {
     margin-top: 10px;
   }
-  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__count {
+  .fst--solution .fst__count {
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.16em;
     color: rgb(11 11 11 / 0.5);
   }
-  :is(#wall-answers, #panels, #panels-sip).fst--solution .fst__count b {
+  .fst--solution .fst__count b {
     font-weight: 700;
     color: var(--fst-fg);
   }
@@ -381,14 +382,43 @@
   :is(#panels, #panels-sip).fst--solution .fst__seg.is-now {
     background: rgb(11 11 11 / 0.35);
   }
+  /* the way to the technical sheet, under the step's words, over the card: a pill in a hairline, plain to see */
+  .fst__action {
+    margin-top: clamp(8px, 1.6svh, 14px);
+  }
+  /* the Unitized page's six layers on a phone (Layers: LayersPhone), on black as they always were: a dark card lit in the
+     middle, the studio's dark floor in it, the words light */
+  #layers.fst--solution {
+    --fst-bg: #080808;
+    --fst-fg: #f2f0e9;
+    --fst-2: rgb(242 240 233 / 0.66);
+    --fst-track: rgb(242 240 233 / 0.18);
+    --fst-fill: #f2f0e9;
+    --fst-ring: var(--yellow);
+    background: #080808;
+    color: #f2f0e9;
+  }
+  #layers.fst--solution .fst__card {
+    background: radial-gradient(ellipse 75% 70% at 52% 46%, #2a2a28 0%, #191918 55%, #0f0f0e 100%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 24px -14px rgb(0 0 0 / 0.6);
+  }
+  #layers.fst--solution .fst__thumb-img {
+    background: #191918;
+  }
+  #layers.fst--solution .fst__seg.is-now {
+    background: rgb(242 240 233 / 0.35);
+  }
+  #layers.fst--solution .fst__count {
+    color: rgb(242 240 233 / 0.55);
+  }
   .wpp__sheet {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    min-height: 44px;
-    margin-top: 10px;
-    padding: 0;
-    border: 0;
+    min-height: 36px;
+    padding: 0 16px;
+    border: 1.5px solid var(--fst-fg);
+    border-radius: 999px;
     background: none;
     color: var(--fst-fg);
     font: inherit;

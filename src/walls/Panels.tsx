@@ -9,6 +9,7 @@ import { useCornerBox, useLive } from '../facade/unitized/live'
 import { HintTag, StepBar, type Hint } from '../facade/unitized/StepBar'
 import { ORDER100, ORDER30, PieceStage, RUN_AT, STILL100, STILL30 } from './three/PieceStage'
 import type { Room } from './three/fit'
+import { Loupe } from './three/Loupe'
 import { Block, Figures, Sheet, Steps, useSheet } from './Sheet'
 import { PanelPlan, Section100, Section30, TiePlate } from './Diagrams'
 import { PAIRED, REVIEW, SOLID } from './content'
@@ -204,7 +205,7 @@ function PanelsPhone({ which }: { which: Which }) {
         thumbs={`/img/walls/panel${which}-step`}
         center
         controls
-        foot={
+        action={
           <button type="button" className="wpp__sheet" onClick={openSheet}>
             Technical details
             <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
@@ -223,6 +224,9 @@ const NO_LABELS: LabelSpec[] = []
  * The card's scene: the card's run (a step a unit, each played to 0.76 of it, the last to 0.9) read as the panel's own
  * story: the first step opens it, each part's step holds it opened with that part alone, the last closes it up.
  */
+/** the parts too small to read whole in the card: picked, each is drawn close in a circle (Loupe) */
+const SMALL_PARTS = ['pp-tie', 'pp-ferrule', 'pp-ferrule100', 'pp-grp', 'pp-rod', 'pp-clip'] as const
+
 function PanelRun({ which, n, parts, t, bus, room, live }: { which: Which; n: number; parts: Part[]; t: Progress; bus: ReturnType<typeof createBus>; room: { current: Room }; live: { current: boolean } }) {
   const piece = useMemo<Progress>(() => ({ value: tAt(which, 0), listeners: new Set() }), [which])
   const focus = useRef<string | null>(null)
@@ -240,7 +244,13 @@ function PanelRun({ which, n, parts, t, bus, room, live }: { which: Which; n: nu
     t.listeners.add(on)
     return () => void t.listeners.delete(on)
   }, [t, piece, which, n, parts])
-  return <PieceStage t={piece} bus={bus} room={room} focus={focus} live={live} floor="light" />
+  return (
+    <>
+      <PieceStage t={piece} bus={bus} room={room} focus={focus} live={live} floor="light" />
+      {/* (a small part picked: a ring on it, and a close look at it in a circle in the card's corner) */}
+      <Loupe bus={bus} focus={focus} small={SMALL_PARTS} />
+    </>
+  )
 }
 
 function PanelsWide({ which }: { which: Which }) {

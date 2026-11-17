@@ -13,8 +13,9 @@ import { Story } from './Story'
 import { Answers } from './Answers'
 import { Say } from '../components/Say'
 import { Panels } from './Panels'
-import { Streams } from './Streams'
-import { PAIRED, SOLID } from './content'
+import { Streams, SystemRoute } from './Streams'
+import { PAIRED, SOLID, STREAMS } from './content'
+import { useRoute } from '../lib/router'
 
 /**
  * Wall Panels: one page, one continuous scroll, the grounds taking turns as on the other pages:
@@ -36,8 +37,10 @@ const FREE = ['wall-answers']
 const NONE: string[] = []
 
 export default function WallPanels() {
+  const { path } = useRoute()
+  const stream = STREAMS.find((s) => s.path === path) ?? null
   usePageMeta(
-    'Wall Panels',
+    stream ? `${stream.name} · Wall Panels` : 'Wall Panels',
     'RTARIUM modular wall panels: 30 mm solid panels and 100 mm SIP insulated panels, reinforced with a three-dimensional basalt mesh. Non-magnetic, fire-rated, interlocking on all four sides and bolted, not welded, for logistics hubs, cleanroom plants, data centres, housing and frame structures.',
   )
   const hero = useRef<HTMLElement>(null)
@@ -78,6 +81,13 @@ export default function WallPanels() {
   const compact = useIsCompact()
   usePageSteps(compact ? NONE : FREE)
 
+  // a system's own address: on a phone its own page; a wide screen, the page with that system chosen
+  if (stream && compact)
+    return (
+      <FacadePage>
+        <SystemRoute id={stream.id} />
+      </FacadePage>
+    )
   return (
     <FacadePage>
       <div className="fu" data-ground="yellow">
@@ -102,7 +112,7 @@ export default function WallPanels() {
         <Panels which={100} />
       </div>
       <div className="fu" data-ground="light">
-        <Streams />
+        <Streams initial={stream?.id ?? null} />
       </div>
     </FacadePage>
   )

@@ -173,9 +173,6 @@ function FailScreen({ id, title, reasons, beats, labels, scene, fallback }: Fail
   return (
     <section ref={section} id={id} className="ffail on-black" data-ground="black" data-stops={stops} data-no-top="" data-back="all" aria-labelledby={`${id}-title`} style={{ '--n': n } as CSSProperties}>
       <div className="ffail__pin">
-        <h2 id={`${id}-title`} className="visually-hidden">
-          {title}
-        </h2>
         <div className="ffail__stage" aria-hidden="true">
           <Stage3D shadows fallback={fallback}>
             <Wake live={live} />
@@ -185,13 +182,20 @@ function FailScreen({ id, title, reasons, beats, labels, scene, fallback }: Fail
           </Stage3D>
           <Labels bus={bus} labels={labels} shown={lit ? reason.labels : []} />
         </div>
-        <div key={reason.id} className="ffail__words" aria-live="polite">
-          <p className="ffail__num num">
-            0{k + 1} / 0{n}
-          </p>
-          <h3 className="ffail__name">{reason.name}</h3>
-          <p className="ffail__line">{reason.line}</p>
+        {/* the section's title at the top, the reason in play under it; its number large at the foot, on the right */}
+        <div className="ffail__top">
+          <h2 id={`${id}-title`} className="ffail__title">
+            {title}.
+          </h2>
+          <div key={reason.id} className="ffail__words" aria-live="polite">
+            <h3 className="ffail__name">{reason.name}</h3>
+            <p className="ffail__line">{reason.line}</p>
+          </div>
         </div>
+        <p className="ffail__count num" aria-hidden="true">
+          <b key={reason.id}>0{k + 1}</b>
+          <span>/ 0{n}</span>
+        </p>
         <ol className="ffail__dashes" aria-hidden="true">
           {reasons.map((r, i) => (
             <li key={r.id} className={i < k ? 'is-past' : i === k ? 'is-now' : ''} />

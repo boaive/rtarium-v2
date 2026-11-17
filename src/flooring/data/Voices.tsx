@@ -135,14 +135,18 @@ const VOICE_SHORT: Record<string, string> = { consultant: 'Consultant', owner: '
 function VoicesCards({ bands }: { bands: Band[] }) {
   const items: DeckItem[] = bands.map((b) => ({
     id: b.id,
-    // (a card says one thing: whose it is, and the line for them; the longer message stays on the wide screen)
+    // (whose it is, the role in full under it; the line for them, and the wide screen's longer message as a second part)
     name: VOICE_SHORT[b.id] ?? b.role,
+    full: b.role !== VOICE_SHORT[b.id] ? b.role : undefined,
     icon: VOICE_ICONS[b.id] && (
       <span className="vs__glyph" aria-hidden="true">
         {VOICE_ICONS[b.id]}
       </span>
     ),
-    parts: [{ label: b.id === 'carbon' ? 'Embodied carbon' : 'For them', text: b.head }],
+    parts: [
+      { label: b.id === 'carbon' ? 'Embodied carbon' : 'For them', text: b.head },
+      { label: b.id === 'carbon' ? 'How' : 'Why', text: b.line },
+    ],
     foot:
       b.id === 'carbon' ? (
         // two flat bars, one for each: a conventional floor's, and RTARIUM's, shorter

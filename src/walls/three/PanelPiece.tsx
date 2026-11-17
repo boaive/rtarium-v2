@@ -78,8 +78,12 @@ const FERRULE_OUT100 = 0.1
 const OPEN = 0.09
 /** how far back a part that is not being marked fades (a little: the rest stays in view); and further, what hides the
  *  part marked (the mesh round the GRP rods, the core round the tie-clips) */
-const FLOOR = 0.32
-const DEEP = 0.08
+/** how far the parts not marked fade back (a part's opacity), and the deepest (what lies under a marked part) */
+const SEEN = 0.32
+const SEEN_DEEP = 0.08
+/** the same on a phone's light card, much further back */
+const FAINT = 0.12
+const FAINT_DEEP = 0.04
 /** the ferrules drawn this much wider than they are (an M8 insert is a few pixels at this size), their length true */
 const FER = 2.2
 /** a tie-clip, while it is marked, drawn this much wider and thicker so it reads (it is seen nearly edge on); its 86 mm true */
@@ -130,6 +134,7 @@ export function PanelPiece({
   meshes = true,
   wide = 1,
   dark = false,
+  faint = false,
 }: {
   len: number
   pose: { current: PiecePose }
@@ -137,6 +142,8 @@ export function PanelPiece({
   meshes?: boolean
   /** drawn this many times its 600 mm width (owner: wider in the burst, as the reference); every position across it scales with it */
   wide?: number
+  /** a phone's light card: the parts not marked fade much further back, so the one marked clearly stands out */
+  faint?: boolean
   /** on a black box: the natural grey panel, and what is marked turns yellow rather than dark */
   dark?: boolean
 }) {
@@ -286,6 +293,8 @@ export function PanelPiece({
     // the marking: the part marked now stays whole, the others fade back (some stay half seen: what a tie-clip joins)
     const mark = Math.min(1, Math.max(0, p.marking))
     const lit = (...ids: string[]) => Math.max(0, ...ids.map((id) => p.lit[id] ?? 0))
+    const FLOOR = faint ? FAINT : SEEN
+    const DEEP = faint ? FAINT_DEEP : SEEN_DEEP
     const dim = (x: number, floor = FLOOR) => 1 - mark * (1 - floor) * (1 - Math.min(1, x))
     const clip = lit('pp-clip')
     const grp = lit('pp-grp', 'pp-rod')

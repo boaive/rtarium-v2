@@ -28,7 +28,7 @@ const DECK_RUN = 75
  * time, the first open to begin with (a minus), each a thin plus that turns into a minus as it opens; a foot under a
  * hairline. Its styles: minimal.css (`.fdeck`, and the deck's own `.vs`).
  */
-export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: { id: string; title: string; items: DeckItem[]; sectionRef?: RefObject<HTMLElement | null>; ground?: 'yellow' | 'black' }) {
+export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: { id: string; title: string; items: DeckItem[]; sectionRef?: RefObject<HTMLElement | null>; ground?: 'yellow' | 'black' | 'light' }) {
   const n = items.length
   /** which part of each card is open: the first, to begin with */
   const [open, setOpen] = useState<number[]>(() => items.map(() => 0))
@@ -68,7 +68,8 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
   useEffect(() => {
     const deck = list.current
     if (!deck) return
-    const fit = () => {
+    /** the height the fullest card needs, as its words are set now */
+    const measure = () => {
       let need = 0
       deck.querySelectorAll<HTMLElement>('.fdeck__card').forEach((card) => {
         const cs = getComputedStyle(card)
@@ -91,6 +92,11 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
         }
         need = Math.max(need, h)
       })
+      return need
+    }
+    const fit = () => {
+      deck.style.removeProperty('--deck-scale')
+      const need = measure()
       if (need <= 0) return
       const cardH = Math.ceil(need + 8)
       deck.style.setProperty('--card-h', `${cardH}px`)
@@ -100,11 +106,32 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
       const first = deck.querySelector<HTMLElement>('.fdeck__card')
       const name = first?.querySelector<HTMLElement>('.fdeck__name')
       deck.style.removeProperty('--peek')
+      deck.style.removeProperty('margin-top')
       deck.classList.remove('is-tight')
       if (!pin || !first || !name || n < 2) return
       const room = () => Math.min(pin.clientHeight, window.innerHeight) - (deck.getBoundingClientRect().top - pin.getBoundingClientRect().top) - 14
       const band = () => name.offsetTop + name.offsetHeight + 8
-      if ((room() - cardH) / (n - 1) >= band()) return
+      const spare = room() - cardH - (n - 1) * band()
+      if (spare >= 0) {
+        // (room to spare under it: the words set larger, up to a quarter, and the cards as tall as they then need, so a card
+        // that grows is filled by its words, not by space; what is left, half of it over the deck, so the deck stands in
+        // the screen rather than leave a band of empty ground under it. Too large, it is tried again a little smaller)
+        const base = cardH + (n - 1) * band()
+        let scale = Math.min(1.25, (base + spare) / base)
+        for (let tries = 0; tries < 5; tries++) {
+          deck.style.setProperty('--deck-scale', scale.toFixed(3))
+          const h = Math.ceil(measure() + 8)
+          const left = room() - h - (n - 1) * band()
+          if (left >= 0 || tries === 4) {
+            if (left < 0) deck.style.removeProperty('--deck-scale')
+            deck.style.setProperty('--card-h', `${left < 0 ? cardH : h}px`)
+            if (left > 16) deck.style.marginTop = `${Math.floor(left / 2)}px`
+            return
+          }
+          scale = 1 + (scale - 1) * 0.55
+        }
+        return
+      }
       // (tight: each card's top drawn closer, its name a little smaller, so the band each shows still holds its name whole)
       deck.classList.add('is-tight')
       const tight = Math.ceil(need + 8 - 12)

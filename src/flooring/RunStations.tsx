@@ -57,7 +57,7 @@ function RunLive({ k, turn, steps, ms, hold, scene, labels, fallback, section, z
   )
 }
 
-export function RunStations({ id, title, steps, stretch, scene, labels, fallback, zoom, thumbs, manual, center, controls, keyLight, foot }: { id: string; title: string; steps: RunStep[]; stretch: number[]; scene: RunScene; labels: LabelSpec[]; fallback: ReactNode; /** each step's zoom in the card (Zoom) */ zoom?: number[]; /** where each step's still for the strip is (`${thumbs}-${n}.webp`) */ thumbs?: string; /** a step a swipe (Stations) */ manual?: boolean; /** the card midway between words and bar (Stations) */ center?: boolean; /** small back, on, again buttons (Stations) */ controls?: boolean; /** the stage's fixed key light (off: the scene brings its own) */ keyLight?: boolean; /** after the strip (Stations) */ foot?: ReactNode }) {
+export function RunStations({ id, title, steps, stretch, scene, labels, fallback, zoom, thumbs, manual, center, controls, keyLight, foot, action }: { id: string; title: string; steps: RunStep[]; stretch: number[]; scene: RunScene; labels: LabelSpec[]; fallback: ReactNode; /** each step's zoom in the card (Zoom) */ zoom?: number[]; /** where each step's still for the strip is (`${thumbs}-${n}.webp`) */ thumbs?: string; /** a step a swipe (Stations) */ manual?: boolean; /** the card midway between words and bar (Stations) */ center?: boolean; /** small back, on, again buttons (Stations) */ controls?: boolean; /** the stage's fixed key light (off: the scene brings its own) */ keyLight?: boolean; /** after the strip (Stations) */ foot?: ReactNode; /** under the step's words, over the card (Stations) */ action?: ReactNode }) {
   const section = useRef<HTMLElement>(null)
   const n = steps.length
   // (a step's time from its share of the wide screen's scroll; the last held a little longer on its labels)
@@ -75,6 +75,7 @@ export function RunStations({ id, title, steps, stretch, scene, labels, fallback
       center={center}
       controls={controls}
       foot={foot}
+      action={action}
       scene={(k, turn) => <RunLive k={k} turn={turn} steps={steps} ms={ms} hold={hold} scene={scene} labels={labels} fallback={fallback} section={section} zoom={zoom} keyLight={keyLight} />}
       items={steps.map((st, i) => ({ name: st.name, line: st.line, clip: '', ms: ms[i], thumb: thumbs ? `${thumbs}-${i + 1}.webp` : undefined }))}
     />
