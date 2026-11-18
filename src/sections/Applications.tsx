@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { APPLICATIONS } from '../content/site'
 import { Link } from '../lib/router'
 import { useScreen } from '../components/Chapter'
@@ -8,7 +8,12 @@ import { Arrow } from '../facade/Shell'
 import '../facade/overview.css'
 import '../facade/unitized/more-cards.css'
 
-const AppModel = lazy(() => import('./AppModel'))
+/**
+ * each card's film on a phone (public/video/cards): its model as AppModel draws it, turning, recorded a frame at a time
+ * (src/dev/FilmCard.tsx, scripts/film-record.mjs), with its first frame as the poster. A film in place of live 3D: no
+ * scene to build behind the opening, nothing drawn by the page as it scrolls, and as sharp as the screen.
+ */
+const FILM = (id: string) => ({ src: `/video/cards/${id}.mp4`, poster: `/video/cards/${id}.jpg` })
 
 /** a swipe moves the row on a card if it goes this far (a share of a card) or this fast (px/ms); a glide's length (ms) */
 const SWIPE = { reach: 0.14, flick: 0.35, glide: 560 }
@@ -25,9 +30,9 @@ function openCard(e: { currentTarget: HTMLElement; target: EventTarget }) {
 /**
  * A phone's applications, laid out as the façade pages' "Three ways onto a building" (facade/unitized/More: MoreCards,
  * its styles too): the heading over a hairline, then a card an application in a row that goes round, swiped sideways a
- * card at a time, the next showing at the edge; each card its application's own model in 3D (AppModel: the one its page
- * opens on), its number and name at the foot and a round black button with a yellow arrow, the way in; dashes under the
- * row say which is in front. The models are made behind the opening, and only the one in front turns.
+ * card at a time, the next showing at the edge; each card its application's own model (AppModel: the one its page opens on)
+ * as a film (FILM), its number and name at the foot and a round black button with a yellow arrow, the way in; dashes
+ * under the row say which is in front. Only the one in front plays.
  */
 function PhoneApplications() {
   const section = useRef<HTMLElement>(null)
@@ -37,38 +42,33 @@ function PhoneApplications() {
   const [front, setFront] = useState(0)
   const pos = useRef(0)
   const anim = useRef(0)
-  // (the models are made from the start, so they are built behind the opening, not mid-scroll as the section came near:
-  // three scenes made at once there stalled the page just after Tech Space)
-  const [near, setNear] = useState(true)
-  // (the models play their openings as soon as they are made, out of sight, not all three at once as the section came
-  // into view: that stalled the page a tenth of a second at a time, four times, as the section arrived)
-  const [play, setPlay] = useState(true)
-  // each model's picture once taken: the card shows it, and its 3D scene is let go (AppModel: Snapshot)
-  const [shots, setShots] = useState<(string | null)[]>(() => APPLICATIONS.map(() => null))
-  const onShot = useMemo(() => APPLICATIONS.map((_, i) => (url: string) => setShots((s) => s.map((x, j) => (j === i ? url : x)))), [])
-  const live = useRef(false)
-  // only the card in front turns; the ones beside it hold still and draw nothing (one scene drawn a frame, not three)
-  const frontAt = useRef(0)
-  frontAt.current = front
-  const liveOf = useMemo(
-    () => APPLICATIONS.map((_, i) => ({ get current() { return live.current && frontAt.current === i } })),
-    [],
-  )
+  const films = useRef<(HTMLVideoElement | null)[]>([])
+  // the films are fetched as the section comes near (their posters show from the start)
+  const [near, setNear] = useState(false)
+  const [seen, setSeen] = useState(false)
   useEffect(() => {
     const el = section.current
     if (!el) return
-    const ahead = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: '100% 0px' })
-    const seen = new IntersectionObserver(([e]) => {
-      live.current = e.isIntersecting
-      if (e.isIntersecting) setPlay(true)
-    })
+    const ahead = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: '150% 0px' })
+    const on = new IntersectionObserver(([e]) => setSeen(e.isIntersecting))
     ahead.observe(el)
-    seen.observe(el)
+    on.observe(el)
     return () => {
       ahead.disconnect()
-      seen.disconnect()
+      on.disconnect()
     }
   }, [])
+  // only the card in front plays, while the section is on the screen; the others hold where they were (under reduced
+  // motion none plays: each shows its poster). A phone that will not play a film by itself (iOS's Low Power Mode) keeps
+  // the poster, a still of the model as it was before.
+  useEffect(() => {
+    const go = seen && near && !prefersReducedMotion()
+    films.current.forEach((v, i) => {
+      if (!v) return
+      if (go && i === front) v.play().catch(() => {})
+      else v.pause()
+    })
+  }, [front, seen, near])
   // (on the yellow, its cards warm ivory: the applications' palette, as at the foot of every page)
   useScreen(section, 'applications', 'yellow')
 
@@ -193,7 +193,7 @@ function PhoneApplications() {
   }, [glide, place, step])
 
   return (
-    <section id="applications" ref={section} className="ways ways--apps on-yellow" data-stage-ahead="" data-stage-early="" data-screen="yellow" data-flow="" aria-labelledby="apps-title">
+    <section id="applications" ref={section} className="ways ways--apps on-yellow" data-screen="yellow" data-flow="" aria-labelledby="apps-title">
       <div className="ways__in fc-reveal is-in">
         <header className="ways__head">
           <h2 id="apps-title" className="ways__title">
@@ -205,15 +205,18 @@ function PhoneApplications() {
             {APPLICATIONS.map((a, i) => (
               <li key={a.id} ref={(el) => void (cards.current[i] = el)} className={`ways__card ${front === i ? 'is-front' : ''}`} onFocus={() => front !== i && show(i)} onClick={openCard}>
                 <div className="ways__model" aria-hidden="true">
-                  {shots[i] ? (
-                    <img className="ways__shot" src={shots[i]!} alt="" draggable={false} />
-                  ) : (
-                    near && (
-                      <Suspense fallback={<img className="ways__still" src={a.image.src} alt="" style={{ objectPosition: a.image.position }} />}>
-                        <AppModel id={a.id} play={play} live={liveOf[i]} still={a.image.src} onShot={onShot[i]} />
-                      </Suspense>
-                    )
-                  )}
+                  <video
+                    ref={(el) => void (films.current[i] = el)}
+                    className="ways__shot"
+                    src={near ? FILM(a.id).src : undefined}
+                    poster={FILM(a.id).poster}
+                    muted
+                    loop
+                    playsInline
+                    preload={near ? (i === front ? 'auto' : 'metadata') : 'none'}
+                    disablePictureInPicture
+                    disableRemotePlayback
+                  />
                 </div>
                 <p className="ways__count num">
                   0{i + 1} / 0{n}

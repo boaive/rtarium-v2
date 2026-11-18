@@ -30,6 +30,8 @@ const isFlooring = (path: string) => path === '/advanced-flooring' || path.start
 /** Wall Panels: one page, its own chunk */
 /** development only (never in a build): the Unitized page's scenes rendered a frame at a time, for its phone clips */
 const FilmUnitized = import.meta.env.DEV ? lazy(() => import('./dev/FilmUnitized')) : null
+/** development only: a phone's Home card model rendered a frame at a time, for its film (scripts/film-record.mjs) */
+const FilmCard = import.meta.env.DEV ? lazy(() => import('./dev/FilmCard')) : null
 const isWalls = (path: string) => path === '/wall-panels' || path.startsWith('/wall-panels/')
 
 function Home() {
@@ -83,6 +85,13 @@ function Page() {
     if (path !== '/') setShared({ chapter: 'page', step: 0, ground: 'light' })
   }, [path])
   // (development only: a scene rendered a frame at a time, for the Unitized page's phone clips)
+  if (FilmCard && path === '/__film-card') {
+    return (
+      <Suspense fallback={null}>
+        <FilmCard />
+      </Suspense>
+    )
+  }
   if (FilmUnitized && path === '/__film') {
     return (
       <Suspense fallback={null}>

@@ -22,7 +22,8 @@ const SHOTS: Record<string, Shot> = {
   // (each whole in the middle of its card's window, its shadow included: none cut by the window's edge)
   facade: { target: [0.02, -0.02, 0], dist: 1.72 * 1.7 * FIT * 1.3, azim: 42, elev: 16, frame: [0.47, 0.52] },
   flooring: { target: [0.02, -0.02, 0], dist: 2.6 * 1.7 * FIT * 0.78, azim: 36, elev: 28, frame: [0.5, 0.54] },
-  walls: { target: HERO_TARGET, dist: 10.4 * FIT * 1.38, azim: 44, elev: 24, frame: [0.5, 0.54] },
+  // (drawn back a touch and left of middle: the long panel stays inside the window all through its turn, in the card's film)
+  walls: { target: HERO_TARGET, dist: 10.4 * FIT * 1.38 * 1.2, azim: 44, elev: 24, frame: [0.44, 0.54] },
 }
 const noPhase = () => {}
 
@@ -48,13 +49,13 @@ function Snapshot({ onShot }: { onShot: (url: string) => void }) {
   return null
 }
 
-export default function AppModel({ id, play, live, still, onShot }: { id: string; play: boolean; live: { current: boolean }; still: string; onShot?: (url: string) => void }) {
+export default function AppModel({ id, play, live, still, onShot, film = false }: { id: string; play: boolean; live: { current: boolean }; still: string; onShot?: (url: string) => void; /** drawn a frame at a time for the card's film (src/dev/FilmCard.tsx) */ film?: boolean }) {
   const bus = useMemo(createBus, [])
   const progress = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
   const zoom = useRef(0)
   const shot = SHOTS[id] ?? SHOTS.facade
   return (
-    <Stage3D shadows keyLight={false} fallback={<img className="apps__still" src={still} alt="" />}>
+    <Stage3D shadows keyLight={false} film={film} fallback={<img className="apps__still" src={still} alt="" />}>
       <ScrubRig progress={progress} shotAt={() => shot} live={live} turn={HERO_TURN} />
       {/* (the card's window is a yellow studio: a warm light from behind rims each model's edges off the ground, a cool
           one low in front lifts its near faces) */}

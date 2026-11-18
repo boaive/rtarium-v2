@@ -58,23 +58,26 @@ A live 3D card that turns forever is redrawn every frame, and the page lags unde
   section came into view stalled the page four times, 100–130 ms each.
 - The phone's stage primes every card on every load, not only when the loading screen shows. Later loads in a visit
   skip the loading screen.
-- In a row of cards, only the card in front animates (Applications: `liveOf`). The others draw nothing.
+- In a row of cards, only the card in front animates. The others hold still.
+- Home's card row on a phone is films, not 3D (mobile-v3-fallback, 18 Nov 2026): each card model turning, recorded a
+  frame at a time (`src/dev/FilmCard.tsx` at `/__film-card?id=`, `node scripts/film-record.mjs`, GPU=1) into
+  `public/video/cards` as a seamless H.264 loop at 810 px, its first frame the poster. Only the front card plays. A
+  change to a card model or its shot (AppModel `SHOTS`) means recording its film again.
 - No 3D scene is built or plays its opening after the loading screen on a phone's Home. Home's loading screen plays
-  on every load there, not once a visit. It waits while the card row (`data-stage-early`) is built and its openings
-  play out (`builds.tail`), up to 18 s.
+  on every load there, not once a visit.
 - Building them a few seconds after the loading screen instead let their openings play while the visitor scrolled
   About. The whole page then felt like 15 fps on a phone.
-- Once built and played, each card model is captured as a picture (AppModel: `Snapshot`) and its 3D scene is
-  discarded. Keeping the three scenes alive, each with a 2048² shadow map, slowed the hero's flight on a phone even
-  though they drew nothing.
+- Before the films, each card model was built behind the loading screen (up to 18 s of it) and kept as a picture
+  (AppModel: `Snapshot`), drawn at 1.5x and soft on a 3x screen. Keeping the three scenes alive, each with a 2048²
+  shadow map, slowed the hero's flight on a phone even though they drew nothing.
 - Rule of thumb: on a phone's Home, the only live WebGL context during scrolling is the main stage.
 - On the product pages (Stage3D), a phone's scene that the page carries along as it moves is not redrawn until the page
   is still (`Carried`); a pinned scene, played by the scroll, keeps drawing. Phone shadow maps are 1024².
 - Product pages on a phone (after veedo.space, C:\DOWNLOADS\vee.build-main): a scene within 1.75 screens is built in a
   quiet moment (page still 280 ms), then every other one on the page; at once only if already on the screen. Once built
   a scene is kept (releasing far ones made the way back up meet scenes still to be built). One sharpness a visit (no `Pace`); a budget phone (src/lib/tier.ts) draws at 1 px per CSS px.
-- Films in place of live 3D were tried and dropped. Swapping a film's source (Three elements' thickness switch) showed
-  black until the new one loaded.
+- Films in place of live 3D: never swap a film's source in place. Swapping it (Three elements' thickness switch) showed
+  black until the new one loaded. A film that keeps its source (Home's cards) is fine.
 
 ## 5. Cards in stepped sections are not pressed or turned by hand
 A finger on them only moves the page (`PAGED` in `src/components/Chapter.tsx`).

@@ -303,7 +303,8 @@ export function Stage3D({
 
   // (a phone: one sharpness for the visit, never softer while it moves, as veedo.space; a budget phone, src/lib/tier.ts,
   // a pixel to the CSS pixel)
-  const dpr = compact && isLite() ? 1 : Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
+  // (a film, the dev film pages: at the recording's own sharpness, every pixel of the frame it is captured at)
+  const dpr = film ? window.devicePixelRatio || 1 : compact && isLite() ? 1 : Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
   return (
     <div ref={host} className={`fc-canvas ${className}`} aria-hidden="true" data-failed={failed ? '' : undefined}>
       {failed
