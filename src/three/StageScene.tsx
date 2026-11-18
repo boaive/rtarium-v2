@@ -1,3 +1,4 @@
+import { isBudgetTablet } from '../lib/tier'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
@@ -120,6 +121,8 @@ const fogTarget = new THREE.Color()
 const CENTRE: [number, number] = [0.5, 0.5]
 /** a tablet held sideways: the opening's piece lower right, clear of the copy (as a wide screen's `frame`) */
 const SIDEWAYS: [number, number] = [0.7, 0.66]
+/** a budget tablet (src/lib/tier.ts): the opening's piece and the cards stand in their poses, never turning by themselves */
+const budgetTablet = isBudgetTablet()
 const anchorPt: [number, number, number] = [0, 0, 0]
 /** where each screen is this frame: read once, used by the choice of the active screen and by the views */
 const rects = new Map<Region, DOMRect>()
@@ -724,7 +727,8 @@ export function StageScene({ compact, reduced }: Props) {
       // (a tablet held sideways, the phone's version laid out wide: the opening's piece stands in the room right of the
       // copy and under the name, lower right as on a wide screen, never up over the name as a squat phone's would)
       const sideways = tablet && hero && !r.box && vw / vh > 1.15
-      const fit = r.box ? 1 : sideways ? 0.9 : compact ? (1 + squat * 0.85) * (1 + short * 0.2) : Math.max(1, 1.5 / (vw / vh))
+      // (a tablet's opening: the piece drawn larger than a phone's, the camera well nearer; held sideways too)
+      const fit = r.box ? 1 : sideways ? 0.6 : tablet && hero ? 0.68 : compact ? (1 + squat * 0.85) * (1 + short * 0.2) : Math.max(1, 1.5 / (vw / vh))
       const dist = (compact ? (pose.distCompact ?? pose.dist) : pose.dist) * fit * (1 + Math.abs(o) * PARALLAX.dist)
       // (a phone's opening: the tour's way down into the cavity and on along it is turned with the piece, a quarter turn or
       // more, so the camera flies on the way it looks, forward into the next section, never sideways across the mesh)
@@ -756,7 +760,7 @@ export function StageScene({ compact, reduced }: Props) {
         // ("In concrete" turns all the while its mortar runs in, as it does after)
         // (light on a phone: the turn holds while the page moves, so a card is never drawn again mid-swipe, only copied
         // along with the page as a picture; at rest it turns every frame: stepped every other one, it read as a stutter)
-        if (!reduced && pose.spin && r === turning && !pageMoving) c.spin = (c.spin + pose.spin * dt) % 360
+        if (!reduced && !budgetTablet && pose.spin && r === turning && !pageMoving) c.spin = (c.spin + pose.spin * dt) % 360
       }
       // a phone's opening piece turns slowly while the page rests on it, and eases back to its pose as the tour sets off
       // (unwound with the tour itself, all of it by the time the mesh built out is reached: eased on a clock of its own, it
@@ -764,7 +768,7 @@ export function StageScene({ compact, reduced }: Props) {
       else if (compact && hero) {
         if (reduced) c.spin = 0
         else if (stage.tour < 0.08) {
-          c.spin = (c.spin + OPEN_TURN * smoothstep(OPEN_HOLD.from, OPEN_HOLD.from + OPEN_HOLD.ease, since) * dt) % 360
+          if (!budgetTablet) c.spin = (c.spin + OPEN_TURN * smoothstep(OPEN_HOLD.from, OPEN_HOLD.from + OPEN_HOLD.ease, since) * dt) % 360
           openSpin.current = ((c.spin % 360) + 540) % 360 - 180
         } else {
           const square = 90 * Math.round(openSpin.current / 90)

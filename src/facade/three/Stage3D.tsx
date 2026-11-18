@@ -50,6 +50,15 @@ let movedAt = 0
 const QUIET = 280
 /** a phone's product page (not Home, whose scenes are made behind its opening and kept): scenes built ahead and let go */
 const productPhone = (compact: boolean) => compact && window.location.pathname !== '/'
+/**
+ * a budget tablet (a touch screen 600 px or more on its short side, with a budget graphics chip: src/lib/tier.ts; held
+ * either way) on a product page: only the scenes near the visitor are built, and the far ones let go, veedo.space's way
+ * (C:\DOWNLOADS\vee.build-main, Film.tsx). Kept all at once, five to eight, they ran such a tablet (the user's Redmi, an
+ * Adreno 610) out of graphics memory, and its pictures fell back to stills. A phone, a stronger tablet and a computer
+ * build them all and keep them, as before
+ */
+const lean = () =>
+  window.location.pathname !== '/' && (navigator.maxTouchPoints || 0) > 1 && Math.min(screen.width, screen.height) >= 600 && isLite()
 /** while the opening shows, nothing scrolls: every canvas is built then, back to back, the opening waiting for them */
 const count = () => void (builds.waiting = waiting.length + (pumping ? 1 : 0))
 function pump() {
@@ -157,7 +166,7 @@ export function Stage3D({
       // (a build does not ask the graphics driver for each new shader's error log: asking waits, there and then, for the
       // shader to finish compiling, which held the page up 100–500 ms on a phone whenever a scene first drew something
       // new mid-scroll. three.js's own advice for production; development keeps it, to see a broken shader)
-      gl.debug.checkShaderErrors = import.meta.env.DEV
+      gl.debug.checkShaderErrors = import.meta.env.DEV || window.location.search.includes('gldebug')
       window.clearTimeout(steady.current)
       steady.current = window.setTimeout(() => void (tries.current = 0), 8000)
       gl.domElement.addEventListener(
@@ -224,7 +233,7 @@ export function Stage3D({
     // play out, so once the opening has gone it is finished and still: `builds.tail`)
     if (opening() && ahead?.hasAttribute('data-stage-early')) queue()
     // (a phone's product page reached first, the site's opening showing: every scene on it built behind the opening)
-    else if (compact && opening() && window.location.pathname !== '/') queue()
+    else if (compact && opening() && window.location.pathname !== '/' && !lean()) queue()
     else if (ahead?.hasAttribute('data-stage-early')) {
       let lastY = window.scrollY
       let stillSince = performance.now()
@@ -245,7 +254,7 @@ export function Stage3D({
     }
     // made ahead while the browser is idle, every scene on the page, nearest first (a phone's product page too: once built
     // a scene is kept, so the way back up never meets one still to be built; Home's phone keeps to its sections' approach)
-    if (!compact || ahead2) {
+    if ((!compact || ahead2) && !lean()) {
       whenSettled(() => {
         if (!host.current) return
         queue()
@@ -262,6 +271,16 @@ export function Stage3D({
       }
     }
   }, [near, compact])
+
+  // a budget tablet (`lean`): a scene far off (more than two and a half screens either way) is let go, its context and
+  // its graphics memory given back; it is made again as the visitor comes back within reach
+  useEffect(() => {
+    const el = host.current
+    if (!el || !near || !lean()) return
+    const io = new IntersectionObserver(([e]) => void (!e.isIntersecting && setNear(false)), { rootMargin: '250% 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [near])
 
   // a canvas in a section made behind the opening (`data-stage-early`) holds the opening (`builds.tail`) until it is
   // gone: Home's cards take their picture and let their scene go first, so neither is a hitch as the opening lifts
@@ -352,15 +371,26 @@ function Carried({ host }: { host: RefObject<HTMLDivElement | null> }) {
       setFrameloop('demand')
       invalidate()
     }
+    // (not for its first seconds: a scene made behind the loading screen plays its opening then (a model rising into place),
+    // off the screen or not; paused at once, it waited and played as the visitor scrolled to it, and lagged there)
+    let settled = false
+    let offNow = false
     const io = new IntersectionObserver(
       ([e]) => {
-        seen = e.isIntersecting
+        offNow = !e.isIntersecting
+        if (!settled) return
+        seen = !offNow
         if (!seen) setFrameloop('never')
         else if (!held) resume()
       },
       { rootMargin: '20% 0px' },
     )
     io.observe(el)
+    const settle = window.setTimeout(() => {
+      settled = true
+      seen = !offNow
+      if (!seen) setFrameloop('never')
+    }, 4000)
     const off = onPageMove(() => {
       if (pinned || !seen) return
       if (!held) {
@@ -374,6 +404,7 @@ function Carried({ host }: { host: RefObject<HTMLDivElement | null> }) {
     return () => {
       off()
       io.disconnect()
+      window.clearTimeout(settle)
       window.removeEventListener('resize', decide)
       window.clearTimeout(t)
       seen = true

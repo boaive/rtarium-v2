@@ -1,4 +1,5 @@
-import { Component, Suspense, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { Component, Suspense, useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import type * as THREE from 'three'
 import { Canvas } from '@react-three/fiber'
 import { PerformanceMonitor } from '@react-three/drei'
 import { StageScene } from './StageScene'
@@ -16,14 +17,14 @@ export function hasWebGL2() {
   return webgl
 }
 
-class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+class SceneBoundary extends Component<{ children: ReactNode; onFail: () => void }, { failed: boolean }> {
   state = { failed: false }
   static getDerivedStateFromError() {
     return { failed: true }
   }
   componentDidCatch(error: unknown) {
-    console.warn('[RTARIUM] 3D stage unavailable, showing still images instead.', error)
-    setShared({ failed: true })
+    console.warn('[RTARIUM] 3D stage failed; making it again.', error)
+    this.props.onFail()
   }
   render() {
     return this.state.failed ? null : this.props.children
@@ -125,6 +126,8 @@ export function Ground() {
  * it is.
  */
 export function Stage() {
+  // (`?stillshoot`: the stage's screens and their poses, for capturing each pose as a still, scripts: development only)
+  if (typeof window !== 'undefined' && window.location.search.includes('stillshoot')) (window as Window & { __stage?: typeof stage }).__stage = stage
   const compact = useIsCompact()
   const reduced = useReducedMotion()
   const ready = useStageValue('ready')
@@ -147,18 +150,58 @@ export function Stage() {
     if (!supported) setShared({ failed: true })
   }, [supported])
 
+  /*
+   * A stage that fails (an error in it, or its context taken back by the browser: a tablet's graphics running short of
+   * memory as the page's scenes are made behind the loading screen) is made again, after a moment, rather than the still
+   * pictures put up for good: those are for a browser with no WebGL2 at all. Only failing again and again in quick
+   * succession (ten times, none of them lasting 10 s) gives the still pictures.
+   */
+  const [life, setLife] = useState(0)
+  const tries = useRef(0)
+  const steady = useRef(0)
+  useEffect(() => () => window.clearTimeout(steady.current), [])
+  const again = useCallback(() => {
+    window.clearTimeout(steady.current)
+    if (tries.current >= 10) return setShared({ failed: true })
+    tries.current++
+    window.setTimeout(() => setLife((n) => n + 1), Math.min(3000, 400 * tries.current))
+  }, [])
+  const onCreated = useCallback(
+    ({ gl }: { gl: THREE.WebGLRenderer }) => {
+      // (no waiting on the driver for each new shader's log in a build: Stage3D's onCreated says why)
+      gl.debug.checkShaderErrors = import.meta.env.DEV || window.location.search.includes('gldebug')
+      window.clearTimeout(steady.current)
+      steady.current = window.setTimeout(() => void (tries.current = 0), 10000)
+      gl.domElement.addEventListener(
+        'webglcontextlost',
+        (e) => {
+          e.preventDefault()
+          // (taken back while the page is hidden: made again once it is shown, never counted as a failure)
+          if (!document.hidden) return again()
+          const back = () => {
+            if (document.hidden) return
+            document.removeEventListener('visibilitychange', back)
+            setLife((n) => n + 1)
+          }
+          document.addEventListener('visibilitychange', back)
+        },
+        { once: true },
+      )
+    },
+    [again],
+  )
+
   if (!supported || failed) return null
   return (
     <div className={`stage ${ready ? 'is-ready' : ''}`} aria-hidden="true">
-      <SceneBoundary>
+      <SceneBoundary key={life} onFail={again}>
         <Canvas
           dpr={dpr}
           // (a phone too: its key light casts only while the opening holds the screen, StageScene)
           shadows
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false }}
           camera={{ fov: 30, near: 0.002, far: 8, position: [0.2, 0.3, 0.4] }}
-          // (no waiting on the driver for each new shader's log in a build: Stage3D's onCreated says why)
-          onCreated={({ gl }) => void (gl.debug.checkShaderErrors = import.meta.env.DEV)}
+          onCreated={onCreated}
         >
           {watch && <PerformanceMonitor factor={1} step={0.25} flipflops={6} bounds={(hz) => [hz * 0.66, hz * 0.92]} onChange={({ factor }) => setQuality(factor)} />}
           <Suspense fallback={null}>

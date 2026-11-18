@@ -99,6 +99,8 @@ await send('Emulation.setDeviceMetricsOverride', {
   width: cfg.width ?? 1440,
   height: cfg.height ?? 900,
   deviceScaleFactor: cfg.dpr ?? 1,
+  // screen: [w, h], the device's whole screen when the window is smaller (a tablet's browser bars taking room)
+  ...(cfg.screen ? { screenWidth: cfg.screen[0], screenHeight: cfg.screen[1] } : {}),
   mobile: Boolean(cfg.mobile),
 })
 if (cfg.mobile) await send('Emulation.setTouchEmulationEnabled', { enabled: true })

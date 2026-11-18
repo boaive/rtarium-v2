@@ -18,7 +18,7 @@ import { builds } from './lib/builds'
 /** the least time the opening shows, the most it waits, and how long nothing may load before all is in (ms) */
 const LEAST = 1300
 /** (a phone's Home makes every scene behind it, its card models and their openings too: it may take longer there) */
-const MOST = typeof window !== 'undefined' && window.location.pathname === '/' && window.matchMedia('(max-width: 860px), (max-aspect-ratio: 4/5), (any-pointer: coarse) and (max-width: 1180px)').matches ? 18000 : 9000
+const MOST = typeof window !== 'undefined' && window.location.pathname === '/' && window.matchMedia('(max-width: 860px), (max-aspect-ratio: 4/5), (any-pointer: coarse) and (orientation: portrait) and (max-width: 1400px)').matches ? 18000 : 9000
 const STILL = 450
 /** how long the window holds before the doors part, and how long they take (as in index.html) */
 const HOLD = 380

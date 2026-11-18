@@ -23,7 +23,7 @@ const edge = spawn(
     '--mute-audio',
     '--no-first-run',
     `--user-data-dir=${profile}`,
-    '--window-size=412,820',
+    `--window-size=${(process.env.SIZE ?? '412,820').split(',').slice(0, 2).join(',')}`,
     'about:blank',
   ],
   { stdio: 'ignore' },
@@ -70,7 +70,9 @@ const ev = async (expression) => (await send('Runtime.evaluate', { expression, a
 
 await send('Page.enable')
 await send('Runtime.enable')
-await send('Emulation.setDeviceMetricsOverride', { width: 412, height: 820, deviceScaleFactor: 2, mobile: true })
+// SIZE=w,h[,screenW,screenH,dpr]: another screen (a tablet: SIZE=800,1170,800,1280,1.5); a phone by default
+const SZ = (process.env.SIZE ?? '412,820,412,820,2').split(',').map(Number)
+await send('Emulation.setDeviceMetricsOverride', { width: SZ[0], height: SZ[1], screenWidth: SZ[2] ?? SZ[0], screenHeight: SZ[3] ?? SZ[1], deviceScaleFactor: SZ[4] ?? 2, mobile: true })
 await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
 // every shader program linked: its name and what sets it apart, and whether the opening still showed (LINKS=1)
 if (process.env.LINKS)
@@ -84,6 +86,7 @@ if (process.env.DRAWS)
   await send('Page.addScriptToEvaluateOnNewDocument', {
     source: `(() => { window.__draws = {}; const P = WebGL2RenderingContext.prototype; for (const f of ['drawElements', 'drawArrays', 'drawElementsInstanced', 'drawArraysInstanced']) { const o = P[f]; P[f] = function (...a) { const c = this.canvas; const id = c.__sid || (c.__sid = (c.closest && (c.closest('section[id]')?.id || 'stage')) || '?'); window.__draws[id] = (window.__draws[id] || 0) + 1; return o.apply(this, a) } } })()`,
   })
+if (process.env.HOOKSCROLL) await send('Page.addScriptToEvaluateOnNewDocument', { source: (await import('node:fs')).readFileSync(process.env.HOOKSCROLL, 'utf8') })
 await send('Page.navigate', { url })
 // the opening gone, the cookie banner declined, a moment for the page to settle
 for (let i = 0; i < 120; i++) {
@@ -115,6 +118,19 @@ if (process.env.FILM) {
     await sleep(60)
   }
   console.log('filmed', i, 'frames')
+  done()
+  process.exit(0)
+}
+// TURN=1: the tablet turned sideways and back, what the page lays out at each time
+if (process.env.TURN) {
+  const read = "[innerWidth, innerHeight, document.documentElement.className.trim(), getComputedStyle(document.querySelector('.nav__links') || document.body).display]"
+  console.log('upright', await ev(read))
+  await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 690, screenWidth: 1280, screenHeight: 800, deviceScaleFactor: 1.5, mobile: true, screenOrientation: { type: 'landscapePrimary', angle: 90 } })
+  await sleep(1500)
+  console.log('sideways', await ev(read))
+  await send('Emulation.setDeviceMetricsOverride', { width: 800, height: 1170, screenWidth: 800, screenHeight: 1280, deviceScaleFactor: 1.5, mobile: true, screenOrientation: { type: 'portraitPrimary', angle: 0 } })
+  await sleep(1500)
+  console.log('upright again', await ev(read))
   done()
   process.exit(0)
 }
@@ -150,6 +166,7 @@ if (process.env.WHOLE) {
     }
     await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     await sleep(500)
+    if (process.env.LIVE) console.log('  y', await ev('Math.round(scrollY)'), 'live canvases', await ev("document.querySelectorAll('.fc-canvas canvas').length"))
     if (await ev('scrollY + innerHeight >= document.documentElement.scrollHeight - 4')) break
   }
   const prof = (await send('Profiler.stop')).result.profile
@@ -213,21 +230,28 @@ for (const sid of ids) {
   await send('Profiler.start')
   // LAG=<js returning [expected, shown]>: every frame, how far what is shown is from where the scroll has it
   if (process.env.LAG) await ev(`(()=>{ window.__lag=[]; const f=()=>{ try { const [a,b]=(${process.env.LAG}); window.__lag.push(Math.abs(a-b)) } catch(e){}; if(!window.__lagOff) requestAnimationFrame(f) }; requestAnimationFrame(f); return 0 })()`)
+  // WHO_SCROLLS=1: every scrollTo the page's code makes, counted by where it came from
+  if (process.env.WHO_SCROLLS) await ev(`(()=>{ window.__st={}; const o=window.scrollTo.bind(window); window.scrollTo=function(...a){ const k=(new Error().stack||'').split('\n').slice(2,5).map(x=>x.trim().replace(/https?:[^ )]+\//,'')).join(' < '); window.__st[k]=(window.__st[k]||0)+1; return o(...a) }; return 0 })()`)
   if (process.env.TRACE) await ev(`(()=>{window.__ys=[]; const t0=performance.now(); addEventListener('scroll',()=>__ys.push(Math.round(performance.now()-t0)+':'+Math.round(scrollY)),{passive:true}); return 0})()`)
   for (let i = 0; i < SWIPES; i++) {
     // a finger: down, up the screen 480 px in about a third of a second, off (a fling)
     const pt = (y) => [{ x: 206, y, id: 1, radiusX: 4, radiusY: 4, force: 1 }]
     await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pt(process.env.UP ? 180 : 660) })
+    // BARHIDE=1: the browser's bar slides away on the first swipe (the screen 56 px taller), as a real phone's does
+    if (process.env.BARHIDE && i === 0) setTimeout(() => send('Emulation.setDeviceMetricsOverride', { width: SZ[0], height: SZ[1] + 56, screenWidth: SZ[2] ?? SZ[0], screenHeight: SZ[3] ?? SZ[1], deviceScaleFactor: SZ[4] ?? 2, mobile: true }), 120)
     for (let k = 1; k <= 14; k++) {
       await sleep(22)
-      await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt(process.env.UP ? 180 + (480 * k) / 14 : 660 - (480 * k) / 14) })
+      await send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt(process.env.UP ? 180 + (Number(process.env.SWIPEPX ?? 480) * k) / 14 : 660 - (Number(process.env.SWIPEPX ?? 480) * k) / 14) })
     }
     await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     await sleep(700)
     if (process.env.TRACE && !process.env.SHOW) console.log('  ys', (await ev('__ys.splice(0).join(" ")')).slice(0, 600))
+    if (process.env.HOOKSCROLL && i === Number(process.env.HOOKAT ?? -1)) console.log('  scrollTo calls in this swipe: ' + (await ev(`(()=>{ const m=new Map(); for (const [t,y,k] of window.__st.splice(0)) { const e=m.get(k)||[0,y,y]; e[0]++; e[2]=y; m.set(k,e) } return [...m].map(([k,[n,a,b]])=>n+'x '+a+'->'+b+'  '+k).join(' || ') })()`)))
+    else if (process.env.HOOKSCROLL) await ev('(window.__st.length=0, 0)')
     if (process.env.TRACE) console.log('  after swipe', i + 1, 'y', await ev('Math.round(scrollY)'), 'top of section', top, process.env.SHOW ? await ev(process.env.SHOW) : '')
   }
   const prof = (await send('Profiler.stop')).result.profile
+  if (process.env.WHO_SCROLLS) console.log('  scrollTo from:', await ev('JSON.stringify(window.__st, null, 1)'))
   if (process.env.DRAWS) console.log('  draws while scrolling it:', await ev('JSON.stringify(window.__draws)'))
   if (process.env.LAG) console.log('  lag per frame: max', await ev('(window.__lagOff=true, Math.max(...__lag).toFixed(3))'), 'frames over 0.05:', await ev('__lag.filter(x=>x>0.05).length'), 'of', await ev('__lag.length'))
   const r = await ev(`(()=>{ window.__on=false; const f=window.__f.slice(1).sort((a,b)=>a-b); const n=f.length; const q=(p)=>f[Math.min(n-1,Math.floor(p*n))]; return {frames:n, p50:q(.5), p90:q(.9), p99:q(.99), max:f[n-1], over50:f.filter(x=>x>50).length, longtasks:window.__lt, y: Math.round(scrollY)} })()`)

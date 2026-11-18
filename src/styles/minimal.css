@@ -2559,3 +2559,52 @@
   height: 100%;
   object-fit: contain;
 }
+
+/* a tablet (laid out a phone's height, index.html; held sideways, up to 1400 px wide): a deck of cards keeps to a phone's
+   column in the middle, as the step cards do (stations.css), never cards stretched across the width */
+html.is-tablet .fdeck__in {
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+/* a tablet only (a phone is left as it is): a wall panel system's first screen fills the screen, the building taking
+   what room is left, so the next section never shows under it */
+html.is-tablet .wsys {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+html.is-tablet .wsys__model {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 42svh;
+}
+/* and the footer: its fine print at its foot, the room a tablet's taller screen leaves spread through it, never left
+   as an empty band under it */
+html.is-tablet .footer--screen .footer__body {
+  grid-template-rows: minmax(0, 1fr);
+}
+html.is-tablet .footer--screen .footm {
+  height: 100%;
+}
+html.is-tablet .footer--screen .footm__base {
+  margin-top: auto;
+}
+
+/* where there is no 3D: the mesh's own still (rendered from the stage, its ground see-through), shown whole where the mesh
+   stands, never cropped into a rounded box as a photograph was */
+.hero__still,
+.scene__still {
+  object-fit: contain;
+  border-radius: 0;
+}
+@media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  .hero__still {
+    top: auto;
+    bottom: 12%;
+    left: 4%;
+    right: auto;
+    width: 92%;
+    height: 40%;
+  }
+}

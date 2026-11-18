@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { prefersReducedMotion } from '../../lib/motion'
+import { isBudgetTablet } from '../../lib/tier'
 import { smooth } from '../progress'
 
 /**
@@ -10,7 +11,8 @@ export function useLive(ref: RefObject<HTMLElement | null>) {
   const live = useRef(false)
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    // (a budget tablet: never live, so nothing plays by itself; each scene is drawn as the scroll moves it)
+    if (!el || isBudgetTablet()) return
     const io = new IntersectionObserver(([e]) => void (live.current = e.isIntersecting))
     io.observe(el)
     return () => io.disconnect()

@@ -60,3 +60,13 @@ export function isLite(): boolean {
   }
   return lite
 }
+
+/**
+ * a budget tablet: a touch screen 600 px or more on its short side with a budget graphics chip (`isLite`). Its 3D stands
+ * still where it would play by itself (a model turning, swaying, looping), drawn only as the visitor scrolls: veedo.space's
+ * budget tier (the user's, 18 Nov 2026). A phone, a stronger tablet and a computer are left as they are
+ */
+export function isBudgetTablet(): boolean {
+  if (typeof window === 'undefined') return false
+  return (navigator.maxTouchPoints || 0) > 1 && Math.min(screen.width, screen.height) >= 600 && isLite()
+}

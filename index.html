@@ -6,9 +6,10 @@
     <script>
       /*
        * A tablet (any touch screen 600 px or more on its short side: iPads, which call themselves a Mac, Android
-       * tablets, old and new) shows the phone's version of the site, as a phone shows it, only larger: the page is laid
-       * out at a phone's width, about as tall as a phone's screen (740 px held upright, 760 sideways), and the browser scales it up to fill the
-       * screen, words, cards and 3D alike. Never wider than 1180 px, where the phone's version ends for a touch screen. Set again as it turns. A computer (no touch screen, a MacBook included) is left as it is.
+       * tablets, old and new) held upright shows the phone's version of the site, as a phone shows it, only larger: the
+       * page is laid out at a phone's width, about as tall as a phone's screen (740 px), and the browser scales it up to
+       * fill the screen, words, cards and 3D alike. Held sideways it shows the computer's version, at its own width (the
+       * user's, 18 Nov 2026). Set again as it turns. A computer (no touch screen, a MacBook included) is left as it is.
        */
       ;(function () {
         var touch = (navigator.maxTouchPoints || 0) > 1 || 'ontouchstart' in window
@@ -18,9 +19,17 @@
         var meta = document.getElementById('vp')
         var set = function () {
           var wide = window.matchMedia('(orientation: landscape)').matches
-          var w = wide ? long : short
-          var h = wide ? short : long
-          var at = Math.max(480, Math.min(1180, Math.round((w * (wide ? 760 : 740)) / h)))
+          if (wide) {
+            meta.setAttribute('content', 'width=device-width, initial-scale=1.0, viewport-fit=cover')
+            document.documentElement.classList.remove('is-tablet')
+            return
+          }
+          // (the shape of what the browser shows, its own bars taken off: worked out from the whole screen, a tablet
+          // with tall bars was laid out shorter than a phone, and sections ran off its foot or sat oddly in it)
+          var vw = window.innerWidth
+          var vh = window.innerHeight
+          var shape = vw > 0 && vh > 0 && vw < vh ? vw / vh : short / long
+          var at = Math.max(480, Math.min(1400, Math.round(shape * 740)))
           meta.setAttribute('content', 'width=' + at + ', viewport-fit=cover')
           document.documentElement.classList.add('is-tablet')
         }

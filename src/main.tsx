@@ -17,7 +17,10 @@ import { startSmoothScroll } from './lib/scroll'
 import { startAnalytics } from './lib/analytics'
 import { runOpener } from './opener'
 import { startSettle } from './lib/settle'
+import { startGlDebug } from './dev/gldebug'
 
+// (`?gldebug`: a panel of what the device's 3D is doing; nothing without it)
+startGlDebug()
 startSmoothScroll()
 startAnalytics()
 // (a phone: a pinned section that reads best at rest on a stop is glided there slowly once the scroll stops)

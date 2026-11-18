@@ -7,18 +7,23 @@ import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY } from '../lib/scroll'
 import { FILM_STEPS, dropFilm, filmReady, seenFilm } from '../lib/films'
 
-/** what a screen shows where its mesh would be when there is no 3D */
+/**
+ * what a screen shows where its mesh would be when there is no 3D: the mesh itself, rendered from this stage at that
+ * screen's pose and kept as a picture (public/img/stills, captured with `?stillshoot`), standing still. Never a
+ * photograph standing in for it (the user's, 18 Nov 2026; as veedo.space's cards are its own scenes' pictures). A pose a
+ * phone does not show takes the nearest one it does
+ */
 const STILLS: Partial<Record<PoseId, string>> = {
-  structure: '/img/shoot/mesh-profile.webp',
-  material: '/img/shoot/mesh-macro.webp',
-  pour: '/img/shoot/mesh-fibres.webp',
-  depth: '/img/render-structure.webp',
-  shear: '/img/shoot/mesh-profile.webp',
-  mineral: '/img/shoot/mesh-fibres.webp',
-  stack: '/img/render-structure.webp',
-  spec: '/img/render-structure.webp',
-  roving: '/img/shoot/mesh-fibres.webp',
-  xray: '/img/render-structure.webp',
+  structure: '/img/stills/home-structure.webp',
+  material: '/img/stills/home-material.webp',
+  pour: '/img/stills/home-pour.webp',
+  depth: '/img/stills/home-depth.webp',
+  shear: '/img/stills/home-shear.webp',
+  mineral: '/img/stills/home-mineral.webp',
+  stack: '/img/stills/home-stack.webp',
+  spec: '/img/stills/home-stack.webp',
+  roving: '/img/stills/home-pour.webp',
+  xray: '/img/stills/home-depth.webp',
 }
 
 /**

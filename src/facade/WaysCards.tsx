@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import './overview.css'
 import './unitized/more-cards.css'
 import { Link } from '../lib/router'
@@ -61,6 +61,22 @@ export function WaysCards({ id, sectionRef, lines, overview, label, items, model
   const own = useRef<HTMLElement>(null)
   const section = sectionRef ?? own
   const live = useLive(section)
+  /** the card in front, as a ref the scenes read each frame */
+  const frontAt = useRef(0)
+  /**
+   * each card's own `live`: only the card in front moves (CLAUDE.md 4b, a row of cards): every card's model swayed, each
+   * drawn again every frame while the row was on the screen, and a tablet lagged under the three of them
+   */
+  const lives = useMemo(
+    () =>
+      items.map((_, i) => ({
+        get current() {
+          return live.current && frontAt.current === i
+        },
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items.length, live],
+  )
   const rail = useRef<HTMLDivElement>(null)
   const cards = useRef<(HTMLLIElement | null)[]>([])
   const [front, setFront] = useState(0)
@@ -85,7 +101,8 @@ export function WaysCards({ id, sectionRef, lines, overview, label, items, model
       c.style.transform = `translate3d(${(o * s).toFixed(1)}px, 0, 0)`
       c.style.opacity = String(Math.min(1, Math.max(0, (o - lo) / 0.5)))
     })
-    setFront(mod(Math.round(pos.current), n))
+    frontAt.current = mod(Math.round(pos.current), n)
+    setFront(frontAt.current)
   }, [n, step])
 
   /** the row glides to stand at `to` (a whole card), settling softly */
@@ -219,7 +236,7 @@ export function WaysCards({ id, sectionRef, lines, overview, label, items, model
                 <div className="ways__model" aria-hidden="true">
                   {/* (each model rises as soon as it is made, behind the loading screen, so it is standing by the time the row
                       is reached: rising only once the row came into view, the cards stood empty a moment, as if still loading) */}
-                  {model(i, front === i, true, live)}
+                  {model(i, front === i, true, lives[i])}
                 </div>
                 <p className="ways__count num">
                   0{it.num} / 0{it.of}

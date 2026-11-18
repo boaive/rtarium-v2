@@ -270,6 +270,13 @@ function useWhiteHandoff(section: RefObject<HTMLElement | null>, curtain: RefObj
  * long the page must have been still before a page left between two stops is brought to the nearer (ms)
  */
 const SWIPE = { reach: 0.06, flick: 0.45, settle: 140 }
+/**
+ * a tablet (a touch screen 600 px or more on its short side): a swipe counts with half the reach and a slower flick. Its
+ * screen is taller and its CSS pixels larger, so the phone's share of the screen asked for a much longer swipe there
+ * (the user's, 18 Nov 2026: several swipes on one screen of the tour); a phone is left as it is
+ */
+const SWIPE_TABLET = { reach: 0.03, flick: 0.28 }
+const swipeOf = () => (typeof screen !== 'undefined' && Math.min(screen.width, screen.height) >= 600 ? SWIPE_TABLET : SWIPE)
 /** a glide's length (ms): a screen's, more for each screen past the first, and the most */
 const GLIDE_MS = { screen: 640, more: 240, most: 1100 }
 /**
@@ -439,6 +446,17 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
         turnedBack = true
         return
       }
+      // (a swipe on down while the flight lands: the flight ends at once, at About's top, and the page is the finger's from
+      // there. Left to land, the flight pulled the page back to About's top under the finger as it let go: a loop back, the
+      // user's report of 18 Nov 2026)
+      if (t && touch.y - t.clientY > 24) {
+        cancelAnimationFrame(anim)
+        flying = false
+        aim = null
+        // (About's top, where the white would have handed the page on: never the white itself, a blank screen)
+        window.scrollTo({ top: Math.round(el.offsetTop + el.offsetHeight), behavior: 'instant' as ScrollBehavior })
+        return
+      }
       if (e.cancelable) e.preventDefault()
     }
     /** whether a swipe `dir` from `from` in `zone` goes to a stop of the stretch's (as `step` takes it), not on out freely */
@@ -469,6 +487,16 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       }
       return null
     }
+    /**
+     * on About, past the tour (its last stop, About's top, where the flight lands): the page scrolls freely, any swipe the
+     * browser's; at About's top itself, a swipe on down is too (back up is still the tour's, the way down in reverse)
+     */
+    const aboutFree = (zone: Zone, from: number, dir: number) => {
+      if (!zone.tour) return false
+      // (About's top: where the tour hands the page on, else its last stop)
+      const top = zone.after ?? zone.stops[zone.stops.length - 1]
+      return from > top + 4 || (dir > 0 && Math.abs(from - top) < 4)
+    }
     /** the finger moving: on its first move, the swipe taken or left to the browser; taken, the page follows it */
     const follow = (e: TouchEvent) => {
       const t = e.touches[0]
@@ -486,6 +514,11 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
         if (dir < 0 && window.scrollY <= 1) return
         const zones = pagedZones(section.current ?? el)
         const zone = zoneAt(zones, touch.from, dir)
+        // (landed on About's top by the flight, the tour's last stop: a swipe on down is the browser's, About scrolling
+        // freely. Taken, a gentle one, too short to count, was glided back to About's top: the page looped back under the
+        // finger, again and again, the user's report of 18 Nov 2026. Back up from there is still the tour's, the way down
+        // in reverse)
+        if (zone && aboutFree(zone, touch.from, dir)) return
         // (the browser's bar still showing: a swipe down the tour is the browser's, to slide it away; see `native`)
         if (dir > 0 && zone?.tour && barShowing()) {
           native = true
@@ -515,8 +548,12 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       touch.x = t.clientX
       touch.t = e.timeStamp
       touch.at = performance.now()
-      // (a swipe during a glide sets off from where that glide was going)
-      touch.from = gliding() && aim !== null ? aim : window.scrollY
+      // (a swipe during a glide sets off from where that glide was going; but not once the page is on About, past the
+      // flight's aim (the white, which hands the page on to About by itself): there it sets off from where the page is.
+      // Set off from the white, a swipe on About counted as one in the tour and was glided back up to About's top, a loop
+      // back, the user's report of 18 Nov 2026)
+      const onAbout = window.scrollY >= el.offsetTop + el.offsetHeight - 4
+      touch.from = gliding() && aim !== null && !(onAbout && aim < window.scrollY) ? aim : window.scrollY
     }
     const end = (e: TouchEvent) => {
       touch.down = false
@@ -541,9 +578,17 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       if (Math.abs(dx) > Math.abs(dy)) return
       const vh = window.innerHeight
       const speed = Math.abs(dy) / Math.max(1, e.timeStamp - touch.t)
-      const dir = Math.abs(dy) > vh * SWIPE.reach || (speed > SWIPE.flick && Math.abs(dy) > 12) ? Math.sign(dy) : 0
+      const sw = swipeOf()
+      const dir = Math.abs(dy) > vh * sw.reach || (speed > sw.flick && Math.abs(dy) > 12) ? Math.sign(dy) : 0
       const zones = pagedZones(el)
       const zone = zoneAt(zones, touch.from, dir)
+      // (`?pagerdebug`: each swipe's decision, for finding a loop back on a real phone)
+      if (window.location.search.includes('pagerdebug')) {
+        const w = window as Window & { __pager?: unknown[] }
+        ;(w.__pager ??= []).push({ y: Math.round(window.scrollY), from: Math.round(touch.from), dir, dy: Math.round(dy), taken, zone: zone ? { stops: zone.stops, after: zone.after, tour: !!zone.tour } : null, flying, aim })
+      }
+      // (on About, past the tour: the browser's, nothing brought back to a stop)
+      if (zone && aboutFree(zone, touch.from, dir)) return
       // (a swipe taken out of a stretch to where the page goes freely: the page has no fling of its own, so it goes on to
       // the next stretch's stop that way if one is within reach, else a screen on; one too small to count goes back to
       // the stop it set off from)
@@ -629,7 +674,8 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
       if (touch.down || gliding() || performance.now() - stage.heldAt < 1500) return
       const y = window.scrollY
       const zone = zoneAt(pagedZones(el), y, 0)
-      if (!zone) return
+      // (come to rest on About, past the tour: left where it is)
+      if (!zone || aboutFree(zone, y, 0)) return
       const near = nearestOf(zone.stops, y)
       if (Math.abs(near - y) > 3) glide(near)
     }
@@ -721,7 +767,7 @@ export function Hero() {
           to About's first view; on a phone the finger moves it natively, the mesh in step with it */}
       <section ref={section} className="hero" aria-labelledby="hero-title" data-pass-screen={(compact ? PHONE_SCREENS : SCREENS) - 1} data-free-scroll="">
         <div ref={open} className={`hero__screen hero__screen--open scene ${state(0)}`} data-screen="yellow">
-          {failed && <img className="hero__still" src="/img/render-structure.webp" alt="" />}
+          {failed && <img className="hero__still" src="/img/stills/home-hero.webp" alt="" />}
           <div className="hero__copy">
             {/* on scroll the headline drifts into the mesh and dissolves (--p) */}
             <Lines as="h1" id="hero-title" className="hero__title" lines={['Introducing', 'RTARIUM.']} />
