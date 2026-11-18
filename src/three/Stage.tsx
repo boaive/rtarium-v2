@@ -5,6 +5,7 @@ import { PerformanceMonitor } from '@react-three/drei'
 import { StageScene } from './StageScene'
 import { setShared, stage, useStageValue, type Blend, type PoseId, type Region, type Turn } from './stageStore'
 import { useIsCompact, useReducedMotion } from '../lib/motion'
+import { failStage, watchRenderer } from './health'
 
 let webgl: boolean | null = null
 export function hasWebGL2() {
@@ -162,14 +163,16 @@ export function Stage() {
   useEffect(() => () => window.clearTimeout(steady.current), [])
   const again = useCallback(() => {
     window.clearTimeout(steady.current)
-    if (tries.current >= 10) return setShared({ failed: true })
+    if (tries.current >= 10) return failStage('context', 'failed again and again')
     tries.current++
     window.setTimeout(() => setLife((n) => n + 1), Math.min(3000, 400 * tries.current))
   }, [])
   const onCreated = useCallback(
     ({ gl }: { gl: THREE.WebGLRenderer }) => {
-      // (no waiting on the driver for each new shader's log in a build: Stage3D's onCreated says why)
-      gl.debug.checkShaderErrors = import.meta.env.DEV || window.location.search.includes('gldebug')
+      // (the stage's shaders checked as they compile, so one a browser cannot compile sends the page to its stills:
+      // health.ts, an older Safari. Home's are compiled behind the loading screen, where the wait costs nothing)
+      gl.debug.checkShaderErrors = true
+      watchRenderer(gl)
       window.clearTimeout(steady.current)
       steady.current = window.setTimeout(() => void (tries.current = 0), 10000)
       gl.domElement.addEventListener(

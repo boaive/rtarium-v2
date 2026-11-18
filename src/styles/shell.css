@@ -644,8 +644,10 @@ html[data-ground='black'] .pin__text {
   visibility: visible;
   transition-delay: 0s;
 }
+/* (`, 0`: a browser without @property, Safari before 16.4, knows no starting value for --pc, and the cell's whole
+   `flex` then fell away, the bar shrunk to three small boxes at its left; there it simply closes without easing) */
 .progress .fu-bar__cell {
-  --c: var(--pc);
+  --c: var(--pc, 0);
   transition: --pc 0.5s var(--ease-out);
 }
 .progress .fu-bar__cell[data-state='past'] {

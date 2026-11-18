@@ -290,7 +290,8 @@ function Masked({ k, children }: { k: number; children: ReactNode }) {
  * each time the card comes back into view.
  */
 function Closing({ v, i, words, blockRef }: { v: Version; i: number; words: LineageWords; blockRef: (el: HTMLElement | null) => void }) {
-  const lines = (v.claim ?? '').split(/(?<=\.)\s+/).filter(Boolean)
+  // (a sentence a line, its full stop kept; no lookbehind, which Safari before 16.4 cannot read and the page then stopped)
+  const lines = (v.claim ?? '').replace(/\.\s+/g, '.\n').split('\n').filter(Boolean)
   const card = useRef<HTMLElement | null>(null)
   useEffect(() => {
     const el = card.current

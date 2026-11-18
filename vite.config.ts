@@ -50,13 +50,16 @@ oldBrowserFallbacks.postcss = true
 
 /**
  * Tablets take the phone's version (src/lib/motion.ts, TABLET_CLAUSE; index.html lays them out at a phone's height,
- * up to 1180 px wide): every rule written for a phone (`max-width: 860px`, alone or with the portrait clause, or the
+ * up to 1400 px wide): every rule written for a phone (`max-width: 860px`, alone or with the portrait clause, or the
  * same with reduced motion) gets the touch-screen clause as well. A computer with a mouse or trackpad never matches it.
  */
-const TABLET = '(any-pointer: coarse) and (max-width: 1180px)'
+const TABLET = '(any-pointer: coarse) and (orientation: portrait) and (max-width: 1400px)'
 const PHONE_MEDIA: Record<string, string> = {
   '(max-width: 860px), (max-aspect-ratio: 4/5)': `(max-width: 860px), (max-aspect-ratio: 4/5), ${TABLET}`,
   '(max-width: 860px)': `(max-width: 860px), ${TABLET}`,
+  // (the header's menu button and the shell's narrower desktop: a tablet laid out wider than these takes them as well)
+  '(max-width: 1200px)': `(max-width: 1200px), ${TABLET}`,
+  '(max-width: 960px)': `(max-width: 960px), ${TABLET}`,
   '(max-width: 860px) and (prefers-reduced-motion: reduce), (max-aspect-ratio: 4/5) and (prefers-reduced-motion: reduce)': `(max-width: 860px) and (prefers-reduced-motion: reduce), (max-aspect-ratio: 4/5) and (prefers-reduced-motion: reduce), ${TABLET} and (prefers-reduced-motion: reduce)`,
 }
 function tabletsAsPhones() {

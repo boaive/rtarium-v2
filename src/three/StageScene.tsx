@@ -10,6 +10,7 @@ import { setShared, stage, useStageValue, type PoseId, type Region } from './sta
 import { THICKNESS_OPTIONS } from '../content/technical'
 import { clamp01, damp, lerp, smoothstep } from '../lib/motion'
 import { builds, opening } from '../lib/builds'
+import { drewSomething, failStage } from './health'
 
 /**
  * The one 3D stage of the homepage: a fixed, transparent canvas between the coloured ground and
@@ -332,6 +333,8 @@ export function StageScene({ compact, reduced }: Props) {
   const warmup = useRef(0)
   const warm = useRef(false)
   useEffect(() => () => window.clearTimeout(warmup.current), [])
+  /** the check that the opening's mesh can be seen at all (health.ts): when last read, the empty reads, and whether it is settled */
+  const probe = useRef({ at: 0, misses: 0, done: false })
   /**
    * A phone's stage primes behind the opening (src/opener.ts waits on `builds.stage`): every card drawn once into its own
    * canvas, wherever it is on the page, and every program compiled, so no card is drawn for the first time, and no shader
@@ -1199,6 +1202,17 @@ export function StageScene({ compact, reduced }: Props) {
       gl.clearDepth()
       if (compact) sig(s0, s1)
       gl.render(scene, camera)
+      // the opening woven and holding the screen: is the mesh there to be seen? (read once it is, a few tries apart;
+      // a browser that draws nothing at all sends the page to its stills, health.ts)
+      const pr0 = probe.current
+      if (hero && !bx && !compact && !pr0.done && stage.tour < 0.2 && intro > 0.96 && s1 - s0 > ch * 0.6 && now - pr0.at > 700) {
+        pr0.at = now
+        if (drewSomething(gl, s0, s1)) pr0.done = true
+        else if (++pr0.misses >= 3) {
+          pr0.done = true
+          failStage('blank')
+        }
+      }
       if (bx) {
         gl.setViewport(0, 0, vw, vh)
         camera.aspect = vw / vh
