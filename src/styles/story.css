@@ -25,12 +25,13 @@
 .hero__screen--open.is-dragging {
   cursor: grabbing;
 }
+/* with no 3D, its picture stands where the mesh would: lower right, under the name, never over it */
 .hero__still {
   position: absolute;
-  top: 18%;
+  top: 44%;
   right: var(--gutter);
-  width: 48%;
-  height: 64%;
+  width: 46%;
+  height: 48%;
   object-fit: cover;
   border-radius: 4px;
 }

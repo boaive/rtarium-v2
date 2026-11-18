@@ -4,6 +4,7 @@ import { PerformanceMonitor } from '@react-three/drei'
 import { StageScene } from './StageScene'
 import { setShared, stage, useStageValue, type Blend, type PoseId, type Region, type Turn } from './stageStore'
 import { useIsCompact, useReducedMotion } from '../lib/motion'
+import { watchRenderer } from './health'
 
 let webgl: boolean | null = null
 export function hasWebGL2() {
@@ -156,6 +157,7 @@ export function Stage() {
           // (a phone too: its key light casts only while the opening holds the screen, StageScene)
           shadows
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false }}
+          onCreated={({ gl }) => watchRenderer(gl)}
           camera={{ fov: 30, near: 0.002, far: 8, position: [0.2, 0.3, 0.4] }}
         >
           {watch && <PerformanceMonitor factor={1} step={0.25} flipflops={6} bounds={(hz) => [hz * 0.66, hz * 0.92]} onChange={({ factor }) => setQuality(factor)} />}
