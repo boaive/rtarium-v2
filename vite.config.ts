@@ -49,6 +49,30 @@ function oldBrowserFallbacks() {
 oldBrowserFallbacks.postcss = true
 
 /**
+ * Tablets take the phone's version (src/lib/motion.ts, TABLET_CLAUSE; index.html lays them out at a phone's height,
+ * up to 1180 px wide): every rule written for a phone (`max-width: 860px`, alone or with the portrait clause, or the
+ * same with reduced motion) gets the touch-screen clause as well. A computer with a mouse or trackpad never matches it.
+ */
+const TABLET = '(any-pointer: coarse) and (max-width: 1180px)'
+const PHONE_MEDIA: Record<string, string> = {
+  '(max-width: 860px), (max-aspect-ratio: 4/5)': `(max-width: 860px), (max-aspect-ratio: 4/5), ${TABLET}`,
+  '(max-width: 860px)': `(max-width: 860px), ${TABLET}`,
+  '(max-width: 860px) and (prefers-reduced-motion: reduce), (max-aspect-ratio: 4/5) and (prefers-reduced-motion: reduce)': `(max-width: 860px) and (prefers-reduced-motion: reduce), (max-aspect-ratio: 4/5) and (prefers-reduced-motion: reduce), ${TABLET} and (prefers-reduced-motion: reduce)`,
+}
+function tabletsAsPhones() {
+  return {
+    postcssPlugin: 'tablets-as-phones',
+    AtRule: {
+      media(at: { params: string }) {
+        const key = at.params.replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ').trim()
+        if (PHONE_MEDIA[key]) at.params = PHONE_MEDIA[key]
+      },
+    },
+  }
+}
+tabletsAsPhones.postcss = true
+
+/**
  * `ahead.json`: the files each family of pages needs (its chunk, the chunks it imports and their styles), for Home to
  * fetch into the browser's cache without running them or applying their styles (src/lib/pages.ts, fetchAhead). Running
  * them on Home (an `import()`) put three pages' code and their stylesheets into Home itself.
@@ -87,7 +111,7 @@ function aheadList() {
 export default defineConfig({
   plugins: [react(), aheadList()],
   css: {
-    postcss: { plugins: [oldBrowserFallbacks()] },
+    postcss: { plugins: [tabletsAsPhones(), oldBrowserFallbacks()] },
   },
   server: {
     // the contact form's API is the Cloudflare Worker (worker/): run `npx wrangler dev` alongside `npm run dev` to use it

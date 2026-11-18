@@ -50,6 +50,25 @@ export function startSettle() {
     requestAnimationFrame(() => requestAnimationFrame(() => void (root.style.overflow = '')))
   }
 
+  /**
+   * a finger still down as the page crosses the top of a held screen (a drag, not a fling): stopped there too, and held
+   * there until the finger lifts (the page's overflow cut the while: the rest of that drag moves nothing, and no fling
+   * starts as it lifts). Only a released fling was stopped before, and a drag across went straight on past it.
+   */
+  let pinned = false
+  const pinAt = (top: number) => {
+    stop()
+    pinned = true
+    document.documentElement.style.overflow = 'hidden'
+    window.scrollTo({ top, behavior: 'instant' as ScrollBehavior })
+    lastY = top
+  }
+  const unpin = () => {
+    if (!pinned) return
+    pinned = false
+    requestAnimationFrame(() => void (document.documentElement.style.overflow = ''))
+  }
+
   const stop = () => {
     cancelAnimationFrame(anim)
     gliding = false
@@ -143,6 +162,7 @@ export function startSettle() {
   }
   const onEnd = (e: TouchEvent) => {
     down = false
+    unpin()
     const taking = touch.taking
     touch.taking = null
     const t = e.changedTouches[0]
@@ -154,11 +174,12 @@ export function startSettle() {
     const was = lastY
     if (y !== was) dir = Math.sign(y - was)
     lastY = y
-    // (a fling, no finger down, crossing the top of a screen that holds the page: stopped on it)
-    if (!down && !gliding && Math.abs(y - was) < window.innerHeight * 0.9) {
+    // (a fling, no finger down, crossing the top of a screen that holds the page: stopped on it; a drag, the finger
+    // still down, stopped and held there until it lifts)
+    if (!gliding && !pinned && Math.abs(y - was) < window.innerHeight * 0.9) {
       for (const el of document.querySelectorAll<HTMLElement>('[data-hold]')) {
         const top = topOf(el)
-        if ((was < top && y >= top) || (was > top && y <= top)) return catchAt(top)
+        if ((was < top && y >= top) || (was > top && y <= top)) return down ? pinAt(top) : catchAt(top)
       }
     }
     if (!gliding) arm()
@@ -176,5 +197,6 @@ export function startSettle() {
     window.removeEventListener('touchend', onEnd, { capture: true })
     window.removeEventListener('touchcancel', onEnd, { capture: true })
     window.removeEventListener('scroll', onScroll)
+    if (pinned) document.documentElement.style.overflow = ''
   }
 }

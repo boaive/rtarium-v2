@@ -1,7 +1,6 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link } from '../lib/router'
 import { APPLICATIONS, SITE } from '../content/site'
-import { useScrollRead } from './Chapter'
 import { setShared } from '../three/stageStore'
 import { Liquid } from './Liquid'
 import { useIsCompact } from '../lib/motion'
@@ -207,10 +206,21 @@ export function Footer({ screen = false }: { screen?: boolean }) {
   const compact = useIsCompact()
   // the header takes the footer's yellow once it holds the middle of the screen; a page that sets the
   // header's ground from what is under the header itself (data-own-ground) does the footer too
-  useScrollRead(ref, (top, vh, height) => {
-    if (document.documentElement.hasAttribute('data-own-ground')) return
-    if (top <= vh * 0.5 && top + height > vh * 0.5) setShared({ chapter: 'footer', step: 0, ground: 'yellow' })
-  })
+  // (told by an observer, a line across the middle of the screen: read off the page on every scroll, the footer had the
+  // page laid out again each frame, on every page, after the sections had written their own styles)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (document.documentElement.hasAttribute('data-own-ground')) return
+        if (e.isIntersecting) setShared({ chapter: 'footer', step: 0, ground: 'yellow' })
+      },
+      { rootMargin: '-50% 0px -49% 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
   return (
     <footer ref={ref} className={`footer ${screen ? 'footer--screen' : ''}`} data-screen="yellow" data-flow={compact ? '' : undefined}>
       <div className="footer__body">{compact ? <FooterPhone /> : <FooterContent />}</div>

@@ -211,6 +211,7 @@ const LAYER_ICONS: Record<string, ReactNode> = {
 
 /** a card's name on a phone, short enough for one line (the block's own name goes under it) */
 const LAYER_SHORT: Record<string, string> = { headache: 'Cracked screed', layer: 'Basalt mesh', premix: 'Your premix' }
+const LAYER_DETAIL: Record<string, string> = { headache: 'Strong screeds still crack: strength doesn’t stop movement.' }
 
 /** a phone: the three dealt as the façade overview's story is (DeckCards, Home's deck), on yellow */
 function LayerCards({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
@@ -225,7 +226,8 @@ function LayerCards({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> 
     ),
     parts: [
       { label: b.label || 'With your premix', text: b.line },
-      { label: 'In detail', text: b.full },
+      // (a phone: the first's detail cut to the others' length, so the cards' parts sit even)
+      { label: 'In detail', text: LAYER_DETAIL[b.id] ?? b.full },
     ],
   }))
   // (on yellow, as the façade overview's story)

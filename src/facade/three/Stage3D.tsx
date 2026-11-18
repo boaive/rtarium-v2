@@ -154,6 +154,10 @@ export function Stage3D({
   const onCreated = useCallback(
     ({ gl }: { gl: THREE.WebGLRenderer }) => {
       gl.setClearColor(0x000000, 0)
+      // (a build does not ask the graphics driver for each new shader's error log: asking waits, there and then, for the
+      // shader to finish compiling, which held the page up 100–500 ms on a phone whenever a scene first drew something
+      // new mid-scroll. three.js's own advice for production; development keeps it, to see a broken shader)
+      gl.debug.checkShaderErrors = import.meta.env.DEV
       window.clearTimeout(steady.current)
       steady.current = window.setTimeout(() => void (tries.current = 0), 8000)
       gl.domElement.addEventListener(
@@ -339,13 +343,26 @@ function Carried({ host }: { host: RefObject<HTMLDivElement | null> }) {
     decide()
     let held = false
     let t = 0
+    // (and off the screen, not drawn at all: a scene scrolled past went on drawing its own motion, and the sections the
+    // visitor was reading lagged under it. Back on the screen, drawn again at once)
+    let seen = true
     const resume = () => {
       held = false
+      if (!seen) return
       setFrameloop('demand')
       invalidate()
     }
+    const io = new IntersectionObserver(
+      ([e]) => {
+        seen = e.isIntersecting
+        if (!seen) setFrameloop('never')
+        else if (!held) resume()
+      },
+      { rootMargin: '20% 0px' },
+    )
+    io.observe(el)
     const off = onPageMove(() => {
-      if (pinned) return
+      if (pinned || !seen) return
       if (!held) {
         held = true
         setFrameloop('never')
@@ -356,9 +373,12 @@ function Carried({ host }: { host: RefObject<HTMLDivElement | null> }) {
     window.addEventListener('resize', decide)
     return () => {
       off()
+      io.disconnect()
       window.removeEventListener('resize', decide)
       window.clearTimeout(t)
+      seen = true
       if (held) resume()
+      else setFrameloop('demand')
     }
   }, [host, setFrameloop, invalidate])
   return null
@@ -484,6 +504,25 @@ function Warm() {
         }
       })
       const done = gl.compileAsync(scene, camera)
+      // (and behind the loading screen, one real frame drawn of it all, nothing left out as off the screen: three's
+      // compile does not set each material's own clipping planes, so a part cut by its planes (the flooring pages' cut
+      // pieces, the rainscreen's) was compiled as another kind and compiled again the first time it was drawn, mid-scroll,
+      // 100–500 ms on a phone. A frame drawn sets each one's planes, and its shadow too; the loading screen hides it)
+      if (opening()) {
+        const culled: THREE.Object3D[] = []
+        scene.traverse((o) => {
+          if (o.frustumCulled) {
+            culled.push(o)
+            o.frustumCulled = false
+          }
+        })
+        try {
+          gl.render(scene, camera)
+        } catch {
+          /* (a scene not ready for a frame yet: its compile above still stands) */
+        }
+        for (const o of culled) o.frustumCulled = true
+      }
       for (const o of hidden) o.visible = false
       done.then(() => live && invalidate()).catch(() => {})
     })

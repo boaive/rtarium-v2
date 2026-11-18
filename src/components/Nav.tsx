@@ -5,6 +5,7 @@ import { SYSTEMS } from '../facade/content'
 import { FLOORING_APPS } from '../flooring/content'
 import { stage, useStageValue } from '../three/stageStore'
 import { holdScroll } from '../lib/scroll'
+import { COMPACT_QUERY } from '../lib/motion'
 
 /**
  * The two logos in full colour on a black capsule. Both carry yellow (the RTARIUM emblem, half of the
@@ -158,22 +159,41 @@ export function Nav() {
     let raf = 0
     let after = 0
     let looked = -Infinity
-    const LOOK = 120
     let lastY = window.scrollY
-    const phone = window.matchMedia('(max-width: 860px)')
+    const phone = window.matchMedia(COMPACT_QUERY)
+    // (nothing here reads the page's layout while it moves: each read came after a section had written its own styles that
+    // frame, so the page was laid out again for it, every frame, which a phone felt as a lag. The page's height is kept
+    // as it changes; whether a step card's answer is under the bar is told by an observer; and what is behind the bar is
+    // looked at only once the page has stopped, `on`)
+    let max = 0
+    const sized = new ResizeObserver(() => void (max = document.documentElement.scrollHeight - window.innerHeight))
+    sized.observe(document.body)
+    const under = new Set<Element>()
+    const answers = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) e.isIntersecting ? under.add(e.target) : under.delete(e.target)
+        setSolution(phone.matches && under.size > 0)
+      },
+      // (a line across the screen 64 px down, the bar's foot)
+      { rootMargin: `-64px 0px -${Math.max(0, window.innerHeight - 65)}px 0px`, threshold: 0 },
+    )
+    const watched = new WeakSet<Element>()
+    const watch = () => {
+      for (const el of document.querySelectorAll('.fst--solution')) {
+        if (watched.has(el)) continue
+        watched.add(el)
+        answers.observe(el)
+      }
+    }
     const read = () => {
       raf = 0
       const y = window.scrollY
-      const max = document.documentElement.scrollHeight - window.innerHeight
       header.current?.style.setProperty('--read', max > 0 ? Math.min(1, Math.max(0, y / max)).toFixed(4) : '0')
       const d = y - lastY
       if (phone.matches && header.current) {
-        const answer = document.querySelector('.fst--solution')?.getBoundingClientRect()
-        setSolution(Boolean(answer && answer.top <= 64 && answer.bottom > 64))
-        // (looked at no more than every LOOK ms while the page moves, and once more as it stops: see `on`)
-        const now = performance.now()
-        if (now - looked >= LOOK) {
-          looked = now
+        // (once the page has stopped: see `on`)
+        if (looked === -Infinity) {
+          looked = performance.now()
           const b = behind(header.current)
           // (Home's tour: once off its opening screen the mesh fills the screen behind the bar, drawn on the 3D's own
           // canvas, which the look under the bar cannot see into: the bar frosts over it)
@@ -182,7 +202,6 @@ export function Nav() {
           setSeen(b.ground)
         }
       } else {
-        setSolution(false)
         setScrolled(false)
         setSeen(null)
       }
@@ -195,6 +214,7 @@ export function Nav() {
       }
     }
     const on = () => {
+      watch()
       if (!raf) raf = requestAnimationFrame(read)
       // (and once more as things settle: a ground that fades in after the page has stopped)
       clearTimeout(after)
@@ -217,6 +237,8 @@ export function Nav() {
       cancelAnimationFrame(raf)
       clearTimeout(after)
       early.forEach(clearTimeout)
+      sized.disconnect()
+      answers.disconnect()
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', on)
     }

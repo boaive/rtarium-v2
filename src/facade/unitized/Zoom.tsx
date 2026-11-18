@@ -14,7 +14,10 @@ export function Zoom({ by }: { by: number }) {
   const now = useRef<number | null>(null)
   useFrame((_, dt) => {
     const from = now.current ?? by
-    const next = Math.abs(by - from) < 1e-3 ? by : from + (by - from) * Math.min(1, Math.max(0, dt) * 3.2)
+    // (a frame's time at most: a card held still is not drawn, and the first frame after it reports the whole wait, which
+    // took a new zoom in one jump)
+    const step = Math.min(Math.max(0, dt), 1 / 30)
+    const next = Math.abs(by - from) < 1e-3 ? by : from + (by - from) * Math.min(1, step * 3.2)
     now.current = next
     if (camera.zoom !== next) {
       camera.zoom = next

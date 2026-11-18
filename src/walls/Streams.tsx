@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { scrollToY } from '../lib/scroll'
-import { Link, useRoute } from '../lib/router'
+import { useRoute } from '../lib/router'
 import { DeckCards, type DeckItem } from '../facade/DeckCards'
 import { useIsCompact, COMPACT_QUERY } from '../lib/motion'
 import { Arrow } from '../facade/Shell'
@@ -214,8 +214,6 @@ function BuildPhone({ which, building, title, still }: { which: BuildId; buildin
  * its figures, counted off the building; the way into its case study; the building itself, finished, turning slowly.
  * Then the build on white, step by step; why it works, dealt as cards on black (DeckCards); the other two systems.
  */
-/** the systems' names in a pill, short enough for the three to sit on one line */
-const SHORT: Record<StreamId, string> = { housing: 'Housing', industrial: 'Industrial', frame: 'Frame' }
 
 function SystemPage({
   id,
@@ -263,14 +261,6 @@ function SystemPage({
           {study.title.includes(',') ? `${study.title}.` : `${study.title}, built.`}
         </h2>
         <p className="wsys__lede">{study.brief}</p>
-        <p className="wsys__label">Systems</p>
-        <div className="wsys__pills" role="group" aria-label="Systems">
-          {STREAMS.map((s) => (
-            <button key={s.id} type="button" aria-pressed={s.id === id} className={s.id === id ? 'is-on' : ''} onClick={() => s.id !== id && go(s.path)}>
-              {SHORT[s.id]}
-            </button>
-          ))}
-        </div>
         {frame && (
           <>
             <p className="wsys__label">Frame</p>
@@ -310,9 +300,6 @@ function SystemPage({
               <path d="M8 2v11M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
             </svg>
           </button>
-          <Link to="/wall-panels#streams" className="wsys__link">
-            All systems
-          </Link>
         </div>
         <div className="wsys__model" aria-hidden="true">
           <Stage3D shadows keyLight={false} fallback={<img src={still} alt="" />}>

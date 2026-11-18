@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { scrollToY } from '../lib/scroll'
-import { prefersReducedMotion } from '../lib/motion'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { damp, prefersReducedMotion } from '../lib/motion'
 
 /** a card's parts: each a heading with its sign, what it says folded until the sign is pressed */
 export type DeckPart = { label: string; text: string }
@@ -36,32 +35,84 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
   const section = useRef<HTMLElement | null>(null)
   const list = useRef<HTMLOListElement>(null)
 
-  // the deal: the section's run, read as the page scrolls, `--deck` 0 to n - 1 (the deck's own CSS, as Home's)
+  /** where the deal stands, 0 to n - 1 */
+  const at = useRef(0)
+  /** a small screen's height (100svh) in px, as the cards come up from under it */
+  const svh = useRef<HTMLElement>(null)
+  /**
+   * each card where the deal has it: up from under the screen as its turn comes, set on the card itself. (It was one
+   * variable on the list, `--deck`, which every card worked out from; but a variable on the list is inherited by
+   * everything in the cards, so each frame of the scroll restyled every word and drawing in them: the deck stuttered.)
+   */
+  const deal = useCallback(() => {
+    const deck = list.current
+    if (!deck) return
+    const h = svh.current?.offsetHeight || window.innerHeight
+    for (const card of deck.children) {
+      const c = card as HTMLElement
+      const pos = Number(c.dataset.pos ?? 0)
+      const t = Math.min(1, Math.max(0, at.current - pos + 1))
+      const tf = `translate3d(0, ${((1 - t) * h).toFixed(1)}px, 0)`
+      if (c.style.transform !== tf) c.style.transform = tf
+    }
+  }, [])
+
+  // the deal: the section's run, read as the page scrolls, 0 to n - 1
   useEffect(() => {
     const el = section.current
     const deck = list.current
     if (!el || !deck) return
-    if (prefersReducedMotion()) return void deck.style.setProperty('--deck', String(n - 1))
+    if (prefersReducedMotion()) {
+      at.current = n - 1
+      return deal()
+    }
     let raf = 0
-    const read = () => {
+    let last = performance.now()
+    let first = true
+    // the cards ease toward where the scroll has them (veedo's damping, CLAUDE.md rule 1), not set straight from each
+    // scroll event: they glide on with the page's own fling rather than stepping with it
+    const read = (now: number) => {
       raf = 0
+      const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
+      last = now
+      // (read first, then written)
       const r = el.getBoundingClientRect()
       const pin = el.querySelector<HTMLElement>('.fdeck__in')
       const run = Math.max(1, r.height - (pin?.offsetHeight ?? window.innerHeight))
-      deck.style.setProperty('--deck', (Math.min(1, Math.max(0, -r.top / run)) * (n - 1)).toFixed(4))
+      const target = Math.min(1, Math.max(0, -r.top / run)) * (n - 1)
+      at.current = first ? target : damp(at.current, target, 9.5, dt)
+      first = false
+      if (Math.abs(at.current - target) < 1e-3) at.current = target
+      else raf = requestAnimationFrame(read)
+      deal()
     }
+    // (read only while the deck is within a screen of being seen: read on every scroll from anywhere on the page, it had
+    // the page laid out again each frame, after the sections had written their own styles)
+    let near = true
     const on = () => {
-      if (!raf) raf = requestAnimationFrame(read)
+      if (near && !raf) {
+        last = performance.now()
+        raf = requestAnimationFrame(read)
+      }
     }
-    read()
+    const io = new IntersectionObserver(
+      ([e]) => {
+        near = e.isIntersecting
+        on()
+      },
+      { rootMargin: '100% 0px' },
+    )
+    io.observe(el)
+    read(performance.now())
     window.addEventListener('scroll', on, { passive: true })
     window.addEventListener('resize', on)
     return () => {
       cancelAnimationFrame(raf)
+      io.disconnect()
       window.removeEventListener('scroll', on)
       window.removeEventListener('resize', on)
     }
-  }, [n])
+  }, [n, deal])
 
   // each card only as tall as the deck's fullest needs (its fullest part open), not the one height every deck had: a deck
   // of short cards no longer carries an empty band under its words
@@ -109,7 +160,10 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
       deck.style.removeProperty('margin-top')
       deck.classList.remove('is-tight')
       if (!pin || !first || !name || n < 2) return
-      const room = () => Math.min(pin.clientHeight, window.innerHeight) - (deck.getBoundingClientRect().top - pin.getBoundingClientRect().top) - 14
+      // (the small screen's height, which the browser's bars never change: fitted to the window's, the deck was fitted
+      // again as the bar slid away on the first scroll, and the cards jumped to a new size)
+      const screenH = svh.current?.offsetHeight || window.innerHeight
+      const room = () => Math.min(pin.clientHeight, screenH) - (deck.getBoundingClientRect().top - pin.getBoundingClientRect().top) - 14
       const band = () => name.offsetTop + name.offsetHeight + 8
       const spare = room() - cardH - (n - 1) * band()
       if (spare >= 0) {
@@ -141,10 +195,33 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
       if (fits < full) deck.style.setProperty('--peek', `${Math.max(name.offsetTop + name.offsetHeight * 0.75, Math.floor(fits))}px`)
       else deck.style.setProperty('--peek', `${full}px`)
     }
+    // fitted, then shown: until its words are in and it has its size, the deck is kept out of sight (it showed at a
+    // first size and then jumped to its own). Fitted again only when the screen's width changes, never its height
+    // (the browser's bars)
+    let shown = false
+    const show = () => {
+      if (shown) return
+      shown = true
+      deck.classList.add('is-fit')
+    }
     fit()
-    document.fonts?.ready.then(fit)
-    window.addEventListener('resize', fit)
-    return () => window.removeEventListener('resize', fit)
+    const fonts = document.fonts?.ready ?? Promise.resolve()
+    fonts.then(() => {
+      fit()
+      show()
+    })
+    const late = window.setTimeout(show, 1500)
+    let width = window.innerWidth
+    const onResize = () => {
+      if (window.innerWidth === width) return
+      width = window.innerWidth
+      fit()
+    }
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.clearTimeout(late)
+      window.removeEventListener('resize', onResize)
+    }
   }, [items])
 
   /*
@@ -157,7 +234,9 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
   const timers = useRef<number[]>([])
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), [])
   const order = [...items.keys()].filter((i) => i !== front).concat(front)
-  const dealt = () => Number(list.current?.style.getPropertyValue('--deck') || 0) >= n - 1 - 0.02
+  const dealt = () => at.current >= n - 1 - 0.02
+  // (the order changed by a shuffle: each card where its new place has it)
+  useEffect(() => deal(), [front, deal])
   const shuffle = (i: number) => {
     if (moving || i === front) return
     if (prefersReducedMotion()) return setFront(i)
@@ -186,12 +265,10 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
     const el = section.current
     const deck = list.current
     if (!el || !deck) return
-    if (dealt()) return shuffle(i)
-    const now = Math.round(Number(deck.style.getPropertyValue('--deck') || 0))
-    if (i >= now) return
-    const pin = el.querySelector<HTMLElement>('.fdeck__in')
-    const run = Math.max(1, el.offsetHeight - (pin?.offsetHeight ?? window.innerHeight))
-    scrollToY(el.getBoundingClientRect().top + window.scrollY + (run * i) / Math.max(1, n - 1))
+    // (before all are dealt a tap does nothing: a finger on the cards only moves the page, CLAUDE.md rule 5. It used to
+    // take the page back to that card's step, and a swipe begun on a card that the phone read as a tap pulled the page
+    // back to the first card, the next ones never coming up)
+    if (dealt()) shuffle(i)
   }
 
   return (
@@ -211,11 +288,13 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
         <h2 id={`${id}-title`} className="fdeck__title">
           {title}
         </h2>
+        <i ref={svh} className="fdeck__svh" aria-hidden="true" />
         <ol ref={list} className="vs vs--deck fdeck__list">
           {items.map((v, i) => (
             <li
               key={v.id}
               className={`vs__card fdeck__card ${i === front ? 'is-front' : 'is-tucked'} ${moving?.i === i ? `is-${moving.phase}` : ''}`}
+              data-pos={order.indexOf(i)}
               style={{ '--i': i, '--pos': order.indexOf(i) } as CSSProperties}
               aria-labelledby={`${id}-${v.id}`}
               onClick={() => goToCard(i)}

@@ -9,6 +9,7 @@ import { REVIEW } from '../content'
 import { ReviewNote } from '../../components/Media'
 import { useLive } from '../unitized/live'
 import { Skip } from '../unitized/StepBar'
+import { ListingScreen, type ListingPoint } from '../ListingScreen'
 
 /**
  * The design stage: how the skin is held and how it moves through the day, three listings in the
@@ -84,6 +85,15 @@ const under = (k: number, compact = false) => (compact ? k + 1 : k === N - 1 ? N
 const RUN = 3.1
 const PLAY: [number, number] = [0.05, 1.75]
 const RUN_LAST = 3.25
+/**
+ * a phone: each listing held a shorter while, its 3D played over the first screen of it, so the page answers the finger
+ * as it scrolls freely (held 3 screens a listing, it read as the page locked; the user, 18 Nov 2026)
+ */
+const PHONE_RUN = 1.8
+const PHONE_RUN_LAST = 1.9
+const PHONE_PLAY: [number, number] = [0.05, 0.95]
+const runOf = (k: number, compact: boolean) => (compact ? (k === N - 1 ? PHONE_RUN_LAST : PHONE_RUN) : k === N - 1 ? RUN_LAST : RUN)
+const playOf = (compact: boolean) => (compact ? PHONE_PLAY : PLAY)
 const OPENED = 0.3
 const CLOSING = -0.1
 const CLOSED = -0.65
@@ -126,7 +136,7 @@ function ListingView({ item, k, L, compact, refs }: { item: Listing; k: number; 
   const live = useLive(view)
   const { Scene } = item
   return (
-    <article ref={(el) => void (refs.block[k] = el)} className="fr-bw__block" style={{ '--k': under(k, compact), '--run': k === N - 1 ? RUN_LAST : RUN } as CSSProperties} aria-labelledby={`fs-bw-${item.id}`}>
+    <article ref={(el) => void (refs.block[k] = el)} className="fr-bw__block" style={{ '--k': under(k, compact), '--run': runOf(k, compact) } as CSSProperties} aria-labelledby={`fs-bw-${item.id}`}>
       <div ref={(el) => void (refs.stage[k] = el)} className="fr-bw__stage">
         <div className="fr-bw__words" style={{ '--x': L.words[0], '--y': L.words[1], '--w': L.words[2], '--h': L.words[3] } as CSSProperties}>
           {/* (a phone: no count over the words, the rows say where it is; the section's line kept for screen readers only) */}
@@ -182,7 +192,18 @@ function ListingView({ item, k, L, compact, refs }: { item: Listing; k: number; 
   )
 }
 
+/** a phone: the three as the flooring pages' "Where the screed fails" (ListingScreen), each point its own scene */
+const PHONE_POINTS: ListingPoint[] = [
+  { id: 'anchor', head: 'Fixed on flex anchors', stops: [0, 1], tag: LISTINGS[0].row[0], line: 'A 16–20 mm concrete skin, held to the steel stud frame by flexible L⁠-⁠plates.', Scene: AnchorScene },
+  { id: 'day', head: 'Expands in the heat', stops: [0, 1], tag: LISTINGS[1].row[0], line: 'The façade expands in the heat. Flexible L⁠-⁠plates accommodate the shift.', Scene: DayScene },
+  { id: 'night', head: 'Cools at night', stops: [0, 1], tag: LISTINGS[2].row[0], line: 'As temperatures fall, the façade contracts and the flexible plates move with it, maintaining a stable, even surface.', Scene: NightScene },
+]
+
 export function Components() {
+  return useIsCompact() ? <ListingScreen id="components" title="Built to breathe with the heat" points={PHONE_POINTS} shadows snap /> : <ComponentsWide />
+}
+
+function ComponentsWide() {
   const compact = useIsCompact()
   const L = compact ? NARROW : WIDE
   const section = useRef<HTMLElement>(null)
@@ -200,22 +221,25 @@ export function Components() {
       const dt = Math.min(0.1, Math.max(0, (time - last) / 1000))
       last = time
       const vh = window.innerHeight
+      // (every size and place read first, then every style written: one layout a frame. Read listing by listing between
+      // the writes, the page was laid out again three or four times a frame, which a phone felt as a lag)
       const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
       const rowH = rows.current[0]?.offsetHeight ?? 0
+      const rects = LISTINGS.map((_, k) => [refs.block[k]?.getBoundingClientRect() ?? null, refs.stage[k]?.getBoundingClientRect() ?? null] as const)
+      const sec = section.current?.getBoundingClientRect()
       let moving = false
       LISTINGS.forEach((_, k) => {
-        const b = refs.block[k]
-        const stage = refs.stage[k]
-        if (!b || !stage) return
-        const r = b.getBoundingClientRect()
-        const sr = stage.getBoundingClientRect()
+        const [r, sr] = rects[k]
+        if (!r || !sr) return
         const rest = navH + under(k, compact) * rowH
         // where the listing is: 1 its stage at the foot of the screen, 0 held, −1 gone above
         const p = (sr.top - rest) / Math.max(1, sr.height)
+        // its boxes: out of the corner as it comes up, back into it as it goes (the overview's timings)
         const [a, z] = k === 0 ? FIRST : [1, OPENED]
         const g = reduced ? 1 : p >= 0 ? 1 - ease(clamp01((p - z) / (a - z))) : 1 - ease(clamp01((p - CLOSING) / (CLOSED - CLOSING)))
+        // the 3D's own run, while it is held, eased so a wheel's steps arrive as one glide
         const s = Math.max(0, (rest - r.top) / vh)
-        const target = smooth(PLAY[0], PLAY[1], s)
+        const target = smooth(playOf(compact)[0], playOf(compact)[1], s)
         eased[k] = eased[k] < 0 || reduced ? target : damp(eased[k], target, 8, dt)
         if (Math.abs(eased[k] - target) < 1e-4) eased[k] = target
         else moving = true
@@ -224,9 +248,19 @@ export function Components() {
           tk.value = eased[k]
           tk.listeners.forEach((f) => f())
         }
+        const SW = sr.width
+        const SH = sr.height
+        // what the box holds, at the size it stands open at: set on every listing, on the screen or not, so each scene has a
+        // size, and is built, behind the loading screen (a canvas of no size is not built until it has one: mid-scroll)
+        const inner = refs.viewIn[k]
+        if (inner) {
+          const iw = `${(L.view[2] * SW).toFixed(1)}px`
+          const ih = `${(L.view[3] * SH).toFixed(1)}px`
+          if (inner.style.width !== iw) inner.style.width = iw
+          if (inner.style.height !== ih) inner.style.height = ih
+        }
         if (sr.bottom > 0 && sr.top < vh) {
-          const SW = sr.width
-          const SH = sr.height
+          // each box between folded and open; what it holds stays where it stands open, its edges reveal it
           const box = (cell: HTMLDivElement | null, inner: HTMLDivElement | null, open: Rect, fold: Rect) => {
             if (!cell || !inner) return [0, 0]
             const [x, y, w, h] = mix(fold, open, g)
@@ -234,8 +268,6 @@ export function Components() {
             cell.style.width = `${(w * SW).toFixed(1)}px`
             cell.style.height = `${(h * SH).toFixed(1)}px`
             cell.style.visibility = w * h > 1e-5 ? 'visible' : 'hidden'
-            inner.style.width = `${(open[2] * SW).toFixed(1)}px`
-            inner.style.height = `${(open[3] * SH).toFixed(1)}px`
             inner.style.transform = `translate3d(${((open[0] - x) * SW).toFixed(1)}px, ${((open[1] - y) * SH).toFixed(1)}px, 0)`
             return [w * SW, h * SH]
           }
@@ -245,6 +277,8 @@ export function Components() {
           if (rx) rx.textContent = `X: ${Math.round(vw)}`
           if (ry) ry.textContent = `Y: ${Math.round(vhh)}`
         }
+        // its outcome is drawn into its row as it goes, the listing's words passing up behind the rows;
+        // the last as its own listing arrives, so its slot is never left empty
         const row = rows.current[k]
         if (row) {
           const lastOne = compact || k === N - 1
@@ -255,7 +289,7 @@ export function Components() {
           row.toggleAttribute('data-docked', d > 0.5)
         }
       })
-      const sec = section.current?.getBoundingClientRect()
+      // the rows leave with the section, never riding on into the next one
       if (sec && rowsLayer.current) rowsLayer.current.style.transform = `translate3d(0, ${Math.min(0, sec.bottom - vh).toFixed(1)}px, 0)`
       // (a phone: the cap stands over the screen above the section until the section reaches the header; shown only then)
       const cap = section.current?.querySelector<HTMLElement>('.fr-bw__cap')
@@ -285,7 +319,7 @@ export function Components() {
     const write = () => {
       const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
       const rowH = rows.current[0]?.offsetHeight ?? 0
-      listingStops(el, refs.block, (k) => navH + under(k, compact) * rowH, PLAY[1])
+      listingStops(el, refs.block, (k) => navH + under(k, compact) * rowH, playOf(compact)[1])
     }
     // going up, back through it the same way, a listing at a time (as the Rainscreen barrier), never over it whole
     el.dataset.back = 'all'
@@ -300,7 +334,7 @@ export function Components() {
     if (!b) return
     const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0
     const rowH = rows.current[0]?.offsetHeight ?? 0
-    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + under(k, compact) * rowH) + PLAY[1] * window.innerHeight)
+    scrollToY(b.getBoundingClientRect().top + window.scrollY - (navH + under(k, compact) * rowH) + playOf(compact)[1] * window.innerHeight)
   }
 
   return (

@@ -85,7 +85,7 @@ const PHONE_STEPS = [
 const NO_LABELS: LabelSpec[] = []
 
 /**
- * A phone: the six layers set as Wall Panels' panels are (RunStations), on black, a dark card: each layer coming in, played
+ * A phone: the six layers set as Wall Panels' panels are (RunStations), on white, a grey card, as the Solid and SIP panels: each layer coming in, played
  * by itself in the card, one after another; the bar, the small controls, a still a step in the strip. The scene is the
  * wide screen's, played on the card's own clock from one of its stops to the next.
  */
@@ -134,7 +134,7 @@ function LayerRun({ t, bus, live }: { t: Progress; bus: ReturnType<typeof create
     <>
       <ScrubRig progress={run} shotAt={shotAt} sway={1.5} live={live} />
       <MovingKeyLight focus={[1.2, 1.6, 1.6]} reach={6.5} offset={[-5, 10, 8]} />
-      <BurstUnit progress={run} focus={null} bus={bus} live={live} />
+      <BurstUnit progress={run} focus={null} bus={bus} live={live} floor="light" />
       <FollowScroll progress={run} />
     </>
   )

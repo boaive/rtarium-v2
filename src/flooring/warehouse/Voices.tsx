@@ -19,6 +19,7 @@ const BANDS: Band[] = [
     role: 'Consultant & Engineer',
     head: 'Specify maximum structural toughness.',
     line: 'A high-ductility, jointless floor system that prevents reflective cracking over dynamic PT and SFRC slabs while meeting TR34 DM1 flatness specifications.',
+    short: 'Ductile and jointless: no reflective cracks, TR34 DM1 flat.',
     media: { kind: '3d' },
   },
   {
@@ -26,6 +27,7 @@ const BANDS: Band[] = [
     role: 'Logistics Developer & Owner',
     head: 'Keep warehouse operations running.',
     line: 'A continuous, abrasion-resistant floor system that reduces joint failures, surface spalling and ruts, supporting 24/7 robotic operations.',
+    short: 'Abrasion-resistant and jointless, for 24/7 robots.',
     media: { kind: 'photo', src: '/img/flooring/aw-lgv-aisle.webp', alt: 'Laser-guided trucks in a narrow aisle between towering racks, on a smooth floor', pos: '50% 60%' },
   },
   {
@@ -33,6 +35,7 @@ const BANDS: Band[] = [
     role: 'Concrete Flooring Contractor',
     head: 'Simpler, faster floor installation.',
     line: 'An 800 mm slump, self-consolidating mix that pumps easily through the lightweight, non-corrosive 3D basalt grid, reducing labour hours and eliminating joint-cutting steps.',
+    short: 'Pumped through a light 3D mesh, with no joints to cut.',
     media: { kind: 'photo', src: '/img/flooring/aw-site-pour.webp', alt: 'RTARIUM on site: a crew pumping self-levelling concrete through a hose onto the mesh', pos: '60% 50%' },
   },
   CARBON_BAND,

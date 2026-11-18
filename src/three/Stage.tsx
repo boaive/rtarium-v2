@@ -157,6 +157,8 @@ export function Stage() {
           shadows
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false }}
           camera={{ fov: 30, near: 0.002, far: 8, position: [0.2, 0.3, 0.4] }}
+          // (no waiting on the driver for each new shader's log in a build: Stage3D's onCreated says why)
+          onCreated={({ gl }) => void (gl.debug.checkShaderErrors = import.meta.env.DEV)}
         >
           {watch && <PerformanceMonitor factor={1} step={0.25} flipflops={6} bounds={(hz) => [hz * 0.66, hz * 0.92]} onChange={({ factor }) => setQuality(factor)} />}
           <Suspense fallback={null}>

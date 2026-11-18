@@ -24,6 +24,8 @@ export interface Band {
   role: string
   head: string
   line: string
+  /** a phone's card: the line cut to about the length of `head`, so a card's two parts sit even (the line in full on the wide screen) */
+  short?: string
   media?: { kind: '3d' } | { kind: 'photo'; src: string; alt: string; credit?: string; pos?: string }
 }
 
@@ -34,6 +36,7 @@ const BANDS: Band[] = [
     role: 'Consultant & Engineer',
     head: 'Specify with total confidence.',
     line: 'A non-combustible, high-ductility floor system that absorbs dynamic deflections and protects critical ESD floor warranties.',
+    short: 'Non-combustible and ductile, it protects ESD floor warranties.',
     media: { kind: '3d' },
   },
   {
@@ -41,6 +44,7 @@ const BANDS: Band[] = [
     role: 'Developer & Owner',
     head: 'Less to repair. Less downtime risk.',
     line: 'A non-dusting surface and damped vibration help protect server performance and uptime.',
+    short: 'No dusting, damped vibration: servers kept up and running.',
     media: { kind: 'photo', src: '/img/flooring/dc-aisle.webp', alt: 'A cold aisle between two rows of server racks in a data centre', credit: 'Photo: Robert Harker, CC BY-SA 3.0', pos: '50% 45%' },
   },
   {
@@ -48,6 +52,7 @@ const BANDS: Band[] = [
     role: 'General Contractor',
     head: 'Quicker on site.',
     line: 'A pumpable 800 mm slump-flow mix flows around an easy-to-lay 3D mesh, which can shorten the programme.',
+    short: 'An 800 mm slump-flow mix, pumped round an easy-to-lay mesh.',
     media: { kind: 'photo', src: '/img/flooring/dc-site-pump.webp', alt: 'RTARIUM on site: the mixer-pump, its hose across the slab and a crew levelling a strip of the floor', pos: '50% 50%' },
   },
   {
@@ -55,6 +60,7 @@ const BANDS: Band[] = [
     role: 'Sustainability',
     head: 'A more sustainable approach to construction.',
     line: 'Built around a GGBS and fly-ash binder matrix and a low-embodied-carbon mineral mesh, reducing the environmental impact of the flooring system.',
+    short: 'A GGBS and fly-ash binder, and a low-carbon mineral mesh.',
   },
 ]
 
@@ -145,7 +151,7 @@ function VoicesCards({ bands }: { bands: Band[] }) {
     ),
     parts: [
       { label: b.id === 'carbon' ? 'Embodied carbon' : 'For them', text: b.head },
-      { label: b.id === 'carbon' ? 'How' : 'Why', text: b.line },
+      { label: b.id === 'carbon' ? 'How' : 'Why', text: b.short ?? b.line },
     ],
     foot:
       b.id === 'carbon' ? (

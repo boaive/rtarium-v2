@@ -144,6 +144,7 @@ const BANDS: Band[] = [
     role: 'Fab Consultant & Process Engineer',
     head: 'Guarantee maximum vibration control.',
     line: 'The combined dampening properties of RTARIUM 3D Mesh and Graphene-SLC mute micro-vibrations to comfortably meet strict VC-D and VC-E standards, protecting high-yield lithography.',
+    short: 'Mesh and Graphene-SLC damping, to VC-D and VC-E.',
     media: { kind: '3d' },
   },
   {
@@ -151,6 +152,7 @@ const BANDS: Band[] = [
     role: 'Semiconductor Developer & Facility Owner',
     head: 'Achieve absolute atmospheric containment.',
     line: 'A pore-refined, zero-outgassing matrix that completely eliminates sub-surface moisture transmission and concrete out-dusting to preserve critical ISO cleanroom classification.',
+    short: 'No outgassing, no moisture, no dust: ISO class kept.',
     media: { kind: 'photo', src: '/img/flooring/sc-inspect.webp', alt: 'An engineer in a cleanroom suit at an inspection microscope under yellow light', credit: 'Photo: O. Usher, UCL MAPS, CC BY 2.0', pos: '50% 40%' },
   },
   {
@@ -158,6 +160,7 @@ const BANDS: Band[] = [
     role: 'Specialized Sub-Contractor',
     head: 'Flawless millimetric execution.',
     line: 'A high-fluidity 800 mm slump mix that self-levels effortlessly over a lightweight, non-conductive, and non-magnetic 3D basalt mesh, cutting installation windows in half with zero risk of structural cracking.',
+    short: 'Self-levels over a light, non-magnetic mesh, in half the time.',
     media: { kind: 'photo', src: '/img/flooring/dc-site-pump.webp', alt: 'RTARIUM on site: the mixer-pump, its hose across the slab and a crew levelling a strip of the floor', pos: '50% 50%' },
   },
   CARBON_BAND,

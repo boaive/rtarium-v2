@@ -11,13 +11,18 @@ page. The reference is veedo.space's source, `C:\DOWNLOADS\vee.build-main` (its 
   flies through the cavity and the white to About by itself (`useSwipePager` + `useWhiteHandoff`, its swipes taken on
   the first `touchmove` so no fling starts under the glide). On a phone `pagedZones` returns the tour alone: About,
   What it replaces, Innovation and Tech Space scroll natively.
+- One more exception, the user's (18 Nov 2026): the Rainscreen barrier and the Stud Frame components on a phone (`ListingScreen` with `snap`) are a
+  stop a swipe both ways, six stops (each point's whole view, then its close view), by the browser's own CSS snapping:
+  `scroll-snap-stop: always` points half a screen apart, `html:has(.fls--snap) { scroll-snap-type: y proximity }`.
+  Nothing in code moves the page. A JS hold (`data-hold`) could not stop a real phone's fling there.
 - Pinned parts are `position: sticky` and play by where the page is. Their picture eases toward the scroll target
   (`damp(v, target, 9.5, dt)`, veedo's `DAMPING`), never set straight from a scroll event.
 - One passive scroll listener per thing, and read layout before writing styles in a frame.
 - `holdScroll` (opening, menu) holds the page with `overflow: hidden` when there is no Lenis.
 - A section that should rest on a stop carries `data-settle` (+ `data-stops`): `src/lib/settle.ts` glides it there
-  slowly, only once the finger is off and the fling has stopped, and a touch cancels it. Used by the rainscreen's
-  listings (Barrier) and the Unitized six layers, which on a phone play by themselves with "Skip to the end".
+  slowly, only once the finger is off and the fling has stopped, and a touch cancels it. Used by the Unitized six
+  layers, which on a phone play by themselves with "Skip to the end". Not the Rainscreen barrier or the Stud Frame
+  components on a phone (18 Nov 2026): they scroll freely, each listing held 1.8 screens, as settling read as locked.
 - A screen of parts a scroll carries `data-hold` (Unitized six layers, Wall Panels' panels): a fling crossing its top is
   stopped on it by cutting the page's overflow for two frames (ends the browser's momentum, nothing fights it). Held
   there, each swipe is taken on its first `touchmove` and sent to the screen as `holdstep` (a part on or back); the

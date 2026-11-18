@@ -86,15 +86,23 @@ export default function Unitized() {
         <div className="fu" data-ground="yellow">
           <Hero sectionRef={hero} />
         </div>
-        <div className="fu" data-ground="yellow">
+        <div className="fu" data-ground={compact ? 'light' : 'yellow'}>
           <Layers />
         </div>
+        {/* (a phone: the four problems straight after the six layers, before slab to slab; the user, 18 Nov 2026) */}
+        {compact && (
+          <div className="fu" data-ground="black">
+            <Flaws />
+          </div>
+        )}
         <div className="fu" data-ground="light">
           <Hang />
         </div>
-        <div className="fu" data-ground="black">
-          <Flaws />
-        </div>
+        {!compact && (
+          <div className="fu" data-ground="black">
+            <Flaws />
+          </div>
+        )}
         <div className="fu" data-ground="yellow">
           <Answers />
         </div>

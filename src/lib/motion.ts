@@ -24,7 +24,13 @@ export function useMediaQuery(query: string) {
 
 export const REDUCED_QUERY = '(prefers-reduced-motion: reduce)'
 /** phones, narrow windows and portrait screens: copy sits under the 3D instead of beside it */
-export const COMPACT_QUERY = '(max-width: 860px), (max-aspect-ratio: 4/5)'
+/**
+ * a phone, a portrait screen, or a tablet: any touch screen up to 1180 px wide (laid out at a phone's height and scaled up
+ * by index.html, held either way); never a computer with a mouse or trackpad alone. vite.config.ts gives the stylesheets'
+ * phone rules the same clause
+ */
+export const TABLET_CLAUSE = '(any-pointer: coarse) and (max-width: 1180px)'
+export const COMPACT_QUERY = `(max-width: 860px), (max-aspect-ratio: 4/5), ${TABLET_CLAUSE}`
 export const useReducedMotion = () => useMediaQuery(REDUCED_QUERY)
 export const useIsCompact = () => useMediaQuery(COMPACT_QUERY)
 export const useCoarsePointer = () => useMediaQuery('(pointer: coarse)')

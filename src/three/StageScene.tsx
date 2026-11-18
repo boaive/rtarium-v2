@@ -118,6 +118,8 @@ const moving = (el: Element | null) => !!el && el.getAnimations().some((a) => a.
 const fogTarget = new THREE.Color()
 /** where a view in a box stands in it: the middle */
 const CENTRE: [number, number] = [0.5, 0.5]
+/** a tablet held sideways: the opening's piece lower right, clear of the copy (as a wide screen's `frame`) */
+const SIDEWAYS: [number, number] = [0.7, 0.66]
 const anchorPt: [number, number, number] = [0, 0, 0]
 /** where each screen is this frame: read once, used by the choice of the active screen and by the views */
 const rects = new Map<Region, DOMRect>()
@@ -713,11 +715,16 @@ export function StageScene({ compact, reduced }: Props) {
       const k = reduced || (compact && r.box) ? 1e4 : hero ? (compact ? 26 : 9) : bl ? SCRUB : GLIDE
       // narrower landscape windows: stand back so the mesh keeps clear of the copy beside it;
       // stacked layout on a screen that is not tall: smaller, and up into the space above the copy
-      const squat = compact ? clamp01((vw / vh - 0.6) / 0.45) : 0
+      // (a tablet is never squat: it is laid out a phone's height whichever way it is held, index.html)
+      const tablet = compact && document.documentElement.classList.contains('is-tablet')
+      const squat = compact && !tablet ? clamp01((vw / vh - 0.6) / 0.45) : 0
       // a phone that is short for its width (16:9, or its browser bars showing) has less height between the copy
       // above and below the model: the model stands a little further back
       const short = compact ? clamp01((vw / vh - 0.5) / 0.08) : 0
-      const fit = r.box ? 1 : compact ? (1 + squat * 0.85) * (1 + short * 0.2) : Math.max(1, 1.5 / (vw / vh))
+      // (a tablet held sideways, the phone's version laid out wide: the opening's piece stands in the room right of the
+      // copy and under the name, lower right as on a wide screen, never up over the name as a squat phone's would)
+      const sideways = tablet && hero && !r.box && vw / vh > 1.15
+      const fit = r.box ? 1 : sideways ? 0.9 : compact ? (1 + squat * 0.85) * (1 + short * 0.2) : Math.max(1, 1.5 / (vw / vh))
       const dist = (compact ? (pose.distCompact ?? pose.dist) : pose.dist) * fit * (1 + Math.abs(o) * PARALLAX.dist)
       // (a phone's opening: the tour's way down into the cavity and on along it is turned with the piece, a quarter turn or
       // more, so the camera flies on the way it looks, forward into the next section, never sideways across the mesh)
@@ -733,9 +740,9 @@ export function StageScene({ compact, reduced }: Props) {
       c.dist = damp(c.dist, dist, k, dt)
       c.fov = damp(c.fov, pose.fov, k, dt)
       // a view in a box is centred in it
-      const frame = r.box ? (pose.frameBox ?? CENTRE) : compact ? pose.frameCompact : pose.frame
+      const frame = r.box ? (pose.frameBox ?? CENTRE) : sideways ? SIDEWAYS : compact ? pose.frameCompact : pose.frame
       c.fx = damp(c.fx, frame[0], k, dt)
-      c.fy = damp(c.fy, lerp(frame[1], Math.min(frame[1], 0.27), squat), k, dt)
+      c.fy = damp(c.fy, sideways ? frame[1] : lerp(frame[1], Math.min(frame[1], 0.27), squat), k, dt)
       // a view in a box never sways back and forth: it turns round one way at an even pace, on and on
       // (in development a recording of a box's loop may turn it faster: window.__boxTurn)
       const turn = pose.spin || (r.box ? (import.meta.env.DEV && (window as unknown as { __boxTurn?: number }).__boxTurn) || BOX_TURN : 0)

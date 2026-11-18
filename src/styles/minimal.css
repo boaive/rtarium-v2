@@ -1806,6 +1806,19 @@
     height: calc(var(--card-h) + (var(--n) - 1) * var(--peek));
     gap: 0;
   }
+  /* (out of sight until DeckCards has fitted it to the screen: never seen at a first size, then another) */
+  .fdeck__list:not(.is-fit) {
+    visibility: hidden;
+  }
+  /* (a small screen's height, read by DeckCards: the cards come up from under it) */
+  .fdeck__svh {
+    position: absolute;
+    top: 0;
+    width: 0;
+    height: 100svh;
+    visibility: hidden;
+    pointer-events: none;
+  }
   .fdeck .vs__card,
   .fdeck .vs__card.is-in {
     display: flex;
@@ -2134,7 +2147,7 @@
   .ffail__count {
     position: absolute;
     right: var(--gutter);
-    bottom: clamp(10px, 2.2lvh, 20px);
+    bottom: calc(100lvh - 100svh + clamp(10px, 2.2svh, 20px));
     display: flex;
     align-items: baseline;
     gap: 6px;
@@ -2165,7 +2178,7 @@
   .ffail__dashes {
     position: absolute;
     left: var(--gutter);
-    bottom: clamp(22px, 3.6lvh, 32px);
+    bottom: calc(100lvh - 100svh + clamp(22px, 3.6svh, 32px));
     display: flex;
     gap: 8px;
     margin: 0;
@@ -2183,6 +2196,74 @@
   }
   .ffail__dashes li.is-now {
     background: var(--yellow);
+  }
+  /* the Rainscreen barrier and the Stud Frame components on a phone (ListingScreen), in these styles: each point's own
+     scene stacked in the room between the words and the foot, the one in play shown */
+  .fls__stage {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--nav-h) + clamp(150px, 24svh, 200px));
+    bottom: calc(100lvh - 100svh + clamp(56px, 8svh, 72px));
+  }
+  /* (its number raised a line, what the point is small under it, as the wall panels' parts are set) */
+  .fls .ffail__count {
+    bottom: calc(100lvh - 100svh + clamp(30px, 4.6svh, 40px));
+  }
+  .fls__tag {
+    position: absolute;
+    right: var(--gutter);
+    bottom: calc(100lvh - 100svh + clamp(12px, 2.2svh, 20px));
+    margin: 0;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-align: right;
+    color: rgb(242 240 233 / 0.6);
+    pointer-events: none;
+    animation: ffail-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  /* (snap, a stop a swipe: half a screen of scroll a stop (near enough that wherever a swipe leaves the page, the
+     browser settles it on one), each screen's top a snap point the browser never passes in one
+     swipe; the page snaps only where these are, proximity everywhere else) */
+  .ffail.fls--snap {
+    height: calc((var(--stops) - 1) * 50lvh + 100lvh);
+  }
+  .fls__snap {
+    position: absolute;
+    left: 0;
+    top: calc(var(--i) * 50lvh);
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  html:has(.fls--snap) {
+    scroll-snap-type: y proximity;
+  }
+  /* (a point's own heading in place of the title: in with it) */
+  .fls__head {
+    animation: ffail-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .fls__layer {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.4s ease,
+      visibility 0s linear 0.4s;
+  }
+  .fls__layer.is-on {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.4s ease;
+  }
+  .fls__layer .fc-canvas {
+    position: absolute;
+    inset: 0;
   }
   @keyframes ffail-in {
     from {

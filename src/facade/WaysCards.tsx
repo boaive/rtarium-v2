@@ -217,7 +217,9 @@ export function WaysCards({ id, sectionRef, lines, overview, label, items, model
               // (a card's way in, reached by the keyboard, brings it to the front)
               <li key={it.id} ref={(el) => void (cards.current[i] = el)} className={`ways__card ${front === i ? 'is-front' : ''}`} onFocus={() => front !== i && show(i)} onClick={openCard}>
                 <div className="ways__model" aria-hidden="true">
-                  {model(i, front === i, inView, live)}
+                  {/* (each model rises as soon as it is made, behind the loading screen, so it is standing by the time the row
+                      is reached: rising only once the row came into view, the cards stood empty a moment, as if still loading) */}
+                  {model(i, front === i, true, live)}
                 </div>
                 <p className="ways__count num">
                   0{it.num} / 0{it.of}
