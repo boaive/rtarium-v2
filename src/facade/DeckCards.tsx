@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { damp, prefersReducedMotion } from '../lib/motion'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 
 /** a card's parts: each a heading with its sign, what it says folded until the sign is pressed */
 export type DeckPart = { label: string; text: string }
@@ -16,103 +15,24 @@ export interface DeckItem {
   foot?: ReactNode
 }
 
-/** how far of the screen's height the scroll deals each card */
-const DECK_RUN = 75
-
 /**
- * Cards dealt as Home's "One mesh in place of three compromises" deals them (Why: Cards), on a phone: on yellow, white
- * cards, the section holding still while the scroll deals them one onto another, a band lower each time, so every card
- * passed still shows its number and name. A tap on a card under the one in front shuffles it to the front, as Home's.
- * A card: its number on a yellow chip and its drawing top right, its name and what it is, and its parts, one open at a
- * time, the first open to begin with (a minus), each a thin plus that turns into a minus as it opens; a foot under a
- * hairline. Its styles: minimal.css (`.fdeck`, and the deck's own `.vs`).
+ * Cards stacked as veedo.space stacks its six points on a phone (vee.build: Difference.astro, sections.css `.diff__cell`):
+ * on its ground, white cards, each `position: sticky` a band lower than the one before, so as the page scrolls each card
+ * stops under the header and the next comes up over it, every card passed still showing its number and name. Nothing in
+ * code moves them: the browser scrolls and stacks them itself (CLAUDE.md rule 1). It was dealt by a scroll listener
+ * setting each card's transform a frame at a time, eased after the page, and read as cards lagging the finger, the last
+ * one riding the page out. A card: its number on a yellow chip and its drawing top right, its name and what it is, and
+ * its parts, one open at a time, the first open to begin with (a minus), each a thin plus that turns into a minus as it
+ * opens; a foot under a hairline. Its styles: minimal.css (`.fdeck`, and the deck's own `.vs`).
  */
 export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: { id: string; title: string; items: DeckItem[]; sectionRef?: RefObject<HTMLElement | null>; ground?: 'yellow' | 'black' | 'light' }) {
   const n = items.length
   /** which part of each card is open: the first, to begin with */
   const [open, setOpen] = useState<number[]>(() => items.map(() => 0))
   const flip = (i: number, k: number) => setOpen((o) => o.map((x, a) => (a === i ? (x === k ? -1 : k) : x)))
-  const section = useRef<HTMLElement | null>(null)
   const list = useRef<HTMLOListElement>(null)
-
-  /** where the deal stands, 0 to n - 1 */
-  const at = useRef(0)
-  /** a small screen's height (100svh) in px, as the cards come up from under it */
+  /** a small screen's height (100svh) in px, which the browser's bars never change */
   const svh = useRef<HTMLElement>(null)
-  /**
-   * each card where the deal has it: up from under the screen as its turn comes, set on the card itself. (It was one
-   * variable on the list, `--deck`, which every card worked out from; but a variable on the list is inherited by
-   * everything in the cards, so each frame of the scroll restyled every word and drawing in them: the deck stuttered.)
-   */
-  const deal = useCallback(() => {
-    const deck = list.current
-    if (!deck) return
-    const h = svh.current?.offsetHeight || window.innerHeight
-    for (const card of deck.children) {
-      const c = card as HTMLElement
-      const pos = Number(c.dataset.pos ?? 0)
-      const t = Math.min(1, Math.max(0, at.current - pos + 1))
-      const tf = `translate3d(0, ${((1 - t) * h).toFixed(1)}px, 0)`
-      if (c.style.transform !== tf) c.style.transform = tf
-    }
-  }, [])
-
-  // the deal: the section's run, read as the page scrolls, 0 to n - 1
-  useEffect(() => {
-    const el = section.current
-    const deck = list.current
-    if (!el || !deck) return
-    if (prefersReducedMotion()) {
-      at.current = n - 1
-      return deal()
-    }
-    let raf = 0
-    let last = performance.now()
-    let first = true
-    // the cards ease toward where the scroll has them (veedo's damping, CLAUDE.md rule 1), not set straight from each
-    // scroll event: they glide on with the page's own fling rather than stepping with it
-    const read = (now: number) => {
-      raf = 0
-      const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
-      last = now
-      // (read first, then written)
-      const r = el.getBoundingClientRect()
-      const pin = el.querySelector<HTMLElement>('.fdeck__in')
-      const run = Math.max(1, r.height - (pin?.offsetHeight ?? window.innerHeight))
-      const target = Math.min(1, Math.max(0, -r.top / run)) * (n - 1)
-      at.current = first ? target : damp(at.current, target, 9.5, dt)
-      first = false
-      if (Math.abs(at.current - target) < 1e-3) at.current = target
-      else raf = requestAnimationFrame(read)
-      deal()
-    }
-    // (read only while the deck is within a screen of being seen: read on every scroll from anywhere on the page, it had
-    // the page laid out again each frame, after the sections had written their own styles)
-    let near = true
-    const on = () => {
-      if (near && !raf) {
-        last = performance.now()
-        raf = requestAnimationFrame(read)
-      }
-    }
-    const io = new IntersectionObserver(
-      ([e]) => {
-        near = e.isIntersecting
-        on()
-      },
-      { rootMargin: '100% 0px' },
-    )
-    io.observe(el)
-    read(performance.now())
-    window.addEventListener('scroll', on, { passive: true })
-    window.addEventListener('resize', on)
-    return () => {
-      cancelAnimationFrame(raf)
-      io.disconnect()
-      window.removeEventListener('scroll', on)
-      window.removeEventListener('resize', on)
-    }
-  }, [n, deal])
 
   // each card only as tall as the deck's fullest needs (its fullest part open), not the one height every deck had: a deck
   // of short cards no longer carries an empty band under its words
@@ -153,17 +73,17 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
       deck.style.setProperty('--card-h', `${cardH}px`)
       // and the whole deck on the one screen: where the cards passed, each showing its number and name, would carry the
       // one in front past the screen's foot, each shows a band a little shorter (its name's top half at the least)
-      const pin = deck.closest<HTMLElement>('.fdeck__in')
       const first = deck.querySelector<HTMLElement>('.fdeck__card')
       const name = first?.querySelector<HTMLElement>('.fdeck__name')
       deck.style.removeProperty('--peek')
-      deck.style.removeProperty('margin-top')
       deck.classList.remove('is-tight')
-      if (!pin || !first || !name || n < 2) return
+      if (!first || !name || n < 2) return
       // (the small screen's height, which the browser's bars never change: fitted to the window's, the deck was fitted
       // again as the bar slid away on the first scroll, and the cards jumped to a new size)
       const screenH = svh.current?.offsetHeight || window.innerHeight
-      const room = () => Math.min(pin.clientHeight, screenH) - (deck.getBoundingClientRect().top - pin.getBoundingClientRect().top) - 14
+      // (the stack whole on the screen under where the first card stops, its sticky top)
+      const stop = parseFloat(getComputedStyle(first).top) || 0
+      const room = () => screenH - stop - 14
       const band = () => name.offsetTop + name.offsetHeight + 8
       const spare = room() - cardH - (n - 1) * band()
       if (spare >= 0) {
@@ -179,7 +99,6 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
           if (left >= 0 || tries === 4) {
             if (left < 0) deck.style.removeProperty('--deck-scale')
             deck.style.setProperty('--card-h', `${left < 0 ? cardH : h}px`)
-            if (left > 16) deck.style.marginTop = `${Math.floor(left / 2)}px`
             return
           }
           scale = 1 + (scale - 1) * 0.55
@@ -224,64 +143,16 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
     }
   }, [items])
 
-  /*
-   * A tap on a card under the one in front, once all are dealt: shuffled to the front as Home's deck shuffles (Why: Cards):
-   * it lifts out of the deck, goes to the front as the others close up behind it, and settles. Before all are dealt, the
-   * page goes back to that card's own step instead (shuffled then, a card not yet dealt would be thrown off the screen).
-   */
-  const [front, setFront] = useState(n - 1)
-  const [moving, setMoving] = useState<{ i: number; phase: 'lift' | 'land' } | null>(null)
-  const timers = useRef<number[]>([])
-  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), [])
-  const order = [...items.keys()].filter((i) => i !== front).concat(front)
-  const dealt = () => at.current >= n - 1 - 0.02
-  // (the order changed by a shuffle: each card where its new place has it)
-  useEffect(() => deal(), [front, deal])
-  const shuffle = (i: number) => {
-    if (moving || i === front) return
-    if (prefersReducedMotion()) return setFront(i)
-    setMoving({ i, phase: 'lift' })
-    timers.current.push(
-      window.setTimeout(() => {
-        setFront(i)
-        setMoving({ i, phase: 'land' })
-      }, 200),
-      window.setTimeout(() => setMoving(null), 620),
-    )
-  }
-  // (scrolled back up into the deal, the cards go back to their own order: the deal undone as it was done)
-  useEffect(() => {
-    const el = section.current
-    if (!el) return
-    const back = () => {
-      if (front !== n - 1 && !dealt()) setFront(n - 1)
-    }
-    window.addEventListener('scroll', back, { passive: true })
-    return () => window.removeEventListener('scroll', back)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [front, n])
-
-  const goToCard = (i: number) => {
-    const el = section.current
-    const deck = list.current
-    if (!el || !deck) return
-    // (before all are dealt a tap does nothing: a finger on the cards only moves the page, CLAUDE.md rule 5. It used to
-    // take the page back to that card's step, and a swipe begun on a card that the phone read as a tap pulled the page
-    // back to the first card, the next ones never coming up)
-    if (dealt()) shuffle(i)
-  }
-
   return (
     <section
       ref={(el) => {
-        section.current = el
         if (sectionRef) (sectionRef as { current: HTMLElement | null }).current = el
       }}
       id={id}
       className={`fdeck on-${ground}`}
       data-ground={ground}
       data-flow=""
-      style={{ '--n': n, '--run': DECK_RUN } as CSSProperties}
+      style={{ '--n': n } as CSSProperties}
       aria-labelledby={`${id}-title`}
     >
       <div className="fdeck__in">
@@ -293,11 +164,9 @@ export function DeckCards({ id, title, items, sectionRef, ground = 'yellow' }: {
           {items.map((v, i) => (
             <li
               key={v.id}
-              className={`vs__card fdeck__card ${i === front ? 'is-front' : 'is-tucked'} ${moving?.i === i ? `is-${moving.phase}` : ''}`}
-              data-pos={order.indexOf(i)}
-              style={{ '--i': i, '--pos': order.indexOf(i) } as CSSProperties}
+              className={`vs__card fdeck__card ${i === n - 1 ? 'is-front' : 'is-under'}`}
+              style={{ '--i': i } as CSSProperties}
               aria-labelledby={`${id}-${v.id}`}
-              onClick={() => goToCard(i)}
             >
               <div className="vs__top">
                 <span className="vs__count num">

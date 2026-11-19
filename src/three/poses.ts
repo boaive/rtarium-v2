@@ -60,12 +60,18 @@ export interface Pose {
   round?: boolean
   /** the piece cut flush, square, this far out from its middle on all four sides (m): every edge ends the same way */
   cut?: number
+  /** where that square's middle is, if not the piece's own (m, x and z on the sheet) */
+  cutAt?: [number, number]
+  /** with `cut`: nothing drawn under this height on the sheet (m), so only its upper face and what wraps it are left */
+  cutBelow?: number
   /**
    * a phone's card grown with the scroll from one edge: `near`, where its near edge lies (cells, along z, toward the
    * camera); as the card's row comes up the screen the piece is woven on from there, away from the camera, to its full
    * `win[1]`, all of it by the time the row has come to rest
    */
-  grow?: { near: number }
+  grow?: { near: number; axis?: 'x' | 'z'; fade?: boolean }
+  /** a phone's card moving a little, back and forth, on its own clock: degrees each way round and up, seconds a cycle */
+  drift?: { azim: number; elev: number; period: number }
   /** 0 = the sheet lies flat, 1 = it stands on its edge facing the camera */
   stand: number
   /** how much of its shadow the sheet casts on the ground under it (0..1) */
@@ -431,11 +437,24 @@ export const PHONE_CARD: Partial<Record<PoseId, Pose>> = {
   // all in view, the edge running a little uphill across the card; Flat mesh takes the lower face and the fibres away
   // and leaves the camera where it is
   shear: card('shear', { tgt: [0, -0.002, 0.058], elev: 9, azim: 14, dist: 0.12, distCompact: 0.12, frameBox: [0.5, 0.55], win: [14, 14], fog: [6, 8], shadow: 1, shearPlane: false, spin: 2 }),
-  // close over it from a high angle, the strands large (some four across the card), running off its sides and its foot;
-  // it does not turn: it grows, woven on from the card's foot up the card as the row comes up the screen (`grow`), its
-  // far edge one straight line of whole cells, low in the card, clear of the words, once the row has come to rest
-  // (turned a little to the left: the strands lean, never square to the card)
-  mineral: card('mineral', { tgt: [0, 0, 0.006], elev: 74, azim: 12, dist: 0.145, distCompact: 0.145, fov: 38, frameBox: [0.5, 0.42], win: [14, 5], grow: { near: 5 }, fog: [6, 8], shadow: 1 }),
+  // close over it from a high angle, the strands large (some four across the card), running off its sides and its foot.
+  // Seen from a quarter turn round (azim 102, the user 19 Nov 2026: "place it vertically"): the face's straight strands
+  // run up the card, not across it. It does not turn: once the section has reached the top of the screen it grows, woven
+  // on from the card's foot up the card (`grow`, along x, the sheet's way toward the camera from here), its far edge one
+  // line of whole cells, low in the card, clear of the words (turned a little: the strands lean, never square to the card)
+  // (the user, 20 Nov 2026, after a reference still: a close-up. Low over the sheet, a centimetre off, the pile's loops
+  // arching over the face strands, which rise to the right across the card (the sheet tipped 9°); its far edge, whole
+  // cells, against the ground in the upper card. `fade`: it fades on as the section arrives; `drift`: a slow, small sway
+  // round the crossing, on and on, held while the page moves)
+  // (then, 20 Nov, after the wide screen's own Non-Corrosive shot: that angle (elev 40, azim 140), and only one crossing of
+  // it, "like a plus": the upper face's twisted and flat strands and the loops over them, cut flush and square round the
+  // crossing (`cut`, `cutAt`), nothing under the face (`cutBelow`), on the card's ground. It fades on as the section
+  // arrives and sways a little, slowly, on and on (`drift`))
+  // (and then: "expand at all edges ... slightly tilted": in close, turned to 122°, every end runs off the card, the flat
+  // strand across it a little uphill, the twisted yarn up from the foot to the top right corner)
+  // (then turned 20° the other way (azim 142, the flat strand down to the right) and set lower in the card, so the loops'
+  // legs run off its foot rather than ending in sight)
+  mineral: card('mineral', { tgt: [0, 0.004, 0.006], elev: 40, azim: 142, dist: 0.0235, distCompact: 0.0235, fov: 34, frameBox: [0.5, 0.64], win: [4, 4], grow: { near: 2, axis: 'x', fade: true }, cut: 0.0088, cutAt: [0, 0.006], cutBelow: 0.0015, drift: { azim: 3, elev: 1.2, period: 14 }, fog: [6, 8], shadow: 1 }),
   // Tech Space: the system pulled apart, turning one way about its middle, slowly, on and on (once round in a minute)
   stack: card('stack', { spin: 6 }),
 }

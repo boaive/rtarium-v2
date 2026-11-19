@@ -141,6 +141,10 @@ const cardSigs = new WeakMap<Region, number[]>()
 /** a piece cut flush, square (Pose.cut): its four planes, set each frame from the tile's place */
 const CUT_PLANES = [new THREE.Plane(new THREE.Vector3(1, 0, 0)), new THREE.Plane(new THREE.Vector3(-1, 0, 0)), new THREE.Plane(new THREE.Vector3(0, 0, 1)), new THREE.Plane(new THREE.Vector3(0, 0, -1))]
 const CUT_NORMALS = [new THREE.Vector3(-1, 0, 0), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 0, 1)]
+/** the same four and a fifth, level, under which nothing is drawn (Pose.cutBelow) */
+const CUT_FLOOR = new THREE.Plane(new THREE.Vector3(0, 1, 0))
+const CUT_PLANES_FLOOR = [...CUT_PLANES, CUT_FLOOR]
+const UP = new THREE.Vector3(0, 1, 0)
 /** a phone's idle check: the drag, as text; and what this frame drew, view after view */
 const ob0 = (o: { yaw: number; pitch: number; dragging: boolean }) => `${o.yaw.toFixed(4)},${o.pitch.toFixed(4)},${o.dragging}`
 const sigNow: number[] = []
@@ -231,6 +235,12 @@ interface View {
     explode: number
     shadow: number
     knockAt: number
+    /** a card grown on arrival (`grow`): 1 once its section has reached the top of the screen, 0 once it is back under */
+    growOn: number
+    /** a card faded on as its section arrives (Pose.grow.fade), 0..1 */
+    fade: number
+    /** a drifting card's place in its loop (Pose.drift), 0..1 */
+    drift: number
     /** 1: only the slab underneath, its top at the mid-plane */
     bottomOnly: number
     /** how far mortar has flowed across the sheet (0..1, below 0 while it waits) */
@@ -287,6 +297,9 @@ function newView(pose: Pose, compact: boolean, o: number): View {
       explode: pose.explode,
       shadow: pose.shadow ?? 0,
       knockAt: 0,
+      growOn: 0,
+      fade: 0,
+      drift: 0,
       bottomOnly: pose.slabs?.bottom ? 1 : 0,
       pour: -0.25,
       lift: pose.lift ?? 0,
@@ -392,7 +405,7 @@ export function StageScene({ compact, reduced }: Props) {
   useEffect(() => {
     gl.setClearColor(0x000000, 0)
     gl.autoClear = false
-    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop, POSES, POUR_OUT, ANCHORS, gl, yarn, camera: cameraNow, press }
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__stage = { views, stage, scene, drop, POSES, PHONE_CARD, POUR_OUT, ANCHORS, gl, yarn, camera: cameraNow, press }
   }, [gl, scene, yarn, cameraNow, press])
 
   const lineMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#fdd001', toneMapped: false }), [])
@@ -613,7 +626,7 @@ export function StageScene({ compact, reduced }: Props) {
       const opening = !reduced && OPEN_TURN > 0 && stage.tour < 0.08 && drawn.some((d) => d.id === 'hero')
       // (nor is a card that turns, once the page is still again: held while the page moved, it takes up its turn)
       const turnId = turning ? drawn.find((d) => d.r === turning)?.id : undefined
-      const spinning = !reduced && !pageMoving && !!turnId && !!(PHONE_CARD[turnId]?.spin ?? POSES[turnId].spin)
+      const spinning = !reduced && !pageMoving && !!turnId && !!(PHONE_CARD[turnId]?.spin || PHONE_CARD[turnId]?.drift || (!PHONE_CARD[turnId] && POSES[turnId].spin))
       const idle = key === sigIn.current && still.current >= 2 && since > INTRO.delay + INTRO.duration + 1.5 && !stage.inspect && !pressLive.current && !opening && !spinning
       if (key !== sigIn.current) still.current = 0
       sigIn.current = key
@@ -764,6 +777,8 @@ export function StageScene({ compact, reduced }: Props) {
         // (light on a phone: the turn holds while the page moves, so a card is never drawn again mid-swipe, only copied
         // along with the page as a picture; at rest it turns every frame: stepped every other one, it read as a stutter)
         if (!reduced && !budgetTablet && pose.spin && r === turning && !pageMoving) c.spin = (c.spin + pose.spin * dt) % 360
+        // (a card that drifts: its clock runs as a turn does, only while it is the one in view and the page is still)
+        if (!reduced && !budgetTablet && pose.drift && r === turning && !pageMoving) f.drift = (f.drift + dt / pose.drift.period) % 1
       }
       // a phone's opening piece turns slowly while the page rests on it, and eases back to its pose as the tour sets off
       // (unwound with the tour itself, all of it by the time the mesh built out is reached: eased on a clock of its own, it
@@ -784,9 +799,13 @@ export function StageScene({ compact, reduced }: Props) {
       // a card turned by hand: it follows the finger, and once let go it eases back to its pose
       const hand = r.turn
       if (hand && !hand.dragging && hand.yaw !== 0) hand.yaw = Math.abs(hand.yaw) < 1e-4 ? 0 : damp(hand.yaw, 0, 2.2, dt)
-      const azim = (c.azim + sway + c.spin) * DEG + (hero ? orbit.current.yaw : 0) + (hand?.yaw ?? 0)
+      // (a drifting card: round and up a little on a loop, the two out of step so it traces a slow ellipse, never a line)
+      const dr = compact && r.box && pose.drift ? f.drift * Math.PI * 2 : 0
+      const driftAzim = dr && pose.drift ? pose.drift.azim * Math.sin(dr) : 0
+      const driftElev = dr && pose.drift ? pose.drift.elev * Math.sin(dr * 2 + 0.6) : 0
+      const azim = (c.azim + sway + c.spin + driftAzim) * DEG + (hero ? orbit.current.yaw : 0) + (hand?.yaw ?? 0)
       // the opening's tour goes down to eye level between the faces; elsewhere the camera stays above
-      const elev = THREE.MathUtils.clamp(c.elev * DEG + (hero ? orbit.current.pitch : 0), hero ? -0.3 : 0.05, 1.45)
+      const elev = THREE.MathUtils.clamp((c.elev + driftElev) * DEG + (hero ? orbit.current.pitch : 0), hero ? -0.3 : 0.05, 1.45)
       vPos.set(Math.cos(elev) * Math.sin(azim), Math.sin(elev), Math.cos(elev) * Math.cos(azim)).multiplyScalar(c.dist).add(c.tgt)
       camera.position.copy(vPos)
       camera.up.set(0, 1, 0)
@@ -827,12 +846,29 @@ export function StageScene({ compact, reduced }: Props) {
       const grow = hero ? intro : 1
       f.winX = damp(f.winX, pose.win[0] * grow, wk, dt)
       f.winZ = damp(f.winZ, winZ * grow, wk, dt)
-      // a card grown with the scroll: as far as its row has come up the screen, whole once the row is at rest
+      // a card grown on arrival: nothing of it while its section comes up the screen; once the section has reached the
+      // top of the screen the piece is woven on, from its near edge, over a second and a half or so (the user, 19 Nov
+      // 2026: "as soon as it reaches that area the mesh must grow"). It was grown with the scroll as the row came up, so
+      // it was mostly built before the section had arrived. Back under the screen, it is ready to grow again
       if (pose.grow && r.box) {
         const row = r.el.closest('.eb-row') ?? r.el
-        const g = reduced ? 1 : clamp01(1 - row.getBoundingClientRect().top / (vh * 0.85))
-        f.winX = pose.win[0]
-        f.winZ = damp(f.winZ, winZ * smoothstep(0, 1, g), 16, dt)
+        const top = row.getBoundingClientRect().top
+        if (reduced || top < vh * 0.15) f.growOn = 1
+        else if (top > vh * 0.6) f.growOn = 0
+        const gk = reduced ? 1e4 : f.growOn ? 2.2 : 16
+        if (pose.grow.fade) {
+          // the sheet stays whole; the card fades on instead (written only when it changes)
+          const o = damp(f.fade, f.growOn, reduced ? 1e4 : f.growOn ? 2.6 : 16, dt)
+          f.fade = Math.abs(o - f.growOn) < 0.002 ? f.growOn : o
+          const css = f.fade.toFixed(3)
+          if (r.el.style.opacity !== css) r.el.style.opacity = css
+        } else if (pose.grow.axis === 'x') {
+          f.winZ = winZ
+          f.winX = damp(f.winX, pose.win[0] * f.growOn, gk, dt)
+        } else {
+          f.winX = pose.win[0]
+          f.winZ = damp(f.winZ, winZ * f.growOn, gk, dt)
+        }
       }
       // growing, the new cells are woven on; trimmed back, they lift away (each way across the sheet on its own)
       if (f.winX - wx0 > 1e-4) f.weaveToX = 1
@@ -897,16 +933,22 @@ export function StageScene({ compact, reduced }: Props) {
       u.uWin.value.set(f.winX, f.winZ)
       u.uRound.value = pose.round ? 1 : 0
       // (a grown piece's window keeps its near edge where it lies and runs away from it as far as it has grown)
-      const shiftZ = pose.grow ? pose.grow.near - f.winZ / 2 : 0
-      u.uWinShift.value.set(0, shiftZ)
+      const growX = pose.grow?.axis === 'x'
+      const shiftX = pose.grow && growX ? pose.grow.near - f.winX / 2 : 0
+      const shiftZ = pose.grow && !growX ? pose.grow.near - f.winZ / 2 : 0
+      u.uWinShift.value.set(shiftX, shiftZ)
       u.uBand.value = f.band
       // a piece cut flush, square: the yarn (and its shadow) clipped at the same distance on all four sides
       {
         const cut = pose.cut ?? 0
-        const planes = cut ? CUT_PLANES : null
+        const floor = cut && pose.cutBelow !== undefined
+        const planes = cut ? (floor ? CUT_PLANES_FLOOR : CUT_PLANES) : null
         if (cut && tile.current) {
           tile.current.updateMatrixWorld()
-          CUT_PLANES.forEach((pl, i) => pl.setFromNormalAndCoplanarPoint(CUT_NORMALS[i], vA.copy(CUT_NORMALS[i]).multiplyScalar(-cut)).applyMatrix4(tile.current!.matrixWorld))
+          // (about the piece's middle, or `cutAt` from it: a square round one crossing)
+          const [ax, az] = pose.cutAt ?? [0, 0]
+          CUT_PLANES.forEach((pl, i) => pl.setFromNormalAndCoplanarPoint(CUT_NORMALS[i], vA.copy(CUT_NORMALS[i]).multiplyScalar(-cut).add(vB.set(ax, 0, az))).applyMatrix4(tile.current!.matrixWorld))
+          if (floor) CUT_FLOOR.setFromNormalAndCoplanarPoint(UP, vA.set(0, pose.cutBelow!, 0)).applyMatrix4(tile.current.matrixWorld)
         }
         gl.localClippingEnabled = true
         const mats = new Set<THREE.Material>([yarn.material, yarn.getSolid(), yarn.depthMaterial])
@@ -918,7 +960,7 @@ export function StageScene({ compact, reduced }: Props) {
         // chunks wholly outside the window are not drawn at all
         for (const m of field.current.children) {
           const near = m.userData.near as [number, number] | undefined
-          if (near) m.visible = near[0] < f.winX / 2 + 0.5 && near[1] < f.winZ / 2 + Math.abs(shiftZ) + 0.5
+          if (near) m.visible = near[0] < f.winX / 2 + Math.abs(shiftX) + 0.5 && near[1] < f.winZ / 2 + Math.abs(shiftZ) + 0.5
         }
         // a phone: a chunk wholly built, with every part of the mesh shown, takes the yarn that never discards (the GPU
         // then skips the yarns hidden behind others); one still being woven on, or trimmed, keeps the one that can
@@ -929,7 +971,7 @@ export function StageScene({ compact, reduced }: Props) {
             const far = m.userData.far as [number, number] | undefined
             const mesh = m as THREE.InstancedMesh
             // (built far enough in that none of its cells is still dissolving or being laid: the build's 0.9)
-            const built = whole && !!far && (pose.round ? Math.hypot(far[0], far[1]) <= f.winX / 2 - f.band * 0.9 : far[0] <= f.winX / 2 - f.band * 0.9 && far[1] + Math.abs(shiftZ) <= f.winZ / 2 - f.band * 0.9)
+            const built = whole && !!far && (pose.round ? Math.hypot(far[0], far[1]) <= f.winX / 2 - f.band * 0.9 : far[0] + Math.abs(shiftX) <= f.winX / 2 - f.band * 0.9 && far[1] + Math.abs(shiftZ) <= f.winZ / 2 - f.band * 0.9)
             const want = built ? solid : (m.userData.cut as THREE.Material)
             if (want && mesh.material !== want) mesh.material = want
           }

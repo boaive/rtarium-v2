@@ -1284,14 +1284,14 @@
    * (Replaces writes `--deck`, 0 to 2); with all three in place the page goes on. The ones behind show their number and
    * their strength, the front one is read in full; a tap on a tucked one brings it to the front.
    */
+  /* (now a stack the page scrolls through natively, as the Façade overview's deck: `.vs--stack` below) */
   #replaces {
-    height: 250svh;
+    height: auto;
   }
   #replaces .ledger__in {
-    position: sticky;
-    top: 0;
-    height: 100svh;
-    overflow: hidden;
+    position: relative;
+    height: auto;
+    overflow: visible;
   }
   .vs {
     --card-h: clamp(210px, 30svh, 236px);
@@ -1775,19 +1775,18 @@
  * with its sign, the first open (a minus)
  */
 @media (max-width: 860px), (max-aspect-ratio: 4/5) {
+  /* (the section as tall as its cards: it scrolls with the page, natively, as vee.build's six points do. Nothing over the
+     cards may clip, or `position: sticky` stops working) */
   .fdeck {
     position: relative;
-    height: calc(100lvh + (var(--n) - 1) * var(--run) * 1svh);
     background: var(--yellow);
     color: var(--black);
   }
   .fdeck__in {
-    position: sticky;
-    top: 0;
+    position: relative;
     box-sizing: border-box;
-    height: 100lvh;
-    overflow: hidden;
-    padding: calc(var(--nav-h) + clamp(14px, 2.6svh, 26px)) var(--gutter) 0;
+    overflow: visible;
+    padding: calc(var(--nav-h) + clamp(14px, 2.6svh, 26px)) var(--gutter) clamp(40px, 8svh, 72px);
   }
   .fdeck__title {
     max-width: 15em;
@@ -1803,8 +1802,67 @@
     --strength: calc(clamp(1.35rem, 6.2vw, 1.7rem) * var(--deck-scale, 1));
     --peek: calc(20px + 18px + 10px + var(--strength) * 1.15 + 8px);
     --card-h: clamp(300px, 44svh, 350px);
-    height: calc(var(--card-h) + (var(--n) - 1) * var(--peek));
+    display: flex;
+    flex-direction: column;
+    height: auto;
     gap: 0;
+  }
+  /* (the stack held a little once the last card is on: the cards stay stuck while this passes under them, then go
+     together with the page. Without it the last card arrived and the stack left at once) */
+  .fdeck .vs::after {
+    content: '';
+    flex: none;
+    height: 28svh;
+  }
+  /* each card stuck under the header, a band lower than the one before it, so the ones it covers keep their number and
+     name in view (vee.build: `.diff__cell` with its own `top`). The browser does it all: no transform, no listener */
+  .fdeck .vs__card,
+  .fdeck .vs__card.is-in {
+    position: sticky;
+    top: calc(var(--nav-h) + 12px + var(--i, 0) * var(--peek));
+    z-index: calc(1 + var(--i, 0));
+    flex: none;
+    transform: none;
+    /* (the stack leaves as one: a sticky card keeps its margin box inside the list, so each card's foot margin is
+       longer by the bands of the cards stacked over it, and they all reach the list's end together. Without it the
+       front card, stopped lowest, was pushed up first and slid over the others. The next card's top margin takes the
+       same back, so in the flow they are 16px apart as before) */
+    margin: calc(-1 * (var(--n) - var(--i, 0)) * var(--peek)) 0 calc(16px + (var(--n) - 1 - var(--i, 0)) * var(--peek));
+  }
+  .fdeck .vs__card:first-child {
+    margin-top: 0;
+  }
+  .fdeck .vs__card.is-under {
+    background: linear-gradient(180deg, #fdfcf8 0%, #f5f3ec 100%);
+  }
+  /* Home's "One mesh in place of three compromises" (Why: Cards, `.vs--stack`): the same stack as the decks above, the
+     same rules (each card sticky a band lower, its margins so the stack leaves as one, a rest after the last) */
+  .vs.vs--stack {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    gap: 0;
+  }
+  .vs.vs--stack::after {
+    content: '';
+    flex: none;
+    height: 28svh;
+  }
+  .vs--stack .vs__card,
+  .vs--stack .vs__card.is-in {
+    position: sticky;
+    top: calc(var(--nav-h) + 12px + var(--i, 0) * var(--peek));
+    z-index: calc(1 + var(--i, 0));
+    flex: none;
+    transform: none;
+    transition: none;
+    margin: calc(-1 * (var(--n) - var(--i, 0)) * var(--peek)) 0 calc(16px + (var(--n) - 1 - var(--i, 0)) * var(--peek));
+  }
+  .vs--stack .vs__card:first-child {
+    margin-top: 0;
+  }
+  .vs--stack .vs__card.is-under {
+    background: linear-gradient(180deg, #fdfcf8 0%, #f5f3ec 100%);
   }
   /* (out of sight until DeckCards has fitted it to the screen: never seen at a first size, then another) */
   .fdeck__list:not(.is-fit) {
@@ -1995,7 +2053,7 @@
     background: linear-gradient(180deg, #f7f6f2 0%, #f0eee8 100%);
     color: var(--black);
   }
-  .fdeck.on-light .vs__card.is-tucked {
+  .fdeck.on-light .vs__card.is-under {
     background: linear-gradient(180deg, #f1efe9 0%, #e9e7e0 100%);
   }
 }

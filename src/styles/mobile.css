@@ -59,8 +59,7 @@
   :root .scene,
   :root .hero__screen,
   :root .track,
-  :root .track__pin,
-  :root #replaces .ledger__in {
+  :root .track__pin {
     height: 100lvh;
   }
   :root #tech .eb-row {
@@ -94,8 +93,7 @@
   :root #innovation .eb-row .eb-fig__view {
     flex: none;
     aspect-ratio: 1 / 0.86;
-  }
-  /*
+  }  /*
    * ---- A sideways chapter on a phone (Innovation), set as the Facade pages set their steps: which of how many, small,
    * over the title at the top; the title plain in the ground's ink; what it says, and its controls, at the foot over a
    * line of a segment a step; the 3D between. A soft plate of the ground behind the words, top and foot, where the mesh
