@@ -42,7 +42,7 @@ const FREE: string[] = []
 export default function Unitized() {
   usePageMeta(
     'Unitized Thin Concrete Façade',
-    'Unitized thin concrete façade: an advanced prefabricated building envelope system. Thin concrete panels reinforced with RTARIUM, insulation, vapour barrier, gasket, glazing and a main mounting frame, built off-site as modular units with in-built anchorage and hung from slab to slab.',
+    'Unitized thin concrete façade: RTARIUM-reinforced panels, insulation and glazing built off-site as modular units with in-built anchorage, hung slab to slab.',
   )
   const hero = useRef<HTMLElement>(null)
   const compact = useIsCompact()

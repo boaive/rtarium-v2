@@ -54,7 +54,7 @@ function afterStory() {
 export default function Overview() {
   usePageMeta(
     'Façade & Cladding',
-    'RTARIUM in façades and cladding: concrete façades, re-engineered. One 3D basalt mesh replaces steel bar, AR-glass fibre and steel fibre in thin façade panels: unitized thin concrete façades, rainscreen cladding and stud frame cladding.',
+    'RTARIUM 3D basalt mesh for thin concrete façades: it replaces steel bar, AR-glass and steel fibre in unitized façades, rainscreen and stud frame cladding.',
   )
   const compact = useIsCompact()
   const hero = useRef<HTMLElement>(null)

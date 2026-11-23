@@ -23,14 +23,26 @@ const titleOf = (path) => PAGES.find((p) => p.path === path)?.title
 
 const ORG_ID = `${SITE_URL}/#organization`
 const PRODUCT_ID = `${SITE_URL}/#product`
+const BRAND_ID = `${SITE_URL}/#brand`
+/** RTARIUM the brand (HEMISPHERE ONE's), shared by the Organization and the Product */
+const brand = { '@type': 'Brand', '@id': BRAND_ID, name: 'RTARIUM', logo: `${SITE_URL}/brand/rtarium-logo.png` }
 const organization = {
   '@type': 'Organization',
   '@id': ORG_ID,
   name: 'HEMISPHERE ONE',
   url: `${SITE_URL}/`,
-  logo: `${SITE_URL}/brand/hemisphere-one-logo.png`,
+  logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/hemisphere-one-logo.png`, width: 900, height: 171 },
   email: 'info@rtarium.com',
-  brand: { '@id': PRODUCT_ID },
+  // (how a client reaches the team: the enquiry address and the contact page. No phone or address is published yet;
+  // add `telephone`, `address` and `sameAs` (the LinkedIn page's address) here once they are)
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'sales',
+    email: 'info@rtarium.com',
+    url: `${SITE_URL}/contact/`,
+    availableLanguage: ['English'],
+  },
+  brand: { '@id': BRAND_ID },
 }
 const product = {
   '@type': 'Product',
@@ -38,7 +50,7 @@ const product = {
   name: 'RTARIUM',
   description:
     'A three-dimensional basalt spacer mesh for thin, high-performance concrete: two basalt mesh faces held apart by connecting fibres, for advanced flooring, façades and cladding, and wall panels.',
-  brand: { '@type': 'Brand', name: 'RTARIUM', logo: `${SITE_URL}/brand/rtarium-logo.png` },
+  brand: { '@id': BRAND_ID },
   manufacturer: { '@id': ORG_ID },
   category: 'Concrete reinforcement mesh',
   material: 'Basalt fibre',
@@ -47,7 +59,9 @@ const product = {
 }
 
 function jsonLd(page) {
-  const graph = [organization]
+  const graph = [organization, brand]
+  // (the site's own name, as Google shows it above a result)
+  if (page.path === '/') graph.push({ '@type': 'WebSite', '@id': `${SITE_URL}/#website`, name: 'RTARIUM', alternateName: BRAND, url: `${SITE_URL}/`, publisher: { '@id': ORG_ID } })
   if (page.product) graph.push(product)
   if (page.path !== '/') {
     const crumbs = [{ path: '/', name: 'RTARIUM' }]

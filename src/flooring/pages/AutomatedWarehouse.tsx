@@ -63,7 +63,7 @@ const NONE: string[] = []
 export default function AutomatedWarehouse() {
   usePageMeta(
     'Automated Warehouse',
-    'RTARIUM for automated warehouse floors: a jointless 20 mm screed reinforced with a non-metallic 3D basalt mesh on structural PT and SFRC slabs. Flat floors and uninterrupted movement for AGVs and robotic cranes, 24/7.',
+    'RTARIUM for automated warehouse floors: a jointless 20 mm screed with non-metallic 3D basalt mesh, flat for AGVs and robotic cranes running 24/7.',
   )
   const hero = useRef<HTMLElement>(null)
 

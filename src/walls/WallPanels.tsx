@@ -41,7 +41,8 @@ export default function WallPanels() {
   const stream = STREAMS.find((s) => s.path === path) ?? null
   usePageMeta(
     stream ? `${stream.name} · Wall Panels` : 'Wall Panels',
-    'RTARIUM modular wall panels: 30 mm solid panels and 100 mm SIP insulated panels, reinforced with a three-dimensional basalt mesh. Non-magnetic, fire-rated, interlocking on all four sides and bolted, not welded, for logistics hubs, cleanroom plants, data centres, housing and frame structures.',
+    stream?.description ??
+      'RTARIUM wall panels: 30 mm solid and 100 mm SIP insulated panels with 3D basalt mesh. Non-magnetic, fire-rated, interlocking on four sides, bolted not welded.',
   )
   const hero = useRef<HTMLElement>(null)
   const story = useRef<HTMLElement>(null)
