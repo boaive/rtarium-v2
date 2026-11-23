@@ -45,8 +45,11 @@ const organization = {
   url: `${SITE_URL}/`,
   logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/hemisphere-one-logo.png`, width: 900, height: 171 },
   email: 'info@rtarium.com',
+  // (the company's official profiles, confirmed by the owner: the same list as SITE.profiles in src/content/site.ts,
+  // which the footer links to. Add others here and there as they are confirmed)
+  sameAs: ['https://www.linkedin.com/company/hemisphereone/'],
   // (how a client reaches the team: the enquiry address and the contact page. No phone or address is published yet;
-  // add `telephone`, `address` and `sameAs` (the LinkedIn page's address) here once they are)
+  // add `telephone` and `address` here once they are)
   contactPoint: {
     '@type': 'ContactPoint',
     contactType: 'sales',
