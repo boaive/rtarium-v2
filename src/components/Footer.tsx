@@ -70,6 +70,13 @@ function FooterPhone({ inverse = false }: { inverse?: boolean }) {
                 <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
               </li>
             )}
+            {SITE.profiles.map((p) => (
+              <li key={p.href}>
+                <a href={p.href} target="_blank" rel="noopener">
+                  {p.label}
+                </a>
+              </li>
+            ))}
             <li>
               <Link to="/privacy">Privacy</Link>
             </li>
@@ -164,6 +171,13 @@ function FooterContent({ inverse = false }: { inverse?: boolean }) {
                 <a href={`mailto:${SITE.contact.email}`}>{SITE.contact.email}</a>
               </li>
             )}
+            {SITE.profiles.map((p) => (
+              <li key={p.href}>
+                <a href={p.href} target="_blank" rel="noopener">
+                  {p.label}
+                </a>
+              </li>
+            ))}
             <li>
               <Link to="/privacy">Privacy</Link>
             </li>
