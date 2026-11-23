@@ -2,7 +2,8 @@
 // dist/<route>/index.html carries, before any script runs:
 //   - its own <title>, meta description and self-referencing canonical (the trailing-slash address the server serves);
 //   - Open Graph and Twitter card tags, with the 1200 × 630 share image;
-//   - JSON-LD: the Organization (HEMISPHERE ONE) on every page, the Product (RTARIUM) on the product pages;
+//   - JSON-LD: the Organization (HEMISPHERE ONE) and its Brand (RTARIUM) on every page, the WebSite on the homepage,
+//     breadcrumbs on every other page;
 //   - its heading, copy and links inside #root, so a crawler or a link preview that runs no script reads the page.
 // The app's createRoot() replaces that copy as soon as it mounts; until then it is hidden from view (html.js), never
 // from a crawler. Also writes dist/sitemap.xml (robots.txt, in public/, points to it) and the app's 404 page.
@@ -22,10 +23,21 @@ const href = (path) => (path === '/' ? '/' : `${path}/`)
 const titleOf = (path) => PAGES.find((p) => p.path === path)?.title
 
 const ORG_ID = `${SITE_URL}/#organization`
-const PRODUCT_ID = `${SITE_URL}/#product`
 const BRAND_ID = `${SITE_URL}/#brand`
-/** RTARIUM the brand (HEMISPHERE ONE's), shared by the Organization and the Product */
-const brand = { '@type': 'Brand', '@id': BRAND_ID, name: 'RTARIUM', logo: `${SITE_URL}/brand/rtarium-logo.png` }
+/**
+ * RTARIUM, HEMISPHERE ONE's brand. (No Product node: Google lists a Product with no `offers`, `review` or
+ * `aggregateRating` as an invalid product snippet, and RTARIUM is sold on enquiry, with no published price. Add a Product
+ * back, with real `offers`, if a price is ever published.)
+ */
+const brand = {
+  '@type': 'Brand',
+  '@id': BRAND_ID,
+  name: 'RTARIUM',
+  description:
+    'A three-dimensional basalt spacer mesh for thin, high-performance concrete: two basalt mesh faces held apart by connecting fibres, for advanced flooring, façades and cladding, and wall panels.',
+  logo: `${SITE_URL}/brand/rtarium-logo.png`,
+  url: `${SITE_URL}/`,
+}
 const organization = {
   '@type': 'Organization',
   '@id': ORG_ID,
@@ -44,25 +56,11 @@ const organization = {
   },
   brand: { '@id': BRAND_ID },
 }
-const product = {
-  '@type': 'Product',
-  '@id': PRODUCT_ID,
-  name: 'RTARIUM',
-  description:
-    'A three-dimensional basalt spacer mesh for thin, high-performance concrete: two basalt mesh faces held apart by connecting fibres, for advanced flooring, façades and cladding, and wall panels.',
-  brand: { '@id': BRAND_ID },
-  manufacturer: { '@id': ORG_ID },
-  category: 'Concrete reinforcement mesh',
-  material: 'Basalt fibre',
-  image: `${SITE_URL}${SHARE_IMAGE.path}`,
-  url: `${SITE_URL}/`,
-}
 
 function jsonLd(page) {
   const graph = [organization, brand]
   // (the site's own name, as Google shows it above a result)
   if (page.path === '/') graph.push({ '@type': 'WebSite', '@id': `${SITE_URL}/#website`, name: 'RTARIUM', alternateName: BRAND, url: `${SITE_URL}/`, publisher: { '@id': ORG_ID } })
-  if (page.product) graph.push(product)
   if (page.path !== '/') {
     const crumbs = [{ path: '/', name: 'RTARIUM' }]
     if (page.parent) crumbs.push({ path: page.parent, name: titleOf(page.parent).split(' · ')[0] })

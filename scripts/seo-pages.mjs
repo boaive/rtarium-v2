@@ -78,7 +78,6 @@ export const PAGES = [
       { path: '/facade-cladding', label: 'Façade & Cladding', line: 'Textile reinforced concrete for façade and cladding panels: thinner, lighter, stronger, with in-built anchors.' },
       { path: '/wall-panels', label: 'Wall Panels', line: 'A 30 mm solid panel and a 100 mm SIP insulated panel, up to 5.8 m × 600 mm.' },
     ],
-    product: true,
   },
   {
     path: '/facade-cladding',
@@ -91,7 +90,6 @@ export const PAGES = [
       'Three façade systems use it:',
     ],
     links: FACADE_SYSTEMS,
-    product: true,
   },
   {
     path: '/facade-cladding/unitized-thin-concrete-facade',
@@ -146,7 +144,6 @@ export const PAGES = [
       'Crack-free, jointless, vibration-dampening floors that take high peak loads, with improved flexural behaviour, for three applications:',
     ],
     links: FLOORING_APPS,
-    product: true,
   },
   {
     path: '/advanced-flooring/data-ai-centres',
@@ -198,7 +195,6 @@ export const PAGES = [
     body: WALLS_BODY,
     links: WALL_STREAMS,
     linksTitle: 'Built with RTARIUM wall panels',
-    product: true,
   },
   ...WALL_STREAMS.map((s) => ({
     path: s.path,
