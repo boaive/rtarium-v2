@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type AnchorHTMLAttributes, type ReactNode } from 'react'
 import { scrollToY } from './scroll'
+import { SITE_URL, withSlash } from './url'
 
 /**
  * A minimal path router: the homepage and a few planned destination pages. In-page links
@@ -7,21 +8,8 @@ import { scrollToY } from './scroll'
  */
 const RouterContext = createContext<{ path: string; go: (to: string) => void }>({ path: '/', go: () => {} })
 
-const SITE_URL = 'https://rtarium.com'
-
-/**
- * A page's address as the server serves it: every page is a folder with its own index.html, and the server redirects
- * `/contact` to `/contact/`. Links point straight at the served address (no redirect hop, one URL per page for search);
- * routes themselves are matched without the slash. `/contact#form` → `/contact/#form`; `/`, `#x` and other sites as given.
- */
-export function withSlash(to: string) {
-  if (!to.startsWith('/') || to.startsWith('//')) return to
-  const cut = to.search(/[?#]/)
-  const pathname = cut < 0 ? to : to.slice(0, cut)
-  const rest = cut < 0 ? '' : to.slice(cut)
-  if (pathname.endsWith('/') || /\.[a-z0-9]+$/i.test(pathname)) return to
-  return `${pathname}/${rest}`
-}
+// (links point straight at the address the server serves: no redirect hop, one URL per page for search)
+export { withSlash }
 
 /** the head's canonical and og:url follow the page (pre-rendered per route by scripts/prerender.mjs; kept in step here) */
 function syncCanonical(path: string) {

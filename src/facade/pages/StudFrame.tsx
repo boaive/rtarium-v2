@@ -37,7 +37,7 @@ const NONE: string[] = []
 export default function StudFrame() {
   usePageMeta(
     'Stud Frame Cladding',
-    'RTARIUM stud frame cladding: architectural concrete skins of 16 to 20 mm on galvanized steel stud frames, joined by flexible L-plates that let the skin move with the heat. Sprayed face down with RTARIUM cut and stitched inside, craned onto L frames on site, levelled and sealed.',
+    'RTARIUM stud frame cladding: 16–20 mm architectural concrete skins on galvanized steel stud frames, joined by flexible L-plates that move with the heat.',
   )
   const hero = useRef<HTMLElement>(null)
 

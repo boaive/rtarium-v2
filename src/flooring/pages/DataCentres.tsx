@@ -35,7 +35,7 @@ const NONE: string[] = []
 export default function DataCentres() {
   usePageMeta(
     'Data & AI Centres',
-    'RTARIUM for data and AI centre floors: a 20 mm screed reinforced with a non-metallic 3D basalt mesh on prestressed hollow-core slabs. Less dead weight, no conductive dust, a flawless anchor for ESD coatings.',
+    'RTARIUM for data and AI centre floors: a 20 mm screed with non-metallic 3D basalt mesh. Less dead weight, no conductive dust, a firm anchor for ESD coatings.',
   )
   const hero = useRef<HTMLElement>(null)
 

@@ -34,7 +34,7 @@ const NONE: string[] = []
 export default function Rainscreen() {
   usePageMeta(
     'Rainscreen Cladding',
-    'RTARIUM rainscreen cladding: a ventilated system for weather protection, of thin concrete panels reinforced with a 3D basalt textile. A solid concrete face, a lightweight 12 mm panel, under 30 kg/m², integrated fixing points, non-corrosive, panels up to 6 m tall.',
+    'RTARIUM rainscreen cladding: ventilated thin concrete panels, 12 mm and under 30 kg/m², non-corrosive, with integrated fixing points and up to 6 m tall.',
   )
   const hero = useRef<HTMLElement>(null)
 

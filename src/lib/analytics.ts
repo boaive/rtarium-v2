@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { withSlash } from './url'
 
 /**
  * Google Analytics 4, behind the visitor's consent.
@@ -137,13 +138,19 @@ function campaignQuery() {
 
 /**
  * one page view: the path (never the hash or any query but the campaign tags, so reports can tell where a visitor came
- * from), the page's own title, and its section
+ * from), the page's own title, and its section. A page is always reported by the address the server serves, with its
+ * trailing slash (`/contact/`), as its canonical and Cloudflare's analytics name it: reports once counted the same page
+ * twice, with and without it.
  */
 export function trackPage(path: string) {
   if (!granted()) return
+  const at = withSlash(path)
+  const location = `${window.location.origin}${at}${campaignQuery()}`
+  // (every event after it on this page, clicks, sections and the form, is reported on the same address)
+  send('set', { page_location: location, page_path: at })
   send('event', 'page_view', {
-    page_location: `${window.location.origin}${path === '/' ? '/' : path}${campaignQuery()}`,
-    page_path: path,
+    page_location: location,
+    page_path: at,
     page_title: document.title,
     content_group: sectionOf(path),
   })
@@ -247,7 +254,7 @@ export function startSectionTimer(path: string) {
     if (current && since) {
       const seconds = Math.round((performance.now() - since) / 1000)
       if (seconds >= 1)
-        track('section_view', { section_name: names.get(current) ?? '', page_path: path, content_group: sectionOf(path), section_seconds: seconds })
+        track('section_view', { section_name: names.get(current) ?? '', page_path: withSlash(path), content_group: sectionOf(path), section_seconds: seconds })
     }
     since = 0
   }

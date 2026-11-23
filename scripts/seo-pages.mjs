@@ -29,12 +29,28 @@ const FLOORING_APPS = [
   { path: '/advanced-flooring/semiconductor-plant', label: 'Semiconductor Plant', line: 'Still, inert floors for cleanrooms and their tools.' },
 ]
 const WALL_STREAMS = [
-  { path: '/wall-panels/affordable-housing', label: 'Affordable housing', line: 'A single-storey home: vertical SIP walls, a lintel over every opening.' },
-  { path: '/wall-panels/industrial-building', label: 'Industrial building', line: 'A logistics hub: SIP to 3.7 m, 30 mm solid above, three loading bays.' },
-  { path: '/wall-panels/frame-structure', label: 'Frame structure', line: 'An RC frame infilled, or a steel portal clad.' },
+  // (descriptions as in src/walls/content.ts, STREAMS)
+  {
+    path: '/wall-panels/affordable-housing',
+    label: 'Affordable housing',
+    line: 'A single-storey home: vertical SIP walls, a lintel over every opening.',
+    description: 'RTARIUM wall panels for affordable housing: a single-storey home of vertical SIP insulated walls with a lintel panel over every opening, bolted not welded.',
+  },
+  {
+    path: '/wall-panels/industrial-building',
+    label: 'Industrial building',
+    line: 'A logistics hub: SIP to 3.7 m, 30 mm solid above, three loading bays.',
+    description: 'RTARIUM wall panels for industrial buildings: a logistics hub with 100 mm SIP panels to 3.7 m, 30 mm solid panels above and three loading bays.',
+  },
+  {
+    path: '/wall-panels/frame-structure',
+    label: 'Frame structure',
+    line: 'An RC frame infilled, or a steel portal clad.',
+    description: 'RTARIUM wall panels for frame structures: infill an RC frame or clad a steel portal with interlocking 30 mm solid or 100 mm SIP insulated panels.',
+  },
 ]
 const WALLS_DESCRIPTION =
-  'RTARIUM modular wall panels: 30 mm solid panels and 100 mm SIP insulated panels, reinforced with a three-dimensional basalt mesh. Non-magnetic, fire-rated, interlocking on all four sides and bolted, not welded, for logistics hubs, cleanroom plants, data centres, housing and frame structures.'
+  'RTARIUM wall panels: 30 mm solid and 100 mm SIP insulated panels with 3D basalt mesh. Non-magnetic, fire-rated, interlocking on four sides, bolted not welded.'
 const WALLS_BODY = [
   'A 30 mm solid panel and a 100 mm SIP insulated panel (15 + 70 mm EPS/SPS core + 15), up to 5.8 m × 600 mm, each reinforced with RTARIUM.',
   '30 mm solid panels span 5.8 m column bays while maintaining deflection control. Made with inert basalt, with ferrule inserts cast in at the factory, the panels are lifted by their tie holes, clamped and bolted to the frame: no welding required. A four-sided tongue-and-groove joint aligns each panel and distributes horizontal wind shear.',
@@ -68,7 +84,7 @@ export const PAGES = [
     path: '/facade-cladding',
     title: titled('Façade & Cladding'),
     description:
-      'RTARIUM in façades and cladding: concrete façades, re-engineered. One 3D basalt mesh replaces steel bar, AR-glass fibre and steel fibre in thin façade panels: unitized thin concrete façades, rainscreen cladding and stud frame cladding.',
+      'RTARIUM 3D basalt mesh for thin concrete façades: it replaces steel bar, AR-glass and steel fibre in unitized façades, rainscreen and stud frame cladding.',
     h1: 'Façade & Cladding: concrete façades, re-engineered',
     body: [
       'Textile reinforced concrete for façade and cladding panels: RTARIUM replaces glass fibre and steel fibre as the intermediate reinforcement. One 3D basalt mesh makes thin façade panels thinner, lighter and stronger, with anchors built in.',
@@ -81,7 +97,7 @@ export const PAGES = [
     path: '/facade-cladding/unitized-thin-concrete-facade',
     title: titled('Unitized Thin Concrete Façade'),
     description:
-      'Unitized thin concrete façade: an advanced prefabricated building envelope system. Thin concrete panels reinforced with RTARIUM, insulation, vapour barrier, gasket, glazing and a main mounting frame, built off-site as modular units with in-built anchorage and hung from slab to slab.',
+      'Unitized thin concrete façade: RTARIUM-reinforced panels, insulation and glazing built off-site as modular units with in-built anchorage, hung slab to slab.',
     h1: 'Unitized Thin Concrete Façade',
     body: [
       'An advanced prefabricated building envelope system: thin concrete panels reinforced with RTARIUM, insulation, vapour barrier, gasket, glazing window and a main mounting frame, assembled off-site as modular units.',
@@ -95,7 +111,7 @@ export const PAGES = [
     path: '/facade-cladding/rainscreen-cladding',
     title: titled('Rainscreen Cladding'),
     description:
-      'RTARIUM rainscreen cladding: a ventilated system for weather protection, of thin concrete panels reinforced with a 3D basalt textile. A solid concrete face, a lightweight 12 mm panel, under 30 kg/m², integrated fixing points, non-corrosive, panels up to 6 m tall.',
+      'RTARIUM rainscreen cladding: ventilated thin concrete panels, 12 mm and under 30 kg/m², non-corrosive, with integrated fixing points and up to 6 m tall.',
     h1: 'Rainscreen Cladding',
     body: [
       'A ventilated system for weather protection: large thin concrete panels reinforced with a 3D basalt textile, held off the wall in front of a ventilated cavity.',
@@ -109,7 +125,7 @@ export const PAGES = [
     path: '/facade-cladding/stud-frame-cladding',
     title: titled('Stud Frame Cladding'),
     description:
-      'RTARIUM stud frame cladding: architectural concrete skins of 16 to 20 mm on galvanized steel stud frames, joined by flexible L-plates that let the skin move with the heat. Sprayed face down with RTARIUM cut and stitched inside, craned onto L frames on site, levelled and sealed.',
+      'RTARIUM stud frame cladding: 16–20 mm architectural concrete skins on galvanized steel stud frames, joined by flexible L-plates that move with the heat.',
     h1: 'Stud Frame Cladding',
     body: [
       'Architectural concrete skins of 16 to 20 mm on galvanized steel stud frames, for intricate profiles such as cornices, jambs and sills.',
@@ -123,7 +139,7 @@ export const PAGES = [
     path: '/advanced-flooring',
     title: titled('Advanced Flooring'),
     description:
-      'RTARIUM in advanced flooring: the first independent 3D mineral reinforcement mesh for high-performance concrete overlays. Crack-free, jointless, vibration-dampening and rust-proof floors for data and AI centres, automated warehouses and semiconductor plants.',
+      'RTARIUM 3D basalt mesh for concrete overlays: crack-free, jointless, rust-proof floors for data and AI centres, automated warehouses and semiconductor plants.',
     h1: 'Advanced Flooring',
     body: [
       'The first independent 3D mineral reinforcement mesh for high-performance concrete overlays: an intermediate reinforcement layer for thin overlays on structural slabs. Rust-proof, non-magnetic and chemically inert.',
@@ -136,7 +152,7 @@ export const PAGES = [
     path: '/advanced-flooring/data-ai-centres',
     title: titled('Data & AI Centres'),
     description:
-      'RTARIUM for data and AI centre floors: a 20 mm screed reinforced with a non-metallic 3D basalt mesh on prestressed hollow-core slabs. Less dead weight, no conductive dust, a flawless anchor for ESD coatings.',
+      'RTARIUM for data and AI centre floors: a 20 mm screed with non-metallic 3D basalt mesh. Less dead weight, no conductive dust, a firm anchor for ESD coatings.',
     h1: 'Floors for Data & AI Centres',
     body: [
       'Heavy racks on a floor that must never crack. RTARIUM reinforces a 20 mm screed with a non-metallic 3D basalt mesh on prestressed hollow-core slabs.',
@@ -150,7 +166,7 @@ export const PAGES = [
     path: '/advanced-flooring/automated-warehouse',
     title: titled('Automated Warehouse'),
     description:
-      'RTARIUM for automated warehouse floors: a jointless 20 mm screed reinforced with a non-metallic 3D basalt mesh on structural PT and SFRC slabs. Flat floors and uninterrupted movement for AGVs and robotic cranes, 24/7.',
+      'RTARIUM for automated warehouse floors: a jointless 20 mm screed with non-metallic 3D basalt mesh, flat for AGVs and robotic cranes running 24/7.',
     h1: 'Floors for Automated Warehouses',
     body: [
       'Flat, jointless floors for robots running all day. RTARIUM reinforces a jointless 20 mm screed with a non-metallic 3D basalt mesh on structural PT and SFRC slabs.',
@@ -164,7 +180,7 @@ export const PAGES = [
     path: '/advanced-flooring/semiconductor-plant',
     title: titled('Semiconductor Plant'),
     description:
-      'RTARIUM for semiconductor cleanroom floors: a 20 mm graphene self-levelling screed reinforced with a non-metallic 3D basalt mesh on post-tensioned waffle slabs. Micro-vibration damped, zero outgassing and dusting, a flawless anchor for ESD coatings.',
+      'RTARIUM for semiconductor cleanroom floors: a 20 mm screed with non-metallic 3D basalt mesh. Micro-vibration damped, with zero outgassing and dusting.',
     h1: 'Floors for Semiconductor Plants',
     body: [
       'Still, inert floors for cleanrooms and their tools. RTARIUM reinforces a 20 mm graphene self-levelling screed with a non-metallic 3D basalt mesh on post-tensioned waffle slabs.',
@@ -187,7 +203,7 @@ export const PAGES = [
   ...WALL_STREAMS.map((s) => ({
     path: s.path,
     title: titled(`${s.label} · Wall Panels`),
-    description: WALLS_DESCRIPTION,
+    description: s.description,
     h1: `Wall Panels for ${s.label.toLowerCase()}`,
     body: [s.line, ...WALLS_BODY],
     links: WALL_STREAMS.filter((o) => o.path !== s.path),
