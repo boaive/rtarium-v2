@@ -25,7 +25,7 @@ import { StepFloor } from './StepFloor'
  */
 
 /** the steps along the bar; each starts once the one before has played out (and past its hold), so the bar never runs ahead of the scene */
-const PHASES = [
+export const PHASES = [
   { name: 'Mounting bracket', line: 'The bracket is fixed at the edge of the slab, where the unit will hang.', from: 0, to: HANG.bracket[1] },
   { name: 'Fire & smoke barrier', line: 'The barrier goes in along the slab edge, between the slab and the unit.', from: HANG.bracket[1] + 0.04, to: HANG.barrier[1] },
   { name: 'Connection to the frame', line: 'The unit is lowered onto the brackets and hooks on.', from: HANG.unit[0], to: HANG.drop[1] },
@@ -140,7 +140,7 @@ function HangWide() {
  * a phone: each step's clip, rendered from the scene a frame at a time (the dev film page, src/dev/FilmUnitized.tsx),
  * and how long it runs, its last frame's hold included (ms): the next step comes in as it ends
  */
-const CLIP_MS = [2617, 2617, 3034, 3034, 5700]
+export const CLIP_MS = [2617, 2617, 3034, 3034, 5700]
 
 /**
  * a phone's scene, live: the step in play played out from where the last left off, on the step's own clock (as its clip

@@ -17,7 +17,7 @@ import { useLive } from './live'
 
 const LABELS: LabelSpec[] = [{ id: 'h-mesh', anchor: 'hu-mesh', text: 'RTARIUM', dx: 74, dy: -104, delay: 2200 }]
 
-function shots(compact: boolean): [Shot, Shot] {
+export function shots(compact: boolean): [Shot, Shot] {
   return compact
     ? [
         // (a phone: large and nearly front on, its right edge showing its depth, in the middle of the room between the

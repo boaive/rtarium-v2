@@ -107,7 +107,7 @@ function LayersPhone() {
 }
 
 /** the card's clock (a step and how far it has played) as the unit's own run, stop to stop */
-function LayerRun({ t, bus, live }: { t: Progress; bus: ReturnType<typeof createBus>; live: { current: boolean } }) {
+export function LayerRun({ t, bus, live }: { t: Progress; bus: ReturnType<typeof createBus>; live: { current: boolean } }) {
   const run = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
   const shotAt = useMemo(
     () => (p: number) => {
