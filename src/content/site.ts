@@ -12,6 +12,11 @@ export const SITE = {
     phone: '',
     address: '',
   },
+  /**
+   * HEMISPHERE ONE's official profiles (confirmed by the owner, 23 Nov 2026), linked from the footer and named as the
+   * Organization's `sameAs` in the pre-rendered schema (scripts/prerender.mjs: keep the two in step)
+   */
+  profiles: [{ label: 'LinkedIn', href: 'https://www.linkedin.com/company/hemisphereone/' }],
 } as const
 
 export const contactConfigured = () => Boolean(SITE.contact.email || SITE.contact.phone)

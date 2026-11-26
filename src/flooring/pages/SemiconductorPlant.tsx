@@ -195,7 +195,7 @@ const NONE: string[] = []
 export default function SemiconductorPlant() {
   usePageMeta(
     'Semiconductor Plant',
-    'RTARIUM for semiconductor cleanroom floors: a 20 mm graphene self-levelling screed reinforced with a non-metallic 3D basalt mesh on post-tensioned waffle slabs. Micro-vibration damped, zero outgassing and dusting, a flawless anchor for ESD coatings.',
+    'RTARIUM for semiconductor cleanroom floors: a 20 mm screed with non-metallic 3D basalt mesh. Micro-vibration damped, with zero outgassing and dusting.',
   )
   const hero = useRef<HTMLElement>(null)
 

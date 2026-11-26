@@ -38,7 +38,7 @@ function Home() {
   usePointerTracking()
   const compact = useIsCompact()
   useEffect(() => {
-    document.title = 'RTARIUM by HEMISPHERE ONE · Three-dimensional basalt reinforcement mesh'
+    document.title = 'RTARIUM by HEMISPHERE ONE · 3D Basalt Reinforcement Mesh'
     // arriving on /#chapter: land on it once the page has laid out
     if (window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
     // every other page's code fetched ahead, while the opening shows (src/lib/pages.ts)

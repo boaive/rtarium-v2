@@ -50,7 +50,7 @@ const NONE: string[] = []
 export default function Overview() {
   usePageMeta(
     FLOORING.title,
-    'RTARIUM in advanced flooring: the first independent 3D mineral reinforcement mesh for high-performance concrete overlays. Crack-free, jointless, vibration-dampening and rust-proof floors for data and AI centres, automated warehouses and semiconductor plants.',
+    'RTARIUM 3D basalt mesh for concrete overlays: crack-free, jointless, rust-proof floors for data and AI centres, automated warehouses and semiconductor plants.',
   )
   const compact = useIsCompact()
   const hero = useRef<HTMLElement>(null)

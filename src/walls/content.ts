@@ -95,6 +95,8 @@ export interface Stream {
   /** the name as it is set, in two lines, so the three start on one line */
   head: [string, string]
   line: string
+  /** its page's meta description (≤ 160 characters; the same text is in scripts/seo-pages.mjs for the pre-rendered page) */
+  description: string
   still: { src: string; alt: string }
 }
 export const STREAMS: Stream[] = [
@@ -104,6 +106,7 @@ export const STREAMS: Stream[] = [
     path: '/wall-panels/affordable-housing',
     head: ['Affordable', 'housing'],
     line: 'A single-storey home: vertical SIP walls, a lintel over every opening.',
+    description: 'RTARIUM wall panels for affordable housing: a single-storey home of vertical SIP insulated walls with a lintel panel over every opening, bolted not welded.',
     still: { src: '/img/walls/streams/housing.webp', alt: 'The single-storey home built in 3D: vertical RTARIUM SIP walls, horizontal lintel panels over the door and windows, a flat roof drawn over them' },
   },
   {
@@ -112,6 +115,7 @@ export const STREAMS: Stream[] = [
     path: '/wall-panels/industrial-building',
     head: ['Industrial', 'building'],
     line: 'A logistics hub: SIP to 3.7 m, 30 mm solid above, three loading bays.',
+    description: 'RTARIUM wall panels for industrial buildings: a logistics hub with 100 mm SIP panels to 3.7 m, 30 mm solid panels above and three loading bays.',
     still: { src: '/img/walls/streams/hub.webp', alt: 'The logistics hub built in 3D: anthracite SIP panels below, light grey solid panels above, three loading bays and an access door in its front, a shutter in its side' },
   },
   {
@@ -120,6 +124,7 @@ export const STREAMS: Stream[] = [
     path: '/wall-panels/frame-structure',
     head: ['Frame', 'structure'],
     line: 'An RC frame infilled, or a steel portal clad.',
+    description: 'RTARIUM wall panels for frame structures: infill an RC frame or clad a steel portal with interlocking 30 mm solid or 100 mm SIP insulated panels.',
     still: { src: '/img/walls/streams/frame.webp', alt: 'A G+3 RC frame built in 3D, its bays infilled with RTARIUM panels, a window in each' },
   },
 ]

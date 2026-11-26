@@ -42,11 +42,9 @@
       })()
     </script>
     <meta name="theme-color" content="#080808" />
-    <title>RTARIUM by HEMISPHERE ONE · Three-dimensional basalt reinforcement mesh</title>
-    <meta
-      name="description"
-      content="RTARIUM is a three-dimensional basalt spacer mesh for thin, high-performance concrete: two basalt mesh faces held apart by connecting fibres, for flooring, cladding and façades, and wall panels. By HEMISPHERE ONE."
-    />
+    <!-- (each route's own title, description, canonical, share tags and JSON-LD are written by scripts/prerender.mjs) -->
+    <title>RTARIUM by HEMISPHERE ONE · 3D Basalt Reinforcement Mesh</title>
+    <meta name="description" content="RTARIUM by HEMISPHERE ONE: a 3D basalt spacer mesh for thin, high-performance concrete in advanced flooring, façades and cladding, and wall panels." />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="preload" as="fetch" href="/models/rtarium-cell-t10.glb" crossorigin="anonymous" />
     <link rel="preload" as="image" href="/brand/rtarium-emblem.png" />
@@ -197,6 +195,9 @@
          where it plays on every load (and every page opened after it: src/opener.ts `openOnPage`), every scene of the page
          made and its openings played behind it, none left to be built as the page scrolls -->
     <script>
+      // (the script runs: the page's pre-rendered copy, there for crawlers and link previews, is kept out of view until
+      // the app replaces it)
+      document.documentElement.classList.add('js')
       try {
         var phone = matchMedia('(max-width: 860px), (max-aspect-ratio: 4/5)').matches
         if (sessionStorage.getItem('rtarium:opened') && !phone) document.documentElement.classList.add('is-opened')
@@ -205,6 +206,32 @@
     <style>
       html.is-opened .opener {
         display: none;
+      }
+      /* each route's pre-rendered copy (scripts/prerender.mjs): read as plain text without a script */
+      .prerender {
+        max-width: 760px;
+        padding: 48px 24px;
+        font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif;
+        color: #f2f0e9;
+        background: #080808;
+      }
+      .prerender a {
+        color: #fdd001;
+      }
+      .prerender nav ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+        padding: 0;
+        list-style: none;
+      }
+      html.js .prerender {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
       }
     </style>
     <noscript><style>.opener { display: none; }</style></noscript>

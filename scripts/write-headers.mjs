@@ -14,7 +14,8 @@ const dist = fileURLToPath(new URL('../dist/', import.meta.url))
 const html = readFileSync(`${dist}index.html`, 'utf8')
 
 // hashed as the browser reads them: its HTML parser turns every CRLF or lone CR into LF (a Windows checkout has CRLF)
-const inline = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1].replace(/\r\n?/g, '\n'))
+// (JSON-LD is data, never run: it needs no hash)
+const inline = [...html.matchAll(/<script\b(?![^>]*\bsrc=)(?![^>]*application\/ld\+json)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1].replace(/\r\n?/g, '\n'))
 const hashes = inline.map((code) => `'sha256-${createHash('sha256').update(code, 'utf8').digest('base64')}'`)
 
 const TURNSTILE = 'https://challenges.cloudflare.com'
