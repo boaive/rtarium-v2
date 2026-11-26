@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer } from '@react-three/drei'
 import { hasWebGL2 } from '../../three/Stage'
-import { prefersReducedMotion, useIsCompact } from '../../lib/motion'
+import { nativeScroll, prefersReducedMotion, useIsCompact } from '../../lib/motion'
 import { approach, type LabelBus, type Shot } from './kit'
 import { builds, opening } from '../../lib/builds'
 import { isLite } from '../../lib/tier'
@@ -143,7 +143,9 @@ export function Stage3D({
 }) {
   const host = useRef<HTMLDivElement>(null)
   const [near, setNear] = useState(false)
-  const [failed, setFailed] = useState(() => !hasWebGL2())
+  // (`?fallback` on a phone: the page as it is there with no 3D, its films in place of the scenes, as Home's stage takes
+  // it, src/three/Stage.tsx; for checking it on a phone that has 3D. Without it, or on a wide screen, nothing changes)
+  const [failed, setFailed] = useState(() => !hasWebGL2() || (nativeScroll() && new URLSearchParams(window.location.search).has('fallback')))
   /** how many times the canvas has been made again, after a failure or a lost context */
   const [life, setLife] = useState(0)
   const tries = useRef(0)

@@ -13,6 +13,7 @@ import { HERO_TURN, ScrubRig, mixShot } from '../three/ScrubRig'
 import { HeroPanel } from '../three/HeroPanel'
 import { FollowScroll, useScrollProgress } from '../progress'
 import { More } from '../unitized/More'
+import { ScrubFilm } from '../films'
 
 /**
  * Façade & Cladding, the overview. One continuous scroll, yellow the ground that stays:
@@ -124,7 +125,8 @@ export default function Overview() {
       {/* ---- the opening, on yellow ---- */}
       <section ref={hero} className="fco-hero on-yellow" aria-labelledby="fco-title">
         <div className="fco-hero__stage">
-          <Stage3D shadows keyLight={false} fallback={<img className="fco-still" src="/img/shoot/mould-mesh-press.webp" alt="" />}>
+          {/* (no 3D: on a phone, the film of it played by the scroll, its pour first; a wide screen keeps its still) */}
+          <Stage3D shadows keyLight={false} fallback={compact ? <ScrubFilm name="facade-hero" section={hero} open={2.5} frames={49} /> : <img className="fco-still" src="/img/shoot/mould-mesh-press.webp" alt="" />}>
             <ScrubRig progress={heroP} shotAt={heroShot} sway={3} live={heroLive} aspect={compact ? 0.56 : 1.6} turn={HERO_TURN} />
             <MovingKeyLight focus={[0, 0, 0]} reach={0.9} />
             <HeroPanel bus={heroBus} play />

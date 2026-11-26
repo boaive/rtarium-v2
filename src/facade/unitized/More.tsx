@@ -10,6 +10,7 @@ import { FACADE, SYSTEMS, type SystemId } from '../content'
 import { Stage3D } from '../three/Stage3D'
 import { SystemsTrio } from '../three/SystemsTrio'
 import { useLive } from './live'
+import { LoopFilm } from '../films'
 
 /**
  * Two more ways onto a building, in the overview's own systems block (`fct`): the heading and the way
@@ -106,7 +107,8 @@ function MoreCards({ current = 'unitized', id, sectionRef }: MoreProps) {
       label="The façade systems"
       items={pick.map((n) => ({ id: SYSTEMS[n].id, title: SYSTEMS[n].title, path: SYSTEMS[n].path, num: n + 1, of: SYSTEMS.length }))}
       model={(i, front, play, live) => (
-        <Stage3D shadows keyLight={false} fallback={<img className="ways__still" src="/img/facade/panel-ivory.webp" alt="" />}>
+        // (no 3D: the model's film, its sway on a loop, played while its card is in front: films.tsx)
+        <Stage3D shadows keyLight={false} fallback={<LoopFilm name={`systems-${SYSTEMS[pick[i]].id}`} front={front} />}>
           <SystemsTrio play={play} hover={front ? 0 : null} live={live} pick={[pick[i]]} fill={0.86} headroom={0.02} />
         </Stage3D>
       )}
