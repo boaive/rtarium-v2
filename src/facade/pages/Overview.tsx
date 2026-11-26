@@ -33,7 +33,7 @@ import { More } from '../unitized/More'
  * on the right, turned well to the side, so its thin edge and the pour front both show; on a large screen in the place
  * and at the size every page's opening keeps (HERO_TURN): its middle 0.66 across and 0.55 down, under half the height
  */
-function heroShots(compact: boolean): [Shot, Shot] {
+export function heroShots(compact: boolean): [Shot, Shot] {
   const k = compact ? 1.7 : 1
   const f = (a: [number, number], b: [number, number]): [number, number] => (compact ? b : a)
   return [
