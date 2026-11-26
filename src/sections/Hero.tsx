@@ -6,6 +6,16 @@ import { Lines } from '../components/Chapter'
 import { Link } from '../lib/router'
 import { damp, nativeScroll, prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY, setAsideSmoothScroll } from '../lib/scroll'
+import { builds, opening } from '../lib/builds'
+
+declare global {
+  interface Window {
+    /** development: the tour's film recorder sets the tour here (screens), exactly, and the stage holds its opening turn */
+    __tourAt?: number
+    /** development: the card films' recorder sets a phone card's clock here (s since it was reached), StageScene */
+    __cardAt?: number
+  }
+}
 
 /** the screens of the opening tour: the piece, the mesh built out, the cavity, the light */
 const SCREENS = 4
@@ -81,14 +91,16 @@ function useTour(section: RefObject<HTMLElement | null>, onScreen: (i: number) =
       const screens = phone ? PHONE_SCREENS : SCREENS
       // (a phone's tour is measured by its own screens, as tall as the screen with its address bar showing: measured by
       // the window, which grows as the bar slides away, the page at rest on a screen would read as part way to it)
-      const at = Math.min(screens, Math.max(0, -r.top / (phone ? screenH(el) : vh)))
+      // (in development the tour's film recorder sets where it is, exactly: scripts/tour-film.mjs)
+      const forced = import.meta.env.DEV ? window.__tourAt : undefined
+      const at = forced ?? Math.min(screens, Math.max(0, -r.top / (phone ? screenH(el) : vh)))
       const target = phone ? phoneTour(at) : at
       // (a phone scrolls natively, the finger's own pace: the tour eases after it at veedo.space's rate, 9.5 a second, so a
       // fling's uneven steps never show in the picture)
-      p = p < 0 || prefersReducedMotion() ? target : damp(p, target, phone ? 9.5 : 10, dt)
+      p = p < 0 || forced !== undefined || prefersReducedMotion() ? target : damp(p, target, phone ? 9.5 : 10, dt)
       if (Math.abs(p - target) < 1e-4) p = target
       const deep = phone ? phoneDive(at) : 0
-      dive = dive < 0 || prefersReducedMotion() ? deep : damp(dive, deep, phone ? 9.5 : 10, dt)
+      dive = dive < 0 || forced !== undefined || prefersReducedMotion() ? deep : damp(dive, deep, phone ? 9.5 : 10, dt)
       if (Math.abs(dive - deep) < 1e-4) dive = deep
       stage.tour = p
       stage.tourDive = dive
@@ -737,6 +749,92 @@ function useSwipePager(section: RefObject<HTMLElement | null>, phone: boolean, b
   }, [section, phone, back])
 }
 
+/**
+ * A phone's tour where there is no 3D (no WebGL, or the scene failed): its film, recorded from the stage itself
+ * (scripts/tour-film.mjs: the tour taken whole at each step of the scroll, its yellow ground and the wash into white with
+ * it), played by the scroll as the 3D is: where the page is in the tour's screens, eased after the finger at the same
+ * 9.5 a second, then the film sought to that step's frame. Both ways, at any pace; it holds where the page holds. The
+ * whole film is fetched first (behind the loading screen), so any frame is at hand at once.
+ * (It replaced a single still, the screens after it bare yellow: 24 Nov 2026, the user's.)
+ */
+const TOUR_FILM = { src: '/video/tour/tour.mp4', poster: '/video/tour/tour.jpg', per: 48, to: 3.9, fps: 30 }
+
+function HeroFilm({ section }: { section: RefObject<HTMLElement | null> }) {
+  const video = useRef<HTMLVideoElement>(null)
+  const [src, setSrc] = useState<string>()
+  useEffect(() => {
+    let url = ''
+    let live = true
+    const held = opening()
+    if (held) builds.waiting++
+    const let_go = () => {
+      if (held) builds.waiting = Math.max(0, builds.waiting - 1)
+    }
+    fetch(TOUR_FILM.src)
+      .then((r) => r.blob())
+      .then((b) => {
+        if (!live) return
+        url = URL.createObjectURL(b)
+        setSrc(url)
+      })
+      .catch(() => live && setSrc(TOUR_FILM.src))
+      .finally(let_go)
+    return () => {
+      live = false
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [])
+  useEffect(() => {
+    const el = section.current
+    const v = video.current
+    if (!el || !v || !src) return
+    v.muted = true
+    // (decoded once, so the first seek paints: some browsers show nothing of a film never played)
+    const prime = () => void v.play().then(() => v.pause()).catch(() => {})
+    v.addEventListener('loadeddata', prime, { once: true })
+    let raf = 0
+    let last = performance.now()
+    let at = -1
+    let shown = true
+    // (the frame for a place in the tour: a step of the film's, landed inside it, never on its edge)
+    const timeAt = (a: number) => (Math.round(Math.min(TOUR_FILM.to, a) * TOUR_FILM.per) + 0.3) / TOUR_FILM.fps
+    const tick = (now: number) => {
+      raf = 0
+      const dt = Math.min(0.1, (now - last) / 1000)
+      last = now
+      const r = el.getBoundingClientRect()
+      const target = Math.min(PHONE_SCREENS, Math.max(0, -r.top / screenH(el)))
+      at = at < 0 || prefersReducedMotion() ? target : damp(at, target, 9.5, dt)
+      if (Math.abs(at - target) < 1e-4) at = target
+      const on = r.bottom > 1
+      if (on !== shown) v.style.visibility = (shown = on) ? '' : 'hidden'
+      const t = timeAt(at)
+      if (on && v.readyState >= 1 && !v.seeking && Math.abs(v.currentTime - t) > 0.5 / TOUR_FILM.fps) v.currentTime = t
+      if (at !== target || v.seeking) raf = requestAnimationFrame(tick)
+    }
+    const kick = () => {
+      if (!raf) {
+        last = performance.now()
+        raf = requestAnimationFrame(tick)
+      }
+    }
+    kick()
+    v.addEventListener('loadedmetadata', kick)
+    v.addEventListener('seeked', kick)
+    window.addEventListener('scroll', kick, { passive: true })
+    window.addEventListener('resize', kick)
+    return () => {
+      cancelAnimationFrame(raf)
+      v.removeEventListener('loadeddata', prime)
+      v.removeEventListener('loadedmetadata', kick)
+      v.removeEventListener('seeked', kick)
+      window.removeEventListener('scroll', kick)
+      window.removeEventListener('resize', kick)
+    }
+  }, [section, src])
+  return <video ref={video} className="hero__film" src={src} poster={TOUR_FILM.poster} muted playsInline preload="auto" aria-hidden="true" disablePictureInPicture />
+}
+
 export function Hero() {
   const section = useRef<HTMLElement>(null)
   const open = useRef<HTMLDivElement>(null)
@@ -767,7 +865,7 @@ export function Hero() {
           to About's first view; on a phone the finger moves it natively, the mesh in step with it */}
       <section ref={section} className="hero" aria-labelledby="hero-title" data-pass-screen={(compact ? PHONE_SCREENS : SCREENS) - 1} data-free-scroll="">
         <div ref={open} className={`hero__screen hero__screen--open scene ${state(0)}`} data-screen="yellow">
-          {failed && <img className="hero__still" src="/img/stills/home-hero.webp" alt="" />}
+          {failed && !compact && <img className="hero__still" src="/img/stills/home-hero.webp" alt="" />}
           <div className="hero__copy">
             {/* on scroll the headline drifts into the mesh and dissolves (--p) */}
             <Lines as="h1" id="hero-title" className="hero__title" lines={['Introducing', 'RTARIUM.']} />
@@ -822,6 +920,8 @@ export function Hero() {
           </StageLabel>
         ))}
       <CavityDimension />
+      {/* a phone with no 3D: the tour's film, played by the scroll (HeroFilm) */}
+      {failed && compact && <HeroFilm section={section} />}
       {/* a phone's hand-over from the white to About (useWhiteHandoff) */}
       {compact && <div ref={curtain} className="hero__curtain" aria-hidden="true" />}
     </>

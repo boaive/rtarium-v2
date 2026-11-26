@@ -779,6 +779,14 @@ export function StageScene({ compact, reduced }: Props) {
         if (!reduced && !budgetTablet && pose.spin && r === turning && !pageMoving) c.spin = (c.spin + pose.spin * dt) % 360
         // (a card that drifts: its clock runs as a turn does, only while it is the one in view and the page is still)
         if (!reduced && !budgetTablet && pose.drift && r === turning && !pageMoving) f.drift = (f.drift + dt / pose.drift.period) % 1
+        // (development: the card films' recorder, scripts/card-film.mjs, sets the card's own clock, seconds since it was
+        // reached, and the card is drawn exactly as it would be by then: its turn, its sway, its mortar run in)
+        const filmAt = import.meta.env.DEV ? window.__cardAt : undefined
+        if (filmAt !== undefined) {
+          c.spin = ((pose.spin ?? 0) * filmAt) % 360
+          if (pose.drift) f.drift = (filmAt / pose.drift.period) % 1
+          if (pose.pour) f.pour = Math.min(1.6, -0.25 + filmAt / 1.5)
+        }
       }
       // a phone's opening piece turns slowly while the page rests on it, and eases back to its pose as the tour sets off
       // (unwound with the tour itself, all of it by the time the mesh built out is reached: eased on a clock of its own, it
@@ -786,7 +794,9 @@ export function StageScene({ compact, reduced }: Props) {
       else if (compact && hero) {
         if (reduced) c.spin = 0
         else if (stage.tour < 0.08) {
-          if (!budgetTablet) c.spin = (c.spin + OPEN_TURN * smoothstep(OPEN_HOLD.from, OPEN_HOLD.from + OPEN_HOLD.ease, since) * dt) % 360
+          // (the tour's film recorder holds it at its reference angle: development only, window.__tourAt)
+          const filming = import.meta.env.DEV && window.__tourAt !== undefined
+          if (!budgetTablet && !filming) c.spin = (c.spin + OPEN_TURN * smoothstep(OPEN_HOLD.from, OPEN_HOLD.from + OPEN_HOLD.ease, since) * dt) % 360
           openSpin.current = ((c.spin % 360) + 540) % 360 - 180
         } else {
           const square = 90 * Math.round(openSpin.current / 90)

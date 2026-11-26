@@ -35,6 +35,17 @@
   object-fit: cover;
   border-radius: 4px;
 }
+/* a phone with no 3D: the tour's film (Hero's HeroFilm), where the stage would be, under the words; the tour's screens are
+   the phone's own, so the film fills the screen, its middle kept */
+.hero__film {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100lvh;
+  object-fit: cover;
+  pointer-events: none;
+}
 /* the headline: upper left, the piece of mesh answering it from the lower right */
 .hero__copy {
   position: absolute;

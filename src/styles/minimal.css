@@ -231,7 +231,13 @@
     aspect-ratio: 1 / 0.92;
     box-shadow: inset 0 0 0 1px var(--eb-rule);
   }
-  /* the figure's film: the box filled, its middle kept */
+  /* where there is no 3D: the figure's film (Chapter's CardFilm), the box filled, its middle kept; one film a thickness or
+     comparison, stacked, the one shown on top of the rest */
+  .eb-fig__films {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
   .eb-fig__loop {
     position: absolute;
     inset: 0;
@@ -239,6 +245,19 @@
     height: 100%;
     object-fit: cover;
     pointer-events: none;
+    opacity: 0;
+  }
+  .eb-fig__loop.is-shown {
+    opacity: 1;
+  }
+  /* Non-Corrosive: off as its section comes up, on once it is reached, as its 3D card (StageScene, grow.fade) */
+  .eb-fig__films.is-fading {
+    opacity: 0;
+    transition: opacity 0.2s linear;
+  }
+  .eb-fig__films.is-fading.is-on {
+    opacity: 1;
+    transition: opacity 1.4s cubic-bezier(0.22, 1, 0.36, 1);
   }
   /* the figure's 3D, drawn into the card itself (StageScene copies the view in): it scrolls with the card */
   .eb-fig__canvas {

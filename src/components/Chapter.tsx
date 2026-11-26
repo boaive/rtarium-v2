@@ -6,6 +6,7 @@ import { POSES } from '../three/poses'
 import { damp, prefersReducedMotion, useIsCompact } from '../lib/motion'
 import { scrollToY } from '../lib/scroll'
 import { FILM_STEPS, dropFilm, filmReady, seenFilm } from '../lib/films'
+import { THICKNESS_OPTIONS } from '../content/technical'
 
 /**
  * what a screen shows where its mesh would be when there is no 3D: the mesh itself, rendered from this stage at that
@@ -191,78 +192,155 @@ export function Rows({ id, title, steps, ground = 'light' }: { id: string; title
 }
 
 /**
- * A phone's figures play as films: each pose its loop, recorded from the 3D itself (the mesh turning once round, at an
- * even pace, on its ground), so the page draws no 3D under its rows as it scrolls. The thin section's loop is the one
- * of the thickness chosen; Monolithic's, a flat mesh's while the comparison shows one.
+ * Where a phone has no 3D (no WebGL, or the scene failed), each figure is its film, recorded from the 3D card itself
+ * (scripts/card-film.mjs, public/video/fallback) and moving exactly as it does: one whole turn at the card's own pace
+ * (2 degrees a second; Tech Space's 6), or Non-Corrosive's slow sway, looping without a seam. As the 3D card, it turns
+ * only while it is the one most in view and the page is still (lib/films). "In concrete" plays its mortar running in
+ * once, then loops the turn after it (`from`, s). Non-Corrosive fades on as its section arrives, as its card does.
+ * Tech Space's film is the thickness chosen; Monolithic's, a flat mesh's while the comparison shows one: each a film of
+ * its own, the next one loaded and set to the same moment of the turn before it takes the old one's place.
+ * (The figures' earlier films turned ten times the 3D's pace, at 400 px: replaced 24 Nov 2026, the user's.)
  */
-const LOOPS: Partial<Record<PoseId, string>> = {
-  structure: 'about-structure',
-  material: 'about-material',
-  pour: 'about-pour',
-  depth: 'innovation-depth',
-  shear: 'innovation-shear',
-  mineral: 'innovation-mineral',
-  stack: 'tech-stack',
+const FILMS: Partial<Record<PoseId, { name: string; from?: number }>> = {
+  structure: { name: 'about-structure' },
+  material: { name: 'about-material' },
+  pour: { name: 'about-pour', from: 3 },
+  depth: { name: 'innovation-depth' },
+  shear: { name: 'innovation-shear' },
+  mineral: { name: 'innovation-mineral' },
+  stack: { name: 'tech-stack' },
 }
-/** Monolithic's comparison, said to its loop (Innovation's ShearCompare): a flat mesh shown, or RTARIUM */
+const FILM_DIR = '/video/fallback'
+/** Monolithic's comparison, said to its film (Innovation's ShearCompare): a flat mesh shown, or RTARIUM */
 export const FLAT_EVENT = 'rtarium:flat'
 
-function Loop({ pose }: { pose: PoseId }) {
-  const video = useRef<HTMLVideoElement>(null)
+function CardFilm({ pose, row }: { pose: PoseId; row: RefObject<HTMLElement | null> }) {
+  const film = FILMS[pose]
   const thickness = useStageValue('thickness')
   const [flat, setFlat] = useState(false)
   const [near, setNear] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const videos = useRef(new Map<string, HTMLVideoElement>())
+  const fades = PHONE_FADES.has(pose)
+  const [on, setOn] = useState(!fades)
   useEffect(() => {
     if (pose !== 'shear') return
-    const on = (e: Event) => setFlat(Boolean((e as CustomEvent<boolean>).detail))
-    window.addEventListener(FLAT_EVENT, on)
-    return () => window.removeEventListener(FLAT_EVENT, on)
+    const flip = (e: Event) => setFlat(Boolean((e as CustomEvent<boolean>).detail))
+    window.addEventListener(FLAT_EVENT, flip)
+    return () => window.removeEventListener(FLAT_EVENT, flip)
   }, [pose])
-  const base = LOOPS[pose]
-  const name = !base ? '' : pose === 'stack' ? `${base}-${thickness}` : pose === 'shear' && flat ? `${base}-flat` : base
-  // loaded once it comes near the screen, playing while it is on it, still while it is not (the film swapped for another
-  // of the same figure, the new one watched in its place)
+  const base = film?.name ?? ''
+  const names = pose === 'stack' ? THICKNESS_OPTIONS.map((t) => `${base}-${t}`) : pose === 'shear' ? [base, `${base}-flat`] : [base]
+  const want = pose === 'stack' ? `${base}-${thickness}` : pose === 'shear' && flat ? `${base}-flat` : base
+  // the one shown: the one wanted once it is ready at the same moment of the turn
+  const [shown, setShown] = useState(want)
+  const [asked, setAsked] = useState(() => new Set([want]))
+
+  // loaded once it comes near the screen
   useEffect(() => {
-    const el = video.current
+    const el = box.current
     if (!el) return
-    el.muted = true
-    seenFilm(el, 0)
-    // near: loaded ahead of the screen
     const ahead = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: '60% 0px 60% 0px' })
     ahead.observe(el)
-    // how much of it is on the screen: the one most in view plays
-    const seen = new IntersectionObserver(
-      ([e]) => seenFilm(el, e.intersectionRatio),
-      { threshold: FILM_STEPS },
-    )
-    seen.observe(el)
-    // (a film that comes in while its box is the one in view starts as soon as it can)
-    el.addEventListener('loadeddata', filmReady)
-    return () => {
-      ahead.disconnect()
-      seen.disconnect()
-      el.removeEventListener('loadeddata', filmReady)
-      dropFilm(el)
+    return () => ahead.disconnect()
+  }, [])
+
+  // the one shown is the one that plays (when it is the one most in view and the page is still); the rest hold
+  useEffect(() => {
+    const el = box.current
+    const v = videos.current.get(shown)
+    if (!el || !v) return
+    v.muted = true
+    let seen = 0
+    seenFilm(v, 0, false, true)
+    const io = new IntersectionObserver(([e]) => seenFilm(v, (seen = e.intersectionRatio), false, true), { threshold: FILM_STEPS })
+    io.observe(el)
+    v.addEventListener('loadeddata', filmReady)
+    // (an opening, then the turn looped from where it ends)
+    const from = film?.from
+    const again = () => {
+      v.currentTime = from ?? 0
+      seenFilm(v, seen, false, true)
     }
-  }, [name])
-  if (!base) return null
-  const src = `/video/loops/${name}.mp4`
+    if (from) v.addEventListener('ended', again)
+    return () => {
+      io.disconnect()
+      v.removeEventListener('loadeddata', filmReady)
+      v.removeEventListener('ended', again)
+      dropFilm(v)
+    }
+  }, [shown, near, film])
+
+  // another wanted (a thickness, the flat mesh): loaded, set to the moment the shown one is at, then it takes its place
+  useEffect(() => {
+    if (want === shown) return
+    setAsked((a) => (a.has(want) ? a : new Set([...a, want])))
+    const next = videos.current.get(want)
+    const now = videos.current.get(shown)
+    if (!next) return
+    let done = false
+    const take = () => {
+      if (done) return
+      done = true
+      setShown(want)
+    }
+    const sync = () => {
+      next.currentTime = now ? now.currentTime % (next.duration || Infinity) : 0
+      next.addEventListener('seeked', take, { once: true })
+    }
+    if (next.readyState >= 2) sync()
+    else next.addEventListener('loadeddata', sync, { once: true })
+    return () => {
+      next.removeEventListener('loadeddata', sync)
+      next.removeEventListener('seeked', take)
+    }
+  }, [want, shown, asked])
+
+  // Non-Corrosive: off while its section comes up the screen, on once it has reached the top, off again back under it
+  useEffect(() => {
+    if (!fades) return
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const r = row.current
+      if (!r) return
+      const top = r.getBoundingClientRect().top
+      const vh = window.innerHeight
+      if (top < vh * 0.15) setOn(true)
+      else if (top > vh * 0.6) setOn(false)
+    }
+    const kick = () => void (raf ||= requestAnimationFrame(read))
+    read()
+    window.addEventListener('scroll', kick, { passive: true })
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', kick)
+    }
+  }, [fades, row])
+
+  if (!film) return null
   return (
-    <video
-      key={name}
-      ref={video}
-      className="eb-fig__loop"
-      src={near ? src : undefined}
-      poster={`/video/loops/${name}.jpg`}
-      muted
-      loop
-      playsInline
-      preload={near ? 'auto' : 'none'}
-      aria-hidden="true"
-      disablePictureInPicture
-    />
+    <div ref={box} className={`eb-fig__films ${on ? 'is-on' : ''} ${fades ? 'is-fading' : ''}`} aria-hidden="true">
+      {names.map((n) => (
+        <video
+          key={n}
+          ref={(v) => void (v ? videos.current.set(n, v) : videos.current.delete(n))}
+          className={`eb-fig__loop ${n === shown ? 'is-shown' : ''}`}
+          src={near && (asked.has(n) || n === shown) ? `${FILM_DIR}/${n}.mp4` : undefined}
+          poster={n === shown || asked.has(n) ? `${FILM_DIR}/${n}.jpg` : undefined}
+          muted
+          loop={!film.from}
+          playsInline
+          // (streamed as it plays, a slow turn little to fetch a second: three minutes of it is never fetched ahead)
+          preload={near && (asked.has(n) || n === shown) ? 'metadata' : 'none'}
+          disablePictureInPicture
+        />
+      ))}
+    </div>
   )
 }
+/** the figures that fade on as their section arrives (their 3D card's `grow.fade`, poses.ts) */
+const PHONE_FADES = new Set<PoseId>(['mineral'])
 
 function Row({ chapter, title, count, step, index, ground }: { chapter: string; title: string; count: number; step: Step; index: number; ground: Ground }) {
   const row = useRef<HTMLElement>(null)
@@ -276,7 +354,9 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
   // (in development ?films shows the films, to check them)
   // (Tech Space's system is drawn live too: a film in its place went black for a moment each time the thickness changed
   // it for another; the live card is kept light instead, its turn held while the page moves: StageScene)
-  const filmed = Boolean(LOOPS[step.pose]) && (failed || (import.meta.env.DEV && new URLSearchParams(window.location.search).has('films')))
+  // (a phone's: a wide screen with no 3D keeps its stills)
+  const compact = useIsCompact()
+  const filmed = compact && Boolean(FILMS[step.pose]) && (failed || (import.meta.env.DEV && new URLSearchParams(window.location.search).has('films')))
   // pressed and held, the card's mesh turns in the hand (its own, eased back to its pose once let go: StageScene)
   const [turn] = useState<Turn>(() => ({ yaw: 0, pitch: 0, dragging: false, touch: { x: 0, y: 0, down: false } }))
   useStageRegion(filmed ? none : box, () => step.pose, undefined, { box: true, turn })
@@ -355,7 +435,7 @@ function Row({ chapter, title, count, step, index, ground }: { chapter: string; 
       <figure className="eb-fig">
         <div ref={box} className="eb-fig__view" data-screen={ground}>
           {/* the 3D is drawn into the card's own canvas (StageScene), so it scrolls with the card */}
-          {filmed ? <Loop pose={step.pose} /> : still ? <img className="eb-fig__still" src={still} alt="" /> : <canvas className="eb-fig__canvas" aria-hidden="true" />}
+          {filmed ? <CardFilm pose={step.pose} row={row} /> : still ? <img className="eb-fig__still" src={still} alt="" /> : <canvas className="eb-fig__canvas" aria-hidden="true" />}
           {handled && !still && <TouchHint id="hold-card" when={active} icon="hold" text="Drag to turn" className="eb-fig__hint" />}
           <i className="eb-fig__tick eb-fig__tick--tl" aria-hidden="true" />
           <i className="eb-fig__tick eb-fig__tick--br" aria-hidden="true" />

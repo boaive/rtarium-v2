@@ -142,13 +142,16 @@ export function Stage() {
     const id = window.setTimeout(() => setWatch(true), compact ? 2600 : 4000)
     return () => window.clearTimeout(id)
   }, [ready, compact])
-  const top = Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
+  // (development: the films' recorders draw sharper than a phone would, window.__filmDpr)
+  const filmDpr = import.meta.env.DEV ? (window as Window & { __filmDpr?: number }).__filmDpr : undefined
+  const top = filmDpr ?? Math.max(1, Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 1.75))
   // (a phone never steps below 1.25: at 1 its fine yarns go soft on a dense screen, and it saves less than it costs)
   const floor = compact ? Math.min(top, 1.25) : 1
-  const dpr = Math.round((floor + (top - floor) * quality) * 100) / 100
+  const dpr = filmDpr ?? Math.round((floor + (top - floor) * quality) * 100) / 100
 
   useEffect(() => {
-    if (!supported) setShared({ failed: true })
+    // (`?fallback` shows the page as it is with no 3D: for checking it on a phone that has 3D)
+    if (!supported || new URLSearchParams(window.location.search).has('fallback')) setShared({ failed: true })
   }, [supported])
 
   /*
