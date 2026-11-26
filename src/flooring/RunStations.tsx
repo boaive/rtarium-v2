@@ -25,12 +25,16 @@ export interface RunStep {
 
 export type RunScene = (t: Progress, bus: LabelBus, room: RefObject<BuildRoom>, live: { current: boolean }) => ReactNode
 
+/** what stands in for the scene with no 3D: a still, or (a phone's film of the steps: facade/films.tsx StepFilm) one
+ * given the step in play, each time it comes round, and every step's time (ms) */
+export type RunFallback = ReactNode | ((k: number, turn: number, ms: number[]) => ReactNode)
+
 /** the room the scene keeps to in the card */
 const CARD_ROOM: BuildRoom = { x: 0.08, y: 0.1, w: 0.84, h: 0.8 }
 /** the labels' reach in the card, a share of the wide screen's */
 const REACH = 0.6
 
-function RunLive({ k, turn, steps, ms, hold, scene, labels, fallback, section, zoom, keyLight = true }: { k: number; turn: number; steps: RunStep[]; ms: number[]; hold: number[]; scene: RunScene; labels: LabelSpec[]; fallback: ReactNode; section: RefObject<HTMLElement | null>; zoom?: number[]; keyLight?: boolean }) {
+function RunLive({ k, turn, steps, ms, hold, scene, labels, fallback, section, zoom, keyLight = true }: { k: number; turn: number; steps: RunStep[]; ms: number[]; hold: number[]; scene: RunScene; labels: LabelSpec[]; fallback: RunFallback; section: RefObject<HTMLElement | null>; zoom?: number[]; keyLight?: boolean }) {
   const t = useMemo<Progress>(() => ({ value: 0, listeners: new Set() }), [])
   const bus = useMemo(createBus, [])
   const room = useRef<BuildRoom>(CARD_ROOM)
@@ -47,7 +51,7 @@ function RunLive({ k, turn, steps, ms, hold, scene, labels, fallback, section, z
   const shown = steps.find((s) => s.id === lit)?.labels ?? []
   return (
     <div className="fst__live" aria-hidden="true">
-      <Stage3D shadows keyLight={keyLight} fallback={fallback}>
+      <Stage3D shadows keyLight={keyLight} fallback={typeof fallback === 'function' ? fallback(k, turn, ms) : fallback}>
         {scene(t, bus, room, live)}
         <Zoom by={zoom?.[k] ?? 1.45} />
         <LabelProjector bus={bus} bottom={8} />
@@ -57,7 +61,7 @@ function RunLive({ k, turn, steps, ms, hold, scene, labels, fallback, section, z
   )
 }
 
-export function RunStations({ id, title, steps, stretch, scene, labels, fallback, zoom, thumbs, manual, center, controls, keyLight, foot, action }: { id: string; title: string; steps: RunStep[]; stretch: number[]; scene: RunScene; labels: LabelSpec[]; fallback: ReactNode; /** each step's zoom in the card (Zoom) */ zoom?: number[]; /** where each step's still for the strip is (`${thumbs}-${n}.webp`) */ thumbs?: string; /** a step a swipe (Stations) */ manual?: boolean; /** the card midway between words and bar (Stations) */ center?: boolean; /** small back, on, again buttons (Stations) */ controls?: boolean; /** the stage's fixed key light (off: the scene brings its own) */ keyLight?: boolean; /** after the strip (Stations) */ foot?: ReactNode; /** under the step's words, over the card (Stations) */ action?: ReactNode }) {
+export function RunStations({ id, title, steps, stretch, scene, labels, fallback, zoom, thumbs, manual, center, controls, keyLight, foot, action }: { id: string; title: string; steps: RunStep[]; stretch: number[]; scene: RunScene; labels: LabelSpec[]; fallback: RunFallback; /** each step's zoom in the card (Zoom) */ zoom?: number[]; /** where each step's still for the strip is (`${thumbs}-${n}.webp`) */ thumbs?: string; /** a step a swipe (Stations) */ manual?: boolean; /** the card midway between words and bar (Stations) */ center?: boolean; /** small back, on, again buttons (Stations) */ controls?: boolean; /** the stage's fixed key light (off: the scene brings its own) */ keyLight?: boolean; /** after the strip (Stations) */ foot?: ReactNode; /** under the step's words, over the card (Stations) */ action?: ReactNode }) {
   const section = useRef<HTMLElement>(null)
   const n = steps.length
   // (a step's time from its share of the wide screen's scroll; the last held a little longer on its labels)

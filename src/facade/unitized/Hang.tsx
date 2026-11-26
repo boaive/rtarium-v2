@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { useIsCompact } from '../../lib/motion'
 import { Stage3D, LabelProjector, Labels, MovingKeyLight, type LabelSpec } from '../three/Stage3D'
 import { createBus } from '../three/kit'
@@ -11,6 +11,7 @@ import { ReviewNote } from '../../components/Media'
 import { useLive } from './live'
 import { REPLAY_HINT, StepBar } from './StepBar'
 import { StepFloor } from './StepFloor'
+import { StepFilm } from '../films'
 
 /**
  * Slab to slab, and onto the building. One scene on the warm white page, edge to edge and sharp (the
@@ -57,13 +58,13 @@ export function Hang() {
 }
 
 /** the scene, in the canvas it is given: the connection, the joints, the block, the crane and the façade going up */
-function HangStage({ progress, live, compact }: { progress: Progress; live: { current: boolean }; compact: boolean }) {
+function HangStage({ progress, live, compact, fallback }: { progress: Progress; live: { current: boolean }; compact: boolean; /** with no 3D (by default its still) */ fallback?: ReactNode }) {
   const bus = useMemo(createBus, [])
   const settle = useRef(0)
   const shotAt = useMemo(() => (p: number) => hangShot(p, compact, settle.current), [compact])
   return (
     <>
-      <Stage3D shadows keyLight={false} fallback={<img className="fu-still" src="/img/facade/panel-back.webp" alt="" />}>
+      <Stage3D shadows keyLight={false} fallback={fallback ?? <img className="fu-still" src="/img/facade/panel-back.webp" alt="" />}>
         <ScrubRig progress={progress} shotAt={shotAt} sway={1} live={live} aspect={1.6} />
         <MovingKeyLight focus={[12, 12, -2]} reach={24} />
         <HangScene progress={progress} bus={bus} live={live} settle={settle} />
@@ -167,7 +168,8 @@ function HangLive({ k, turn, section }: { k: number; turn: number; section: RefO
   }, [k, turn, progress])
   return (
     <div className="fsf__live" aria-hidden="true">
-      <HangStage progress={progress} live={live} compact />
+      {/* (no 3D: the steps' film, each step its stretch of it, the façade going up and the crane going at its end: films.tsx) */}
+      <HangStage progress={progress} live={live} compact fallback={<StepFilm name="unitized-hang" k={k} turn={turn} ms={CLIP_MS} />} />
     </div>
   )
 }

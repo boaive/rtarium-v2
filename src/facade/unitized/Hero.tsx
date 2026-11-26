@@ -8,6 +8,7 @@ import { FollowScroll, useScrollProgress } from '../progress'
 import { ScrollCue } from '../../components/ScrollCue'
 import { HERO_TARGET, HeroUnit } from '../three/unit/HeroUnit'
 import { useLive } from './live'
+import { ScrubFilm } from '../films'
 
 /**
  * The opening, on yellow, kept to a few things: the page's name and what it is, large, top left; the
@@ -44,7 +45,9 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
   return (
     <section ref={sectionRef} className="fu-hero on-yellow" aria-labelledby="fu-title">
       <div className="fu-hero__stage">
-        <Stage3D shadows keyLight={false} fallback={<img className="fu-still" src="/img/facade/panel-ivory.webp" alt="" />}>
+        {/* (no 3D: on a phone, the film of it played by the scroll, the unit settling and its cut opening first; a wide
+            screen keeps its still) */}
+        <Stage3D shadows keyLight={false} fallback={compact ? <ScrubFilm name="unitized-hero" section={sectionRef} open={2.5} frames={49} /> : <img className="fu-still" src="/img/facade/panel-ivory.webp" alt="" />}>
           <ScrubRig progress={progress} shotAt={shotAt} sway={1.5} live={live} aspect={compact ? 0.56 : 1.6} turn={HERO_TURN} />
           <MovingKeyLight focus={HERO_TARGET} reach={4.2} offset={[6, 9, 7]} />
           {/* (a phone: the panel whole, its cover never drawn back off the cut, and no label on it) */}

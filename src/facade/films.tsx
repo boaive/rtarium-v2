@@ -23,11 +23,19 @@ import './films.css'
  *   a loop (one whole period of its motion, so it loops without a seam):
  *     ffmpeg -i master.mp4 -vf "$VF" -c:v libx264 -preset veryslow -crf 22 -profile:v high $TAG -g 240 -bf 3 \
  *       -movflags +faststart -an public/video/fallback/<name>.mp4
- *   its poster, the first frame: ffmpeg -i master.mp4 -frames:v 1 -vf "scale=in_color_matrix=bt601:in_range=tv,format=rgb24" -q:v 6 <name>.jpg
+ *   a film of steps (a keyframe at each step's start, to be sought there at once; one every 2 s, for catching up):
+ *     ffmpeg -i master.mp4 -vf "$VF" -c:v libx264 -preset veryslow -crf 22 -profile:v high $TAG \
+ *       -force_key_frames <each step's start, s, comma separated> -g 48 -bf 2 -movflags +faststart -an <name>.mp4
+ *   its poster, the first frame (a film of steps: its first step's end, as the 3D stands before it plays it again):
+ *     ffmpeg -i master.mp4 -frames:v 1 -vf "scale=in_color_matrix=bt601:in_range=tv,format=rgb24" -q:v 6 <name>.jpg
  *
  * The films so far (Nov 2026):
  *   facade-hero          Façade & Cladding's opening: the pour (2.5 s), then its height of scroll (49 frames), 600x1300
  *   systems-<id>         each façade system's card at the foot of the façade pages (More), one 16 s sway, 600x812
+ *   unitized-hero        the Unitized opening: the unit settling, its cut opened (2.5 s), then its scroll, 600x1300
+ *   unitized-layers      the six layers' card (8 steps, RunStations' times: 2.3 s each, the last 3 s), 600x472, crf 22
+ *   unitized-hang        slab to slab (5 steps, Hang's CLIP_MS; the last on 9.1 s, the façade going up and the crane
+ *                        going), the whole screen, 600x1300, crf 31 (a screen of fine lines: 1.1 MB, not 3.7 at 22)
  */
 const DIR = '/video/fallback'
 const FPS = 24
@@ -200,6 +208,104 @@ export function LoopFilm({ name, front }: { name: string; front: boolean }) {
       loop
       playsInline
       preload={near ? (front ? 'auto' : 'metadata') : 'none'}
+      aria-hidden="true"
+      disablePictureInPicture
+      disableRemotePlayback
+    />
+  )
+}
+
+/** when the page last moved: a step's film holds while it does, as the 3D card is not drawn again until the page is still
+ * (Stage3D `Carried`), and takes up where the step's own clock has got to once it is (as ScrubRig holds its turn) */
+let movedAt = -1e9
+const HOLD_MS = 160
+if (typeof window !== 'undefined') window.addEventListener('scroll', () => void (movedAt = performance.now()), { passive: true })
+
+/**
+ * A view whose steps play themselves (a phone's step cards: Stations, StepFloor), its film the whole run recorded on one
+ * clock, every step's ease and hold as the cards' own step clock plays it (stepClock.ts, Hang's HangLive), so step `k`
+ * is its stretch of the film: from the sum of the steps' times before it (`ms`, the cards' own) to the next step's start,
+ * the last on to the film's end. Each time the cards come to a step (`k`, `turn`) its stretch plays: on from where the
+ * film is if that is already in it (the step after the one just played, or the same step come round again, which, as the
+ * 3D's, has nothing left to play), from its start otherwise (a step picked, the first again). It holds while the page
+ * moves and while it is off the screen, as the 3D card is not drawn then, and catches up with the step's clock once it is
+ * still and seen again. Fetched as the section comes near, streamed. Under reduced motion each step shows its end.
+ */
+export function StepFilm({ name, k, turn, ms }: { name: string; k: number; turn: number; ms: number[] }) {
+  const video = useRef<HTMLVideoElement>(null)
+  const [near, setNear] = useState(false)
+  const seen = useRef(false)
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    v.muted = true
+    const ahead = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: '150% 0px' })
+    const io = new IntersectionObserver(([e]) => void (seen.current = e.isIntersecting))
+    ahead.observe(v)
+    io.observe(v)
+    return () => {
+      ahead.disconnect()
+      io.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    const v = video.current
+    if (!v || !near) return
+    // (each step's start in the film, s: the steps' times before it)
+    const starts = ms.map((_, i) => ms.slice(0, i).reduce((a, b) => a + b, 0) / 1000)
+    let raf = 0
+    let from = -1
+    let t0 = 0
+    const frame = 1 / FPS
+    const run = () => {
+      raf = 0
+      if (v.readyState < 1) return void v.addEventListener('loadedmetadata', run, { once: true })
+      const end = k < ms.length - 1 ? starts[k + 1] : v.duration
+      // (its last frame, landed inside it)
+      const last = end - 0.7 * frame
+      if (from < 0) {
+        const at = v.currentTime
+        from = k === 0 || at < starts[k] - frame || at > end ? starts[k] : at
+        t0 = performance.now()
+      }
+      if (prefersReducedMotion()) {
+        if (!v.paused) v.pause()
+        if (Math.abs(v.currentTime - last) > frame) v.currentTime = last
+        return
+      }
+      const want = Math.min(last, from + (performance.now() - t0) / 1000)
+      const still = performance.now() - movedAt > HOLD_MS && seen.current
+      if (!still) {
+        if (!v.paused) v.pause()
+      } else if (want >= last) {
+        if (!v.paused) v.pause()
+        if (Math.abs(v.currentTime - last) > frame && !v.seeking) v.currentTime = last
+        return
+      } else {
+        // (taken up where the step's clock is: sought only when it has fallen well behind, never chasing a frame)
+        if (!v.seeking && Math.abs(v.currentTime - want) > (v.paused ? 1.5 * frame : 0.25)) v.currentTime = want
+        if (v.paused) void v.play().catch(() => {})
+      }
+      raf = requestAnimationFrame(run)
+    }
+    run()
+    return () => {
+      cancelAnimationFrame(raf)
+      v.removeEventListener('loadedmetadata', run)
+      v.pause()
+    }
+  }, [k, turn, near, ms])
+
+  return (
+    <video
+      ref={video}
+      className="fc-film"
+      src={near ? `${DIR}/${name}.mp4` : undefined}
+      poster={`${DIR}/${name}.jpg`}
+      muted
+      playsInline
+      preload={near ? 'auto' : 'none'}
       aria-hidden="true"
       disablePictureInPicture
       disableRemotePlayback

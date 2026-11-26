@@ -15,6 +15,7 @@ import { useCornerBox, useLive } from './live'
 import { paintCards } from './stack'
 import { HintTag, Skip, type Hint } from './StepBar'
 import { RunStations } from '../../flooring/RunStations'
+import { StepFilm } from '../films'
 
 /**
  * Six layers, one unit, on yellow. Pinned for its run: on the left the layers as sticky stacking
@@ -98,7 +99,8 @@ function LayersPhone() {
       stretch={PHONE_STEPS.map(() => 1)}
       labels={NO_LABELS}
       scene={(t, bus, _room, live) => <LayerRun t={t} bus={bus} live={live} />}
-      fallback={<img className="fu-still" src="/img/facade/panel-back.webp" alt="" />}
+      // (no 3D: the steps' film, each step its stretch of it, played as the card comes to it: films.tsx)
+      fallback={(k, turn, ms) => <StepFilm name="unitized-layers" k={k} turn={turn} ms={ms} />}
       zoom={PHONE_STEPS.map(() => 1.6)}
       keyLight={false}
       thumbs="/img/facade/unitized/layers-step"
